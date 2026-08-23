@@ -1,0 +1,24 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "lufia2", "src\lufia2.vcxproj", "{4E9B0CD7-2EAF-485A-A3B5-A1D58F74B7C8}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Release|x64 = Release|x64
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4E9B0CD7-2EAF-485A-A3B5-A1D58F74B7C8}.Debug|x64.ActiveCfg = Debug|x64
+		{4E9B0CD7-2EAF-485A-A3B5-A1D58F74B7C8}.Debug|x64.Build.0 = Debug|x64
+		{4E9B0CD7-2EAF-485A-A3B5-A1D58F74B7C8}.Release|x64.ActiveCfg = Release|x64
+		{4E9B0CD7-2EAF-485A-A3B5-A1D58F74B7C8}.Release|x64.Build.0 = Release|x64
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A7CE95DF-EA11-47AA-9BD7-30A4703EC576}
+	EndGlobalSection
+EndGlobal

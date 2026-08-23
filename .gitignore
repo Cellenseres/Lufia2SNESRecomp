@@ -1,0 +1,47 @@
+# Build output and fetched dependencies
+/build/
+/out/
+
+# ROMs
+*.sfc
+*.smc
+*.rom
+
+# Generated recompilation output
+/src/gen/*
+!/src/gen/.gitkeep
+
+# Runtime data
+/saves/
+*.srm
+*.sav
+config.ini
+keybinds.ini
+rom.cfg
+
+# Diagnostics
+*.log
+*.jsonl
+*.dmp
+*.mdmp
+tier2_coverage*
+tier2_journal*
+post_mortem*
+
+# CMake user state
+CMakeUserPresets.json
+
+# Visual Studio
+.vs/
+*.vcxproj.user
+*.suo
+
+# Python
+__pycache__/
+*.pyc
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+/docs

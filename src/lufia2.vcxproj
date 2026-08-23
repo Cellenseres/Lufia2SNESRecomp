@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="Current" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{4E9B0CD7-2EAF-485A-A3B5-A1D58F74B7C8}</ProjectGuid>
+    <Keyword>MakeFileProj</Keyword>
+    <ProjectName>lufia2</ProjectName>
+    <RootNamespace>Lufia2Recomp</RootNamespace>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <NMakeBuildCommandLine>cd /d "$(SolutionDir)" &amp;&amp; cmake --preset windows-debug &amp;&amp; cmake --build --preset windows-debug</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>cd /d "$(SolutionDir)" &amp;&amp; cmake --preset windows-debug &amp;&amp; cmake --build --preset windows-debug --clean-first</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>cd /d "$(SolutionDir)" &amp;&amp; cmake --build --preset windows-debug --target clean</NMakeCleanCommandLine>
+    <NMakeOutput>$(SolutionDir)build\windows\Debug\Lufia2Recomp.exe</NMakeOutput>
+    <NMakeIncludeSearchPath>$(SolutionDir)src;$(SolutionDir)recomp</NMakeIncludeSearchPath>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <NMakeBuildCommandLine>cd /d "$(SolutionDir)" &amp;&amp; cmake --preset windows-release &amp;&amp; cmake --build --preset windows-release</NMakeBuildCommandLine>
+    <NMakeReBuildCommandLine>cd /d "$(SolutionDir)" &amp;&amp; cmake --preset windows-release &amp;&amp; cmake --build --preset windows-release --clean-first</NMakeReBuildCommandLine>
+    <NMakeCleanCommandLine>cd /d "$(SolutionDir)" &amp;&amp; cmake --build --preset windows-release --target clean</NMakeCleanCommandLine>
+    <NMakeOutput>$(SolutionDir)build\windows\Release\Lufia2Recomp.exe</NMakeOutput>
+    <NMakeIncludeSearchPath>$(SolutionDir)src;$(SolutionDir)recomp</NMakeIncludeSearchPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ClCompile Include="main.c" />
+    <ClCompile Include="desktop_glue.c" />
+    <ClCompile Include="lufia2_game_info.c" />
+    <ClCompile Include="lufia2_runtime.c" />
+    <ClCompile Include="gen_stubs.c" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClInclude Include="config.h" />
+    <ClInclude Include="desktop_glue.h" />
+    <ClInclude Include="lufia2_runtime.h" />
+    <ClInclude Include="variables.h" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\CMakeLists.txt" />
+    <None Include="..\CMakePresets.json" />
+    <None Include="..\README.md" />
+    <None Include="..\ISSUES.md" />
+    <None Include="..\ENHANCEMENTS.md" />
+    <None Include="..\recomp\bank00.cfg" />
+    <None Include="..\recomp\bank82.cfg" />
+    <None Include="..\recomp\funcs.h" />
+  </ItemGroup>
+
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+</Project>

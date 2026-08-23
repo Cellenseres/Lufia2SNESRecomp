@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{2F174BE1-0F82-44C0-958E-C2C607E5399D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{378EAE29-5159-42F4-B6B8-CAB60BF61152}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Recompiler">
+      <UniqueIdentifier>{626CF6E1-B3AB-4F29-A450-B1DE24DE8A28}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClCompile Include="main.c"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="desktop_glue.c"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="lufia2_game_info.c"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="lufia2_runtime.c"><Filter>Source Files</Filter></ClCompile>
+    <ClCompile Include="gen_stubs.c"><Filter>Source Files</Filter></ClCompile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <ClInclude Include="config.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="desktop_glue.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="lufia2_runtime.h"><Filter>Header Files</Filter></ClInclude>
+    <ClInclude Include="variables.h"><Filter>Header Files</Filter></ClInclude>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\recomp\bank00.cfg"><Filter>Recompiler</Filter></None>
+    <None Include="..\recomp\bank82.cfg"><Filter>Recompiler</Filter></None>
+    <None Include="..\recomp\funcs.h"><Filter>Recompiler</Filter></None>
+  </ItemGroup>
+</Project>
