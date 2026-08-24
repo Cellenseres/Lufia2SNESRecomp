@@ -4,7 +4,8 @@ A native recompilation of **Lufia II: Rise of the Sinistrals** using
 [`snesrecomp`](https://github.com/mstan/snesrecomp).
 
 The game boots from the original US ROM and supports the intro, title screen,
-normal gameplay, battles, audio, input, saves and the desktop launcher.
+normal gameplay, battles, audio, input, saves and the desktop launcher. Video
+output can use SDL or OpenGL 3.3.
 
 ## ROM
 
@@ -30,6 +31,7 @@ Requirements:
 Build from the command line:
 
 ```powershell
+git submodule update --init --recursive
 cmake --preset windows-release
 cmake --build --preset windows-release
 ```
@@ -57,5 +59,12 @@ Save data is stored in `saves\save.srm` next to the executable.
 
 - `recomp/` contains the control-flow information used during recompilation.
 - `src/` contains the game host and runtime code.
+- `lib/snesrecomp-platform/` is the shared renderer and host submodule.
+
+## Renderer
+
+The launcher offers SDL accelerated, SDL software and OpenGL 3.3. OpenGL can
+also use GLSL shader presets. If it cannot start, the game falls back to SDL for
+that run.
 
 See [ISSUES.md](ISSUES.md) for the current limitations.

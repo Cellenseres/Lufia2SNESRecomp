@@ -6,6 +6,8 @@
 #include <string.h>
 
 #include "desktop/sdl_compat.h"
+#include "snesrecomp_platform/glsl_shader_adapter.h"
+#include "snesrecomp_platform/presenter.h"
 #include "host_report.h"
 #include "host_paths.h"
 #include "launcher_cache.h"
@@ -54,12 +56,23 @@ static const char *const kLufia2KnownSha1[] = {
     "a89931c1f29b161b8be717dfab4a4adb54b42b84",
 };
 
+enum {
+    LUFIA2_LAUNCHER_RENDERER_SDL = 0,
+    LUFIA2_LAUNCHER_RENDERER_SDL_SOFTWARE,
+    LUFIA2_LAUNCHER_RENDERER_OPENGL,
+    LUFIA2_LAUNCHER_RENDERER_COUNT,
+};
+
+static const char *const kLufia2LauncherRendererLabels[] = {
+    "SDL Accelerated",
+    "SDL Software",
+    "OpenGL 3.3",
+};
+
 extern Ppu *g_ppu;
 extern bool g_fail;
 
-static SDL_Window *s_window;
-static SDL_Renderer *s_renderer;
-static SDL_Texture *s_texture;
+static SnesRecompPresenter *s_presenter;
 static SDL_AudioStream *s_audio_stream;
 static SDL_Gamepad *s_gamepad;
 
@@ -121,8 +134,9 @@ static bool EnsureDefaultConfig(const char *path) {
         "Fullscreen = 0\n"
         "IgnoreAspectRatio = 0\n"
         "DisplayAspect = 4:3\n"
-        "OutputMethod = SDL\n"
+        "OutputMethod = OpenGL\n"
         "LinearFiltering = 0\n"
+        "Shader =\n"
         "NewRenderer = 0\n"
         "NoSpriteLimits = 0\n"
         "Widescreen = 0\n"
@@ -277,6 +291,30 @@ static bool CachedRomIsValid(const char *path) {
     return true;
 }
 
+static int LauncherRendererFromOutputMethod(int output_method) {
+    switch (output_method) {
+    case kOutputMethod_SDLSoftware:
+        return LUFIA2_LAUNCHER_RENDERER_SDL_SOFTWARE;
+    case kOutputMethod_OpenGL:
+        return LUFIA2_LAUNCHER_RENDERER_OPENGL;
+    case kOutputMethod_SDL:
+    default:
+        return LUFIA2_LAUNCHER_RENDERER_SDL;
+    }
+}
+
+static uint8 OutputMethodFromLauncherRenderer(int renderer) {
+    switch (renderer) {
+    case LUFIA2_LAUNCHER_RENDERER_SDL_SOFTWARE:
+        return kOutputMethod_SDLSoftware;
+    case LUFIA2_LAUNCHER_RENDERER_OPENGL:
+        return kOutputMethod_OpenGL;
+    case LUFIA2_LAUNCHER_RENDERER_SDL:
+    default:
+        return kOutputMethod_SDL;
+    }
+}
+
 static bool ResolveRomWithLauncher(int argc, char **argv,
                                    char *rom_path, size_t rom_cap) {
     char positional_abs[1024];
@@ -354,6 +392,8 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     RecompLauncherCSettings ls;
     memset(&ls, 0, sizeof(ls));
     ls.output_method = g_config.output_method;
+    ls.renderer =
+        LauncherRendererFromOutputMethod(g_config.output_method);
     ls.window_scale = g_config.window_scale
         ? g_config.window_scale : DEFAULT_WINDOW_SCALE;
     ls.fullscreen = g_config.fullscreen;
@@ -386,6 +426,9 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     gi.msu1_supported = 0;
     gi.config_path = "config.ini";
     gi.keybinds_path = "keybinds.ini";
+    gi.has_renderer = 1;
+    gi.renderer_labels = kLufia2LauncherRendererLabels;
+    gi.num_renderers = LUFIA2_LAUNCHER_RENDERER_COUNT;
 
     host_report_breadcrumb("launcher: opening recomp-ui");
 
@@ -417,15 +460,8 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     if (action != RECOMP_LAUNCHER_RESULT_LAUNCH || !rom_path[0])
         return false;
 
-    /* Game output currently uses SDL_Renderer. */
-    if (ls.output_method == kOutputMethod_OpenGL) {
-        fprintf(stderr,
-            "[video] OpenGL game renderer is not enabled in Lufia Desktop v2; "
-            "falling back to SDL.\n");
-        ls.output_method = kOutputMethod_SDL;
-    }
-
-    g_config.output_method = (uint8)ls.output_method;
+    g_config.output_method =
+        OutputMethodFromLauncherRenderer(ls.renderer);
     g_config.window_scale =
         (uint8)(ls.window_scale > 0 ? ls.window_scale : DEFAULT_WINDOW_SCALE);
     g_config.fullscreen = (uint8)ls.fullscreen;
@@ -607,61 +643,74 @@ static bool InitVideo(void) {
     if (scale > 10) scale = 10;
     s_current_window_scale = scale;
 
-    s_window = snesrecomp_sdl_create_window(
-        "Lufia II: Rise of the Sinistrals (Recompiled)",
-        SNES_WIDTH * scale,
-        SNES_HEIGHT * scale,
-        SDL_WINDOW_RESIZABLE);
-
-    if (!s_window) {
-        fprintf(stderr, "SDL_CreateWindow failed: %s\n", SDL_GetError());
-        return false;
+    SnesRecompPresentConfig config;
+    memset(&config, 0, sizeof(config));
+    config.window_title =
+        "Lufia II: Rise of the Sinistrals (Recompiled)";
+    if (g_config.output_method == kOutputMethod_OpenGL) {
+        config.backend = SNESRECOMP_PRESENT_BACKEND_OPENGL;
+    } else if (g_config.output_method == kOutputMethod_SDLSoftware) {
+        config.backend = SNESRECOMP_PRESENT_BACKEND_SDL_SOFTWARE;
+    } else {
+        config.backend = SNESRECOMP_PRESENT_BACKEND_SDL;
+    }
+    config.pixel_format = SNESRECOMP_PIXEL_FORMAT_ARGB8888;
+    config.frame_width = SNES_WIDTH;
+    config.frame_height = SNES_HEIGHT;
+    config.window_scale = scale;
+    config.vsync = true;
+    config.preserve_aspect = !g_config.ignore_aspect_ratio;
+    config.linear_filtering = g_config.linear_filtering;
+    config.fullscreen = g_config.fullscreen != 0;
+    if (config.backend == SNESRECOMP_PRESENT_BACKEND_OPENGL) {
+        config.shader_preset_path = g_config.shader;
+        config.shader_preset_interface =
+            snesrecomp_glsl_shader_preset_interface();
     }
 
-    const bool software =
-        g_config.output_method == kOutputMethod_SDLSoftware;
+    char error[256];
+    if (!snesrecomp_presenter_create(
+            &config, &s_presenter, error, sizeof(error))) {
+        if (config.backend != SNESRECOMP_PRESENT_BACKEND_OPENGL) {
+            fprintf(stderr, "Presenter creation failed: %s\n", error);
+            return false;
+        }
 
-    /* VSync prevents tearing; frame pacing still caps guest speed. */
-    s_renderer = snesrecomp_sdl_create_renderer(
-        s_window, software, true);
-
-    if (!s_renderer) {
-        fprintf(stderr, "SDL_CreateRenderer failed: %s\n", SDL_GetError());
-        return false;
+        fprintf(stderr,
+            "[video] OpenGL initialization failed: %s\n"
+            "[video] Falling back to the SDL renderer for this session.\n",
+            error);
+        host_report_breadcrumb(
+            "OpenGL presenter failed; SDL fallback: %s", error);
+        config.backend = SNESRECOMP_PRESENT_BACKEND_SDL;
+        config.shader_preset_path = NULL;
+        config.shader_preset_interface = NULL;
+        if (!snesrecomp_presenter_create(
+                &config, &s_presenter, error, sizeof(error))) {
+            fprintf(stderr,
+                "SDL fallback presenter creation failed: %s\n", error);
+            return false;
+        }
     }
 
-    if (!g_config.ignore_aspect_ratio) {
-        snesrecomp_sdl_set_render_logical_size(
-            s_renderer, SNES_WIDTH, SNES_HEIGHT);
-    }
-
-    s_texture = SDL_CreateTexture(
-        s_renderer,
-        SDL_PIXELFORMAT_ARGB8888,
-        SDL_TEXTUREACCESS_STREAMING,
-        SNES_WIDTH,
-        SNES_HEIGHT);
-
-    if (!s_texture) {
-        fprintf(stderr, "SDL_CreateTexture failed: %s\n", SDL_GetError());
-        return false;
-    }
-
-    snesrecomp_sdl_set_texture_opaque(s_texture);
-    snesrecomp_sdl_set_texture_linear(
-        s_texture, g_config.linear_filtering);
-
-    if (g_config.fullscreen != 0) {
-        s_fullscreen = true;
-        snesrecomp_sdl_set_fullscreen(s_window, true);
-    }
+    s_fullscreen = config.fullscreen;
 
     host_report_breadcrumb(
-        "video ready: %dx%d scale=%d method=%s fullscreen=%d linear=%d",
+        "video ready: %dx%d scale=%d method=%s fullscreen=%d linear=%d caps=0x%x",
         SNES_WIDTH, SNES_HEIGHT, scale,
-        software ? "SDL-software" : "SDL",
+        snesrecomp_presenter_backend_name(s_presenter),
         g_config.fullscreen,
-        g_config.linear_filtering ? 1 : 0);
+        g_config.linear_filtering ? 1 : 0,
+        (unsigned)snesrecomp_presenter_capabilities(s_presenter));
+    const bool preset_active =
+        snesrecomp_presenter_backend(s_presenter) ==
+            SNESRECOMP_PRESENT_BACKEND_OPENGL &&
+        g_config.shader && g_config.shader[0];
+    fprintf(stderr,
+        "[video] presenter ready: %s, capabilities=0x%x%s\n",
+        snesrecomp_presenter_backend_name(s_presenter),
+        (unsigned)snesrecomp_presenter_capabilities(s_presenter),
+        preset_active ? ", GLSL preset active" : "");
     return true;
 }
 
@@ -712,34 +761,50 @@ static bool InitAudio(void) {
     return true;
 }
 
-static void PresentFrame(void) {
-    SDL_UpdateTexture(s_texture, NULL, s_pixels, SNES_WIDTH * 4);
-    SDL_SetRenderDrawColor(s_renderer, 0, 0, 0, 255);
-    SDL_RenderClear(s_renderer);
-    snesrecomp_sdl_render_texture(
-        s_renderer, s_texture, NULL, NULL);
-    SDL_RenderPresent(s_renderer);
+static bool PresentFrame(void) {
+    const SnesRecompVideoFrame frame = {
+        .pixels = s_pixels,
+        .pixel_format = SNESRECOMP_PIXEL_FORMAT_ARGB8888,
+        .width = SNES_WIDTH,
+        .height = SNES_HEIGHT,
+        .pitch = SNES_WIDTH * 4,
+    };
+    if (!snesrecomp_presenter_present(s_presenter, &frame)) {
+        fprintf(stderr, "Present failed: %s\n",
+                snesrecomp_presenter_last_error(s_presenter));
+        return false;
+    }
+    return true;
 }
 
 static void ToggleFullscreen(void) {
-    s_fullscreen = !s_fullscreen;
+    const bool requested = !s_fullscreen;
+    if (!snesrecomp_presenter_set_fullscreen(
+            s_presenter, requested)) {
+        fprintf(stderr, "Fullscreen change failed: %s\n",
+                snesrecomp_presenter_last_error(s_presenter));
+        return;
+    }
+    s_fullscreen = requested;
     g_config.fullscreen = s_fullscreen ? 1 : 0;
-    snesrecomp_sdl_set_fullscreen(s_window, s_fullscreen);
     PersistInt("Graphics", "Fullscreen", g_config.fullscreen);
 }
 
 static void ResizeWindow(int delta) {
-    s_current_window_scale += delta;
-    if (s_current_window_scale < 1)
-        s_current_window_scale = 1;
-    if (s_current_window_scale > 10)
-        s_current_window_scale = 10;
+    int requested_scale = s_current_window_scale + delta;
+    if (requested_scale < 1)
+        requested_scale = 1;
+    if (requested_scale > 10)
+        requested_scale = 10;
 
-    SDL_SetWindowSize(
-        s_window,
-        SNES_WIDTH * s_current_window_scale,
-        SNES_HEIGHT * s_current_window_scale);
+    if (!snesrecomp_presenter_set_window_scale(
+            s_presenter, requested_scale)) {
+        fprintf(stderr, "Window resize failed: %s\n",
+                snesrecomp_presenter_last_error(s_presenter));
+        return;
+    }
 
+    s_current_window_scale = requested_scale;
     g_config.window_scale = (uint8)s_current_window_scale;
     WriteConfigFile("config.ini");
 }
@@ -866,7 +931,7 @@ static bool HandleEvents(void) {
 }
 
 static void UpdatePerfTitle(void) {
-    if (!s_display_perf || !s_window)
+    if (!s_display_perf || !s_presenter)
         return;
 
     s_perf_frames++;
@@ -883,7 +948,11 @@ static void UpdatePerfTitle(void) {
         snprintf(title, sizeof(title),
             "Lufia II: Rise of the Sinistrals (Recompiled) — %.1f FPS",
             fps);
-        SDL_SetWindowTitle(s_window, title);
+        if (!snesrecomp_presenter_set_window_title(
+                s_presenter, title)) {
+            fprintf(stderr, "Window title update failed: %s\n",
+                    snesrecomp_presenter_last_error(s_presenter));
+        }
         s_perf_frames = 0;
         s_perf_last_ms = now;
     }
@@ -905,18 +974,8 @@ static void ShutdownDesktop(void) {
         s_gamepad = NULL;
     }
 
-    if (s_texture) {
-        SDL_DestroyTexture(s_texture);
-        s_texture = NULL;
-    }
-    if (s_renderer) {
-        SDL_DestroyRenderer(s_renderer);
-        s_renderer = NULL;
-    }
-    if (s_window) {
-        SDL_DestroyWindow(s_window);
-        s_window = NULL;
-    }
+    snesrecomp_presenter_destroy(s_presenter);
+    s_presenter = NULL;
 
     LufiaDesktopDestroyAudioMutex();
     SDL_Quit();
@@ -1037,7 +1096,10 @@ int main(int argc, char **argv) {
         PpuBeginDrawing(
             g_ppu, s_pixels, SNES_WIDTH * 4, ppu_flags);
         Lufia2DrawPpuFrame();
-        PresentFrame();
+        if (!PresentFrame()) {
+            g_fail = true;
+            break;
+        }
 
         frame_counter++;
         UpdatePerfTitle();

@@ -1,13 +1,13 @@
-# Planned enhancements
+# Enhancements
 
-The base recompilation aims to behave like the original game. Optional modern
-features will be added separately.
+SDL and OpenGL presentation now use the reusable `snesrecomp-platform` layer.
+The launcher can select the renderer and OpenGL supports shader presets.
 
-Planned work:
+Next on the list:
 
+- SDL GPU for wider platform support;
 - widescreen with game-aware camera and HUD handling;
-- shader and scaling options;
 - optional MSU-1 music;
 - save states and a safe soft reset.
 
-Generated files under `src/gen/` are build output and are not edited by hand.
+Generated files under `src/gen/` are never edited by hand.

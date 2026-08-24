@@ -112,17 +112,6 @@ if(NOT EXISTS "${RECOMP_UI_ROOT}/recomp_ui.cmake")
     message(FATAL_ERROR "Invalid recomp-ui source tree: ${RECOMP_UI_ROOT}")
 endif()
 
-# recomp-ui currently uses empty initializers in launcher_binds.c. They are
-# valid in newer language modes but not in the C11 mode used by this project.
-set(_rui_binds_file "${RECOMP_UI_ROOT}/src/common/launcher_binds.c")
-if(EXISTS "${_rui_binds_file}")
-    file(READ "${_rui_binds_file}" _rui_binds_source)
-    string(REPLACE "= {}" "= {0}" _rui_binds_patched "${_rui_binds_source}")
-    if(NOT _rui_binds_patched STREQUAL _rui_binds_source)
-        file(WRITE "${_rui_binds_file}" "${_rui_binds_patched}")
-    endif()
-endif()
-
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
 if(EXISTS "${LUFIA2_ROM}")
@@ -189,12 +178,26 @@ add_subdirectory(
     EXCLUDE_FROM_ALL
 )
 
+# Project-owned, game-neutral host-platform layer. Its runtime policy target is
+# SDL-free; its presentation target consumes only public SDL types and raw video
+# frames. Neither target depends on Lufia or generated game code.
+set(SNESRECOMP_PLATFORM_ENABLE_OPENGL ON CACHE BOOL "" FORCE)
+set(SNESRECOMP_PLATFORM_GL_CORE_DIR
+    "${RECOMP_UI_ROOT}/src/third_party" CACHE PATH "" FORCE)
+add_subdirectory("${CMAKE_SOURCE_DIR}/lib/snesrecomp-platform")
+
 set(SNESRECOMP_SDL_BACKEND "SDL3" CACHE STRING "" FORCE)
 set(SNESRECOMP_ENABLE_MODS OFF CACHE BOOL "" FORCE)
 set(SNESRECOMP_ENABLE_TRACE OFF CACHE BOOL "" FORCE)
 set(SNES_COSIM OFF CACHE BOOL "" FORCE)
 
 include("${SNESRECOMP_ROOT}/runner/runner.cmake")
+
+# Replace the framework bridge translation unit with an immutable build-tree
+# overlay that calls the game-neutral Platform runtime policy. The fetched
+# snesrecomp source tree remains byte-identical to its pinned archive.
+snesrecomp_platform_prepare_runner_sources(
+    SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
 
 list(FILTER SNESRECOMP_RUNNER_SOURCES EXCLUDE REGEX "launcher(_picker)?\\.c$")
 list(FILTER SNESRECOMP_RUNNER_SOURCES EXCLUDE REGEX "keybinds\\.c$")
@@ -245,10 +248,13 @@ endif()
 
 target_link_libraries(Lufia2Recomp PRIVATE
     SDL3::SDL3
+    snesrecomp::platform
+    snesrecomp::runtime
     ${SNESRECOMP_RUNNER_LIBRARIES}
 )
 
 snesrecomp_target_mmx_config(Lufia2Recomp)
+snesrecomp_platform_target_glsl_presets(Lufia2Recomp)
 
 set(RECOMP_UI_ENABLE_MODS OFF CACHE BOOL "" FORCE)
 include("${RECOMP_UI_ROOT}/recomp_ui.cmake")
@@ -256,6 +262,9 @@ include("${RECOMP_UI_ROOT}/recomp_ui.cmake")
 recomp_target_launcher_ui(Lufia2Recomp
     CONSOLE snes
 )
+
+snesrecomp_platform_target_launcher_overlays(
+    Lufia2Recomp "${RECOMP_UI_ROOT}")
 
 if(WIN32 AND TARGET SDL3::SDL3-shared)
     add_custom_command(TARGET Lufia2Recomp POST_BUILD
