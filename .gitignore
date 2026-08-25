@@ -16,6 +16,7 @@
 *.srm
 *.sav
 config.ini
+platform.ini
 keybinds.ini
 rom.cfg
 

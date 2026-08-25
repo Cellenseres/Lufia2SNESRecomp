@@ -1,8 +1,9 @@
 /* Lufia II desktop host. */
+#include <ctype.h>
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdint.h>
-#include <stdbool.h>
 #include <string.h>
 
 #include "desktop/sdl_compat.h"
@@ -15,6 +16,9 @@
 #include "common_cpu_infra.h"
 #include "snes/snes.h"
 #include "snes/ppu.h"
+#include "snes/ws_shadow.h"
+#include "widescreen.h"
+#include "desktop/display_aspect.h"
 
 #include "recomp_launcher.h"
 #include "launcher_profile.h"
@@ -23,11 +27,15 @@
 #include "common/launcher_binds.h"
 
 #include "config.h"
+#include "lufia2_map_widescreen.h"
 #include "lufia2_runtime.h"
+#include "lufia2_video_policy.h"
 #include "desktop_glue.h"
 
 enum {
-    SNES_WIDTH  = 256,
+    SNES_WIDTH = 256,
+    SNES_WIDE_WIDTH = 342,
+    SNES_WIDE_EXTRA = (SNES_WIDE_WIDTH - SNES_WIDTH) / 2,
     SNES_HEIGHT = 224,
     PPU_BUFFER_HEIGHT = 240,
     DEFAULT_WINDOW_SCALE = 3,
@@ -47,7 +55,20 @@ enum {
 
     LUFIA2_ROM_SIZE = 2621440,
     LUFIA2_COPIER_HEADER = 512,
+
+    LUFIA2_MAP_LAYER_MASK = 0x03,
+    LUFIA2_MAP_WINDOW_LAYER_MASK = 0x33,
+    LUFIA2_WORLD_WINDOW_LAYER_MASK = 0x31,
+    LUFIA2_OUTDOOR_WINDOW_MASK = 0x03,
+    LUFIA2_MENU_REPEAT_LAYER_MASK = 0x02,
+    LUFIA2_MENU_CLAMP_LAYER_MASK = 0x0d,
 };
+
+typedef enum PlayerInputSource {
+    PLAYER_INPUT_NONE = 0,
+    PLAYER_INPUT_KEYBOARD,
+    PLAYER_INPUT_GAMEPAD,
+} PlayerInputSource;
 
 static const char kLufia2Sha1[] =
     "a89931c1f29b161b8be717dfab4a4adb54b42b84";
@@ -71,12 +92,14 @@ static const char *const kLufia2LauncherRendererLabels[] = {
 
 extern Ppu *g_ppu;
 extern bool g_fail;
+extern uint8_t g_ram[0x20000];
 
 static SnesRecompPresenter *s_presenter;
 static SDL_AudioStream *s_audio_stream;
 static SDL_Gamepad *s_gamepad;
 
-static uint8_t s_pixels[SNES_WIDTH * 4 * PPU_BUFFER_HEIGHT];
+static uint8_t s_pixels[SNES_WIDE_WIDTH * 4 * PPU_BUFFER_HEIGHT];
+static uint8_t s_present_pixels[SNES_WIDE_WIDTH * 4 * SNES_HEIGHT];
 static uint8_t *s_audio_scratch;
 static size_t s_audio_scratch_size;
 
@@ -86,7 +109,11 @@ static bool s_fullscreen;
 static bool s_display_perf;
 static int s_current_window_scale = DEFAULT_WINDOW_SCALE;
 static int s_volume_percent = 100;
-static int s_player1_source = 1; /* 0 none, 1 keyboard, 2 gamepad */
+static PlayerInputSource s_player1_source = PLAYER_INPUT_KEYBOARD;
+static int s_frame_width = SNES_WIDTH;
+static bool s_vsync_enabled = true;
+static bool s_window_resize_pending;
+static Lufia2VideoLayout s_last_video_layout = LUFIA2_VIDEO_LAYOUT_COUNT;
 
 static uint64_t s_perf_last_ms;
 static uint32_t s_perf_frames;
@@ -110,6 +137,76 @@ static bool FileExists(const char *path) {
         return false;
     fclose(f);
     return true;
+}
+
+static char *TrimAscii(char *text) {
+    while (*text && isspace((unsigned char)*text))
+        text++;
+    char *end = text + strlen(text);
+    while (end > text && isspace((unsigned char)end[-1]))
+        *--end = '\0';
+    return text;
+}
+
+static bool AsciiEqualsNoCase(const char *a, const char *b) {
+    while (*a && *b) {
+        if (tolower((unsigned char)*a) != tolower((unsigned char)*b))
+            return false;
+        a++;
+        b++;
+    }
+    return *a == '\0' && *b == '\0';
+}
+
+static bool ReadIniBool(
+    const char *path,
+    const char *wanted_section,
+    const char *wanted_key,
+    bool fallback) {
+    FILE *f = fopen(path, "rb");
+    if (!f)
+        return fallback;
+
+    char section[64] = "";
+    char line[512];
+    while (fgets(line, sizeof(line), f)) {
+        char *comment = strpbrk(line, "#;");
+        if (comment)
+            *comment = '\0';
+        char *text = TrimAscii(line);
+        const size_t length = strlen(text);
+        if (length >= 2 && text[0] == '[' && text[length - 1] == ']') {
+            text[length - 1] = '\0';
+            snprintf(section, sizeof(section), "%s", TrimAscii(text + 1));
+            continue;
+        }
+        if (!AsciiEqualsNoCase(section, wanted_section))
+            continue;
+
+        char *equals = strchr(text, '=');
+        if (!equals)
+            continue;
+        *equals = '\0';
+        if (!AsciiEqualsNoCase(TrimAscii(text), wanted_key))
+            continue;
+
+        char *value = TrimAscii(equals + 1);
+        fclose(f);
+        if (AsciiEqualsNoCase(value, "1") ||
+            AsciiEqualsNoCase(value, "true") ||
+            AsciiEqualsNoCase(value, "on")) {
+            return true;
+        }
+        if (AsciiEqualsNoCase(value, "0") ||
+            AsciiEqualsNoCase(value, "false") ||
+            AsciiEqualsNoCase(value, "off")) {
+            return false;
+        }
+        return fallback;
+    }
+
+    fclose(f);
+    return fallback;
 }
 
 static bool EnsureDefaultConfig(const char *path) {
@@ -176,6 +273,23 @@ static bool EnsureDefaultConfig(const char *path) {
 
     if (ok)
         fprintf(stderr, "[config] created %s\n", path);
+    return ok;
+}
+
+static bool EnsureDefaultPlatformConfig(const char *path) {
+    if (FileExists(path))
+        return true;
+
+    FILE *f = fopen(path, "wb");
+    if (!f)
+        return false;
+
+    static const char kDefaultPlatformConfig[] =
+        "[Video]\n"
+        "VSync = 1\n";
+    const size_t n = sizeof(kDefaultPlatformConfig) - 1;
+    const bool ok = fwrite(kDefaultPlatformConfig, 1, n, f) == n;
+    fclose(f);
     return ok;
 }
 
@@ -315,6 +429,18 @@ static uint8 OutputMethodFromLauncherRenderer(int renderer) {
     }
 }
 
+static PlayerInputSource PlayerInputSourceFromLauncher(int source) {
+    switch (source) {
+    case PLAYER_INPUT_NONE:
+        return PLAYER_INPUT_NONE;
+    case PLAYER_INPUT_GAMEPAD:
+        return PLAYER_INPUT_GAMEPAD;
+    case PLAYER_INPUT_KEYBOARD:
+    default:
+        return PLAYER_INPUT_KEYBOARD;
+    }
+}
+
 static bool ResolveRomWithLauncher(int argc, char **argv,
                                    char *rom_path, size_t rom_cap) {
     char positional_abs[1024];
@@ -358,6 +484,12 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     }
 
     ParseConfigFile("config.ini");
+    if (!EnsureDefaultPlatformConfig("platform.ini")) {
+        fprintf(stderr,
+            "[config] warning: could not create platform.ini\n");
+    }
+    s_vsync_enabled = ReadIniBool(
+        "platform.ini", "Video", "VSync", true);
 
     if (positional_abs[0]) {
         snprintf(rom_path, rom_cap, "%s", positional_abs);
@@ -399,12 +531,14 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     ls.fullscreen = g_config.fullscreen;
     ls.ignore_aspect = g_config.ignore_aspect_ratio ? 1 : 0;
     ls.linear_filter = g_config.linear_filtering ? 1 : 0;
-    ls.widescreen = 0;
+    ls.widescreen = g_config.widescreen ? 1 : 0;
     ls.enable_audio = g_config.enable_audio ? 1 : 0;
     ls.audio_freq = g_config.audio_freq ? g_config.audio_freq : 32040;
     ls.volume = 100;
-    ls.player_src[0] = g_config.enable_gamepad[0] ? 2 : 1;
-    ls.player_src[1] = 0;
+    ls.player_src[0] = g_config.enable_gamepad[0]
+        ? PLAYER_INPUT_GAMEPAD
+        : PLAYER_INPUT_KEYBOARD;
+    ls.player_src[1] = PLAYER_INPUT_NONE;
     ls.deadzone[0] = g_config.gamepad_deadzone * 100 / 32767;
     if (ls.deadzone[0] < 0) ls.deadzone[0] = 0;
     if (ls.deadzone[0] > 100) ls.deadzone[0] = 100;
@@ -421,7 +555,7 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     gi.known_sha1_hex = kLufia2KnownSha1;
     gi.num_known_sha1 = 1;
     gi.sram_path = "saves/save.srm";
-    gi.widescreen_supported = 0;
+    gi.widescreen_supported = 1;
     gi.num_players = 1;
     gi.msu1_supported = 0;
     gi.config_path = "config.ini";
@@ -467,15 +601,16 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     g_config.fullscreen = (uint8)ls.fullscreen;
     g_config.ignore_aspect_ratio = ls.ignore_aspect != 0;
     g_config.linear_filtering = ls.linear_filter != 0;
-    g_config.widescreen = false;
+    g_config.widescreen = ls.widescreen != 0;
     g_config.enable_audio = ls.enable_audio != 0;
     g_config.audio_freq = (uint16)ls.audio_freq;
-    g_config.enable_gamepad[0] = ls.player_src[0] == 2;
+    g_config.enable_gamepad[0] =
+        ls.player_src[0] == PLAYER_INPUT_GAMEPAD;
     g_config.enable_gamepad[1] = false;
     g_config.gamepad_deadzone = ls.deadzone[0] * 32767 / 100;
     g_config.skip_launcher = ls.skip_launcher != 0;
 
-    s_player1_source = ls.player_src[0];
+    s_player1_source = PlayerInputSourceFromLauncher(ls.player_src[0]);
     s_volume_percent = ls.volume;
     if (s_volume_percent < 0) s_volume_percent = 0;
     if (s_volume_percent > 100) s_volume_percent = 100;
@@ -498,7 +633,7 @@ static bool KeyDown(const uint8_t *keys, SDL_Scancode sc) {
 }
 
 static uint32_t ReadKeyboardInput(void) {
-    if (s_player1_source != 1)
+    if (s_player1_source != PLAYER_INPUT_KEYBOARD)
         return 0;
 
     const uint8_t *keys = snesrecomp_sdl_get_keyboard_state();
@@ -526,7 +661,7 @@ static uint32_t ReadKeyboardInput(void) {
 }
 
 static uint32_t ReadGamepadInput(void) {
-    if (s_player1_source != 2 || !s_gamepad)
+    if (s_player1_source != PLAYER_INPUT_GAMEPAD || !s_gamepad)
         return 0;
 
     uint32_t p = 0;
@@ -574,7 +709,7 @@ static uint32_t ReadGamepadInput(void) {
 }
 
 static void TryOpenFirstGamepad(void) {
-    if (s_player1_source != 2 || s_gamepad)
+    if (s_player1_source != PLAYER_INPUT_GAMEPAD || s_gamepad)
         return;
 
     int count = 0;
@@ -642,6 +777,10 @@ static bool InitVideo(void) {
     if (scale < 1) scale = 1;
     if (scale > 10) scale = 10;
     s_current_window_scale = scale;
+    s_frame_width = g_config.widescreen
+        ? SNES_WIDE_WIDTH : SNES_WIDTH;
+    g_ws_active = g_config.widescreen;
+    g_ws_extra = g_ws_active ? SNES_WIDE_EXTRA : 0;
 
     SnesRecompPresentConfig config;
     memset(&config, 0, sizeof(config));
@@ -655,10 +794,14 @@ static bool InitVideo(void) {
         config.backend = SNESRECOMP_PRESENT_BACKEND_SDL;
     }
     config.pixel_format = SNESRECOMP_PIXEL_FORMAT_ARGB8888;
-    config.frame_width = SNES_WIDTH;
+    config.frame_width = s_frame_width;
     config.frame_height = SNES_HEIGHT;
     config.window_scale = scale;
-    config.vsync = true;
+    config.vsync = s_vsync_enabled;
+    SnesDisplayAspect_GetPixelAspect(
+        SnesDisplayAspect_Clamp(g_config.display_aspect),
+        &config.pixel_aspect_numerator,
+        &config.pixel_aspect_denominator);
     config.preserve_aspect = !g_config.ignore_aspect_ratio;
     config.linear_filtering = g_config.linear_filtering;
     config.fullscreen = g_config.fullscreen != 0;
@@ -696,20 +839,24 @@ static bool InitVideo(void) {
     s_fullscreen = config.fullscreen;
 
     host_report_breadcrumb(
-        "video ready: %dx%d scale=%d method=%s fullscreen=%d linear=%d caps=0x%x",
-        SNES_WIDTH, SNES_HEIGHT, scale,
+        "video ready: %dx%d scale=%d method=%s fullscreen=%d linear=%d vsync=%s caps=0x%x",
+        s_frame_width, SNES_HEIGHT, scale,
         snesrecomp_presenter_backend_name(s_presenter),
         g_config.fullscreen,
         g_config.linear_filtering ? 1 : 0,
+        snesrecomp_vsync_state_name(
+            snesrecomp_presenter_vsync_state(s_presenter)),
         (unsigned)snesrecomp_presenter_capabilities(s_presenter));
     const bool preset_active =
         snesrecomp_presenter_backend(s_presenter) ==
             SNESRECOMP_PRESENT_BACKEND_OPENGL &&
         g_config.shader && g_config.shader[0];
     fprintf(stderr,
-        "[video] presenter ready: %s, capabilities=0x%x%s\n",
+        "[video] presenter ready: %s, capabilities=0x%x, VSync %s%s\n",
         snesrecomp_presenter_backend_name(s_presenter),
         (unsigned)snesrecomp_presenter_capabilities(s_presenter),
+        snesrecomp_vsync_state_name(
+            snesrecomp_presenter_vsync_state(s_presenter)),
         preset_active ? ", GLSL preset active" : "");
     return true;
 }
@@ -762,19 +909,112 @@ static bool InitAudio(void) {
 }
 
 static bool PresentFrame(void) {
+    RtlWidescreenPresent(
+        s_present_pixels,
+        (size_t)s_frame_width * 4,
+        s_pixels,
+        s_frame_width,
+        SNES_HEIGHT);
     const SnesRecompVideoFrame frame = {
-        .pixels = s_pixels,
+        .pixels = s_present_pixels,
         .pixel_format = SNESRECOMP_PIXEL_FORMAT_ARGB8888,
-        .width = SNES_WIDTH,
+        .width = s_frame_width,
         .height = SNES_HEIGHT,
-        .pitch = SNES_WIDTH * 4,
+        .pitch = s_frame_width * 4,
     };
     if (!snesrecomp_presenter_present(s_presenter, &frame)) {
         fprintf(stderr, "Present failed: %s\n",
                 snesrecomp_presenter_last_error(s_presenter));
         return false;
     }
+    if (s_window_resize_pending) {
+        if (!snesrecomp_presenter_set_window_scale(
+                s_presenter, s_current_window_scale)) {
+            fprintf(stderr, "Window resize failed: %s\n",
+                snesrecomp_presenter_last_error(s_presenter));
+        }
+        s_window_resize_pending = false;
+    }
     return true;
+}
+
+static void PrepareVideoFrame(void) {
+    g_ws_active = g_config.widescreen;
+    g_ws_extra = g_ws_active ? SNES_WIDE_EXTRA : 0;
+    s_frame_width = g_ws_active ? SNES_WIDE_WIDTH : SNES_WIDTH;
+
+    memset(s_pixels, 0,
+        (size_t)s_frame_width * 4 * PPU_BUFFER_HEIGHT);
+
+    const Lufia2VideoLayout layout =
+        Lufia2SelectVideoLayout(g_ppu, g_ws_active);
+    switch (layout) {
+    case LUFIA2_VIDEO_WORLD_MAP:
+        Lufia2DeactivateMapWidescreen();
+        PpuSetExtraSpace(g_ppu, (uint8_t)g_ws_extra);
+        PpuSetWidescreenWindowExpansion(
+            g_ppu,
+            LUFIA2_WORLD_WINDOW_LAYER_MASK,
+            LUFIA2_OUTDOOR_WINDOW_MASK);
+        break;
+
+    case LUFIA2_VIDEO_REGULAR_MAP:
+        if (Lufia2PrepareMapWidescreen(g_ppu, g_ws_extra)) {
+            PpuSetExtraSpace(g_ppu, (uint8_t)g_ws_extra);
+            PpuSetWidescreenLayerMask(g_ppu, LUFIA2_MAP_LAYER_MASK);
+            PpuSetWidescreenWindowExpansion(
+                g_ppu,
+                LUFIA2_MAP_WINDOW_LAYER_MASK,
+                LUFIA2_OUTDOOR_WINDOW_MASK);
+        } else {
+            PpuSetExtraSpaceCentered(g_ppu, (uint8_t)g_ws_extra);
+        }
+        break;
+
+    case LUFIA2_VIDEO_PATTERN_MENU:
+        Lufia2DeactivateMapWidescreen();
+        PpuSetExtraSpace(g_ppu, (uint8_t)g_ws_extra);
+        PpuSetWidescreenLayerMask(
+            g_ppu, LUFIA2_MENU_REPEAT_LAYER_MASK);
+        PpuSetWidescreenLayerRepeat(
+            g_ppu, LUFIA2_MENU_REPEAT_LAYER_MASK);
+        PpuSetWidescreenLayerClamp(
+            g_ppu, LUFIA2_MENU_CLAMP_LAYER_MASK);
+        break;
+
+    case LUFIA2_VIDEO_CENTERED:
+        Lufia2DeactivateMapWidescreen();
+        PpuSetExtraSpaceCentered(g_ppu, (uint8_t)g_ws_extra);
+        break;
+
+    case LUFIA2_VIDEO_NATIVE:
+    default:
+        Lufia2DeactivateMapWidescreen();
+        PpuSetExtraSpace(g_ppu, 0);
+        break;
+    }
+
+    WsShadowFrame(g_ppu);
+    if (layout == LUFIA2_VIDEO_REGULAR_MAP)
+        Lufia2FinalizeMapWidescreen(g_ppu, g_ws_extra);
+
+    if (layout != s_last_video_layout) {
+        fprintf(stderr,
+            "[video] layout: %s (%dx%d, PPU mode=%u, main=$%02X, "
+            "BG maps=%u/%u, scroll=%u,%u, map=$%02X, world=%u,%u)\n",
+            Lufia2VideoLayoutName(layout),
+            s_frame_width, SNES_HEIGHT,
+            g_ppu ? (unsigned)PPU_mode(g_ppu) : 0,
+            g_ppu ? (unsigned)g_ppu->screenEnabled[0] : 0,
+            g_ppu ? (unsigned)(g_ppu->bgXsc[0] & 3) : 0,
+            g_ppu ? (unsigned)(g_ppu->bgXsc[1] & 3) : 0,
+            g_ppu ? (unsigned)g_ppu->hScroll[0] : 0,
+            g_ppu ? (unsigned)g_ppu->vScroll[0] : 0,
+            (unsigned)g_ram[0x05ac],
+            (unsigned)(g_ram[0x0594] | (g_ram[0x0595] << 8)),
+            (unsigned)(g_ram[0x0596] | (g_ram[0x0597] << 8)));
+        s_last_video_layout = layout;
+    }
 }
 
 static void ToggleFullscreen(void) {
@@ -884,8 +1124,12 @@ static void HandleHostCommand(int cmd, bool pressed) {
         break;
 
     case kKeys_ToggleWidescreen:
-        fprintf(stderr,
-            "[video] widescreen is not enabled for Lufia II yet.\n");
+        g_config.widescreen = !g_config.widescreen;
+        PersistInt("Graphics", "Widescreen",
+                   g_config.widescreen ? 1 : 0);
+        s_window_resize_pending = true;
+        fprintf(stderr, "[video] widescreen: %s\n",
+            g_config.widescreen ? "enabled" : "disabled");
         break;
 
     default:
@@ -996,7 +1240,9 @@ int main(int argc, char **argv) {
     }
 
 
-    s_player1_source = g_config.enable_gamepad[0] ? 2 : 1;
+    s_player1_source = g_config.enable_gamepad[0]
+        ? PLAYER_INPUT_GAMEPAD
+        : PLAYER_INPUT_KEYBOARD;
     s_display_perf = g_config.display_perf_title;
 
     uint8_t *rom_data = NULL;
@@ -1081,21 +1327,23 @@ int main(int argc, char **argv) {
         }
 
         const uint32_t input =
-            ReadKeyboardInput() |
-            ReadGamepadInput();
+            ReadKeyboardInput() | ReadGamepadInput();
 
         RtlRunFrame(input);
 
+        PrepareVideoFrame();
 
         int ppu_flags = 0;
-        if (g_config.new_renderer)
+        if (g_config.new_renderer || g_ws_active)
             ppu_flags |= kPpuRenderFlags_NewRenderer;
         if (g_config.no_sprite_limits)
             ppu_flags |= kPpuRenderFlags_NoSpriteLimits;
 
+        Lufia2BeginMapRenderOverlay(g_ppu);
         PpuBeginDrawing(
-            g_ppu, s_pixels, SNES_WIDTH * 4, ppu_flags);
+            g_ppu, s_pixels, (size_t)s_frame_width * 4, ppu_flags);
         Lufia2DrawPpuFrame();
+        Lufia2EndMapRenderOverlay(g_ppu);
         if (!PresentFrame()) {
             g_fail = true;
             break;

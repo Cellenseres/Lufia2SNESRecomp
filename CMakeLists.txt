@@ -114,6 +114,7 @@ endif()
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
+set(LUFIA2_GENERATED_DIR "${CMAKE_SOURCE_DIR}/src/gen")
 if(EXISTS "${LUFIA2_ROM}")
     file(SHA256 "${LUFIA2_ROM}" _rom_sha256)
     string(TOUPPER "${_rom_sha256}" _rom_sha256)
@@ -123,15 +124,17 @@ if(EXISTS "${LUFIA2_ROM}")
             "Unsupported ROM. Expected the clean Lufia II USA release.")
     endif()
 
+    set(LUFIA2_GENERATED_DIR "${CMAKE_BINARY_DIR}/lufia2-gen")
     execute_process(
         COMMAND
             "${CMAKE_COMMAND}" -E env
             "SNESRECOMP_ROOT=${SNESRECOMP_ROOT}"
+            "PYTHONDONTWRITEBYTECODE=1"
             "${Python3_EXECUTABLE}"
             "${SNESRECOMP_ROOT}/tools/v2_emit.py"
             --rom "${LUFIA2_ROM}"
             --cfg-dir "${CMAKE_SOURCE_DIR}/recomp"
-            --out-dir "${CMAKE_SOURCE_DIR}/src/gen"
+            --out-dir "${LUFIA2_GENERATED_DIR}"
             --analysis-backend python
             --no-host-root-scan
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
@@ -184,6 +187,7 @@ add_subdirectory(
 set(SNESRECOMP_PLATFORM_ENABLE_OPENGL ON CACHE BOOL "" FORCE)
 set(SNESRECOMP_PLATFORM_GL_CORE_DIR
     "${RECOMP_UI_ROOT}/src/third_party" CACHE PATH "" FORCE)
+enable_testing()
 add_subdirectory("${CMAKE_SOURCE_DIR}/lib/snesrecomp-platform")
 
 set(SNESRECOMP_SDL_BACKEND "SDL3" CACHE STRING "" FORCE)
@@ -203,20 +207,27 @@ list(FILTER SNESRECOMP_RUNNER_SOURCES EXCLUDE REGEX "launcher(_picker)?\\.c$")
 list(FILTER SNESRECOMP_RUNNER_SOURCES EXCLUDE REGEX "keybinds\\.c$")
 
 file(GLOB LUFIA2_GENERATED_SOURCES CONFIGURE_DEPENDS
-    "${CMAKE_SOURCE_DIR}/src/gen/*.c"
-)
+    "${LUFIA2_GENERATED_DIR}/*.c")
 
 if(NOT LUFIA2_GENERATED_SOURCES)
-    message(FATAL_ERROR "No generated C files were found in src/gen.")
+    message(FATAL_ERROR
+        "No generated C files were found in ${LUFIA2_GENERATED_DIR}.")
 endif()
 
-add_executable(Lufia2Recomp
-    ${SNESRECOMP_RUNNER_SOURCES}
+set(LUFIA2_HOST_SOURCES
     src/main.c
     src/desktop_glue.c
     src/lufia2_game_info.c
+    src/lufia2_map_widescreen.c
     src/lufia2_runtime.c
+    src/lufia2_sprite_visibility.c
+    src/lufia2_video_policy.c
     src/gen_stubs.c
+)
+
+add_executable(Lufia2Recomp
+    ${SNESRECOMP_RUNNER_SOURCES}
+    ${LUFIA2_HOST_SOURCES}
     ${LUFIA2_GENERATED_SOURCES}
 )
 
@@ -238,6 +249,9 @@ target_compile_definitions(Lufia2Recomp PRIVATE
 
 if(MSVC)
     target_compile_options(Lufia2Recomp PRIVATE /W0)
+    set_source_files_properties(${LUFIA2_HOST_SOURCES} PROPERTIES
+        COMPILE_OPTIONS /W4
+    )
 else()
     target_compile_options(Lufia2Recomp PRIVATE
         -w
