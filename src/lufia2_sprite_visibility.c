@@ -42,13 +42,18 @@ static bool ActorIsInsideViewport(
     }
 
     const uint16_t actor_offset = (uint16_t)actor * 2;
-    const uint16_t x = (uint16_t)(
-        cpu_read16(cpu, 0x7f, LUFIA2_ACTOR_X + actor_offset) + 0x30);
+    const uint16_t world_x =
+        cpu_read16(cpu, 0x7f, LUFIA2_ACTOR_X + actor_offset);
+    const uint16_t world_y =
+        cpu_read16(cpu, 0x7f, LUFIA2_ACTOR_Y + actor_offset);
+    if (!Lufia2MapWidescreenWorldPointIsVisible(world_x, world_y))
+        return false;
+
+    const uint16_t x = (uint16_t)(world_x + 0x30);
     if (IsBefore(x, left) || !IsBefore(x, right))
         return false;
 
-    const uint16_t y = (uint16_t)(
-        cpu_read16(cpu, 0x7f, LUFIA2_ACTOR_Y + actor_offset) + 0x20);
+    const uint16_t y = (uint16_t)(world_y + 0x20);
     return !IsBefore(y, top) && IsBefore(y, bottom);
 }
 

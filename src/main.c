@@ -27,6 +27,7 @@
 #include "common/launcher_binds.h"
 
 #include "config.h"
+#include "lufia2_map_load.h"
 #include "lufia2_map_widescreen.h"
 #include "lufia2_runtime.h"
 #include "lufia2_video_policy.h"
@@ -114,6 +115,7 @@ static int s_frame_width = SNES_WIDTH;
 static bool s_vsync_enabled = true;
 static bool s_window_resize_pending;
 static Lufia2VideoLayout s_last_video_layout = LUFIA2_VIDEO_LAYOUT_COUNT;
+static Lufia2VideoLayout s_held_video_layout = LUFIA2_VIDEO_CENTERED;
 
 static uint64_t s_perf_last_ms;
 static uint32_t s_perf_frames;
@@ -946,8 +948,30 @@ static void PrepareVideoFrame(void) {
     memset(s_pixels, 0,
         (size_t)s_frame_width * 4 * PPU_BUFFER_HEIGHT);
 
-    const Lufia2VideoLayout layout =
+    Lufia2MapLoadFrame();
+
+    /* PpuResetLayerPolicies() clears clamp, mirror, repeat and the window
+       expansion, but not the widen mask, so a mask set for one scene
+       survives into the next: the menu restricts the margins to BG2, and
+       the Mode 7 overworld that follows is layer 0, which the stale mask
+       then excludes from the margins entirely. Publish it per frame like
+       every other policy; each branch sets its own afterwards. */
+    if (g_ppu)
+        PpuSetWidescreenLayerMask(g_ppu, 0);
+
+    Lufia2VideoLayout layout =
         Lufia2SelectVideoLayout(g_ppu, g_ws_active);
+    if (layout == LUFIA2_VIDEO_BLANK) {
+        /* Nothing reaches the screen during a fade, so hold the last
+           decision and keep preparing. The map source follows the
+           player through the transition and the shadow stays keyed to
+           the live camera, so the fade-in shows the destination room
+           instead of whatever survived the blank. */
+        layout = s_held_video_layout;
+    } else {
+        s_held_video_layout = layout;
+    }
+    bool finalize_map_widescreen = false;
     switch (layout) {
     case LUFIA2_VIDEO_WORLD_MAP:
         Lufia2DeactivateMapWidescreen();
@@ -959,16 +983,33 @@ static void PrepareVideoFrame(void) {
         break;
 
     case LUFIA2_VIDEO_REGULAR_MAP:
-        if (Lufia2PrepareMapWidescreen(g_ppu, g_ws_extra)) {
+        switch (Lufia2PrepareMapWidescreen(g_ppu, g_ws_extra)) {
+        case LUFIA2_MAP_WIDESCREEN_ACTIVE:
             PpuSetExtraSpace(g_ppu, (uint8_t)g_ws_extra);
             PpuSetWidescreenLayerMask(g_ppu, LUFIA2_MAP_LAYER_MASK);
             PpuSetWidescreenWindowExpansion(
                 g_ppu,
                 LUFIA2_MAP_WINDOW_LAYER_MASK,
                 LUFIA2_OUTDOOR_WINDOW_MASK);
-        } else {
+            finalize_map_widescreen = true;
+            break;
+        case LUFIA2_MAP_WIDESCREEN_LOADING:
+            /* Keep the 16:9 canvas but show only the authentic 256 pixels
+               until the new map is readable. */
+            layout = LUFIA2_VIDEO_MAP_LOADING;
             PpuSetExtraSpaceCentered(g_ppu, (uint8_t)g_ws_extra);
+            break;
+        case LUFIA2_MAP_WIDESCREEN_DISABLED:
+        default:
+            layout = LUFIA2_VIDEO_CENTERED;
+            PpuSetExtraSpaceCentered(g_ppu, (uint8_t)g_ws_extra);
+            break;
         }
+        break;
+
+    case LUFIA2_VIDEO_MAP_LOADING:
+        /* Only reached as a relabelled centered frame. */
+        PpuSetExtraSpaceCentered(g_ppu, (uint8_t)g_ws_extra);
         break;
 
     case LUFIA2_VIDEO_PATTERN_MENU:
@@ -984,9 +1025,14 @@ static void PrepareVideoFrame(void) {
 
     case LUFIA2_VIDEO_CENTERED:
         Lufia2DeactivateMapWidescreen();
+        /* A blanked or reconfigured screen during a map load is the load,
+           not an unsupported scene. */
+        if (Lufia2MapLoadInProgress())
+            layout = LUFIA2_VIDEO_MAP_LOADING;
         PpuSetExtraSpaceCentered(g_ppu, (uint8_t)g_ws_extra);
         break;
 
+    case LUFIA2_VIDEO_BLANK:
     case LUFIA2_VIDEO_NATIVE:
     default:
         Lufia2DeactivateMapWidescreen();
@@ -995,7 +1041,7 @@ static void PrepareVideoFrame(void) {
     }
 
     WsShadowFrame(g_ppu);
-    if (layout == LUFIA2_VIDEO_REGULAR_MAP)
+    if (finalize_map_widescreen)
         Lufia2FinalizeMapWidescreen(g_ppu, g_ws_extra);
 
     if (layout != s_last_video_layout) {
@@ -1281,6 +1327,8 @@ int main(int argc, char **argv) {
 
     /* Apply bindings changed in the launcher. */
     recompui_keybinds_init(NULL);
+
+    Lufia2MapLoadInstallHooks();
 
     Snes *snes = SnesInit(rom_data, (int)rom_size);
     if (!snes) {

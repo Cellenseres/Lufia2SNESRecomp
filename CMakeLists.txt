@@ -218,7 +218,9 @@ set(LUFIA2_HOST_SOURCES
     src/main.c
     src/desktop_glue.c
     src/lufia2_game_info.c
+    src/lufia2_map_load.c
     src/lufia2_map_widescreen.c
+    src/lufia2_room_data.c
     src/lufia2_runtime.c
     src/lufia2_sprite_visibility.c
     src/lufia2_video_policy.c
@@ -279,6 +281,14 @@ recomp_target_launcher_ui(Lufia2Recomp
 
 snesrecomp_platform_target_launcher_overlays(
     Lufia2Recomp "${RECOMP_UI_ROOT}")
+
+add_custom_command(TARGET Lufia2Recomp POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E make_directory
+        "$<TARGET_FILE_DIR:Lufia2Recomp>/data/widescreen"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/data/widescreen/lufia2_rooms.l2rooms"
+        "$<TARGET_FILE_DIR:Lufia2Recomp>/data/widescreen/lufia2_rooms.l2rooms"
+)
 
 if(WIN32 AND TARGET SDL3::SDL3-shared)
     add_custom_command(TARGET Lufia2Recomp POST_BUILD

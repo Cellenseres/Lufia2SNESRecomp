@@ -5,8 +5,13 @@ Lufia2VideoLayout Lufia2SelectVideoLayout(
     bool widescreen_requested) {
     if (!widescreen_requested)
         return LUFIA2_VIDEO_NATIVE;
-    if (!ppu || PPU_forcedBlank(ppu))
+    if (!ppu)
         return LUFIA2_VIDEO_CENTERED;
+    /* The guest blanks the screen for room and scene transitions. The
+       registers in flight say nothing about the scene, so the caller
+       holds its previous decision instead. */
+    if (PPU_forcedBlank(ppu))
+        return LUFIA2_VIDEO_BLANK;
 
     /* Save selection, name entry and the matching menu family put their
        repeating backdrop on BG2, windows on BG1 and text on BG3. */
@@ -54,6 +59,10 @@ const char *Lufia2VideoLayoutName(Lufia2VideoLayout layout) {
         return "Mode 7 world map";
     case LUFIA2_VIDEO_REGULAR_MAP:
         return "regular map";
+    case LUFIA2_VIDEO_MAP_LOADING:
+        return "map loading (centered)";
+    case LUFIA2_VIDEO_BLANK:
+        return "forced blank";
     case LUFIA2_VIDEO_PATTERN_MENU:
         return "patterned menu";
     case LUFIA2_VIDEO_CENTERED:
