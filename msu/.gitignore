@@ -1,0 +1,24 @@
+# Local MSU-1 research and test material only. Nothing here is redistributable
+# and none of it belongs in the repository: ROM images, patched images, PCM
+# tracks, the .msu data channel and the emulator manifests that name them.
+#
+# Only this file and README.md are tracked. Patch formats stay ignored until
+# provenance and redistribution have been reviewed for a specific patch.
+*.sfc
+*.smc
+*.fig
+*.swc
+*.srm
+*.pcm
+*.msu
+*.bml
+*.bps
+*.ips
+*.ups
+*.xdelta
+*.zip
+*.7z
+*.rar
+
+!.gitignore
+!README.md
