@@ -190,6 +190,8 @@ set(SNESRECOMP_PLATFORM_GL_CORE_DIR
 enable_testing()
 add_subdirectory("${CMAKE_SOURCE_DIR}/lib/snesrecomp-platform")
 
+include("${CMAKE_SOURCE_DIR}/cmake/Lufia2Msu.cmake")
+
 set(SNESRECOMP_SDL_BACKEND "SDL3" CACHE STRING "" FORCE)
 set(SNESRECOMP_ENABLE_MODS OFF CACHE BOOL "" FORCE)
 set(SNESRECOMP_ENABLE_TRACE OFF CACHE BOOL "" FORCE)
@@ -220,6 +222,7 @@ set(LUFIA2_HOST_SOURCES
     src/lufia2_game_info.c
     src/lufia2_map_load.c
     src/lufia2_map_widescreen.c
+    src/lufia2_msu_driver.c
     src/lufia2_room_data.c
     src/lufia2_runtime.c
     src/lufia2_sprite_visibility.c

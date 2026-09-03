@@ -9,6 +9,8 @@
 #include "desktop/sdl_compat.h"
 #include "snesrecomp_platform/glsl_shader_adapter.h"
 #include "snesrecomp_platform/presenter.h"
+#include "snesrecomp_platform/msu_pack.h"
+#include "snes/msu1.h"
 #include "host_report.h"
 #include "host_paths.h"
 #include "launcher_cache.h"
@@ -28,6 +30,7 @@
 
 #include "config.h"
 #include "lufia2_map_load.h"
+#include "lufia2_msu_driver.h"
 #include "lufia2_map_widescreen.h"
 #include "lufia2_runtime.h"
 #include "lufia2_video_policy.h"
@@ -1302,6 +1305,28 @@ int main(int argc, char **argv) {
     }
 
     snesrecomp_rom_cache_write(rom_path);
+
+    /* RtlRegisterGame already ran msu1_init() against an empty
+     * environment, so re-run it once the pack is known. */
+    {
+        SnesRecompMsuRequest msu;
+        memset(&msu, 0, sizeof(msu));
+        msu.ini_path = "config.ini";
+        msu.driver_present = true;
+        const SnesRecompMsuStatus *m = snesrecomp_msu_resolve(&msu);
+        fprintf(stderr, "[msu] directory: %s\n", m->directory);
+        if (m->pack_found)
+            fprintf(stderr, "[msu] pack: base=%s tracks=%d\n",
+                    m->pack_base, m->track_count);
+        else
+            fprintf(stderr, "[msu] pack: none\n");
+        fprintf(stderr, "[msu] runtime: %s; %s\n",
+                m->armed ? "enabled" : "inactive", m->reason);
+        if (m->armed) {
+            msu1_init();
+            Lufia2MsuDriverInstall();
+        }
+    }
 
     fprintf(stderr,
         "Lufia II SNESRecomp Desktop v2\n"
