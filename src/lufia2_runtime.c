@@ -1,7 +1,12 @@
+#if defined(LUFIA2_ENABLE_NATIVE_WAIT) || defined(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD) || \
+    defined(LUFIA2_ENABLE_ACTOR_EARLY_RETURN)
+#include "patches/native_patches.h"
+#endif
 /* Lufia II frame and interrupt adapter. */
 #include <stdio.h>
 #include <stdint.h>
 #include <stdbool.h>
+#include <string.h>
 
 #include "lufia2_runtime.h"
 #include "common_rtl.h"
@@ -36,14 +41,80 @@ static bool s_last_boundary_was_wai;
 static uint64_t s_boundaries;
 static uint64_t s_nmis;
 static uint64_t s_irqs;
+static uint8_t s_line_regs[225][PPU_SAVESTATE_REGS_SIZE];
+static bool s_line_regs_valid;
+static uint32_t s_raster_memory_flags;
+
+const uint8_t *Lufia2LineRegisters(unsigned y) {
+    return y < LUFIA2_PPU_VISIBLE_LINES ? s_line_regs[y + 1u] : NULL;
+}
+
+bool Lufia2PpuRasterHistory(const uint8_t **rows, size_t *stride) {
+    if (rows)
+        *rows = s_line_regs[1];
+    if (stride)
+        *stride = sizeof s_line_regs[0];
+    return s_line_regs_valid;
+}
+
+uint32_t Lufia2ResumePc(void) {
+    return s_resume_pc & 0xFFFFFFu;
+}
+
+uint32_t Lufia2PpuRasterMemoryFlags(void) {
+    return s_raster_memory_flags;
+}
+
+/* Match SimpleHdma_DoLine's register sequence. Register-only writes are
+ * represented by s_line_regs; memory-port writes are not reconstructible from
+ * the frame-end VRAM/CGRAM/OAM snapshots and therefore force fallback. */
+static uint32_t Lufia2HdmaMemoryFlags(void) {
+    static const uint8_t offsets[8][4] = {
+        {0,0,0,0}, {0,1,0,1}, {0,0,0,0}, {0,0,1,1},
+        {0,1,2,3}, {0,1,0,1}, {0,0,0,0}, {0,0,1,1},
+    };
+    static const uint8_t lengths[8] = {1,2,2,4,4,4,2,4};
+    uint32_t flags = 0;
+
+    for (unsigned ch = 0; ch < 8u; ch++) {
+        unsigned mode;
+        if (!(g_snesrecomp_last_hdmaen & (1u << ch)))
+            continue;
+        mode = g_dma->channel[ch].mode & 7u;
+        for (unsigned j = 0; j < lengths[mode]; j++) {
+            const unsigned reg =
+                (g_dma->channel[ch].bAdr + offsets[mode][j]) & 255u;
+            if (reg == 0x18u || reg == 0x19u)
+                flags |= SNES_PPU_RASTER_MEMORY_VRAM;
+            else if (reg == 0x22u)
+                flags |= SNES_PPU_RASTER_MEMORY_CGRAM;
+            else if (reg == 0x04u)
+                flags |= SNES_PPU_RASTER_MEMORY_OAM;
+            else if (!(reg == 0x00u ||
+                       (reg >= 0x0du && reg <= 0x14u) ||
+                       (reg >= 0x1au && reg <= 0x20u) ||
+                       (reg >= 0x23u && reg <= 0x32u)))
+                flags |= SNES_PPU_RASTER_MEMORY_UNKNOWN;
+        }
+    }
+    return flags;
+}
 
 static bool Lufia2RunToBoundary(uint32_t entry_pc) {
     const uint64_t deadline =
         g_cpu.master_cycles + LUFIA2_MASTER_CLOCKS_PER_FRAME;
 
+#if defined(LUFIA2_ENABLE_NATIVE_WAIT) || defined(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD) || \
+    defined(LUFIA2_ENABLE_ACTOR_EARLY_RETURN)
+    Lufia2NativeWaitBegin();
+#endif
     interp_bridge_set_master_deadline(deadline);
     const int ok = interp_bridge_run_until_quiescent(&g_cpu, entry_pc);
     interp_bridge_set_master_deadline(0);
+#if defined(LUFIA2_ENABLE_NATIVE_WAIT) || defined(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD) || \
+    defined(LUFIA2_ENABLE_ACTOR_EARLY_RETURN)
+    Lufia2NativeWaitEnd();
+#endif
 
     if (!ok) {
         fprintf(stderr,
@@ -86,6 +157,10 @@ void Lufia2RunOneFrame(void) {
         /* Start from the ROM reset vector through the LLE scheduler. */
         cpu_state_init(&g_cpu, g_ram);
         s_started = true;
+#if defined(LUFIA2_ENABLE_NATIVE_WAIT) || defined(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD) || \
+    defined(LUFIA2_ENABLE_ACTOR_EARLY_RETURN)
+        Lufia2NativePatchesInit();
+#endif
 
         fprintf(stderr,
                 "[lufia2] starting hybrid LLE/AOT boot at $%06X\n",
@@ -109,6 +184,10 @@ void Lufia2DrawPpuFrame(void) {
     if (!g_ppu || !g_dma || !g_snes)
         return;
 
+    s_raster_memory_flags = Lufia2HdmaMemoryFlags();
+    if (g_snes->vIrqEnabled || g_snes->hIrqEnabled)
+        s_raster_memory_flags |= SNES_PPU_RASTER_MEMORY_UNKNOWN;
+
     /* Drive all HDMA channels. */
     SimpleHdma hdma[8];
 
@@ -119,6 +198,8 @@ void Lufia2DrawPpuFrame(void) {
     int trigger = g_snes->vIrqEnabled ? (int)g_snes->vTimer + 1 : -1;
 
     for (int line = 0; line <= 224; line++) {
+        memcpy(s_line_regs[line], &g_ppu->inidisp,
+               PPU_SAVESTATE_REGS_SIZE);
         ppu_runLine(g_ppu, line);
 
         for (int ch = 0; ch < 8; ch++)
@@ -135,6 +216,7 @@ void Lufia2DrawPpuFrame(void) {
                     : -1;
         }
     }
+    s_line_regs_valid = true;
 }
 
 void Lufia2PrintDiagnostics(void) {
