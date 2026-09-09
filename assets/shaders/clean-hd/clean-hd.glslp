@@ -1,0 +1,13 @@
+shaders = 2
+
+# Pass 1 establishes a stable 2x pixel grid without changing colour.
+shader0 = clean-hd-prescale.glsl
+filter_linear0 = false
+scale_type0 = source
+scale0 = 2.0
+
+# Pass 2 maps that grid to the actual viewport. Its shader confines bilinear
+# blending to pixel boundaries instead of blurring each source pixel.
+shader1 = clean-hd-final.glsl
+filter_linear1 = true
+
