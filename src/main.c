@@ -1760,8 +1760,10 @@ int main(int argc, char **argv) {
         frame_counter++;
         UpdatePerfTitle();
 
+#ifdef LUFIA2_ENABLE_RUNTIME_LOG
         if (frame_counter <= 10 || (frame_counter % 600) == 0)
             Lufia2PrintDiagnostics();
+#endif
 
         if (!s_turbo && !g_config.disable_frame_delay) {
             static const uint8_t delays[3] = {17, 17, 16};
@@ -1787,7 +1789,9 @@ int main(int argc, char **argv) {
 #ifdef LUFIA2_ENABLE_NATIVE_WAIT
     Lufia2NativePatchesSummary();
 #endif
+#ifdef LUFIA2_ENABLE_RUNTIME_LOG
     Lufia2PrintDiagnostics();
+#endif
 
     RtlWriteSram();
 

@@ -16,6 +16,7 @@
 #include "snes/ppu.h"
 #include "snes/dma.h"
 #include "snes/interp_bridge.h"
+#include "lufia2_log.h"
 
 /* Generated interrupt vectors. */
 enum {
@@ -162,7 +163,7 @@ void Lufia2RunOneFrame(void) {
         Lufia2NativePatchesInit();
 #endif
 
-        fprintf(stderr,
+        LUFIA2_LOG(
                 "[lufia2] starting hybrid LLE/AOT boot at $%06X\n",
                 LUFIA2_RESET_PC);
 
@@ -222,7 +223,7 @@ void Lufia2DrawPpuFrame(void) {
 void Lufia2PrintDiagnostics(void) {
     long tier_hits = interp_tier_hit_count();
 
-    fprintf(stderr,
+    LUFIA2_LOG(
             "[lufia2] f=%d resume=$%06X %s "
             "A=%04X X=%04X Y=%04X S=%04X D=%04X "
             "PB=%02X DB=%02X M=%u Xf=%u "

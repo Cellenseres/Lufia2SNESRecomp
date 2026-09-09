@@ -20,6 +20,7 @@
 
 #include <string.h>
 #include "lufia2_abi_guard.h"
+#include "lufia2_log.h"
 static uint8_t s_clean_line_regs[225][PPU_SAVESTATE_REGS_SIZE];
 static uint32_t s_clean_raster_flags;
 const uint8_t *Lufia2LineRegisters(unsigned y) {
@@ -127,7 +128,7 @@ void Lufia2RunOneFrame(void) {
         Lufia2NativePatchesInit();
 #endif
 
-        fprintf(stderr,
+        LUFIA2_LOG(
                 "[lufia2] starting hybrid LLE/AOT boot at $%06X\n",
                 LUFIA2_RESET_PC);
 
@@ -197,7 +198,7 @@ static bool Lufia2CanRenderBands(void) {
 #if defined(SNESRECOMP_INTERP_PROFILE) || SNESRECOMP_REVERSE_DEBUG
     return false; /* Core diagnostics contain shared writable state. */
 #else
-    if (!snesrecomp_platform_task_worker_count() ||
+    if (!snesrecomp_task_worker_count() ||
         PPU_mode(g_ppu) != 1 || g_ppu->mosaic ||
         g_ppu->extraLeftCur || g_ppu->extraRightCur)
         return false;
@@ -286,9 +287,9 @@ void Lufia2FinishPixelOffload(bool gpu_drawn) {
             Lufia2CopyPixelPpu(&s_pixel_helper, &s_pixel_fallback);
             Lufia2PixelBand first = {&s_pixel_helper, 1, 112};
             Lufia2PixelBand last = {&s_pixel_fallback, 113, 224};
-            if (snesrecomp_platform_task_submit(0, Lufia2RenderPixelBand, &first)) {
+            if (snesrecomp_task_submit(0, Lufia2RenderPixelBand, &first)) {
                 Lufia2RenderPixelBand(&last);
-                snesrecomp_platform_task_wait();
+                snesrecomp_task_wait();
                 s_fallback_parallel = true;
                 s_pixel_status = "CPU parallel replay";
                 return;
@@ -340,7 +341,7 @@ void Lufia2DrawPpuFrame(void) {
 void Lufia2PrintDiagnostics(void) {
     long tier_hits = interp_tier_hit_count();
 
-    fprintf(stderr,
+    LUFIA2_LOG(
             "[lufia2] f=%d resume=$%06X %s "
             "A=%04X X=%04X Y=%04X S=%04X D=%04X "
             "PB=%02X DB=%02X M=%u Xf=%u "

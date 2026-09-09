@@ -4,6 +4,7 @@
 
 #include "cpu_state.h"
 #include "snes/interp_bridge.h"
+#include "lufia2_log.h"
 
 enum {
     /* $83:B53B installs a regular map: it reads the map id from $05AC,
@@ -46,7 +47,7 @@ static void MapLoadBegin(CpuState *cpu, uint32_t pc24) {
     (void)pc24;
     const uint8_t map_id = (uint8_t)(cpu->A & 0xff);
     if (!s_loading || map_id != s_pending_map) {
-        fprintf(stderr, "[map-load] begin runtime map $%02X\n",
+        LUFIA2_LOG("[map-load] begin runtime map $%02X\n",
             (unsigned)map_id);
     }
     s_loading = true;
@@ -66,7 +67,7 @@ static void MapLoadCommit(CpuState *cpu, uint32_t pc24) {
     s_committed_map = s_pending_map;
     s_pending_frames = 0;
     s_generation++;
-    fprintf(stderr, "[map-load] committed runtime map $%02X\n",
+    LUFIA2_LOG("[map-load] committed runtime map $%02X\n",
         (unsigned)s_committed_map);
 }
 
@@ -93,7 +94,7 @@ void Lufia2MapLoadFrame(void) {
     if (s_pending_frames > LUFIA2_MAX_PENDING_FRAMES)
         return;
     if (++s_pending_frames > LUFIA2_MAX_PENDING_FRAMES) {
-        fprintf(stderr,
+        LUFIA2_LOG(
             "[map-load] runtime map $%02X never reached the loader; "
             "using structural map validation\n",
             (unsigned)field);
