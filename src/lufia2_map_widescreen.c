@@ -8,6 +8,7 @@
 #include "lufia2_map_load.h"
 #include "lufia2_room_data.h"
 #include "snes/ws_shadow.h"
+#include "lufia2_log.h"
 
 enum {
     LUFIA2_BANK_SIZE = 0x10000,
@@ -472,7 +473,7 @@ static bool CurrentAreaIsEnclosed(
     const bool enclosed =
         !touches_edge && tail >= 4 && tail * 2u < map->cell_count;
     if (enclosed) {
-        fprintf(stderr,
+        LUFIA2_LOG(
             "[video] enclosed map area: %d,%d..%d,%d (%u blocks)\n",
             min_x, min_y, max_x, max_y, tail);
     }
@@ -640,7 +641,7 @@ void Lufia2BeginMapRenderOverlay(Ppu *ppu) {
     if (PPU_mode(ppu) != 1) {
         if (!s_wrong_mode_reported) {
             s_wrong_mode_reported = true;
-            fprintf(stderr,
+            LUFIA2_LOG(
                 "[video] map overlay suppressed: widescreen is active while "
                 "the PPU is in mode %u\n",
                 (unsigned)PPU_mode(ppu));
@@ -701,7 +702,7 @@ void Lufia2EndMapRenderOverlay(Ppu *ppu) {
 static Lufia2MapWidescreenResult RejectMap(
     uint64_t signature,
     const char *reason) {
-    fprintf(stderr,
+    LUFIA2_LOG(
         "[video] widescreen disabled for indoor map $%02X (%s)\n",
         (unsigned)g_ram[0x05ac], reason);
     Lufia2DeactivateMapWidescreen();
@@ -742,7 +743,7 @@ static void ReportRoomLookup(
     s_last_room_lookup_id = room_id;
 
     if (lookup == LUFIA2_ROOM_FOUND) {
-        fprintf(stderr,
+        LUFIA2_LOG(
             "[room-data] map $%02X cell %u,%u -> room %u (%s)\n",
             (unsigned)map_id,
             (unsigned)(player_cell % room->map_width),
@@ -756,7 +757,7 @@ static void ReportRoomLookup(
             ? Lufia2RoomDataLastError() : NULL;
         const char *action = "using centered 4:3";
         if (detail && *detail) {
-            fprintf(stderr,
+            LUFIA2_LOG(
                 "[room-data] map $%02X cell %u,%u -> %s (%s); "
                 "%s\n",
                 (unsigned)map_id,
@@ -764,7 +765,7 @@ static void ReportRoomLookup(
                 (unsigned)(player_cell / map_width),
                 Lufia2RoomLookupResultName(lookup), detail, action);
         } else {
-            fprintf(stderr,
+            LUFIA2_LOG(
                 "[room-data] map $%02X cell %u,%u -> %s; "
                 "%s\n",
                 (unsigned)map_id,
@@ -849,7 +850,7 @@ static void UpdateRoomTransition(
         return;
     s_forced_room = true;
     s_forced_room_id = target;
-    fprintf(stderr,
+    LUFIA2_LOG(
         "[room-data] transition at cell %u,%u %s -> room %u\n",
         (unsigned)cell_x, (unsigned)cell_y,
         Lufia2RoomDirectionName(s_step_direction), (unsigned)target);
@@ -937,7 +938,7 @@ static Lufia2MapWidescreenResult PrepareAuthoredMap(
             s_active = true;
             s_map_signature = signature;
             s_last_collision_cell_valid = false;
-            fprintf(stderr,
+            LUFIA2_LOG(
                 "[video] authored map $%02X: no room owns the player, "
                 "using the full map\n",
                 (unsigned)map_id);
@@ -951,7 +952,7 @@ static Lufia2MapWidescreenResult PrepareAuthoredMap(
         s_active = true;
         s_map_signature = signature;
         s_last_collision_cell_valid = false;
-        fprintf(stderr,
+        LUFIA2_LOG(
             "[video] authored room source: map $%02X, room %u (%s)\n",
             (unsigned)map_id, (unsigned)room->room_id,
             room->name && *room->name ? room->name : "unnamed");
@@ -984,7 +985,7 @@ static Lufia2MapWidescreenResult PrepareInferredMap(
         s_active = true;
         s_map_signature = signature;
         s_last_collision_cell_valid = false;
-        fprintf(stderr,
+        LUFIA2_LOG(
             "[video] full map source: %ux%u blocks, %u block definitions\n",
             (unsigned)map->width, (unsigned)map->height,
             (unsigned)map->block_count);

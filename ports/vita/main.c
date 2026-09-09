@@ -36,6 +36,7 @@ extern const SnesRecompHostGame kLufia2HostGame;
 #include "lufia2_runtime.h"
 #include "lufia2_video_policy.h"
 #include "desktop_glue.h"
+#include "lufia2_log.h"
 
 enum {
     SNES_WIDTH = 256,
@@ -196,7 +197,7 @@ static void TryOpenFirstGamepad(void) {
         s_gamepad = SDL_OpenGamepad(ids[0]);
         if (s_gamepad) {
             const char *name = SDL_GetGamepadName(s_gamepad);
-            fprintf(stderr, "[input] gamepad: %s\n",
+            LUFIA2_LOG("[input] gamepad: %s\n",
                     name ? name : "(unknown)");
         }
     }
@@ -301,7 +302,7 @@ static bool InitVideo(void) {
         snesrecomp_presenter_backend(s_presenter) ==
             SNESRECOMP_PRESENT_BACKEND_OPENGL &&
         g_config.shader && g_config.shader[0];
-    fprintf(stderr,
+    LUFIA2_LOG(
         "[video] presenter ready: %s, capabilities=0x%x, VSync %s%s\n",
         snesrecomp_presenter_backend_name(s_presenter),
         (unsigned)snesrecomp_presenter_capabilities(s_presenter),
@@ -493,7 +494,7 @@ static void PrepareVideoFrame(void) {
         Lufia2FinalizeMapWidescreen(g_ppu, g_ws_extra);
 
     if (layout != s_last_video_layout) {
-        fprintf(stderr,
+        LUFIA2_LOG(
             "[video] layout: %s (%dx%d, PPU mode=%u, main=$%02X, "
             "BG maps=%u/%u, scroll=%u,%u, map=$%02X, world=%u,%u)\n",
             Lufia2VideoLayoutName(layout),
@@ -552,7 +553,7 @@ static void UpdatePerfTitle(void) {
 }
 
 static void ShutdownDesktop(void) {
-    snesrecomp_platform_task_shutdown();
+    snesrecomp_task_shutdown();
     if (s_audio_stream) {
         SDL_PauseAudioStreamDevice(s_audio_stream);
         SDL_DestroyAudioStream(s_audio_stream);
@@ -595,7 +596,7 @@ int main(int argc, char **argv) {
 )) return 1;
     snesrecomp_host_apply_performance_profile();
     L2PerfInit();
-    fprintf(stderr, "[vita] main affinity core0=%s\n",
+    LUFIA2_LOG("[vita] main affinity core0=%s\n",
             snesrecomp_host_pin_main_thread() ? "set" : "unavailable");
 
     if (!ResolveRomWithLauncher(
@@ -629,13 +630,13 @@ int main(int argc, char **argv) {
         msu.ini_path = "config.ini";
         msu.driver_present = true;
         const SnesRecompMsuStatus *m = snesrecomp_msu_resolve(&msu);
-        fprintf(stderr, "[msu] directory: %s\n", m->directory);
+        LUFIA2_LOG("[msu] directory: %s\n", m->directory);
         if (m->pack_found)
-            fprintf(stderr, "[msu] pack: base=%s tracks=%d\n",
+            LUFIA2_LOG("[msu] pack: base=%s tracks=%d\n",
                     m->pack_base, m->track_count);
         else
-            fprintf(stderr, "[msu] pack: none\n");
-        fprintf(stderr, "[msu] runtime: %s; %s\n",
+            LUFIA2_LOG("[msu] pack: none\n");
+        LUFIA2_LOG("[msu] runtime: %s; %s\n",
                 m->armed ? "enabled" : "inactive", m->reason);
         if (m->armed) {
             msu1_init();
@@ -711,7 +712,7 @@ int main(int argc, char **argv) {
         const bool mode7_production = snesrecomp_host_data_file_exists(
             &kLufia2HostGame, "gpu_mode7_production.txt");
         Lufia2SetMode7ProductionEnabled(mode7_production);
-        fprintf(stderr,
+        LUFIA2_LOG(
                 "[vita] exact Mode 7 GXM production=%s backend=%s\n",
                 mode7_production ? "ON" : "off (CPU fallback)",
                 snesrecomp_gpu_mode7_available() ? "ready" : "unavailable");
@@ -719,7 +720,7 @@ int main(int argc, char **argv) {
     if (snesrecomp_host_data_file_exists(&kLufia2HostGame,
                                          "no_poll_fastforward.txt"))
         (void)snesrecomp_host_set_environment("SNESRECOMP_POLL_FASTFWD", "0");
-    fprintf(stderr, "[vita] Lufia APU wait fast-forward=%s\n",
+    LUFIA2_LOG("[vita] Lufia APU wait fast-forward=%s\n",
             snesrecomp_host_data_file_exists(&kLufia2HostGame,
                                               "no_poll_fastforward.txt")
                 ? "OFF" : "on");
@@ -727,15 +728,15 @@ int main(int argc, char **argv) {
 
     /* Warm the task timer's lazy frequency cache before any worker can read
      * it. Tasks finish inside FinishPixelOffload, before presentation/guest. */
-    (void)snesrecomp_platform_now_us();
-    snesrecomp_platform_task_set_thread_hook(snesrecomp_host_pin_helper_thread);
+    (void)snesrecomp_now_us();
+    snesrecomp_task_set_thread_hook(snesrecomp_host_pin_helper_thread);
     if (snesrecomp_host_parallel_workers_enabled() &&
         !snesrecomp_host_data_file_exists(&kLufia2HostGame, "no_ppu_parallel.txt"))
-        (void)snesrecomp_platform_task_enable(true);
-    fprintf(stderr, "[vita] platform workers=%u; one pixel helper; synchronous join\n",
-            snesrecomp_platform_task_worker_count());
+        (void)snesrecomp_task_enable(true);
+    LUFIA2_LOG("[vita] platform workers=%u; one pixel helper; synchronous join\n",
+            snesrecomp_task_worker_count());
 
-    fprintf(stderr, "[vita] entering CleanMain frame loop\n");
+    LUFIA2_LOG("[vita] entering CleanMain frame loop\n");
 
     bool running = true;
     uint32_t frame_counter = 0;
@@ -831,8 +832,10 @@ int main(int argc, char **argv) {
         L2_SCOPE(audit_misc, L2_MISC);
         UpdatePerfTitle();
 
+#ifdef LUFIA2_ENABLE_RUNTIME_LOG
         if (frame_counter <= 10 || (frame_counter % 600) == 0)
             Lufia2PrintDiagnostics();
+#endif
 
         L2PerfLeave(&audit_misc);
         L2_SCOPE(audit_pacing, L2_PACING);
@@ -899,7 +902,9 @@ int main(int argc, char **argv) {
 #ifdef LUFIA2_ENABLE_NATIVE_WAIT
     Lufia2NativePatchesSummary();
 #endif
+#ifdef LUFIA2_ENABLE_RUNTIME_LOG
     Lufia2PrintDiagnostics();
+#endif
 
     RtlWriteSram();
 

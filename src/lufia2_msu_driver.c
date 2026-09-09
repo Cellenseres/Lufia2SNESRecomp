@@ -5,6 +5,7 @@
 #include "cpu_state.h"
 #include "snes/interp_bridge.h"
 #include "snes/msu1.h"
+#include "lufia2_log.h"
 
 /*   $00:942A  CMP #$64
  *   $00:942C  BCS $944C      out of range -> give up
@@ -72,8 +73,8 @@ static void SongStart(CpuState *cpu, uint32_t pc24) {
 
     if (!MsuSelectTrack(song)) {
         /* No track for this song: let the SPC have it. */
-        fprintf(stderr, "[msu] song $%02X: no track, SPC plays it\n", song);
-        fflush(stderr);
+        LUFIA2_LOG("[msu] song $%02X: no track, SPC plays it\n", song);
+        LUFIA2_LOG_FLUSH();
         s_playing = false;
         s_song = LUFIA2_MSU_NO_SONG;
         return;
@@ -84,8 +85,8 @@ static void SongStart(CpuState *cpu, uint32_t pc24) {
     msu1_write(MSU_CONTROL, MSU_CTL_PLAY | MSU_CTL_REPEAT);
     s_playing = true;
     s_song = song;
-    fprintf(stderr, "[msu] song $%02X -> track %u\n", song, song);
-    fflush(stderr);
+    LUFIA2_LOG("[msu] song $%02X -> track %u\n", song, song);
+    LUFIA2_LOG_FLUSH();
 
     interp_bridge_pre_opcode_redirect(LUFIA2_MSU_SONG_SKIP);
 }
@@ -101,7 +102,7 @@ void Lufia2MsuDriverInstall(void) {
     interp_bridge_set_pre_opcode_hook(LUFIA2_MSU_SONG_START, SongStart);
     interp_bridge_set_pre_opcode_hook(LUFIA2_MSU_MUSIC_STOP, MusicStop);
     s_installed = true;
-    fprintf(stderr, "[msu] driver: hooks at $%06X and $%06X\n",
+    LUFIA2_LOG("[msu] driver: hooks at $%06X and $%06X\n",
             LUFIA2_MSU_SONG_START, LUFIA2_MSU_MUSIC_STOP);
-    fflush(stderr);
+    LUFIA2_LOG_FLUSH();
 }

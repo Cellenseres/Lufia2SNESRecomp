@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "crc32.h"
+#include "lufia2_log.h"
 
 enum {
     LUFIA2_ROOM_HEADER_SIZE = 64,
@@ -123,7 +124,7 @@ static void EnsureLoaded(void) {
         path = "data/widescreen/lufia2_rooms.l2rooms";
 
     if (!LoadFile(path)) {
-        fprintf(stderr,
+        LUFIA2_LOG(
             "[room-data] no room metadata at %s; using stock map policy\n",
             path);
         return;
@@ -137,7 +138,7 @@ static void EnsureLoaded(void) {
     }
 
     s_load_valid = true;
-    fprintf(stderr,
+    LUFIA2_LOG(
         "[room-data] loaded %u authored map(s), format version %u: %s\n",
         (unsigned)s_map_count, (unsigned)s_version, path);
 }
