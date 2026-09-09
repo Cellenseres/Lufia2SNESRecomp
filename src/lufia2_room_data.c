@@ -14,7 +14,9 @@ enum {
     LUFIA2_ROOM_TRANSITION_SIZE = 8,
     LUFIA2_ROOM_V1_SIZE = 52,
     LUFIA2_ROOM_V2_SIZE = 44,
+    LUFIA2_ROOM_V4_SIZE = 52,
     LUFIA2_ROOM_SPAN_SIZE = 6,
+    LUFIA2_ROOM_PATCH_SIZE = 8,
     LUFIA2_ROOM_MAX_FILE_SIZE = 16 * 1024 * 1024,
 };
 
@@ -88,7 +90,7 @@ static bool ValidateHeader(void) {
     if (memcmp(s_data, "L2RD", 4) != 0)
         return false;
     s_version = Read16(s_data + 4);
-    if ((s_version < 1 || s_version > 3) ||
+    if ((s_version < 1 || s_version > 4) ||
         Read16(s_data + 6) != LUFIA2_ROOM_HEADER_SIZE ||
         memcmp(s_data + 8, kLufia2RomSha256, 32) != 0) {
         return false;
@@ -240,8 +242,59 @@ static bool ReadSelection(
 
     selection->visibility_offset = Read32(room + 12);
     selection->visibility_count = Read32(room + 16);
+    if (s_version >= 4) {
+        selection->patch_offset = Read32(room + 44);
+        selection->patch_count = Read32(room + 48);
+        if (!RangeIsValid(
+                selection->patch_offset,
+                (size_t)selection->patch_count * LUFIA2_ROOM_PATCH_SIZE,
+                payload_size)) {
+            return false;
+        }
+    }
     return ReadVoid(room, 28, width, height, &selection->bg1) &&
         ReadVoid(room, 36, width, height, &selection->bg2);
+}
+
+bool Lufia2RoomDataPatchBlock(
+    const Lufia2RoomSelection *selection,
+    int32_t cell_x,
+    int32_t cell_y,
+    int logical_layer,
+    uint16_t *block) {
+    if (!selection || !selection->patch_count || !selection->map_payload)
+        return false;
+    if (cell_x < -LUFIA2_ROOM_PATCH_BAND ||
+        cell_y < -LUFIA2_ROOM_PATCH_BAND ||
+        cell_x >= (int32_t)selection->map_width + LUFIA2_ROOM_PATCH_BAND ||
+        cell_y >= (int32_t)selection->map_height + LUFIA2_ROOM_PATCH_BAND) {
+        return false;
+    }
+
+    const uint8_t *table = selection->map_payload + selection->patch_offset;
+    uint32_t low = 0;
+    uint32_t high = selection->patch_count;
+    while (low < high) {
+        const uint32_t middle = low + (high - low) / 2u;
+        const uint8_t *entry = table + (size_t)middle * LUFIA2_ROOM_PATCH_SIZE;
+        const int32_t x = (int16_t)Read16(entry);
+        const int32_t y = (int16_t)Read16(entry + 2);
+        if (y < cell_y || (y == cell_y && x < cell_x)) {
+            low = middle + 1;
+            continue;
+        }
+        if (y > cell_y || x > cell_x) {
+            high = middle;
+            continue;
+        }
+        const uint16_t value =
+            Read16(entry + (logical_layer == 1 ? 4 : 6));
+        if (value == LUFIA2_ROOM_PATCH_NONE)
+            return false;
+        *block = value;
+        return true;
+    }
+    return false;
 }
 
 /* One map's validated payload: the room record table and, from version 3,
@@ -286,7 +339,8 @@ static Lufia2RoomLookupResult ResolveMapPayload(
     const uint8_t *payload = s_data + payload_offset;
     const uint32_t room_size = Read32(payload + 8);
     const uint32_t expected_room_size =
-        s_version == 1 ? LUFIA2_ROOM_V1_SIZE : LUFIA2_ROOM_V2_SIZE;
+        s_version == 1 ? LUFIA2_ROOM_V1_SIZE :
+        s_version >= 4 ? LUFIA2_ROOM_V4_SIZE : LUFIA2_ROOM_V2_SIZE;
     const uint16_t room_count = Read16(directory + 4);
     if (memcmp(payload, "MAP0", 4) != 0 ||
         Read32(payload + 4) != payload_size ||
