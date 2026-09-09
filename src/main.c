@@ -1275,6 +1275,40 @@ static void ShutdownDesktop(void) {
 }
 
 int main(int argc, char **argv) {
+#if defined(LUFIA2_ENABLE_QUIESCENCE_INDEX) && \
+    defined(LUFIA2_ENABLE_PATCH_TESTS)
+    if (argc == 2 && strcmp(argv[1], "--quiescence-index-selftest") == 0)
+        return L2QIndexSelfTest();
+#endif
+#if defined(LUFIA2_ENABLE_BRIDGE_AUDIT) && \
+    defined(LUFIA2_ENABLE_PATCH_TESTS)
+    if (argc == 2 && strcmp(argv[1], "--bridge-audit-selftest") == 0)
+        return L2BASelfTest();
+#endif
+#if defined(LUFIA2_ENABLE_NATIVE_WAIT) && \
+    defined(LUFIA2_ENABLE_PATCH_TESTS)
+    if (argc == 2 && strcmp(argv[1], "--native-wait-selftest") == 0)
+        return Lufia2NativeWaitSelfTest();
+#endif
+#if defined(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD) && \
+    defined(LUFIA2_ENABLE_PATCH_TESTS)
+    if (argc == 2 && strcmp(argv[1], "--frame-wait-fastforward-selftest") == 0)
+        return Lufia2FrameWaitFastForwardSelfTest();
+#endif
+#if defined(LUFIA2_ENABLE_ACTOR_EARLY_RETURN) && \
+    defined(LUFIA2_ENABLE_PATCH_TESTS)
+    if (argc == 2 && strcmp(argv[1], "--actor-early-return-selftest") == 0)
+        return Lufia2ActorEarlyReturnSelfTest();
+    if (argc == 2 && strcmp(argv[1], "--actor-d508-early-return-selftest") == 0)
+        return Lufia2ActorD508EarlyReturnSelfTest();
+#endif
+#if (defined(LUFIA2_ENABLE_DMA_HOST_FASTFORWARD) || \
+     defined(LUFIA2_ENABLE_DMA_DIRECT_SOURCE_READ)) && \
+    defined(LUFIA2_ENABLE_PATCH_TESTS)
+    if (argc == 2 && strcmp(argv[1], "--dma-host-fastforward-selftest") == 0)
+        return Lufia2DmaHostFastForwardSelfTest();
+#endif
+
     char rom_path[1024];
     rom_path[0] = '\0';
 
