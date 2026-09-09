@@ -1,3 +1,18 @@
+#ifdef LUFIA2_ENABLE_QUIESCENCE_INDEX
+#include "patches/quiescence_index.h"
+#endif
+#ifdef LUFIA2_ENABLE_BRIDGE_AUDIT
+#include "src/diagnostics/lufia2_bridge_audit.h"
+#endif
+#if defined(LUFIA2_ENABLE_NATIVE_WAIT) || defined(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD) || \
+    defined(LUFIA2_ENABLE_ACTOR_EARLY_RETURN)
+#include "patches/native_patches.h"
+#endif
+#if defined(LUFIA2_ENABLE_DMA_HOST_FASTFORWARD) || \
+    defined(LUFIA2_ENABLE_DMA_DIRECT_SOURCE_READ)
+#include "patches/dma_host_fastforward.h"
+#endif
+#include "diagnostics/lufia2_gameplay_capture.h"
 /* Lufia II desktop host. */
 #include <ctype.h>
 #include <stdbool.h>
@@ -64,6 +79,7 @@ enum {
     LUFIA2_MAP_WINDOW_LAYER_MASK = 0x33,
     LUFIA2_WORLD_WINDOW_LAYER_MASK = 0x31,
     LUFIA2_OUTDOOR_WINDOW_MASK = 0x03,
+    LUFIA2_MODE7_LAYER_MASK = 0x01,
     LUFIA2_MENU_REPEAT_LAYER_MASK = 0x02,
     LUFIA2_MENU_CLAMP_LAYER_MASK = 0x0d,
 };
@@ -119,6 +135,25 @@ static bool s_vsync_enabled = true;
 static bool s_window_resize_pending;
 static Lufia2VideoLayout s_last_video_layout = LUFIA2_VIDEO_LAYOUT_COUNT;
 static Lufia2VideoLayout s_held_video_layout = LUFIA2_VIDEO_CENTERED;
+static uint64_t s_last_intro_raster_reject_signature = UINT64_MAX;
+
+typedef enum Lufia2VisualPreset {
+    LUFIA2_VISUAL_ORIGINAL = 0,
+    LUFIA2_VISUAL_CLEAN_HD,
+} Lufia2VisualPreset;
+
+static Lufia2VisualPreset s_visual_preset = LUFIA2_VISUAL_ORIGINAL;
+static unsigned s_hd_mode7_scale;
+static bool s_hd_mode7_perspective;
+static SnesRecompMode7Line s_hd_mode7_lines[SNES_HEIGHT];
+static SnesRecompObjSliver
+    s_hd_mode7_obj_slivers[SNESRECOMP_OBJ_MAX_SLIVERS];
+static uint8_t s_hd_mode7_obj_line_priority[SNES_HEIGHT];
+static SnesPpuUnsupported s_hd_mode7_last_reject = SNES_PPU_SUPPORTED;
+static bool s_hd_mode7_present_error_reported;
+
+static const char kCleanHdPresetPath[] =
+    "assets/shaders/clean-hd/clean-hd.glslp";
 
 static uint64_t s_perf_last_ms;
 static uint32_t s_perf_frames;
@@ -161,6 +196,80 @@ static bool AsciiEqualsNoCase(const char *a, const char *b) {
         b++;
     }
     return *a == '\0' && *b == '\0';
+}
+
+static bool ReadIniText(const char *path, const char *wanted_section,
+                        const char *wanted_key, char *out,
+                        size_t out_capacity) {
+    FILE *f;
+    char section[64] = "";
+    char line[512];
+
+    if (!out || !out_capacity)
+        return false;
+    out[0] = '\0';
+    f = fopen(path, "rb");
+    if (!f)
+        return false;
+
+    while (fgets(line, sizeof(line), f)) {
+        char *comment = strpbrk(line, "#;");
+        char *text;
+        size_t length;
+        char *equals;
+        if (comment)
+            *comment = '\0';
+        text = TrimAscii(line);
+        length = strlen(text);
+        if (length >= 2 && text[0] == '[' && text[length - 1] == ']') {
+            text[length - 1] = '\0';
+            snprintf(section, sizeof(section), "%s", TrimAscii(text + 1));
+            continue;
+        }
+        if (!AsciiEqualsNoCase(section, wanted_section))
+            continue;
+        equals = strchr(text, '=');
+        if (!equals)
+            continue;
+        *equals = '\0';
+        if (!AsciiEqualsNoCase(TrimAscii(text), wanted_key))
+            continue;
+        snprintf(out, out_capacity, "%s", TrimAscii(equals + 1));
+        fclose(f);
+        return true;
+    }
+    fclose(f);
+    return false;
+}
+
+static void LoadVisualConfig(const char *path) {
+    char value[64];
+
+    s_visual_preset = LUFIA2_VISUAL_ORIGINAL;
+    if (ReadIniText(path, "Graphics", "VisualPreset",
+                    value, sizeof(value)) &&
+        (AsciiEqualsNoCase(value, "CleanHD") ||
+         AsciiEqualsNoCase(value, "Clean-HD"))) {
+        s_visual_preset = LUFIA2_VISUAL_CLEAN_HD;
+    }
+
+    s_hd_mode7_scale = 0;
+    if (ReadIniText(path, "Graphics", "HDMode7", value, sizeof(value)) &&
+        (AsciiEqualsNoCase(value, "2x") ||
+         AsciiEqualsNoCase(value, "2"))) {
+        s_hd_mode7_scale = 2;
+    }
+
+    s_hd_mode7_perspective = false;
+    if (ReadIniText(path, "Graphics", "HDMode7Perspective",
+                    value, sizeof(value)) &&
+        !AsciiEqualsNoCase(value, "Off") &&
+        !AsciiEqualsNoCase(value, "0")) {
+        s_hd_mode7_perspective = true;
+        fprintf(stderr,
+            "[video] HDMode7Perspective is not implemented; "
+            "HD Mode 7 will remain off for this run.\n");
+    }
 }
 
 static bool ReadIniBool(
@@ -239,6 +348,9 @@ static bool EnsureDefaultConfig(const char *path) {
         "OutputMethod = OpenGL\n"
         "LinearFiltering = 0\n"
         "Shader =\n"
+        "VisualPreset = Original\n"
+        "HDMode7 = Off\n"
+        "HDMode7Perspective = Off\n"
         "NewRenderer = 0\n"
         "NoSpriteLimits = 0\n"
         "Widescreen = 0\n"
@@ -302,6 +414,12 @@ static void PersistInt(const char *section, const char *key, int value) {
     char text[64];
     snprintf(text, sizeof(text), "%d", value);
     launcher_ini_kv_write("config.ini", section, key, text);
+}
+
+static void PersistText(const char *section, const char *key,
+                        const char *value) {
+    launcher_ini_kv_write(
+        "config.ini", section, key, value ? value : "");
 }
 
 static bool LoadVerifiedRom(const char *path,
@@ -489,6 +607,7 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     }
 
     ParseConfigFile("config.ini");
+    LoadVisualConfig("config.ini");
     if (!EnsureDefaultPlatformConfig("platform.ini")) {
         fprintf(stderr,
             "[config] warning: could not create platform.ini\n");
@@ -537,6 +656,9 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     ls.ignore_aspect = g_config.ignore_aspect_ratio ? 1 : 0;
     ls.linear_filter = g_config.linear_filtering ? 1 : 0;
     ls.widescreen = g_config.widescreen ? 1 : 0;
+    ls.sharp_filter =
+        s_visual_preset == LUFIA2_VISUAL_CLEAN_HD ? 1 : 0;
+    ls.affine_filter = s_hd_mode7_scale == 2u ? 1 : 0;
     ls.enable_audio = g_config.enable_audio ? 1 : 0;
     ls.audio_freq = g_config.audio_freq ? g_config.audio_freq : 32040;
     ls.volume = 100;
@@ -568,6 +690,8 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     gi.has_renderer = 1;
     gi.renderer_labels = kLufia2LauncherRendererLabels;
     gi.num_renderers = LUFIA2_LAUNCHER_RENDERER_COUNT;
+    gi.has_sharp_filter = 1;
+    gi.has_affine_filter = 1;
 
     host_report_breadcrumb("launcher: opening recomp-ui");
 
@@ -607,6 +731,9 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     g_config.ignore_aspect_ratio = ls.ignore_aspect != 0;
     g_config.linear_filtering = ls.linear_filter != 0;
     g_config.widescreen = ls.widescreen != 0;
+    s_visual_preset = ls.sharp_filter
+        ? LUFIA2_VISUAL_CLEAN_HD : LUFIA2_VISUAL_ORIGINAL;
+    s_hd_mode7_scale = ls.affine_filter ? 2u : 0u;
     g_config.enable_audio = ls.enable_audio != 0;
     g_config.audio_freq = (uint16)ls.audio_freq;
     g_config.enable_gamepad[0] =
@@ -626,6 +753,11 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     PersistInt("Graphics", "Fullscreen", g_config.fullscreen);
     PersistInt("Graphics", "IgnoreAspectRatio",
                g_config.ignore_aspect_ratio ? 1 : 0);
+    PersistText("Graphics", "VisualPreset",
+        s_visual_preset == LUFIA2_VISUAL_CLEAN_HD
+            ? "CleanHD" : "Original");
+    PersistText("Graphics", "HDMode7",
+        s_hd_mode7_scale == 2u ? "2x" : "Off");
 
     ConfigReloadKeyMap("config.ini");
 
@@ -811,7 +943,9 @@ static bool InitVideo(void) {
     config.linear_filtering = g_config.linear_filtering;
     config.fullscreen = g_config.fullscreen != 0;
     if (config.backend == SNESRECOMP_PRESENT_BACKEND_OPENGL) {
-        config.shader_preset_path = g_config.shader;
+        config.shader_preset_path =
+            s_visual_preset == LUFIA2_VISUAL_CLEAN_HD
+                ? kCleanHdPresetPath : g_config.shader;
         config.shader_preset_interface =
             snesrecomp_glsl_shader_preset_interface();
     }
@@ -855,7 +989,8 @@ static bool InitVideo(void) {
     const bool preset_active =
         snesrecomp_presenter_backend(s_presenter) ==
             SNESRECOMP_PRESENT_BACKEND_OPENGL &&
-        g_config.shader && g_config.shader[0];
+        ((s_visual_preset == LUFIA2_VISUAL_CLEAN_HD) ||
+         (g_config.shader && g_config.shader[0]));
     fprintf(stderr,
         "[video] presenter ready: %s, capabilities=0x%x, VSync %s%s\n",
         snesrecomp_presenter_backend_name(s_presenter),
@@ -863,6 +998,22 @@ static bool InitVideo(void) {
         snesrecomp_vsync_state_name(
             snesrecomp_presenter_vsync_state(s_presenter)),
         preset_active ? ", GLSL preset active" : "");
+    fprintf(stderr,
+        "[video] visual preset=%s HD Mode 7=%s perspective=%s\n",
+        s_visual_preset == LUFIA2_VISUAL_CLEAN_HD ? "CleanHD" : "Original",
+        s_hd_mode7_scale == 2 ? "2x" : "Off",
+        s_hd_mode7_perspective ? "unsupported" : "Off");
+    if (s_visual_preset == LUFIA2_VISUAL_CLEAN_HD && !preset_active) {
+        fprintf(stderr,
+            "[video] CleanHD requires OpenGL; using original presentation.\n");
+    }
+    if (s_hd_mode7_scale == 2u &&
+        !(snesrecomp_presenter_capabilities(s_presenter) &
+          SNESRECOMP_PRESENT_CAP_HD_MODE7)) {
+        fprintf(stderr,
+            "[video] HD Mode 7 requires the OpenGL HD capability; using "
+            "the authentic renderer.\n");
+    }
     return true;
 }
 
@@ -914,23 +1065,87 @@ static bool InitAudio(void) {
 }
 
 static bool PresentFrame(void) {
-    RtlWidescreenPresent(
-        s_present_pixels,
-        (size_t)s_frame_width * 4,
-        s_pixels,
-        s_frame_width,
-        SNES_HEIGHT);
-    const SnesRecompVideoFrame frame = {
-        .pixels = s_present_pixels,
-        .pixel_format = SNESRECOMP_PIXEL_FORMAT_ARGB8888,
-        .width = s_frame_width,
-        .height = SNES_HEIGHT,
-        .pitch = s_frame_width * 4,
-    };
-    if (!snesrecomp_presenter_present(s_presenter, &frame)) {
-        fprintf(stderr, "Present failed: %s\n",
-                snesrecomp_presenter_last_error(s_presenter));
-        return false;
+    bool hd_presented = false;
+
+    if (s_hd_mode7_scale == 2u && !s_hd_mode7_perspective &&
+        (snesrecomp_presenter_capabilities(s_presenter) &
+         SNESRECOMP_PRESENT_CAP_HD_MODE7)) {
+        SnesPpuFrameCapture capture;
+        SnesRecompObjFrame obj;
+        SnesRecompMode7HdFrame hd_frame;
+        SnesPpuUnsupported support = SNES_PPU_UNSUPPORTED_RASTER_STATE;
+        bool wants_obj = false;
+
+        memset(&obj, 0, sizeof obj);
+        memset(&hd_frame, 0, sizeof hd_frame);
+        if (Lufia2CapturePpuFrame(
+                &capture, (unsigned)s_frame_width, (unsigned)g_ws_extra)) {
+            support = snesrecomp_ppu_mode7_supports(&capture);
+        }
+        if (support == SNES_PPU_SUPPORTED &&
+            snesrecomp_ppu_mode7_compile_lines(
+                &capture, s_hd_mode7_lines, SNES_HEIGHT)) {
+            for (unsigned i = 0; i < capture.band_count; i++) {
+                if (!capture.bands[i].forced_blank &&
+                    (capture.bands[i].main_enable & 0x10u)) {
+                    wants_obj = true;
+                    break;
+                }
+            }
+            obj.slivers = s_hd_mode7_obj_slivers;
+            obj.capacity = SNESRECOMP_OBJ_MAX_SLIVERS;
+            obj.line_priority = s_hd_mode7_obj_line_priority;
+            obj.line_capacity = SNES_HEIGHT;
+            if (!wants_obj || snesrecomp_ppu_obj_evaluate(&capture, &obj)) {
+                hd_frame.capture = &capture;
+                hd_frame.lines = s_hd_mode7_lines;
+                hd_frame.line_count = capture.visible_height;
+                hd_frame.obj = wants_obj ? &obj : NULL;
+                hd_frame.scale = s_hd_mode7_scale;
+                hd_presented = snesrecomp_presenter_present_mode7_hd(
+                    s_presenter, &hd_frame);
+                if (!hd_presented && !s_hd_mode7_present_error_reported) {
+                    fprintf(stderr,
+                        "[video] HD Mode 7 presentation failed; using "
+                        "authentic renderer: %s\n",
+                        snesrecomp_presenter_last_error(s_presenter));
+                    s_hd_mode7_present_error_reported = true;
+                }
+            } else {
+                support = SNES_PPU_UNSUPPORTED_OBJ;
+            }
+        } else if (support == SNES_PPU_SUPPORTED) {
+            support = SNES_PPU_UNSUPPORTED_RASTER_STATE;
+        }
+        if (support != s_hd_mode7_last_reject) {
+            if (support != SNES_PPU_SUPPORTED) {
+                fprintf(stderr,
+                    "[video] HD Mode 7 fallback: %s\n",
+                    snes_ppu_unsupported_text(support));
+            }
+            s_hd_mode7_last_reject = support;
+        }
+    }
+
+    if (!hd_presented) {
+        RtlWidescreenPresent(
+            s_present_pixels,
+            (size_t)s_frame_width * 4,
+            s_pixels,
+            s_frame_width,
+            SNES_HEIGHT);
+        const SnesRecompVideoFrame frame = {
+            .pixels = s_present_pixels,
+            .pixel_format = SNESRECOMP_PIXEL_FORMAT_ARGB8888,
+            .width = s_frame_width,
+            .height = SNES_HEIGHT,
+            .pitch = s_frame_width * 4,
+        };
+        if (!snesrecomp_presenter_present(s_presenter, &frame)) {
+            fprintf(stderr, "Present failed: %s\n",
+                    snesrecomp_presenter_last_error(s_presenter));
+            return false;
+        }
     }
     if (s_window_resize_pending) {
         if (!snesrecomp_presenter_set_window_scale(
@@ -953,6 +1168,47 @@ static void PrepareVideoFrame(void) {
 
     Lufia2MapLoadFrame();
 
+    const uint8_t *raster_rows = NULL;
+    size_t raster_stride = 0;
+    const bool raster_valid =
+        Lufia2PpuRasterHistory(&raster_rows, &raster_stride);
+    const Lufia2IntroMode7RasterDetail intro_raster =
+        Lufia2InspectIntroMode7Raster(
+            raster_rows, raster_stride, LUFIA2_PPU_VISIBLE_LINES,
+            raster_valid);
+    const Lufia2VideoObservation observation = {
+        g_ram[0x05ac],
+        Lufia2ResumePc(),
+        intro_raster.classification,
+    };
+
+    if (Lufia2IntroMode7Candidate(&observation) &&
+        intro_raster.classification == LUFIA2_INTRO_RASTER_REJECTED) {
+        const uint64_t signature =
+            ((uint64_t)intro_raster.reason << 56) |
+            ((uint64_t)(intro_raster.line & 0xffu) << 48) |
+            ((uint64_t)intro_raster.bgmode << 24) |
+            ((uint64_t)intro_raster.setini << 16) |
+            ((uint64_t)intro_raster.main_enable << 8) |
+            intro_raster.sub_enable;
+        if (signature != s_last_intro_raster_reject_signature) {
+            fprintf(stderr,
+                "[video] Intro Mode 7 raster rejected: %s at line %u "
+                "(INIDISP=$%02X BGMODE=$%02X SETINI=$%02X "
+                "TM=$%02X TS=$%02X)\n",
+                Lufia2IntroMode7RejectReasonName(intro_raster.reason),
+                intro_raster.line,
+                intro_raster.inidisp,
+                intro_raster.bgmode,
+                intro_raster.setini,
+                intro_raster.main_enable,
+                intro_raster.sub_enable);
+            s_last_intro_raster_reject_signature = signature;
+        }
+    } else {
+        s_last_intro_raster_reject_signature = UINT64_MAX;
+    }
+
     /* PpuResetLayerPolicies() clears clamp, mirror, repeat and the window
        expansion, but not the widen mask, so a mask set for one scene
        survives into the next: the menu restricts the margins to BG2, and
@@ -963,14 +1219,18 @@ static void PrepareVideoFrame(void) {
         PpuSetWidescreenLayerMask(g_ppu, 0);
 
     Lufia2VideoLayout layout =
-        Lufia2SelectVideoLayout(g_ppu, g_ws_active);
+        Lufia2SelectVideoLayoutObserved(
+            g_ppu, g_ws_active, &observation);
     if (layout == LUFIA2_VIDEO_BLANK) {
         /* Nothing reaches the screen during a fade, so hold the last
            decision and keep preparing. The map source follows the
            player through the transition and the shadow stays keyed to
            the live camera, so the fade-in shows the destination room
            instead of whatever survived the blank. */
-        layout = s_held_video_layout;
+        layout = s_held_video_layout == LUFIA2_VIDEO_INTRO_MODE7 &&
+                         !Lufia2IntroMode7Candidate(&observation)
+                     ? LUFIA2_VIDEO_CENTERED
+                     : s_held_video_layout;
     } else {
         s_held_video_layout = layout;
     }
@@ -979,6 +1239,16 @@ static void PrepareVideoFrame(void) {
     case LUFIA2_VIDEO_WORLD_MAP:
         Lufia2DeactivateMapWidescreen();
         PpuSetExtraSpace(g_ppu, (uint8_t)g_ws_extra);
+        PpuSetWidescreenWindowExpansion(
+            g_ppu,
+            LUFIA2_WORLD_WINDOW_LAYER_MASK,
+            LUFIA2_OUTDOOR_WINDOW_MASK);
+        break;
+
+    case LUFIA2_VIDEO_INTRO_MODE7:
+        Lufia2DeactivateMapWidescreen();
+        PpuSetExtraSpace(g_ppu, (uint8_t)g_ws_extra);
+        PpuSetWidescreenLayerMask(g_ppu, LUFIA2_MODE7_LAYER_MASK);
         PpuSetWidescreenWindowExpansion(
             g_ppu,
             LUFIA2_WORLD_WINDOW_LAYER_MASK,
@@ -1043,7 +1313,8 @@ static void PrepareVideoFrame(void) {
         break;
     }
 
-    WsShadowFrame(g_ppu);
+    if (layout != LUFIA2_VIDEO_INTRO_MODE7)
+        WsShadowFrame(g_ppu);
     if (finalize_map_widescreen)
         Lufia2FinalizeMapWidescreen(g_ppu, g_ws_extra);
 
@@ -1195,6 +1466,20 @@ static bool HandleEvents(void) {
         if (e.type == SDL_EVENT_KEY_DOWN ||
             e.type == SDL_EVENT_KEY_UP) {
             const bool down = e.type == SDL_EVENT_KEY_DOWN;
+#ifdef LUFIA2_ENABLE_BRIDGE_AUDIT
+            if (e.key.key == SDLK_F9 && (e.key.mod & SDL_KMOD_CTRL) &&
+                    (e.key.mod & SDL_KMOD_SHIFT)) {
+                if (down && !e.key.repeat) L2BAToggle();
+                continue;
+            }
+#endif
+#ifdef LUFIA2_ENABLE_GAMEPLAY_CAPTURE
+            if (e.key.key == SDLK_F10 && (e.key.mod & SDL_KMOD_CTRL) &&
+                    (e.key.mod & SDL_KMOD_SHIFT)) {
+                if (down && !e.key.repeat) L2CaptureToggle();
+                continue;
+            }
+#endif
             if (down && !e.key.repeat &&
                 e.key.key == SDLK_ESCAPE) {
                 return false;
@@ -1252,6 +1537,7 @@ static void UpdatePerfTitle(void) {
 }
 
 static void ShutdownDesktop(void) {
+    L2CaptureShutdown();
     if (s_audio_stream) {
         SDL_PauseAudioStreamDevice(s_audio_stream);
         SDL_DestroyAudioStream(s_audio_stream);
@@ -1308,14 +1594,26 @@ int main(int argc, char **argv) {
     if (argc == 2 && strcmp(argv[1], "--dma-host-fastforward-selftest") == 0)
         return Lufia2DmaHostFastForwardSelfTest();
 #endif
-
     char rom_path[1024];
     rom_path[0] = '\0';
 
     /* Register early so Tier-2 reporting has the game identity. */
     RtlRegisterGame(&kLufia2GameInfo);
 
+#ifdef LUFIA2_ENABLE_GAMEPLAY_CAPTURE
+    host_report_init("lufia2", "desktop-gameplay-capture1");
+    fprintf(stderr, "[gameplay-capture] ready; Ctrl+Shift+F10 starts/stops; original execution unchanged\n");
+#else
+#ifdef LUFIA2_ENABLE_NATIVE_WAIT
+    host_report_init("lufia2", "desktop-native-wait-step1");
+#elif defined(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD)
+    host_report_init("lufia2", "desktop-frame-wait-native-dma-step1");
+#elif defined(LUFIA2_ENABLE_ACTOR_EARLY_RETURN)
+    host_report_init("lufia2", "desktop-actor-d508-step1");
+#else
     host_report_init("lufia2", "desktop-v2-launcher");
+#endif
+#endif
 
     if (!ResolveRomWithLauncher(
             argc, argv, rom_path, sizeof(rom_path))) {
@@ -1436,7 +1734,9 @@ int main(int argc, char **argv) {
         const uint32_t input =
             ReadKeyboardInput() | ReadGamepadInput();
 
+        L2CaptureFrameBegin(input);
         RtlRunFrame(input);
+        L2CaptureGuestEnd();
 
         PrepareVideoFrame();
 
@@ -1451,6 +1751,7 @@ int main(int argc, char **argv) {
             g_ppu, s_pixels, (size_t)s_frame_width * 4, ppu_flags);
         Lufia2DrawPpuFrame();
         Lufia2EndMapRenderOverlay(g_ppu);
+        L2CaptureFrameEnd();
         if (!PresentFrame()) {
             g_fail = true;
             break;
@@ -1483,6 +1784,9 @@ int main(int argc, char **argv) {
     fprintf(stderr,
         "[desktop] leaving main loop: frames=%u fail=%d\n",
         frame_counter, g_fail ? 1 : 0);
+#ifdef LUFIA2_ENABLE_NATIVE_WAIT
+    Lufia2NativePatchesSummary();
+#endif
     Lufia2PrintDiagnostics();
 
     RtlWriteSram();
