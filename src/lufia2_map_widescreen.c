@@ -24,6 +24,8 @@ enum {
     LUFIA2_VISIBLE_HEIGHT = 224,
     LUFIA2_SCROLL_TILES = 128,
     LUFIA2_SCROLL_PIXELS = LUFIA2_SCROLL_TILES * LUFIA2_TILE_SIZE,
+    LUFIA2_SHADOW_WORLD_BIAS =
+        LUFIA2_WS_SHADOW_TILE_BIAS * LUFIA2_TILE_SIZE,
     LUFIA2_MAX_MAP_CELLS = 16384,
     LUFIA2_MAX_VRAM_BACKUPS = 256,
     LUFIA2_COLLISION_TOP = 0x04,
@@ -228,48 +230,58 @@ static bool ResolveBlockTile(
 static bool ResolveMapTile(
     const Lufia2RuntimeMap *map,
     int logical_layer,
-    uint32_t world_tile_x,
-    uint32_t world_tile_y,
+    int32_t map_tile_x,
+    int32_t map_tile_y,
     uint16_t *entry) {
-    const uint32_t tile_x = world_tile_x & (LUFIA2_SCROLL_TILES - 1u);
-    const uint32_t tile_y = world_tile_y & (LUFIA2_SCROLL_TILES - 1u);
-    const uint32_t block_x = tile_x >> 1;
-    const uint32_t block_y = tile_y >> 1;
-    if (block_x >= map->width || block_y >= map->height)
+    const int32_t block_x = map_tile_x >> 1;
+    const int32_t block_y = map_tile_y >> 1;
+    if (block_x < 0 || block_y < 0 ||
+        block_x >= (int32_t)map->width || block_y >= (int32_t)map->height) {
         return false;
+    }
 
     return ResolveCellTile(
-        map, logical_layer, block_y * map->width + block_x,
-        tile_x & 1u, tile_y & 1u, entry);
+        map, logical_layer,
+        (uint32_t)(block_y * (int32_t)map->width + block_x),
+        (uint32_t)map_tile_x & 1u, (uint32_t)map_tile_y & 1u, entry);
 }
 
-static bool RoomOwnsWorldTile(
+static bool RoomOwnsMapTile(
     const Lufia2RuntimeMap *map,
     const Lufia2RoomSelection *room,
-    uint32_t world_tile_x,
-    uint32_t world_tile_y) {
-    const uint32_t tile_x = world_tile_x & (LUFIA2_SCROLL_TILES - 1u);
-    const uint32_t tile_y = world_tile_y & (LUFIA2_SCROLL_TILES - 1u);
-    const uint32_t block_x = tile_x >> 1;
-    const uint32_t block_y = tile_y >> 1;
-    if (block_x >= map->width || block_y >= map->height)
+    int32_t map_tile_x,
+    int32_t map_tile_y) {
+    const int32_t block_x = map_tile_x >> 1;
+    const int32_t block_y = map_tile_y >> 1;
+    if (block_x < 0 || block_y < 0 ||
+        block_x >= (int32_t)map->width || block_y >= (int32_t)map->height) {
         return false;
+    }
     return Lufia2RoomDataCellIsVisible(
-        room, block_y * map->width + block_x);
+        room, (uint32_t)(block_y * (int32_t)map->width + block_x));
 }
 
 static uint16_t ResolveWideTile(
     const Lufia2RuntimeMap *map,
     const Lufia2RoomSelection *room,
     int logical_layer,
-    uint32_t world_tile_x,
-    uint32_t world_tile_y) {
+    int32_t map_tile_x,
+    int32_t map_tile_y) {
     uint16_t entry = 0;
-    const uint32_t tile_x = world_tile_x & (LUFIA2_SCROLL_TILES - 1u);
-    const uint32_t tile_y = world_tile_y & (LUFIA2_SCROLL_TILES - 1u);
-    if (!room || RoomOwnsWorldTile(map, room, world_tile_x, world_tile_y)) {
+    const uint32_t sub_tile_x = (uint32_t)map_tile_x & 1u;
+    const uint32_t sub_tile_y = (uint32_t)map_tile_y & 1u;
+    if (!room || RoomOwnsMapTile(map, room, map_tile_x, map_tile_y)) {
         (void)ResolveMapTile(
-            map, logical_layer, world_tile_x, world_tile_y, &entry);
+            map, logical_layer, map_tile_x, map_tile_y, &entry);
+        return entry;
+    }
+
+    uint16_t patch_block = 0;
+    if (Lufia2RoomDataPatchBlock(
+            room, map_tile_x >> 1, map_tile_y >> 1, logical_layer,
+            &patch_block)) {
+        (void)ResolveBlockTile(
+            map, patch_block, sub_tile_x, sub_tile_y, &entry);
         return entry;
     }
 
@@ -279,12 +291,36 @@ static uint16_t ResolveWideTile(
         const uint32_t cell =
             (uint32_t)definition->y * map->width + definition->x;
         (void)ResolveCellTile(
-            map, logical_layer, cell, tile_x & 1u, tile_y & 1u, &entry);
+            map, logical_layer, cell, sub_tile_x, sub_tile_y, &entry);
     } else if (definition->mode == LUFIA2_ROOM_VOID_BLOCK) {
         (void)ResolveBlockTile(
-            map, definition->block, tile_x & 1u, tile_y & 1u, &entry);
+            map, definition->block, sub_tile_x, sub_tile_y, &entry);
     }
     return entry;
+}
+
+static int32_t UnwrapScroll(uint32_t scroll, int32_t reference) {
+    int32_t delta = (int32_t)(
+        (scroll - (uint32_t)reference) & (LUFIA2_SCROLL_PIXELS - 1u));
+    if (delta >= LUFIA2_SCROLL_PIXELS / 2)
+        delta -= LUFIA2_SCROLL_PIXELS;
+    return reference + delta;
+}
+
+static void CameraOrigin(const Ppu *ppu, int32_t *x, int32_t *y) {
+    const uint32_t scroll_x = (uint32_t)ppu->hScroll[0];
+    const uint32_t scroll_y = (uint32_t)ppu->vScroll[0];
+    if (!s_player_cell_valid) {
+        *x = (int32_t)scroll_x;
+        *y = (int32_t)scroll_y;
+        return;
+    }
+    const int32_t player_x =
+        (int32_t)s_player_cell_x * LUFIA2_BLOCK_SIZE + LUFIA2_BLOCK_SIZE / 2;
+    const int32_t player_y =
+        (int32_t)s_player_cell_y * LUFIA2_BLOCK_SIZE + LUFIA2_BLOCK_SIZE / 2;
+    *x = UnwrapScroll(scroll_x, player_x - LUFIA2_NATIVE_WIDTH / 2);
+    *y = UnwrapScroll(scroll_y, player_y - LUFIA2_VISIBLE_HEIGHT / 2);
 }
 
 /* Sample the streamed tilemaps against the processed map. This is the gate
@@ -294,8 +330,11 @@ static uint16_t ResolveWideTile(
 static bool NativeViewportMatches(
     const Ppu *ppu,
     const Lufia2RuntimeMap *map) {
-    const uint32_t world_tile_x0 = (uint32_t)ppu->hScroll[0] >> 3;
-    const uint32_t world_tile_y0 = (uint32_t)ppu->vScroll[0] >> 3;
+    int32_t camera_x = 0;
+    int32_t camera_y = 0;
+    CameraOrigin(ppu, &camera_x, &camera_y);
+    const int32_t world_tile_x0 = camera_x >> 3;
+    const int32_t world_tile_y0 = camera_y >> 3;
     unsigned checked = 0;
     unsigned matched = 0;
 
@@ -303,10 +342,10 @@ static bool NativeViewportMatches(
         const int logical_layer = bg == 0 ? 1 : 0;
         const uint16_t map_base = (uint16_t)PPU_bgTilemapAdr(ppu, bg);
 
-        for (uint32_t dy = 0; dy < LUFIA2_NATIVE_SAMPLE_Y; dy++) {
-            for (uint32_t dx = 0; dx < LUFIA2_NATIVE_SAMPLE_X; dx++) {
-                const uint32_t tile_x = world_tile_x0 + dx;
-                const uint32_t tile_y = world_tile_y0 + dy;
+        for (int32_t dy = 0; dy < LUFIA2_NATIVE_SAMPLE_Y; dy++) {
+            for (int32_t dx = 0; dx < LUFIA2_NATIVE_SAMPLE_X; dx++) {
+                const int32_t tile_x = world_tile_x0 + dx;
+                const int32_t tile_y = world_tile_y0 + dy;
                 uint16_t expected = 0;
                 if (!ResolveMapTile(
                         map, logical_layer, tile_x, tile_y, &expected)) {
@@ -314,7 +353,8 @@ static bool NativeViewportMatches(
                 }
 
                 const uint16_t address = (uint16_t)(
-                    map_base + ((tile_y & 31u) << 5) + (tile_x & 31u));
+                    map_base + (((uint32_t)tile_y & 31u) << 5) +
+                    ((uint32_t)tile_x & 31u));
                 checked++;
                 if (ppu->vram[address & 0x7fffu] == expected)
                     matched++;
@@ -362,13 +402,15 @@ static bool CurrentAreaIsEnclosed(
     static const int kNeighborX[] = {-1, 1, 0, 0};
     static const int kNeighborY[] = {0, 0, -1, 1};
 
+    int32_t camera_x = 0;
+    int32_t camera_y = 0;
+    CameraOrigin(ppu, &camera_x, &camera_y);
     const uint32_t center_x =
-        (((uint32_t)ppu->hScroll[0] + LUFIA2_NATIVE_WIDTH / 2u) %
-         LUFIA2_SCROLL_PIXELS) / LUFIA2_BLOCK_SIZE;
+        (uint32_t)(camera_x + LUFIA2_NATIVE_WIDTH / 2) / LUFIA2_BLOCK_SIZE;
     const uint32_t center_y =
-        (((uint32_t)ppu->vScroll[0] + LUFIA2_VISIBLE_HEIGHT / 2u) %
-         LUFIA2_SCROLL_PIXELS) / LUFIA2_BLOCK_SIZE;
-    if (center_x >= map->width || center_y >= map->height)
+        (uint32_t)(camera_y + LUFIA2_VISIBLE_HEIGHT / 2) / LUFIA2_BLOCK_SIZE;
+    if (camera_x < 0 || camera_y < 0 ||
+        center_x >= map->width || center_y >= map->height)
         return false;
 
     const uint32_t center = center_y * map->width + center_x;
@@ -442,15 +484,19 @@ static void FillWideViewport(
     const Lufia2RoomSelection *room,
     int margin_pixels,
     uint32_t world_x,
-    uint32_t world_y) {
+    uint32_t world_y,
+    int32_t camera_x,
+    int32_t camera_y) {
     const uint32_t reach = (uint32_t)margin_pixels + LUFIA2_TILE_SIZE;
-    const uint32_t left = world_x > reach ? world_x - reach : 0;
-    const uint32_t right = world_x + LUFIA2_NATIVE_WIDTH + reach;
+    const uint32_t origin_x = world_x + LUFIA2_SHADOW_WORLD_BIAS;
+    const uint32_t right = origin_x + LUFIA2_NATIVE_WIDTH + reach;
     const uint32_t bottom = world_y + LUFIA2_VISIBLE_HEIGHT + LUFIA2_TILE_SIZE;
-    const uint32_t tile_x0 = left >> 3;
+    const uint32_t tile_x0 = (origin_x - reach) >> 3;
     const uint32_t tile_x1 = (right + 7u) >> 3;
     const uint32_t tile_y0 = world_y >> 3;
     const uint32_t tile_y1 = (bottom + 7u) >> 3;
+    const int32_t delta_x = (camera_x - (int32_t)origin_x) >> 3;
+    const int32_t delta_y = (camera_y - (int32_t)world_y) >> 3;
 
     for (int bg = 0; bg < 2; bg++) {
         const int logical_layer = bg == 0 ? 1 : 0;
@@ -459,7 +505,9 @@ static void FillWideViewport(
                 WsShadowForceTile(
                     bg, tile_x, tile_y,
                     ResolveWideTile(
-                        map, room, logical_layer, tile_x, tile_y));
+                        map, room, logical_layer,
+                        (int32_t)tile_x + delta_x,
+                        (int32_t)tile_y + delta_y));
             }
         }
     }
@@ -539,6 +587,16 @@ static void OverlayScreenBand(
         ((uint32_t)ppu->vScroll[bg] + LUFIA2_VISIBLE_HEIGHT - 1u) >> 3;
     const uint16_t map_base = (uint16_t)PPU_bgTilemapAdr(ppu, bg);
 
+    int32_t camera_x = 0;
+    int32_t camera_y = 0;
+    CameraOrigin(ppu, &camera_x, &camera_y);
+    const int32_t delta_x =
+        (UnwrapScroll((uint32_t)ppu->hScroll[bg], camera_x) -
+         (int32_t)ppu->hScroll[bg]) >> 3;
+    const int32_t delta_y =
+        (UnwrapScroll((uint32_t)ppu->vScroll[bg], camera_y) -
+         (int32_t)ppu->vScroll[bg]) >> 3;
+
     for (uint32_t tile_y = tile_y0; tile_y <= tile_y1; tile_y++) {
         for (uint32_t tile_x = tile_x0; tile_x <= tile_x1; tile_x++) {
             const uint16_t address = (uint16_t)(
@@ -546,8 +604,8 @@ static void OverlayScreenBand(
             OverlayTile(
                 ppu, address,
                 ResolveWideTile(
-                    map, s_room_active ? &s_room : NULL,
-                    logical_layer, tile_x, tile_y));
+                    map, s_room_active ? &s_room : NULL, logical_layer,
+                    (int32_t)tile_x + delta_x, (int32_t)tile_y + delta_y));
         }
     }
 }
@@ -812,7 +870,7 @@ static Lufia2MapWidescreenResult AdoptSource(
     const uint32_t world_x = (uint32_t)ppu->hScroll[0];
     const uint32_t world_y = (uint32_t)ppu->vScroll[0];
     for (int bg = 0; bg < 2; bg++) {
-        WsShadowSetWorld(bg, world_x, world_y);
+        WsShadowSetWorld(bg, world_x + LUFIA2_SHADOW_WORLD_BIAS, world_y);
         WsShadowSetScroll(
             bg, (uint32_t)ppu->hScroll[bg], (uint32_t)ppu->vScroll[bg]);
         WsShadowSetBlankTile(bg, 0);
@@ -1023,10 +1081,14 @@ void Lufia2FinalizeMapWidescreen(Ppu *ppu, int margin_pixels) {
     if (!s_active || !ppu || margin_pixels <= 0 || !s_map.data)
         return;
 
+    int32_t camera_x = 0;
+    int32_t camera_y = 0;
+    CameraOrigin(ppu, &camera_x, &camera_y);
     FillWideViewport(
         &s_map, s_room_active ? &s_room : NULL, margin_pixels,
         (uint32_t)ppu->hScroll[0],
-        (uint32_t)ppu->vScroll[0]);
+        (uint32_t)ppu->vScroll[0],
+        camera_x, camera_y);
 }
 
 bool Lufia2MapWidescreenWorldPointIsVisible(uint16_t x, uint16_t y) {

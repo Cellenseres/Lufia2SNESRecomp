@@ -27,6 +27,9 @@ typedef enum Lufia2RoomVoidMode {
     LUFIA2_ROOM_VOID_BLOCK = 2,
 } Lufia2RoomVoidMode;
 
+enum { LUFIA2_ROOM_PATCH_BAND = 8 };
+enum { LUFIA2_ROOM_PATCH_NONE = 0xffff };
+
 typedef struct Lufia2RoomVoid {
     uint16_t mode;
     uint16_t x;
@@ -47,6 +50,8 @@ typedef struct Lufia2RoomSelection {
     uint32_t visibility_count;
     Lufia2RoomVoid bg1;
     Lufia2RoomVoid bg2;
+    uint32_t patch_offset;
+    uint32_t patch_count;
 } Lufia2RoomSelection;
 
 /* Visible Areas may share cells along a shared wall or doorway. When more
@@ -80,6 +85,13 @@ bool Lufia2RoomDataSelectRoomById(
     uint8_t map_height,
     uint16_t room_id,
     Lufia2RoomSelection *selection);
+
+bool Lufia2RoomDataPatchBlock(
+    const Lufia2RoomSelection *selection,
+    int32_t cell_x,
+    int32_t cell_y,
+    int logical_layer,
+    uint16_t *block);
 
 bool Lufia2RoomDataCellIsVisible(
     const Lufia2RoomSelection *selection,

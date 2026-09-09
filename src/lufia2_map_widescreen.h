@@ -5,6 +5,8 @@
 
 #include "snes/ppu.h"
 
+enum { LUFIA2_WS_SHADOW_TILE_BIAS = 128 };
+
 typedef enum Lufia2MapWidescreenResult {
     LUFIA2_MAP_WIDESCREEN_DISABLED = 0,
     LUFIA2_MAP_WIDESCREEN_ACTIVE,
