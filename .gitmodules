@@ -1,3 +1,4 @@
 [submodule "lib/snesrecomp-platform"]
 	path = lib/snesrecomp-platform
 	url = https://github.com/Cellenseres/snesrecomp-platform.git
+	branch = main
