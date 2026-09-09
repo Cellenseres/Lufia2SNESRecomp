@@ -1,10 +1,127 @@
 #include "lufia2_video_policy.h"
 
-Lufia2VideoLayout Lufia2SelectVideoLayout(
+enum {
+    LUFIA2_INTRO_MAP = 0x02u,
+    LUFIA2_INTRO_WAIT_A = 0x869752u,
+    LUFIA2_INTRO_WAIT_B = 0x869754u,
+    RAW_INIDISP = 0,
+    RAW_BGMODE = 4,
+    RAW_SETINI = 13,
+    RAW_SCREEN_ENABLE = 58,
+};
+
+bool Lufia2IntroMode7Candidate(const Lufia2VideoObservation *observation) {
+    if (!observation || observation->runtime_map != LUFIA2_INTRO_MAP)
+        return false;
+    return observation->resume_pc == LUFIA2_INTRO_WAIT_A ||
+           observation->resume_pc == LUFIA2_INTRO_WAIT_B;
+}
+
+Lufia2IntroMode7RasterDetail Lufia2InspectIntroMode7Raster(
+    const uint8_t *rows, size_t stride, unsigned line_count,
+    bool history_valid) {
+    bool saw_visible = false;
+    bool saw_bg1 = false;
+    Lufia2IntroMode7RasterDetail detail = {
+        LUFIA2_INTRO_RASTER_UNKNOWN,
+        LUFIA2_INTRO_REJECT_INVALID_HISTORY,
+        0,
+        0, 0, 0, 0, 0,
+    };
+
+    if (!history_valid || !rows || stride <= RAW_SCREEN_ENABLE + 1u ||
+        !line_count)
+        return detail;
+
+    for (unsigned y = 0; y < line_count; y++) {
+        const uint8_t *r = rows + (size_t)y * stride;
+
+        /* Forced blank and brightness zero are both guaranteed black. They
+         * may carry the outgoing scene's dormant register state. */
+        if ((r[RAW_INIDISP] & 0x80u) || !(r[RAW_INIDISP] & 0x0fu))
+            continue;
+        saw_visible = true;
+        saw_bg1 = saw_bg1 || (r[RAW_SCREEN_ENABLE] & 0x01u) != 0u;
+
+        detail.line = y;
+        detail.inidisp = r[RAW_INIDISP];
+        detail.bgmode = r[RAW_BGMODE];
+        detail.setini = r[RAW_SETINI];
+        detail.main_enable = r[RAW_SCREEN_ENABLE];
+        detail.sub_enable = r[RAW_SCREEN_ENABLE + 1u];
+        if ((r[RAW_BGMODE] & 7u) != 7u)
+            detail.reason = LUFIA2_INTRO_REJECT_MIXED_MODE;
+        else if ((r[RAW_SCREEN_ENABLE] & ~0x11u) != 0u)
+            detail.reason = LUFIA2_INTRO_REJECT_FOREIGN_MAIN_LAYER;
+        else if ((r[RAW_SCREEN_ENABLE + 1u] & ~0x10u) != 0u)
+            detail.reason = LUFIA2_INTRO_REJECT_SUBSCREEN;
+        else if ((r[RAW_SETINI] & 0x40u) != 0u)
+            detail.reason = LUFIA2_INTRO_REJECT_EXTBG;
+        else
+            continue;
+
+        detail.classification = LUFIA2_INTRO_RASTER_REJECTED;
+        return detail;
+    }
+
+    detail.reason = LUFIA2_INTRO_REJECT_NONE;
+    if (!saw_visible) {
+        detail.classification = LUFIA2_INTRO_RASTER_BLANK;
+    } else if (saw_bg1) {
+        detail.classification = LUFIA2_INTRO_RASTER_MODE7;
+    } else {
+        detail.classification = LUFIA2_INTRO_RASTER_REJECTED;
+        detail.reason = LUFIA2_INTRO_REJECT_NO_BG1;
+    }
+    return detail;
+}
+
+Lufia2IntroMode7Raster Lufia2ClassifyIntroMode7Raster(
+    const uint8_t *rows, size_t stride, unsigned line_count,
+    bool history_valid) {
+    return Lufia2InspectIntroMode7Raster(
+        rows, stride, line_count, history_valid).classification;
+}
+
+const char *Lufia2IntroMode7RejectReasonName(
+    Lufia2IntroMode7RejectReason reason) {
+    switch (reason) {
+    case LUFIA2_INTRO_REJECT_INVALID_HISTORY:
+        return "invalid history";
+    case LUFIA2_INTRO_REJECT_MIXED_MODE:
+        return "mixed PPU mode";
+    case LUFIA2_INTRO_REJECT_FOREIGN_MAIN_LAYER:
+        return "foreign main-screen layer";
+    case LUFIA2_INTRO_REJECT_SUBSCREEN:
+        return "foreign subscreen layer";
+    case LUFIA2_INTRO_REJECT_EXTBG:
+        return "ExtBG enabled";
+    case LUFIA2_INTRO_REJECT_NO_BG1:
+        return "no visible BG1 line";
+    case LUFIA2_INTRO_REJECT_NONE:
+    default:
+        return "none";
+    }
+}
+
+Lufia2VideoLayout Lufia2SelectVideoLayoutObserved(
     const Ppu *ppu,
-    bool widescreen_requested) {
+    bool widescreen_requested,
+    const Lufia2VideoObservation *observation) {
     if (!widescreen_requested)
         return LUFIA2_VIDEO_NATIVE;
+
+    /* The flyover programs Mode 7 through the scanline/HDMA walk, after this
+       policy runs. Its map/wait pair identifies the sequence; only a black
+       transition or a completed Mode 7 raster whose visible layers are a
+       subset of BG1+OBJ may widen it. */
+    if (Lufia2IntroMode7Candidate(observation)) {
+        if (observation->intro_raster == LUFIA2_INTRO_RASTER_BLANK ||
+            observation->intro_raster == LUFIA2_INTRO_RASTER_MODE7)
+            return LUFIA2_VIDEO_INTRO_MODE7;
+        return LUFIA2_VIDEO_CENTERED;
+    }
+
     if (!ppu)
         return LUFIA2_VIDEO_CENTERED;
     /* The guest blanks the screen for room and scene transitions. The
@@ -53,10 +170,18 @@ Lufia2VideoLayout Lufia2SelectVideoLayout(
     return LUFIA2_VIDEO_CENTERED;
 }
 
+Lufia2VideoLayout Lufia2SelectVideoLayout(
+    const Ppu *ppu, bool widescreen_requested) {
+    return Lufia2SelectVideoLayoutObserved(
+        ppu, widescreen_requested, NULL);
+}
+
 const char *Lufia2VideoLayoutName(Lufia2VideoLayout layout) {
     switch (layout) {
     case LUFIA2_VIDEO_WORLD_MAP:
         return "Mode 7 world map";
+    case LUFIA2_VIDEO_INTRO_MODE7:
+        return "Intro Mode 7 flyover";
     case LUFIA2_VIDEO_REGULAR_MAP:
         return "regular map";
     case LUFIA2_VIDEO_MAP_LOADING:
