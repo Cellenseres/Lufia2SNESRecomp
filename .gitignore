@@ -46,3 +46,18 @@ Thumbs.db
 Desktop.ini
 .DS_Store
 /docs
+
+# Working notes, audits and changesets: never committed
+/*_DE.md
+/*_CHANGESET.json
+/*_RESULTS_*.json
+/BOOT_LOG_FINDINGS*.md
+/CLEAN_VITA_GXM.md
+/REPOSITORIES.md
+/SOURCE_CHECK.json
+/VITA_PORTING_PERFORMANCE_GUIDE.md
+/PC_CAPTURE_FINDINGS_*.json
+/audit_platform1.py
+
+# Local tooling
+/tools/
