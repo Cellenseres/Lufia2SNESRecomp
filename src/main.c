@@ -1096,8 +1096,14 @@ static bool PresentFrame(void) {
     bool frame_presented = false;
     const bool intro_world_requested =
         s_current_video_layout == LUFIA2_VIDEO_INTRO_MODE7;
+    /* Only scenes the policy calls Mode 7 may be taken over. Otherwise the HD
+     * path claims any capture that satisfies the supported subset and
+     * suppresses the ordinary path for the whole scene. */
+    const bool mode7_layout =
+        s_current_video_layout == LUFIA2_VIDEO_INTRO_MODE7 ||
+        s_current_video_layout == LUFIA2_VIDEO_WORLD_MAP;
     const bool hd_requested =
-        s_hd_mode7_scale == 2u && !s_hd_mode7_perspective &&
+        mode7_layout && s_hd_mode7_scale == 2u && !s_hd_mode7_perspective &&
         (snesrecomp_presenter_capabilities(s_presenter) &
          SNESRECOMP_PRESENT_CAP_HD_MODE7);
 
