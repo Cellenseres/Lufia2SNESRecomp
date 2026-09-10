@@ -1092,6 +1092,11 @@ static bool PresentMode7Reference(
     return snesrecomp_presenter_present(s_presenter, &frame);
 }
 
+/* Frames in which the ordinary presentation path never ran. A frozen picture
+ * with the guest still running shows up nowhere else in the log. */
+static unsigned s_present_stall;
+static bool s_present_stall_reported;
+
 static bool PresentFrame(void) {
     bool frame_presented = false;
     const bool intro_world_requested =
@@ -1247,6 +1252,17 @@ static bool PresentFrame(void) {
             return false;
         }
     }
+    if (!frame_presented || mode7_layout) {
+        /* A Mode 7 scene is meant to hold every frame. */
+        s_present_stall = 0;
+    } else if (++s_present_stall == 240u && !s_present_stall_reported) {
+        s_present_stall_reported = true;
+        fprintf(stderr,
+            "[video] ordinary presentation idle for %u frames "
+            "(layout=%s); the Mode 7 path is holding every frame\n",
+            s_present_stall, Lufia2VideoLayoutName(s_current_video_layout));
+    }
+
     if (s_window_resize_pending) {
         if (!snesrecomp_presenter_set_window_scale(
                 s_presenter, s_current_window_scale)) {
