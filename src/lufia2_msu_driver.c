@@ -1,27 +1,27 @@
 #include "lufia2_msu_driver.h"
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "cpu_state.h"
 #include "snes/interp_bridge.h"
 #include "snes/msu1.h"
 #include "lufia2_log.h"
 
-/*   $00:942A  CMP #$64
- *   $00:942C  BCS $944C      out of range -> give up
- *   $00:942E  STA $54        hook: id is live in A
- *   ...       the SPC upload
- *   $00:944C  SEC / RTS      the game's "cannot play this" exit
- *
- * Redirecting to $944C skips the SPC upload, so the two never sound at once.
- * $00:9693 is the fade/stop command; we stop MSU there and let it run. */
+/* The SPC driver scales voices 0-7 by the music group volume at $08CC and
+ * voices 8-15 by $08CD; command $0B behind $00:9601 sets the first. Zeroing it
+ * keeps the sequencer running, which the intro waits on -- the fade-out at
+ * $00:9692 ends in the driver's full music stop ($3645) and strands it. The
+ * volume reaches a voice at its next note-on ($3FFD), so it is set during the
+ * load, before the upload. */
 enum {
-    LUFIA2_MSU_SONG_START = 0x00942E,
-    LUFIA2_MSU_SONG_SKIP  = 0x00944C,
-    LUFIA2_MSU_MUSIC_STOP = 0x009693,
+    SONG_LOAD    = 0x00942Eu, /* STA $54, song id live in A */
+    MUSIC_VOLUME = 0x009601u, /* JSL: command $0B, A = music group volume */
+    FADE_OUT     = 0x009692u, /* JSL: command $06, the game stopping music */
 
-    LUFIA2_MSU_SONG_LIMIT = 0x64,   /* the game's own CMP #$64 */
-    LUFIA2_MSU_NO_SONG    = 0xFFFF,
+    VOLUME_FULL = 0xFFu,
+    NO_SONG     = 0xFFFFu,
 };
 
 enum {
@@ -31,7 +31,6 @@ enum {
     MSU_VOLUME   = 0x2006,
     MSU_CONTROL  = 0x2007,
 
-    MSU_ST_AUDIO_BUSY  = 0x40,
     MSU_ST_AUDIO_ERROR = 0x08,
 
     MSU_CTL_PLAY   = 0x01,
@@ -40,17 +39,33 @@ enum {
 
 static bool     s_installed;
 static bool     s_playing;
-static unsigned s_song = LUFIA2_MSU_NO_SONG;
+static unsigned s_song = NO_SONG;
+static unsigned s_loading_song;
+static bool     s_volume_sent;
+
+/* LUFIA2_MSU_HUSH=off leaves the music group at full volume. */
+static bool HushEnabled(void) {
+    static bool s_resolved, s_enabled = true;
+    if (!s_resolved) {
+        const char *choice = getenv("LUFIA2_MSU_HUSH");
+        s_resolved = true;
+        if (choice && strcmp(choice, "off") == 0) {
+            s_enabled = false;
+            fprintf(stderr,
+                    "[msu] SPC hush disabled; both tracks will sound\n");
+        }
+    }
+    return s_enabled;
+}
 
 bool Lufia2MsuDriverPlaying(void) {
     return s_playing;
 }
 
-static void MsuStop(void) {
-    if (!s_playing) return;
+static void MsuSilence(void) {
     msu1_write(MSU_CONTROL, 0);
     s_playing = false;
-    s_song = LUFIA2_MSU_NO_SONG;
+    s_song = NO_SONG;
 }
 
 /* Selecting stops playback by spec, so this also cuts a track short. */
@@ -60,26 +75,28 @@ static bool MsuSelectTrack(unsigned song) {
     return (msu1_read(MSU_STATUS) & MSU_ST_AUDIO_ERROR) == 0;
 }
 
-static void SongStart(CpuState *cpu, uint32_t pc24) {
-    (void)pc24;
-    const unsigned song = cpu->A & 0xFFu;
-    if (song >= LUFIA2_MSU_SONG_LIMIT) return;
+static void GuestPush8(CpuState *cpu, uint8_t value) {
+    cpu_write8(cpu, 0x00, cpu->S, value);
+    cpu->S = (uint16)(cpu->S - 1u);
+}
 
-    /* Runs again for the song already playing; restarting would stutter. */
-    if (s_playing && song == s_song) {
-        interp_bridge_pre_opcode_redirect(LUFIA2_MSU_SONG_SKIP);
-        return;
-    }
+/* RTL continues one past the address it pops; push order as a real JSL. */
+static void GuestCall(CpuState *cpu, uint32_t entry, uint32_t resume) {
+    const uint32_t bank = resume & 0xFF0000u;
+    const uint32_t back = bank | ((resume - 1u) & 0xFFFFu);
+    GuestPush8(cpu, (uint8_t)(back >> 16));
+    GuestPush8(cpu, (uint8_t)(back >> 8));
+    GuestPush8(cpu, (uint8_t)back);
+    interp_bridge_pre_opcode_redirect(bank | entry);
+}
 
+static void StartTrack(unsigned song) {
     if (!MsuSelectTrack(song)) {
-        /* No track for this song: let the SPC have it. */
+        MsuSilence();
         LUFIA2_LOG("[msu] song $%02X: no track, SPC plays it\n", song);
         LUFIA2_LOG_FLUSH();
-        s_playing = false;
-        s_song = LUFIA2_MSU_NO_SONG;
         return;
     }
-
     msu1_write(MSU_VOLUME, 0xFF);
     /* Repeat everything; the one-shot list is not established yet. */
     msu1_write(MSU_CONTROL, MSU_CTL_PLAY | MSU_CTL_REPEAT);
@@ -87,22 +104,37 @@ static void SongStart(CpuState *cpu, uint32_t pc24) {
     s_song = song;
     LUFIA2_LOG("[msu] song $%02X -> track %u\n", song, song);
     LUFIA2_LOG_FLUSH();
-
-    interp_bridge_pre_opcode_redirect(LUFIA2_MSU_SONG_SKIP);
 }
 
-static void MusicStop(CpuState *cpu, uint32_t pc24) {
+static void SongLoad(CpuState *cpu, uint32_t pc24) {
+    if (s_volume_sent) {
+        s_volume_sent = false;   /* $9601 clobbered A; STA $54 wants the id */
+        cpu->A = (uint16)((cpu->A & 0xFF00u) | s_loading_song);
+        return;
+    }
+
+    const unsigned song = cpu->A & 0xFFu;
+    s_loading_song = song;
+    /* Restarting the track already playing would stutter. */
+    if (!s_playing || song != s_song) StartTrack(song);
+
+    if (!HushEnabled()) return;
+    cpu->A = (uint16)((cpu->A & 0xFF00u) | (s_playing ? 0u : VOLUME_FULL));
+    s_volume_sent = true;
+    GuestCall(cpu, MUSIC_VOLUME, pc24);
+}
+
+static void MusicFadeOut(CpuState *cpu, uint32_t pc24) {
     (void)cpu;
     (void)pc24;
-    MsuStop();
+    MsuSilence();
 }
 
 void Lufia2MsuDriverInstall(void) {
     if (s_installed || !msu1_enabled()) return;
-    interp_bridge_set_pre_opcode_hook(LUFIA2_MSU_SONG_START, SongStart);
-    interp_bridge_set_pre_opcode_hook(LUFIA2_MSU_MUSIC_STOP, MusicStop);
+    interp_bridge_set_pre_opcode_hook(SONG_LOAD, SongLoad);
+    interp_bridge_set_pre_opcode_hook(FADE_OUT, MusicFadeOut);
     s_installed = true;
-    LUFIA2_LOG("[msu] driver: hooks at $%06X and $%06X\n",
-            LUFIA2_MSU_SONG_START, LUFIA2_MSU_MUSIC_STOP);
+    LUFIA2_LOG("[msu] driver: load $%06X, fade $%06X\n", SONG_LOAD, FADE_OUT);
     LUFIA2_LOG_FLUSH();
 }
