@@ -24,6 +24,7 @@
 #include "desktop/sdl_compat.h"
 #include "snesrecomp_platform/glsl_shader_adapter.h"
 #include "snesrecomp_platform/presenter.h"
+#include "snesrecomp_platform/snes_bg_upload.h"
 #include "snesrecomp_platform/msu_pack.h"
 #include "snes/msu1.h"
 #include "host_report.h"
@@ -47,6 +48,7 @@
 #include "lufia2_map_load.h"
 #include "lufia2_msu_driver.h"
 #include "lufia2_map_widescreen.h"
+#include "lufia2_intro_mode7_world.h"
 #include "lufia2_runtime.h"
 #include "lufia2_video_policy.h"
 #include "desktop_glue.h"
@@ -135,6 +137,7 @@ static bool s_vsync_enabled = true;
 static bool s_window_resize_pending;
 static Lufia2VideoLayout s_last_video_layout = LUFIA2_VIDEO_LAYOUT_COUNT;
 static Lufia2VideoLayout s_held_video_layout = LUFIA2_VIDEO_CENTERED;
+static Lufia2VideoLayout s_current_video_layout = LUFIA2_VIDEO_CENTERED;
 static uint64_t s_last_intro_raster_reject_signature = UINT64_MAX;
 
 typedef enum Lufia2VisualPreset {
@@ -146,11 +149,16 @@ static Lufia2VisualPreset s_visual_preset = LUFIA2_VISUAL_ORIGINAL;
 static unsigned s_hd_mode7_scale;
 static bool s_hd_mode7_perspective;
 static SnesRecompMode7Line s_hd_mode7_lines[SNES_HEIGHT];
+static SnesRecompMode7Line s_intro_mode7_world_lines[SNES_HEIGHT];
+static SnesRecompMode7MapSource s_intro_mode7_world_source;
 static SnesRecompObjSliver
     s_hd_mode7_obj_slivers[SNESRECOMP_OBJ_MAX_SLIVERS];
 static uint8_t s_hd_mode7_obj_line_priority[SNES_HEIGHT];
 static SnesPpuUnsupported s_hd_mode7_last_reject = SNES_PPU_SUPPORTED;
 static bool s_hd_mode7_present_error_reported;
+static Lufia2IntroMode7WorldStatus s_last_intro_world_status =
+    LUFIA2_INTRO_WORLD_INVALID_ARGUMENT;
+static bool s_intro_mode7_world_active_reported;
 
 static const char kCleanHdPresetPath[] =
     "assets/shaders/clean-hd/clean-hd.glslp";
@@ -1064,30 +1072,84 @@ static bool InitAudio(void) {
     return true;
 }
 
-static bool PresentFrame(void) {
-    bool hd_presented = false;
+static bool PresentMode7Reference(
+    const SnesPpuFrameCapture *capture,
+    const SnesRecompMode7Line *lines,
+    const SnesRecompObjFrame *obj,
+    const SnesRecompMode7MapSource *map_source) {
+    if (!snesrecomp_ppu_mode7_render_reference_argb8888_with_map(
+            capture, lines, capture->visible_height, obj, map_source, 1u,
+            s_present_pixels, capture->canvas_width * 4u))
+        return false;
 
-    if (s_hd_mode7_scale == 2u && !s_hd_mode7_perspective &&
+    const SnesRecompVideoFrame frame = {
+        .pixels = s_present_pixels,
+        .pixel_format = SNESRECOMP_PIXEL_FORMAT_ARGB8888,
+        .width = capture->canvas_width,
+        .height = capture->visible_height,
+        .pitch = capture->canvas_width * 4,
+    };
+    return snesrecomp_presenter_present(s_presenter, &frame);
+}
+
+static bool PresentFrame(void) {
+    bool frame_presented = false;
+    const bool intro_world_requested =
+        s_current_video_layout == LUFIA2_VIDEO_INTRO_MODE7;
+    const bool hd_requested =
+        s_hd_mode7_scale == 2u && !s_hd_mode7_perspective &&
         (snesrecomp_presenter_capabilities(s_presenter) &
-         SNESRECOMP_PRESENT_CAP_HD_MODE7)) {
+         SNESRECOMP_PRESENT_CAP_HD_MODE7);
+
+    if (!intro_world_requested) {
+        s_last_intro_world_status = LUFIA2_INTRO_WORLD_INVALID_ARGUMENT;
+        s_intro_mode7_world_active_reported = false;
+    }
+
+    if (intro_world_requested || hd_requested) {
         SnesPpuFrameCapture capture;
         SnesRecompObjFrame obj;
         SnesRecompMode7HdFrame hd_frame;
         SnesPpuUnsupported support = SNES_PPU_UNSUPPORTED_RASTER_STATE;
+        const SnesRecompMode7Line *render_lines = s_hd_mode7_lines;
+        const SnesRecompMode7MapSource *map_source = NULL;
+        bool semantic_ready = false;
         bool wants_obj = false;
+        bool used_hd = false;
 
         memset(&obj, 0, sizeof obj);
         memset(&hd_frame, 0, sizeof hd_frame);
         if (Lufia2CapturePpuFrame(
-                &capture, (unsigned)s_frame_width, (unsigned)g_ws_extra)) {
+                &capture, (unsigned)s_frame_width, (unsigned)g_ws_extra))
             support = snesrecomp_ppu_mode7_supports(&capture);
-        }
         if (support == SNES_PPU_SUPPORTED &&
             snesrecomp_ppu_mode7_compile_lines(
                 &capture, s_hd_mode7_lines, SNES_HEIGHT)) {
-            for (unsigned i = 0; i < capture.band_count; i++) {
+            semantic_ready = true;
+            if (intro_world_requested) {
+                const Lufia2IntroMode7WorldStatus world_status =
+                    Lufia2IntroMode7WorldPrepare(
+                        &capture, s_hd_mode7_lines, capture.visible_height,
+                        s_intro_mode7_world_lines, SNES_HEIGHT,
+                        &s_intro_mode7_world_source);
+                if (world_status != s_last_intro_world_status) {
+                    fprintf(stderr, "[video] Intro full-world Mode 7: %s\n",
+                            Lufia2IntroMode7WorldStatusName(world_status));
+                    s_last_intro_world_status = world_status;
+                }
+                /* Without a verified world, keep rendering through the
+                 * captured ring: it repeats at the far edges, but dropping the
+                 * semantic renderer leaves no widescreen shadow at all. */
+                if (world_status == LUFIA2_INTRO_WORLD_READY) {
+                    render_lines = s_intro_mode7_world_lines;
+                    map_source = &s_intro_mode7_world_source;
+                }
+            }
+            for (unsigned i = 0; semantic_ready && i < capture.band_count;
+                 i++) {
                 if (!capture.bands[i].forced_blank &&
-                    (capture.bands[i].main_enable & 0x10u)) {
+                    ((capture.bands[i].main_enable |
+                      capture.bands[i].sub_enable) & 0x10u)) {
                     wants_obj = true;
                     break;
                 }
@@ -1096,38 +1158,70 @@ static bool PresentFrame(void) {
             obj.capacity = SNESRECOMP_OBJ_MAX_SLIVERS;
             obj.line_priority = s_hd_mode7_obj_line_priority;
             obj.line_capacity = SNES_HEIGHT;
-            if (!wants_obj || snesrecomp_ppu_obj_evaluate(&capture, &obj)) {
-                hd_frame.capture = &capture;
-                hd_frame.lines = s_hd_mode7_lines;
-                hd_frame.line_count = capture.visible_height;
-                hd_frame.obj = wants_obj ? &obj : NULL;
-                hd_frame.scale = s_hd_mode7_scale;
-                hd_presented = snesrecomp_presenter_present_mode7_hd(
-                    s_presenter, &hd_frame);
-                if (!hd_presented && !s_hd_mode7_present_error_reported) {
-                    fprintf(stderr,
-                        "[video] HD Mode 7 presentation failed; using "
-                        "authentic renderer: %s\n",
-                        snesrecomp_presenter_last_error(s_presenter));
-                    s_hd_mode7_present_error_reported = true;
-                }
-            } else {
+            if (semantic_ready && wants_obj &&
+                !snesrecomp_ppu_obj_evaluate(&capture, &obj)) {
+                semantic_ready = false;
                 support = SNES_PPU_UNSUPPORTED_OBJ;
             }
         } else if (support == SNES_PPU_SUPPORTED) {
             support = SNES_PPU_UNSUPPORTED_RASTER_STATE;
         }
-        if (support != s_hd_mode7_last_reject) {
+
+        if (semantic_ready && hd_requested) {
+            hd_frame.capture = &capture;
+            hd_frame.lines = render_lines;
+            hd_frame.line_count = capture.visible_height;
+            hd_frame.obj = wants_obj ? &obj : NULL;
+            hd_frame.map_source = map_source;
+            hd_frame.scale = s_hd_mode7_scale;
+            frame_presented = snesrecomp_presenter_present_mode7_hd(
+                s_presenter, &hd_frame);
+            used_hd = frame_presented;
+            if (!frame_presented && !s_hd_mode7_present_error_reported) {
+                fprintf(stderr,
+                    "[video] HD Mode 7 presentation failed; using "
+                    "native semantic fallback: %s\n",
+                    snesrecomp_presenter_last_error(s_presenter));
+                s_hd_mode7_present_error_reported = true;
+            }
+        }
+        if (semantic_ready && intro_world_requested && !frame_presented) {
+            frame_presented = PresentMode7Reference(
+                &capture, render_lines, wants_obj ? &obj : NULL, map_source);
+        }
+        if (frame_presented && map_source &&
+            !s_intro_mode7_world_active_reported) {
+            fprintf(stderr,
+                "[video] Intro full-world Mode 7: active (%s)\n",
+                used_hd ? "HD 2x" : "native 1x");
+            s_intro_mode7_world_active_reported = true;
+        }
+        if (hd_requested && support != s_hd_mode7_last_reject) {
             if (support != SNES_PPU_SUPPORTED) {
                 fprintf(stderr,
                     "[video] HD Mode 7 fallback: %s\n",
                     snes_ppu_unsupported_text(support));
+                if (support == SNES_PPU_UNSUPPORTED_COLOUR_MATH) {
+                    for (unsigned i = 0; i < capture.band_count; i++) {
+                        const SnesPpuRasterBand *band = &capture.bands[i];
+                        if (!band->forced_blank && (band->cgwsel & 0x01u)) {
+                            fprintf(stderr,
+                                "[video] HD Mode 7 direct-colour band: "
+                                "lines=%u..%u CGWSEL=$%02X "
+                                "CGADSUB=$%02X TS=$%02X\n",
+                                band->y_begin, band->y_end,
+                                band->cgwsel, band->cgadsub,
+                                band->sub_enable);
+                            break;
+                        }
+                    }
+                }
             }
             s_hd_mode7_last_reject = support;
         }
     }
 
-    if (!hd_presented) {
+    if (!frame_presented) {
         RtlWidescreenPresent(
             s_present_pixels,
             (size_t)s_frame_width * 4,
@@ -1317,6 +1411,8 @@ static void PrepareVideoFrame(void) {
         WsShadowFrame(g_ppu);
     if (finalize_map_widescreen)
         Lufia2FinalizeMapWidescreen(g_ppu, g_ws_extra);
+
+    s_current_video_layout = layout;
 
     if (layout != s_last_video_layout) {
         fprintf(stderr,
@@ -1635,6 +1731,8 @@ int main(int argc, char **argv) {
             "Expected SHA-1: %s\n", kLufia2Sha1);
         return 1;
     }
+
+    Lufia2IntroMode7WorldInit(rom_data, rom_size);
 
     snesrecomp_rom_cache_write(rom_path);
 

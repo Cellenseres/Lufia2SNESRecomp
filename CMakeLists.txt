@@ -365,6 +365,7 @@ set(LUFIA2_HOST_SOURCES
     src/main.c
     src/desktop_glue.c
     src/lufia2_game_info.c
+    patches/lufia2_intro_mode7_world.c
     src/lufia2_map_load.c
     src/lufia2_map_widescreen.c
     src/lufia2_msu_driver.c
@@ -519,6 +520,7 @@ lufia2_target_msvc_ppu(Lufia2Recomp "${SNESRECOMP_ROOT}")
 target_include_directories(Lufia2Recomp PRIVATE
     "${CMAKE_SOURCE_DIR}/recomp"
     "${CMAKE_SOURCE_DIR}/src"
+    "${CMAKE_SOURCE_DIR}/patches"
     ${SNESRECOMP_RUNNER_INCLUDE_DIRS}
 )
 
