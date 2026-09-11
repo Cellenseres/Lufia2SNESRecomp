@@ -117,10 +117,16 @@ if(VITA)
     return()
 endif()
 
-set(LUFIA2_SNESRECOMP_REVISION
-    "0c06a7be2adae9fc30484b2894c33b9fd5357943")
-set(LUFIA2_RECOMP_UI_REVISION
-    "ceebf1dfbcce3a1646a50d016ed50aa854836304")
+# Pinned so a build is reproducible. Follow upstream for one configure with
+# -DLUFIA2_SNESRECOMP_REVISION=<sha> or -DLUFIA2_RECOMP_UI_REVISION=<sha>.
+if(NOT DEFINED LUFIA2_SNESRECOMP_REVISION)
+    set(LUFIA2_SNESRECOMP_REVISION
+        "0c06a7be2adae9fc30484b2894c33b9fd5357943")
+endif()
+if(NOT DEFINED LUFIA2_RECOMP_UI_REVISION)
+    set(LUFIA2_RECOMP_UI_REVISION
+        "ceebf1dfbcce3a1646a50d016ed50aa854836304")
+endif()
 set(LUFIA2_SDL_VERSION "3.4.14")
 
 set(LUFIA2_SNESRECOMP_ROOT "" CACHE PATH
@@ -208,7 +214,8 @@ endif()
 if(LUFIA2_RECOMP_UI_ROOT)
     set(RECOMP_UI_ROOT "${LUFIA2_RECOMP_UI_ROOT}")
 else()
-    set(RECOMP_UI_ROOT "${_deps_root}/recomp-ui-src")
+    set(RECOMP_UI_ROOT
+        "${_deps_root}/recomp-ui-${LUFIA2_RECOMP_UI_REVISION}")
     lufia2_download_source(
         "https://github.com/mstan/recomp-ui/archive/${LUFIA2_RECOMP_UI_REVISION}.tar.gz"
         "recomp-ui-${LUFIA2_RECOMP_UI_REVISION}.tar.gz"
