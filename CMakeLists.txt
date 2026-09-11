@@ -345,11 +345,9 @@ if(LUFIA2_ENABLE_DMA_HOST_FASTFORWARD)
     lufia2_prepare_dma_host_fastforward(
         SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
 endif()
-if(LUFIA2_ENABLE_DMA_DIRECT_SOURCE_READ)
-    include("${CMAKE_SOURCE_DIR}/cmake/Lufia2DmaHostFastForward.cmake")
-    lufia2_prepare_dma_direct_source_read(
-        SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
-endif()
+include("${CMAKE_SOURCE_DIR}/cmake/Lufia2DmaOverlay.cmake")
+lufia2_prepare_dma_overlay(
+    SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
 
 # The pinned interpreter clock calls clock_gettime() without including <time.h>,
 # so CLOCK_MONOTONIC is undeclared on POSIX. Supply the header from the build

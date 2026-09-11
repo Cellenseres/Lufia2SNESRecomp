@@ -203,18 +203,14 @@ message(STATUS
 include("${CMAKE_SOURCE_DIR}/ports/vita/PpuPixelOffload.cmake")
 lufia2_prepare_ppu_pixel_offload(
     SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
-if(LUFIA2_ENABLE_DMA_HOST_FASTFORWARD OR
-   LUFIA2_ENABLE_DMA_DIRECT_SOURCE_READ)
-    include("${CMAKE_SOURCE_DIR}/cmake/Lufia2DmaHostFastForward.cmake")
-endif()
 if(LUFIA2_ENABLE_DMA_HOST_FASTFORWARD)
+    include("${CMAKE_SOURCE_DIR}/cmake/Lufia2DmaHostFastForward.cmake")
     lufia2_prepare_dma_host_fastforward(
         SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
 endif()
-if(LUFIA2_ENABLE_DMA_DIRECT_SOURCE_READ)
-    lufia2_prepare_dma_direct_source_read(
-        SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
-endif()
+include("${CMAKE_SOURCE_DIR}/cmake/Lufia2DmaOverlay.cmake")
+lufia2_prepare_dma_overlay(
+    SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
 
 list(FILTER SNESRECOMP_RUNNER_SOURCES EXCLUDE REGEX "launcher(_picker)?\\.c$")
 list(FILTER SNESRECOMP_RUNNER_SOURCES EXCLUDE REGEX "keybinds\\.c$")
