@@ -49,6 +49,7 @@
 #include "lufia2_msu_driver.h"
 #include "lufia2_map_widescreen.h"
 #include "lufia2_intro_mode7_world.h"
+#include "lufia2_mode7_substep.h"
 #include "lufia2_runtime.h"
 #include "lufia2_video_policy.h"
 #include "desktop_glue.h"
@@ -1137,6 +1138,10 @@ static bool PresentFrame(void) {
             snesrecomp_ppu_mode7_compile_lines(
                 &capture, s_hd_mode7_lines, SNES_HEIGHT)) {
             semantic_ready = true;
+            /* Spend the sub-pixel and sub-step remainders the guest keeps but
+             * cannot publish, before the world lift reads the lines. */
+            Lufia2Mode7SubstepRefine(&capture, s_hd_mode7_lines,
+                                     SNES_HEIGHT);
             if (intro_world_requested) {
                 const Lufia2IntroMode7WorldStatus world_status =
                     Lufia2IntroMode7WorldPrepare(
@@ -1711,6 +1716,10 @@ int main(int argc, char **argv) {
     defined(LUFIA2_ENABLE_PATCH_TESTS)
     if (argc == 2 && strcmp(argv[1], "--dma-host-fastforward-selftest") == 0)
         return Lufia2DmaHostFastForwardSelfTest();
+#endif
+#if defined(LUFIA2_ENABLE_PATCH_TESTS)
+    if (argc == 2 && strcmp(argv[1], "--mode7-substep-selftest") == 0)
+        return Lufia2Mode7SubstepSelfTest();
 #endif
     char rom_path[1024];
     rom_path[0] = '\0';
