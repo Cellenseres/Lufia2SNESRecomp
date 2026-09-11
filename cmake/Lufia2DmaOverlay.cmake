@@ -16,7 +16,7 @@ function(lufia2_prepare_dma_overlay sources_var core_root)
 
     file(SHA256 "${_original}" _hash)
     if(NOT _hash STREQUAL
-           "19b82f1a43c5ac5db52cc1e5e1b4931a56861ef73ae9d8e153fe6a413c38f4a7")
+           "2cab57de5322c6afee9c3aab42e1eedc51dd53743b99c981a8db5f800805d1e2")
         message(FATAL_ERROR
             "The dma.c overlay requires the reviewed pinned dma.c; review the "
             "bus contract, then accept ${_hash}")

@@ -4,8 +4,9 @@ include_guard(GLOBAL)
 # an overlay copy; neither fetched sources nor game AOT output are edited.
 function(lufia2_prepare_native_patch_sources sources_var core_root)
     file(SHA256 "${core_root}/runner/src/snes/interp_bridge.c" _core_hash)
-    if(NOT _core_hash STREQUAL "ca385dd6d33f28b9803baac6b3a842db04143da0c3be704b8f4debd15d9b0a5e")
-        message(FATAL_ERROR "Native patches require the reviewed pinned interpreter bridge; review the patch contract before updating core")
+    if(NOT _core_hash STREQUAL "3a41007e727e2d5c6b8d00441c40abd0ef0992ebcfd6b2cf404dd6ae3c06207a")
+        message(FATAL_ERROR "Native patches require the reviewed pinned interpreter bridge; "
+            "review the patch contract, then accept ${_core_hash}")
     endif()
     set(_result)
     set(_count 0)
@@ -19,11 +20,10 @@ function(lufia2_prepare_native_patch_sources sources_var core_root)
             # the pristine-core hash above also covers those earlier edits.
             string(SHA256 _input_hash "${_text}")
             if(NOT _input_hash STREQUAL
-                   "67cce4c0ddfe6830981c2b22cecb3c61b323f30778da02dd594ea193b5dacccb" AND
-               NOT _input_hash STREQUAL
-                   "4adb25eaab91b2870201f8bd24c3b15e9b929c2029c9108a7f907d69a635061a")
+                   "b84aa7007b37032094d358ff379b1652c1556d3e4b3345afa6332d186be894cd")
                 message(FATAL_ERROR
-                    "Native patch input changed after the Platform overlay; review the bridge contract before updating the accepted hash")
+                    "Native patch input changed after the Platform overlay; "
+                    "review the bridge contract, then accept ${_input_hash}")
             endif()
             set(_helpers "")
             if(LUFIA2_ENABLE_NATIVE_WAIT OR LUFIA2_ENABLE_ACTOR_EARLY_RETURN)
@@ -227,9 +227,10 @@ uint64_t lufia2_frame_wait_ff_site_pairs_count(unsigned site) {
                     snes_sync_master_clock(g_snes, cpu->master_cycles);
                     cart_sync_coprocessors(g_snes->cart,
                                            cpu->master_cycles);
-                    if (!interp_bridge_use_absolute_apu_timeline(
+                    if (rtl_apu_extended_frame_timing() ||
+                        !interp_bridge_use_absolute_apu_timeline(
                             rtl_apu_frame_timeline_active(),
-                            cart_has_sa1(g_snes->cart))) {
+                            g_snes && cart_has_sa1(g_snes->cart), false)) {
                         s_apu_pending_master += _l2_master;
                     }
                     bridge_apu_flush(cpu);
