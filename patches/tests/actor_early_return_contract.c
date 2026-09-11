@@ -128,7 +128,7 @@ static int CheckPositiveCases(void) {
                     const unsigned native_cycles = L2ActorEarlyReturnStep(&native);
                     ++cases;
                     if (reference.pc != L2_ACTOR_EARLY_RETURN_NEXT_PC ||
-                        reference_cycles != L2_ACTOR_EARLY_RETURN_CYCLES ||
+                        reference_cycles != L2ActorEarlyReturnCycles(actor) ||
                         native_cycles != reference_cycles ||
                         !SameState(&reference, &native) ||
                         reference_bus.unsupported_reads != 0 ||

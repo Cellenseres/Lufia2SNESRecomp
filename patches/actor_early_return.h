@@ -13,10 +13,24 @@ enum {
     L2_ACTOR_EARLY_RETURN_NEXT_PC = 0xC83B,
     L2_ACTOR_EARLY_RETURN_OPCODES = 19,
     L2_ACTOR_EARLY_RETURN_CYCLES = 52,
-    /* SlowROM upper bound: 50 bus cycles * 8 plus 2 branch-internal cycles
-     * * 6. The measured FastROM path is 326 master clocks. */
-    L2_ACTOR_EARLY_RETURN_MAX_MASTER = 412,
+    /* $83:C801 LDA $1291,x is the only indexed read on this path whose page
+     * can change: $1291 + $6F leaves page $12. The two $0622,x reads would
+     * need actor >= $DE, which the eligibility guard rejects. Indexed reads
+     * pay that crossing cycle, as hardware does. */
+    L2_ACTOR_EARLY_RETURN_STATE_BASE = 0x1291,
+    /* SlowROM upper bound: 50 bus cycles * 8 plus up to 3 internal cycles
+     * * 6 -- two taken branches and the page crossing. The measured FastROM
+     * path is 326 master clocks. */
+    L2_ACTOR_EARLY_RETURN_MAX_MASTER = 418,
 };
+
+/* Accepted actors are $08..$78 in steps of 8, so this is 52 or 53. */
+static inline unsigned L2ActorEarlyReturnCycles(unsigned actor) {
+    const unsigned crossed =
+        ((L2_ACTOR_EARLY_RETURN_STATE_BASE + actor) >> 8) !=
+        (L2_ACTOR_EARLY_RETURN_STATE_BASE >> 8);
+    return (unsigned)L2_ACTOR_EARLY_RETURN_CYCLES + crossed;
+}
 
 static inline int L2ActorEarlyReturnFitsStepCap(long steps, long step_cap) {
     return step_cap > steps &&
@@ -180,7 +194,7 @@ static inline unsigned L2ActorEarlyReturnStep(Interp816 *in) {
     L2ActorBeginOpcode(in); operand = L2ActorReadPc(in);              /* BEQ $C83B */
     in->pc = (uint16_t)(in->pc + (int8_t)operand);
     in->cyclesUsed = 3;
-    return L2_ACTOR_EARLY_RETURN_CYCLES;
+    return L2ActorEarlyReturnCycles(actor);
 }
 
 #endif
