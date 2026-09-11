@@ -374,6 +374,7 @@ set(LUFIA2_HOST_SOURCES
     src/desktop_glue.c
     src/lufia2_game_info.c
     patches/lufia2_intro_mode7_world.c
+    patches/lufia2_mode7_substep.c
     src/lufia2_map_load.c
     src/lufia2_map_widescreen.c
     src/lufia2_msu_driver.c
@@ -411,6 +412,10 @@ if(LUFIA2_ENABLE_NATIVE_WAIT OR LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD OR
                 patches/tests/actor_d508_early_return_contract.c)
         endif()
     endif()
+endif()
+
+if(LUFIA2_ENABLE_PATCH_TESTS)
+    list(APPEND LUFIA2_HOST_SOURCES patches/tests/mode7_substep_contract.c)
 endif()
 
 if(NOT VITA AND LUFIA2_ENABLE_PATCH_TESTS AND
