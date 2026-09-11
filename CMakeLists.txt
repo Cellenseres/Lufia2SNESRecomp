@@ -35,17 +35,20 @@ if(LUFIA2_ENABLE_NATIVE_WAIT AND (LUFIA2_ENABLE_GAMEPLAY_CAPTURE OR LUFIA2_ENABL
     message(FATAL_ERROR "Use a separate NativeWait build; interpreter-only audits do not count native payload instructions")
 endif()
 
+# Reviewed native patches that belong to the ordinary build. The audit
+# experiments below measure against them and so must be configured with these
+# OFF, which is also how the reference arm is built.
 option(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD
-    "Guarded portable batching for reviewed Lufia II frame waits" OFF)
+    "Guarded portable batching for reviewed Lufia II frame waits" ON)
 
 option(LUFIA2_ENABLE_ACTOR_EARLY_RETURN
-    "Guarded native C fast paths for reviewed write-free actor paths" OFF)
+    "Guarded native C fast paths for reviewed write-free actor paths" ON)
 
 option(LUFIA2_ENABLE_DMA_HOST_FASTFORWARD
-    "Collapse host-only idle iterations in synchronous SNES DMA" OFF)
+    "Collapse host-only idle iterations in synchronous SNES DMA" ON)
 
 option(LUFIA2_ENABLE_DMA_DIRECT_SOURCE_READ
-    "Direct side-effect-free WRAM/LoROM DMA source reads" OFF)
+    "Direct side-effect-free WRAM/LoROM DMA source reads" ON)
 
 # Only cfg entries whose 65816 call/return contract was reviewed belong here.
 # This deliberately does not consume a runtime coverage JSON/JSONL file.
@@ -83,10 +86,10 @@ if(LUFIA2_ENABLE_ACTOR_EARLY_RETURN AND
     LUFIA2_ENABLE_PERF_AUDIT OR LUFIA2_ENABLE_BRIDGE_AUDIT OR
     LUFIA2_ENABLE_QUIESCENCE_INDEX))
     message(FATAL_ERROR
-        "ActorEarlyReturn is a production candidate; disable it for audit experiment builds")
+        "ActorEarlyReturn is part of the ordinary build; disable it for audit experiment builds")
 endif()
 
-# Keep the production candidate separate from the earlier measurement builds.
+# Keep the ordinary build separate from the earlier measurement builds.
 # Place this check after every referenced option has been declared so defaults
 # and command-line cache values are treated identically.
 if(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD AND
@@ -94,7 +97,7 @@ if(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD AND
     LUFIA2_ENABLE_PERF_AUDIT OR LUFIA2_ENABLE_BRIDGE_AUDIT OR
     LUFIA2_ENABLE_QUIESCENCE_INDEX))
     message(FATAL_ERROR
-        "FrameWaitFastForward is a standalone production candidate; disable audit experiments")
+        "FrameWaitFastForward is part of the ordinary build; disable audit experiments")
 endif()
 
 # Runtime default when LUFIA2_QUIESCENCE_INDEX is unset. The Vita has no
