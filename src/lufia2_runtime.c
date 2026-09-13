@@ -185,6 +185,12 @@ void Lufia2DrawPpuFrame(void) {
     if (!g_ppu || !g_dma || !g_snes)
         return;
 
+    /* This host walks the HDMA tables per line; without this the core's beam
+       runs them too. Per frame, because a reset zeroes the field. */
+#if defined(LUFIA2_HAVE_HDMA_BEAM_SWITCH)
+    snes_set_hdma_beam_enabled(g_snes, false);
+#endif
+
     s_raster_memory_flags = Lufia2HdmaMemoryFlags();
     if (g_snes->vIrqEnabled || g_snes->hIrqEnabled)
         s_raster_memory_flags |= SNES_PPU_RASTER_MEMORY_UNKNOWN;
@@ -193,6 +199,11 @@ void Lufia2DrawPpuFrame(void) {
     SimpleHdma hdma[8];
 
     dma_startDma(g_dma, g_snesrecomp_last_hdmaen, true);
+#if defined(LUFIA2_HAVE_HDMA_BEAM_SWITCH)
+    /* The priming slot is spent on the core's beam timeline, which this
+       host does not run; unpaid it shifts the replay one line. */
+    dma_hdma_pending_init_set(g_dma, 0);
+#endif
     for (int ch = 0; ch < 8; ch++)
         SimpleHdma_Init(&hdma[ch], &g_dma->channel[ch]);
 
