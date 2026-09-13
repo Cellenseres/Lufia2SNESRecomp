@@ -2,11 +2,11 @@
 # -DLUFIA2_SNESRECOMP_REVISION=<sha> or -DLUFIA2_RECOMP_UI_REVISION=<sha>.
 if(NOT DEFINED LUFIA2_SNESRECOMP_REVISION)
     set(LUFIA2_SNESRECOMP_REVISION
-        "43e857dbc0754e20cab59a82295fe125a95e3511")
+        "f7ce10cdcdb9bd6c56b7aedd597ca8cf0626fb25")
 endif()
 if(NOT DEFINED LUFIA2_RECOMP_UI_REVISION)
     set(LUFIA2_RECOMP_UI_REVISION
-        "e45e1f3062731abc188e351cad3608730b01fa12")
+        "f0166e1ee4b1c40c07db799671973f11304ea43b")
 endif()
 set(LUFIA2_SDL_VERSION "3.4.14")
 
@@ -96,7 +96,7 @@ else()
     set(SNESRECOMP_ROOT
         "${_deps_root}/snesrecomp-${LUFIA2_SNESRECOMP_REVISION}")
     lufia2_download_source(
-        "https://github.com/mstan/snesrecomp/archive/${LUFIA2_SNESRECOMP_REVISION}.tar.gz"
+        "https://github.com/RetroPortingToolKit/snesrecomp/archive/${LUFIA2_SNESRECOMP_REVISION}.tar.gz"
         "snesrecomp-${LUFIA2_SNESRECOMP_REVISION}.tar.gz"
         "snesrecomp-${LUFIA2_SNESRECOMP_REVISION}"
         "${SNESRECOMP_ROOT}"

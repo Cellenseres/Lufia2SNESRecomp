@@ -15,12 +15,13 @@ function(lufia2_prepare_native_patch_sources sources_var core_root)
         if(_name STREQUAL "interp_bridge.c")
             file(READ "${_input}" _text)
             string(REPLACE "\r\n" "\n" _text "${_text}")
-            # Platform overlays run before this function. Pin the normalized
-            # translation unit we actually modify, rather than claiming that
-            # the pristine-core hash above also covers those earlier edits.
+            # Platform overlays run before this function, and the Vita port
+            # adds its host-cost overlay on top, so two inputs are reviewed.
             string(SHA256 _input_hash "${_text}")
             if(NOT _input_hash STREQUAL
-                   "ee29ddc28f5b7b46b54ef9b1380cf6fed8e625b1a5bcae235fe50e2d2a914258")
+                   "ee29ddc28f5b7b46b54ef9b1380cf6fed8e625b1a5bcae235fe50e2d2a914258" AND
+               NOT _input_hash STREQUAL
+                   "7075c3473d54456e32da315d524a14b9bb9b2bef59daf17f58c7b856168ac3bf")
                 message(FATAL_ERROR
                     "Native patch input changed after the Platform overlay; "
                     "review the bridge contract, then accept ${_input_hash}")
