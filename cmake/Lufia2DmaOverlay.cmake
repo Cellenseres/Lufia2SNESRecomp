@@ -1,9 +1,7 @@
 include_guard(GLOBAL)
 
-# Single owner of the fetched snes/dma.c. Overlays cannot be chained -- each one
-# swaps the original out of the source list -- so every seam that file needs is
-# applied here, into one generated copy. When nothing applies the pristine file
-# stays in the list untouched.
+# Single owner of the fetched dma.c: overlays cannot be chained, so every
+# seam that file needs is applied here, into one generated copy.
 function(lufia2_prepare_dma_overlay sources_var core_root)
     set(_original "${core_root}/runner/src/snes/dma.c")
     if(NOT EXISTS "${_original}")
@@ -16,14 +14,14 @@ function(lufia2_prepare_dma_overlay sources_var core_root)
 
     file(SHA256 "${_original}" _hash)
     if(NOT _hash STREQUAL
-           "2cab57de5322c6afee9c3aab42e1eedc51dd53743b99c981a8db5f800805d1e2")
+           "3a5907ee3f707e9e1bd80738af05100e51bbc2396e07fb5345a45ceebcb6400d")
         message(FATAL_ERROR
             "The dma.c overlay requires the reviewed pinned dma.c; review the "
             "bus contract, then accept ${_hash}")
     endif()
 
     file(READ "${_original}" _text)
-    string(REPLACE "
+    string(REPLACE "
 " "
 " _text "${_text}")
     set(_prologue)
