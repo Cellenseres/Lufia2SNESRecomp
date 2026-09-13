@@ -61,3 +61,8 @@ Desktop.ini
 
 # Local tooling
 /tools/
+
+# User-extracted proprietary game artwork. The loader and metadata are tracked;
+# each user generates the TGA locally from their own game capture.
+/assets/img/*.tga
+/assets/img/*-preview.png

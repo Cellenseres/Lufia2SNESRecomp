@@ -109,3 +109,13 @@ bool Lufia2MapLoadInProgress(void) {
 uint32_t Lufia2MapLoadGeneration(void) {
     return s_generation;
 }
+
+void Lufia2MapLoadStateChanged(void) {
+    s_loading = false;
+    s_committed = false;
+    s_pending_map = 0;
+    s_committed_map = 0;
+    s_pending_field = g_ram[LUFIA2_CURRENT_MAP];
+    s_pending_frames = 0;
+    s_generation++;
+}

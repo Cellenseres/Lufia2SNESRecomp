@@ -555,6 +555,29 @@ static void ForgetVramBackups(void) {
     s_vram_backup_count = 0;
 }
 
+void Lufia2MapWidescreenStateChanged(void) {
+    /* A load happens outside Begin/EndMapRenderOverlay, so none of these
+     * temporary edits belong to the restored PPU. Forget their backups
+     * without writing old-timeline words into the freshly loaded VRAM. */
+    ForgetVramBackups();
+    s_guard_band_opened = false;
+    s_mosaic_suppressed = false;
+    Lufia2DeactivateMapWidescreen();
+    s_rejected_map_signature = 0;
+    s_map_generation = UINT32_MAX;
+    s_settle_frames = 0;
+    s_player_cell_valid = false;
+    s_step_valid = false;
+    s_transition_armed = false;
+    s_transition_frames = 0;
+    s_forced_room = false;
+    s_remembered_room = false;
+    s_last_room_lookup = LUFIA2_ROOM_NOT_AUTHORED;
+    s_last_room_lookup_id = UINT16_MAX;
+    s_last_collision_cell_valid = false;
+    s_wrong_mode_reported = false;
+}
+
 static void OverlayTile(Ppu *ppu, uint16_t address, uint16_t value) {
     address &= 0x7fff;
     if (!VramIsBackedUp(address)) {

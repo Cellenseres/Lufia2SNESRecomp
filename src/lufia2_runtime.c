@@ -16,6 +16,7 @@
 #include "snes/ppu.h"
 #include "snes/dma.h"
 #include "snes/interp_bridge.h"
+#include "lufia2_msu_driver.h"
 #include "lufia2_log.h"
 
 /* Generated interrupt vectors. */
@@ -45,6 +46,42 @@ static uint64_t s_irqs;
 static uint8_t s_line_regs[225][PPU_SAVESTATE_REGS_SIZE];
 static bool s_line_regs_valid;
 static uint32_t s_raster_memory_flags;
+static bool s_loaded_execution_valid;
+static bool s_loaded_msu_valid;
+
+void Lufia2SaveExecutionState(SaveLoadInfo *sli) {
+    RtlSaveExecutionState(sli);
+    Lufia2MsuSaveState(sli);
+}
+
+void Lufia2LoadExecutionState(SaveLoadInfo *sli, uint32_t version) {
+    (void)version;
+    s_loaded_execution_valid = RtlLoadExecutionState(sli);
+    s_loaded_msu_valid = Lufia2MsuLoadState(sli);
+}
+
+void Lufia2ApplyExecutionState(uint32_t version) {
+    (void)version;
+    if (!s_loaded_execution_valid || !s_loaded_msu_valid) {
+        fprintf(stderr,
+            "[savestate] Lufia execution extension is missing or "
+            "incompatible; refusing to resume a hybrid state.\n");
+        s_loaded_execution_valid = false;
+        s_loaded_msu_valid = false;
+        g_fail = true;
+        return;
+    }
+
+    RtlApplyExecutionState();
+    Lufia2MsuApplyLoadedState();
+    s_resume_pc = interp_bridge_lle_resume_pc() & 0xFFFFFFu;
+    s_started = true;
+    s_last_boundary_was_wai = false;
+    s_line_regs_valid = false;
+    s_raster_memory_flags = 0;
+    s_loaded_execution_valid = false;
+    s_loaded_msu_valid = false;
+}
 
 const uint8_t *Lufia2LineRegisters(unsigned y) {
     return y < LUFIA2_PPU_VISIBLE_LINES ? s_line_regs[y + 1u] : NULL;

@@ -389,6 +389,7 @@ set(LUFIA2_HOST_SOURCES
     patches/lufia2_mode7_substep.c
     src/lufia2_map_load.c
     src/lufia2_map_widescreen.c
+    src/lufia2_overlay_ui.c
     src/lufia2_msu_driver.c
     src/lufia2_ppu_capture.c
     src/lufia2_room_data.c
@@ -614,6 +615,16 @@ add_custom_command(TARGET Lufia2Recomp POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
         "${CMAKE_SOURCE_DIR}/assets/shaders"
         "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/shaders"
+)
+
+# Game-owned UI skins stay editable runtime assets. A missing or invalid panel
+# is harmless because the host keeps an embedded fallback skin.
+add_custom_command(TARGET Lufia2Recomp POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E make_directory
+        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/img"
+    COMMAND "${CMAKE_COMMAND}" -E copy_directory
+        "${CMAKE_SOURCE_DIR}/assets/img"
+        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/img"
 )
 
 if(WIN32 AND TARGET SDL3::SDL3-shared)

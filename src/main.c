@@ -37,12 +37,15 @@
 #include "snes/ws_shadow.h"
 #include "widescreen.h"
 #include "desktop/display_aspect.h"
+#include "lufia2_overlay_ui.h"
 
 #include "recomp_launcher.h"
 #include "launcher_profile.h"
 #include "common/keybinds.h"
 #include "common/sha1.h"
 #include "common/launcher_binds.h"
+#include "snes_osd.h"
+#include "snes_rewind.h"
 
 #include "config.h"
 #include "lufia2_map_load.h"
@@ -136,6 +139,9 @@ static PlayerInputSource s_player1_source = PLAYER_INPUT_KEYBOARD;
 static int s_frame_width = SNES_WIDTH;
 static bool s_vsync_enabled = true;
 static bool s_window_resize_pending;
+static bool s_rewind_requested;
+static uint64_t s_state_generation;
+static uint32_t s_input_release_mask;
 static Lufia2VideoLayout s_last_video_layout = LUFIA2_VIDEO_LAYOUT_COUNT;
 static Lufia2VideoLayout s_held_video_layout = LUFIA2_VIDEO_CENTERED;
 static Lufia2VideoLayout s_current_video_layout = LUFIA2_VIDEO_CENTERED;
@@ -385,9 +391,8 @@ static bool EnsureDefaultConfig(const char *path) {
         "\n"
         "[KeyMap]\n"
         "# Controller buttons are stored separately in keybinds.ini.\n"
-        "# Unsafe/unfinished host actions begin unbound.\n"
-        "Load =\n"
-        "Save =\n"
+        "Load = F1, F2, F3, F4, F5, F6, F7, F8, F9, F10\n"
+        "Save = Shift+F1, Shift+F2, Shift+F3, Shift+F4, Shift+F5, Shift+F6, Shift+F7, Shift+F8, Shift+F9, Shift+F10\n"
         "Reset =\n"
         "ToggleWidescreen =\n"
         "Fullscreen = Alt+Return\n"
@@ -395,11 +400,12 @@ static bool EnsureDefaultConfig(const char *path) {
         "PauseDimmed = p\n"
         "Turbo = Tab\n"
         "DisplayPerf = f\n"
-        "ToggleRenderer = F8\n"
+        "ToggleRenderer = r\n"
         "WindowBigger =\n"
         "WindowSmaller =\n"
         "VolumeUp =\n"
-        "VolumeDown =\n";
+        "VolumeDown =\n"
+        "Rewind = F12\n";
 
     const size_t n = sizeof(kDefaultConfig) - 1;
     const bool ok = fwrite(kDefaultConfig, 1, n, f) == n;
@@ -862,6 +868,16 @@ static uint32_t ReadGamepadInput(void) {
     return p;
 }
 
+static bool RewindGesturePressed(void) {
+    static bool was_held;
+    const bool held = s_gamepad &&
+        SDL_GetGamepadButton(s_gamepad, SDL_GAMEPAD_BUTTON_BACK) &&
+        SDL_GetGamepadButton(s_gamepad, SDL_GAMEPAD_BUTTON_RIGHT_STICK);
+    const bool pressed = held && !was_held;
+    was_held = held;
+    return pressed;
+}
+
 static void TryOpenFirstGamepad(void) {
     if (s_player1_source != PLAYER_INPUT_GAMEPAD || s_gamepad)
         return;
@@ -1082,11 +1098,18 @@ static bool InitAudio(void) {
     return true;
 }
 
+static const SnesRecompOverlayFrame *BuildPresentationOverlay(
+    bool include_rewind) {
+    return Lufia2OverlayUiBuild(
+        s_presenter, s_frame_width, SNES_HEIGHT, include_rewind);
+}
+
 static bool PresentMode7Reference(
     const SnesPpuFrameCapture *capture,
     const SnesRecompMode7Line *lines,
     const SnesRecompObjFrame *obj,
-    const SnesRecompMode7MapSource *map_source) {
+    const SnesRecompMode7MapSource *map_source,
+    const SnesRecompOverlayFrame *overlay) {
     if (!snesrecomp_ppu_mode7_render_reference_argb8888_with_map(
             capture, lines, capture->visible_height, obj, map_source, 1u,
             s_present_pixels, capture->canvas_width * 4u))
@@ -1098,6 +1121,7 @@ static bool PresentMode7Reference(
         .width = capture->canvas_width,
         .height = capture->visible_height,
         .pitch = capture->canvas_width * 4,
+        .overlay = overlay,
     };
     return snesrecomp_presenter_present(s_presenter, &frame);
 }
@@ -1107,8 +1131,22 @@ static bool PresentMode7Reference(
 static unsigned s_present_stall;
 static bool s_present_stall_reported;
 
-static bool PresentFrame(void) {
+static bool PresentFrame(bool include_rewind) {
     bool frame_presented = false;
+    RtlWidescreenPresent(
+        s_present_pixels,
+        (size_t)s_frame_width * 4,
+        s_pixels,
+        s_frame_width,
+        SNES_HEIGHT);
+    if (!include_rewind) {
+        snes_rewind_note_framebuffer(
+            (const uint32_t *)s_present_pixels,
+            s_frame_width,
+            SNES_HEIGHT);
+    }
+    const SnesRecompOverlayFrame *overlay =
+        BuildPresentationOverlay(include_rewind);
     const bool intro_world_requested =
         s_current_video_layout == LUFIA2_VIDEO_INTRO_MODE7;
     /* Only scenes the policy calls Mode 7 may be taken over. Otherwise the HD
@@ -1201,6 +1239,7 @@ static bool PresentFrame(void) {
             hd_frame.scale = s_hd_mode7_scale;
             hd_frame.filter_bg = s_hd_mode7_filter;
             hd_frame.interpolate_lines = s_hd_mode7_perspective;
+            hd_frame.overlay = overlay;
             frame_presented = snesrecomp_presenter_present_mode7_hd(
                 s_presenter, &hd_frame);
             used_hd = frame_presented;
@@ -1214,7 +1253,8 @@ static bool PresentFrame(void) {
         }
         if (semantic_ready && intro_world_requested && !frame_presented) {
             frame_presented = PresentMode7Reference(
-                &capture, render_lines, wants_obj ? &obj : NULL, map_source);
+                &capture, render_lines, wants_obj ? &obj : NULL, map_source,
+                overlay);
         }
         if (frame_presented && map_source &&
             !s_intro_mode7_world_active_reported) {
@@ -1249,18 +1289,13 @@ static bool PresentFrame(void) {
     }
 
     if (!frame_presented) {
-        RtlWidescreenPresent(
-            s_present_pixels,
-            (size_t)s_frame_width * 4,
-            s_pixels,
-            s_frame_width,
-            SNES_HEIGHT);
         const SnesRecompVideoFrame frame = {
             .pixels = s_present_pixels,
             .pixel_format = SNESRECOMP_PIXEL_FORMAT_ARGB8888,
             .width = s_frame_width,
             .height = SNES_HEIGHT,
             .pitch = s_frame_width * 4,
+            .overlay = overlay,
         };
         if (!snesrecomp_presenter_present(s_presenter, &frame)) {
             fprintf(stderr, "Present failed: %s\n",
@@ -1268,6 +1303,7 @@ static bool PresentFrame(void) {
             return false;
         }
     }
+    snes_osd_present_done();
     if (!frame_presented || mode7_layout) {
         /* A Mode 7 scene is meant to hold every frame. */
         s_present_stall = 0;
@@ -1506,6 +1542,8 @@ static void ResizeWindow(int delta) {
 static void HandleHostCommand(int cmd, bool pressed) {
     if (cmd == kKeys_Turbo) {
         s_turbo = pressed;
+        RtlAudioSetFastForward(s_turbo);
+        snes_osd_set_turbo(s_turbo ? 1 : 0);
         return;
     }
 
@@ -1513,16 +1551,28 @@ static void HandleHostCommand(int cmd, bool pressed) {
         return;
 
     if (cmd >= kKeys_Load && cmd <= kKeys_Load_Last) {
-        fprintf(stderr,
-            "[savestate] load slots are intentionally disabled until "
-            "Lufia's hybrid CpuState/resume context is serialized safely.\n");
+        const int slot = cmd - kKeys_Load;
+        char path[256];
+        RtlEnsureSaveDir();
+        RtlSaveSlotPath(slot, path, sizeof(path));
+        if (!FileExists(path))
+            Lufia2OverlayUiPushSlotEmpty(slot);
+        else if (RtlLoadSnapshot(path))
+            Lufia2OverlayUiPushSlotLoaded(slot);
+        else
+            Lufia2OverlayUiPush("State load failed", 2000);
         return;
     }
 
     if (cmd >= kKeys_Save && cmd <= kKeys_Save_Last) {
-        fprintf(stderr,
-            "[savestate] save slots are intentionally disabled until "
-            "Lufia's hybrid CpuState/resume context is serialized safely.\n");
+        const int slot = cmd - kKeys_Save;
+        char path[256];
+        RtlEnsureSaveDir();
+        RtlSaveSlotPath(slot, path, sizeof(path));
+        if (RtlSaveSnapshot(path))
+            Lufia2OverlayUiPushSlotSaved(slot);
+        else
+            Lufia2OverlayUiPush("State save failed", 2000);
         return;
     }
 
@@ -1554,18 +1604,22 @@ static void HandleHostCommand(int cmd, bool pressed) {
         s_volume_percent += 5;
         if (s_volume_percent > 100) s_volume_percent = 100;
         fprintf(stderr, "[audio] volume %d%%\n", s_volume_percent);
+        Lufia2OverlayUiNoteVolume(s_volume_percent);
         break;
 
     case kKeys_VolumeDown:
         s_volume_percent -= 5;
         if (s_volume_percent < 0) s_volume_percent = 0;
         fprintf(stderr, "[audio] volume %d%%\n", s_volume_percent);
+        Lufia2OverlayUiNoteVolume(s_volume_percent);
         break;
 
     case kKeys_DisplayPerf:
-        s_display_perf = !s_display_perf;
-        s_perf_last_ms = SDL_GetTicks();
-        s_perf_frames = 0;
+        snes_osd_toggle_fps();
+        break;
+
+    case kKeys_Rewind:
+        s_rewind_requested = true;
         break;
 
     case kKeys_ToggleRenderer:
@@ -1640,6 +1694,123 @@ static bool HandleEvents(void) {
     }
 
     return true;
+}
+
+static void InvalidateDerivedHostState(bool reset_rewind) {
+    if (s_audio_stream)
+        (void)SDL_ClearAudioStream(s_audio_stream);
+    Lufia2MapLoadStateChanged();
+    Lufia2MapWidescreenStateChanged();
+    Lufia2Mode7SubstepStateChanged();
+    Lufia2IntroMode7WorldStateChanged();
+    s_last_video_layout = LUFIA2_VIDEO_LAYOUT_COUNT;
+    s_held_video_layout = LUFIA2_VIDEO_CENTERED;
+    s_current_video_layout = LUFIA2_VIDEO_CENTERED;
+    s_last_intro_raster_reject_signature = UINT64_MAX;
+    s_hd_mode7_last_reject = SNES_PPU_SUPPORTED;
+    s_hd_mode7_present_error_reported = false;
+    s_last_intro_world_status = LUFIA2_INTRO_WORLD_INVALID_ARGUMENT;
+    s_intro_mode7_world_active_reported = false;
+    s_present_stall = 0;
+    if (reset_rewind) {
+        snes_rewind_shutdown();
+        snes_rewind_configure();
+    }
+}
+
+static void ObserveStateGeneration(bool reset_rewind) {
+    const uint64_t generation = RtlStateGeneration();
+    if (generation == s_state_generation)
+        return;
+    InvalidateDerivedHostState(reset_rewind);
+    s_state_generation = generation;
+}
+
+static bool PresentFrozenRewind(void) {
+    const SnesRecompOverlayFrame *overlay =
+        BuildPresentationOverlay(true);
+    const SnesRecompVideoFrame frame = {
+        .pixels = s_present_pixels,
+        .pixel_format = SNESRECOMP_PIXEL_FORMAT_ARGB8888,
+        .width = s_frame_width,
+        .height = SNES_HEIGHT,
+        .pitch = s_frame_width * 4,
+        .overlay = overlay,
+    };
+    if (!snesrecomp_presenter_present(s_presenter, &frame)) {
+        fprintf(stderr, "Rewind present failed: %s\n",
+            snesrecomp_presenter_last_error(s_presenter));
+        return false;
+    }
+    snes_osd_present_done();
+    return true;
+}
+
+static bool RunRewindLoop(void) {
+    bool running = true;
+    uint32_t previous_pad = ReadGamepadInput();
+    uint64_t next_repeat = 0;
+    uint32_t repeat_direction = 0;
+
+    while (running && snes_rewind_is_open()) {
+        SDL_Event e;
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_EVENT_QUIT) {
+                running = false;
+                snes_rewind_close();
+            } else if (e.type == SDL_EVENT_KEY_DOWN) {
+                if (e.key.key == SDLK_LEFT)
+                    snes_rewind_step(-1);
+                else if (e.key.key == SDLK_RIGHT)
+                    snes_rewind_step(+1);
+                else if (e.key.key == SDLK_RETURN ||
+                         e.key.key == SDLK_SPACE)
+                    snes_rewind_commit();
+                else if (e.key.key == SDLK_ESCAPE)
+                    snes_rewind_close();
+            } else if (e.type == SDL_EVENT_GAMEPAD_ADDED && !s_gamepad) {
+                TryOpenFirstGamepad();
+            } else if (e.type == SDL_EVENT_GAMEPAD_REMOVED && s_gamepad &&
+                       SDL_GetGamepadID(s_gamepad) == e.gdevice.which) {
+                SDL_CloseGamepad(s_gamepad);
+                s_gamepad = NULL;
+                TryOpenFirstGamepad();
+            }
+        }
+
+        const uint32_t pad = ReadGamepadInput();
+        const uint32_t pressed = pad & ~previous_pad;
+        if (pressed & PAD_A)
+            snes_rewind_commit();
+        if (pressed & PAD_B)
+            snes_rewind_close();
+
+        const uint32_t direction = pad & (PAD_LEFT | PAD_RIGHT);
+        const uint64_t now = SDL_GetTicks();
+        if (direction == PAD_LEFT || direction == PAD_RIGHT) {
+            if (direction != repeat_direction) {
+                snes_rewind_step(direction == PAD_LEFT ? -1 : +1);
+                repeat_direction = direction;
+                next_repeat = now + 250u;
+            } else if (now >= next_repeat) {
+                snes_rewind_step(direction == PAD_LEFT ? -1 : +1);
+                next_repeat = now + 80u;
+            }
+        } else {
+            repeat_direction = 0;
+        }
+        previous_pad = pad;
+
+        if (snes_rewind_is_open() && !PresentFrozenRewind()) {
+            running = false;
+            snes_rewind_close();
+        }
+        SDL_Delay(8);
+    }
+
+    s_input_release_mask |= ReadKeyboardInput() | ReadGamepadInput();
+    ObserveStateGeneration(false);
+    return running;
 }
 
 static void UpdatePerfTitle(void) {
@@ -1855,6 +2026,15 @@ int main(int argc, char **argv) {
 
     TryOpenFirstGamepad();
 
+    snes_rewind_configure();
+    {
+        const char *osd_fps = getenv("SNESRECOMP_OSD_FPS");
+        if (osd_fps && atoi(osd_fps) != 0) {
+            snes_osd_set_fps_visible(1);
+        }
+    }
+    s_state_generation = RtlStateGeneration();
+
     fprintf(stderr,
         "[desktop] entering main loop\n"
         "[desktop] use --launcher to force the launcher on the next start\n");
@@ -1865,18 +2045,38 @@ int main(int argc, char **argv) {
 
     while (running && !g_fail) {
         running = HandleEvents();
+        ObserveStateGeneration(true);
+
+        if (RewindGesturePressed())
+            s_rewind_requested = true;
+
+        if (s_rewind_requested) {
+            s_rewind_requested = false;
+            if (snes_rewind_open()) {
+                running = RunRewindLoop() && running;
+            } else {
+                Lufia2OverlayUiPush("Rewind history unavailable", 1600);
+            }
+        }
+
+        if (!running || g_fail)
+            break;
 
         if (s_paused) {
             SDL_Delay(10);
             continue;
         }
 
-        const uint32_t input =
+        const uint32_t raw_input =
             ReadKeyboardInput() | ReadGamepadInput();
+        s_input_release_mask &= raw_input;
+        const uint32_t input = raw_input & ~s_input_release_mask;
 
         L2CaptureFrameBegin(input);
         RtlRunFrame(input);
         L2CaptureGuestEnd();
+        snes_osd_note_frame();
+        snes_rewind_note_frame();
 
         PrepareVideoFrame();
 
@@ -1892,7 +2092,7 @@ int main(int argc, char **argv) {
         Lufia2DrawPpuFrame();
         Lufia2EndMapRenderOverlay(g_ppu);
         L2CaptureFrameEnd();
-        if (!PresentFrame()) {
+        if (!PresentFrame(false)) {
             g_fail = true;
             break;
         }
@@ -1934,7 +2134,8 @@ int main(int argc, char **argv) {
 #endif
 
     RtlWriteSram();
-
+    snes_rewind_shutdown();
+    Lufia2OverlayUiShutdown();
 
     if (s_audio_stream) {
         SDL_PauseAudioStreamDevice(s_audio_stream);

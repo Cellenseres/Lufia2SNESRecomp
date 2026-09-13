@@ -32,3 +32,4 @@ bool Lufia2Mode7SubstepRefineWithSample(const SnesPpuFrameCapture *capture,
                                         unsigned line_count);
 
 int Lufia2Mode7SubstepSelfTest(void);
+void Lufia2Mode7SubstepStateChanged(void);

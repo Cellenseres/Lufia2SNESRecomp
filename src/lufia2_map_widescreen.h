@@ -21,4 +21,5 @@ void Lufia2FinalizeMapWidescreen(Ppu *ppu, int margin_pixels);
 void Lufia2BeginMapRenderOverlay(Ppu *ppu);
 void Lufia2EndMapRenderOverlay(Ppu *ppu);
 void Lufia2DeactivateMapWidescreen(void);
+void Lufia2MapWidescreenStateChanged(void);
 bool Lufia2MapWidescreenWorldPointIsVisible(uint16_t x, uint16_t y);
