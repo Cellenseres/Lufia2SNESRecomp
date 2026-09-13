@@ -4,7 +4,7 @@ include_guard(GLOBAL)
 # an overlay copy; neither fetched sources nor game AOT output are edited.
 function(lufia2_prepare_native_patch_sources sources_var core_root)
     file(SHA256 "${core_root}/runner/src/snes/interp_bridge.c" _core_hash)
-    if(NOT _core_hash STREQUAL "3a41007e727e2d5c6b8d00441c40abd0ef0992ebcfd6b2cf404dd6ae3c06207a")
+    if(NOT _core_hash STREQUAL "41ffb2f6bb9098e8996bcb0a9b03d0d3448906e85779c11eb064cbab5256c326")
         message(FATAL_ERROR "Native patches require the reviewed pinned interpreter bridge; "
             "review the patch contract, then accept ${_core_hash}")
     endif()
@@ -20,7 +20,7 @@ function(lufia2_prepare_native_patch_sources sources_var core_root)
             # the pristine-core hash above also covers those earlier edits.
             string(SHA256 _input_hash "${_text}")
             if(NOT _input_hash STREQUAL
-                   "b84aa7007b37032094d358ff379b1652c1556d3e4b3345afa6332d186be894cd")
+                   "ee29ddc28f5b7b46b54ef9b1380cf6fed8e625b1a5bcae235fe50e2d2a914258")
                 message(FATAL_ERROR
                     "Native patch input changed after the Platform overlay; "
                     "review the bridge contract, then accept ${_input_hash}")
