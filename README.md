@@ -110,4 +110,43 @@ The launcher offers SDL accelerated, SDL software and OpenGL 3.3. OpenGL can
 also use GLSL shader presets. If it cannot start, the game falls back to SDL for
 that run.
 
+FPS, volume, toast and rewind overlays are composited after the game and its
+shaders. The default Lufia skin uses the game's logical coordinate space: one
+UI texture pixel receives the same aspect, resize, fullscreen, and letterbox
+transform as one SNES pixel while remaining a separate overlay.
+`SNESRECOMP_UI_SCALE=0.5..3.0` applies an optional user multiplier (rounded to
+whole game pixels in this mode). The game-owned skin in
+`src/lufia2_overlay_ui.c` supplies a replaceable bitmap font, nine-slice panel
+texture, colours and spacing; the shared presenter remains game-neutral.
+
+An optional editable panel skin is loaded from
+`assets/img/lufia2_menu_panel.tga`. Put `left top right bottom tile` source-pixel
+margins in `assets/img/lufia2_menu_panel.9slice`; `tile` makes patterned edges
+repeat like the original SNES tilemap instead of stretching. See
+[`assets/img/README.md`](assets/img/README.md) for the format. Missing or invalid
+files fall back to the embedded skin.
+
+`scripts/ui_asset_tool.py` crops PNG/BMP/TGA screenshots, applies integer
+nearest-neighbour downscaling, losslessly compacts tiled panels, writes the
+runtime TGA, and renders a tiled or stretched 9-slice preview. It requires
+Pillow (`python -m pip install Pillow`). Example for the native 120x88 panel:
+
+```powershell
+python scripts/ui_asset_tool.py panel.png assets/img/lufia2_menu_panel.tga `
+  --slice 16 16 16 16 --tile 16x16 --compact --preview 240x88
+```
+
+The 48x48 result contains both 16-pixel corner regions and one 16x16 repeat
+cell. It recreates the original patterned edges without scaling them.
+
+Rewind preview cells are copied pixel-for-pixel from the rewind core. The
+Lufia skin never downsizes them again; the moving filmstrip shows three cells
+in a 256-pixel 4:3 frame and four in the standard widescreen frame. Only the
+surrounding tiled panel and labels are rebuilt for the available width.
+
+Single-line status badges such as the FPS counter use a compact form of the
+same panel: a four-pixel border around a tiled clean centre. This permits a
+16-pixel logical height without shrinking the font or stretching the artwork.
+While rewind is visible, the FPS badge shares its exact right-hand edge.
+
 See [ISSUES.md](ISSUES.md) for the current limitations.

@@ -6,8 +6,9 @@ const RtlGameInfo kLufia2GameInfo = {
     .run_frame = &Lufia2RunOneFrame,
     .draw_ppu_frame = &Lufia2DrawPpuFrame,
     .save_name_prefix = "lufia2",
-    .state_save_extra = NULL,
-    .state_load_extra = NULL,
-    .on_state_loaded = NULL,
+    .state_save_extra = &Lufia2SaveExecutionState,
+    .state_load_extra = &Lufia2LoadExecutionState,
+    .on_state_loaded = &Lufia2ApplyExecutionState,
     .session_reset = NULL,
+    .minimum_state_version = 9,
 };

@@ -55,6 +55,20 @@ static unsigned s_debug_failures;
 static unsigned s_reported;
 static unsigned s_reported_lag = SAMPLE_RING;
 
+void Lufia2Mode7SubstepStateChanged(void) {
+    memset(s_ring, 0, sizeof(s_ring));
+    memset(s_error, 0, sizeof(s_error));
+    memset(&s_carry, 0, sizeof(s_carry));
+    s_written = 0;
+    s_lag = SAMPLE_LAG_DEFAULT;
+    s_have_carry = false;
+    s_unpaired = 0;
+    s_consumed = 0;
+    s_debug_failures = 0;
+    s_reported = 0;
+    s_reported_lag = SAMPLE_RING;
+}
+
 static uint16_t ReadWord(unsigned wram) {
     return (uint16_t)(g_ram[wram] | ((uint16_t)g_ram[wram + 1u] << 8));
 }

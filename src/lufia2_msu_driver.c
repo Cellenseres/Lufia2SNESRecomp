@@ -7,6 +7,7 @@
 #include "cpu_state.h"
 #include "snes/interp_bridge.h"
 #include "snes/msu1.h"
+#include "snes/saveload.h"
 #include "lufia2_log.h"
 
 /* The SPC driver scales voices 0-7 by the music group volume at $08CC and
@@ -42,6 +43,24 @@ static bool     s_playing;
 static unsigned s_song = NO_SONG;
 static unsigned s_loading_song;
 static bool     s_volume_sent;
+
+enum {
+    LUFIA2_MSU_STATE_MAGIC = 0x3255534du, /* MSU2 */
+    LUFIA2_MSU_STATE_VERSION = 1u,
+};
+
+typedef struct Lufia2MsuState {
+    uint32_t magic;
+    uint32_t version;
+    uint16_t song;
+    uint16_t loading_song;
+    uint8_t playing;
+    uint8_t volume_sent;
+    uint8_t reserved[2];
+} Lufia2MsuState;
+
+static Lufia2MsuState s_loaded_state;
+static bool s_loaded_state_valid;
 
 /* LUFIA2_MSU_HUSH=off leaves the music group at full volume. */
 static bool HushEnabled(void) {
@@ -137,4 +156,43 @@ void Lufia2MsuDriverInstall(void) {
     s_installed = true;
     LUFIA2_LOG("[msu] driver: load $%06X, fade $%06X\n", SONG_LOAD, FADE_OUT);
     LUFIA2_LOG_FLUSH();
+}
+
+void Lufia2MsuSaveState(SaveLoadInfo *sli) {
+    Lufia2MsuState state;
+    memset(&state, 0, sizeof(state));
+    state.magic = LUFIA2_MSU_STATE_MAGIC;
+    state.version = LUFIA2_MSU_STATE_VERSION;
+    state.song = (uint16_t)s_song;
+    state.loading_song = (uint16_t)s_loading_song;
+    state.playing = s_playing ? 1u : 0u;
+    state.volume_sent = s_volume_sent ? 1u : 0u;
+    sli->func(sli, &state, sizeof(state));
+}
+
+bool Lufia2MsuLoadState(SaveLoadInfo *sli) {
+    memset(&s_loaded_state, 0, sizeof(s_loaded_state));
+    s_loaded_state_valid = false;
+    sli->func(sli, &s_loaded_state, sizeof(s_loaded_state));
+    s_loaded_state_valid =
+        s_loaded_state.magic == LUFIA2_MSU_STATE_MAGIC &&
+        s_loaded_state.version == LUFIA2_MSU_STATE_VERSION;
+    return s_loaded_state_valid;
+}
+
+void Lufia2MsuApplyLoadedState(void) {
+    if (!s_loaded_state_valid) {
+        MsuSilence();
+        s_loading_song = 0;
+        s_volume_sent = false;
+        return;
+    }
+
+    const Lufia2MsuState state = s_loaded_state;
+    s_loaded_state_valid = false;
+    MsuSilence();
+    s_loading_song = state.loading_song;
+    s_volume_sent = state.volume_sent != 0;
+    if (s_installed && state.playing && state.song != NO_SONG)
+        StartTrack(state.song);
 }

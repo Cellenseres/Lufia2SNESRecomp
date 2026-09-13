@@ -452,6 +452,17 @@ void Lufia2IntroMode7WorldInit(const uint8_t *rom, size_t rom_size) {
     s_failed_count = 0;
 }
 
+void Lufia2IntroMode7WorldStateChanged(void) {
+    s_world_valid = false;
+    s_world_signature = 0;
+    s_locked = false;
+    s_locked_signature = 0;
+    s_reported = false;
+    s_reported_signature = 0;
+    s_failed_signature = 0;
+    s_failed_count = 0;
+}
+
 Lufia2IntroMode7WorldStatus Lufia2IntroMode7WorldPrepare(
     const SnesPpuFrameCapture *capture,
     const SnesRecompMode7Line *local_lines,

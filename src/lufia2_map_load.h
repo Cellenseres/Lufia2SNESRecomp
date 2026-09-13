@@ -21,3 +21,6 @@ bool Lufia2MapLoadInProgress(void);
 /* Increments once per completed load. Consumers cache map-derived state per
  * value and re-read bank $7F when it changes. */
 uint32_t Lufia2MapLoadGeneration(void);
+
+/* Discard observations derived from the abandoned host timeline. */
+void Lufia2MapLoadStateChanged(void);
