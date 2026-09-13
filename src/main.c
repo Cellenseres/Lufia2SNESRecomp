@@ -149,6 +149,7 @@ typedef enum Lufia2VisualPreset {
 static Lufia2VisualPreset s_visual_preset = LUFIA2_VISUAL_ORIGINAL;
 static unsigned s_hd_mode7_scale;
 static bool s_hd_mode7_perspective;
+static bool s_hd_mode7_filter;
 static SnesRecompMode7Line s_hd_mode7_lines[SNES_HEIGHT];
 static SnesRecompMode7Line s_intro_mode7_world_lines[SNES_HEIGHT];
 static SnesRecompMode7MapSource s_intro_mode7_world_source;
@@ -269,16 +270,22 @@ static void LoadVisualConfig(const char *path) {
         s_hd_mode7_scale = 2;
     }
 
-    s_hd_mode7_perspective = false;
+    /* Both refine the HD pass only; the ordinary path stays exact. Filtering
+     * is off by default: it softens a palette image more than it smooths it,
+     * and the world map is meant to stay pixel exact. */
+    s_hd_mode7_filter = false;
+    if (ReadIniText(path, "Graphics", "HDMode7Filter", value,
+                    sizeof(value)) &&
+        (AsciiEqualsNoCase(value, "On") ||
+         AsciiEqualsNoCase(value, "1")))
+        s_hd_mode7_filter = true;
+
+    s_hd_mode7_perspective = true;
     if (ReadIniText(path, "Graphics", "HDMode7Perspective",
                     value, sizeof(value)) &&
-        !AsciiEqualsNoCase(value, "Off") &&
-        !AsciiEqualsNoCase(value, "0")) {
-        s_hd_mode7_perspective = true;
-        fprintf(stderr,
-            "[video] HDMode7Perspective is not implemented; "
-            "HD Mode 7 will remain off for this run.\n");
-    }
+        (AsciiEqualsNoCase(value, "Off") ||
+         AsciiEqualsNoCase(value, "0")))
+        s_hd_mode7_perspective = false;
 }
 
 static bool ReadIniBool(
@@ -359,7 +366,8 @@ static bool EnsureDefaultConfig(const char *path) {
         "Shader =\n"
         "VisualPreset = Original\n"
         "HDMode7 = Off\n"
-        "HDMode7Perspective = Off\n"
+        "HDMode7Filter = Off\n"
+        "HDMode7Perspective = On\n"
         "NewRenderer = 0\n"
         "NoSpriteLimits = 0\n"
         "Widescreen = 0\n"
@@ -1008,10 +1016,11 @@ static bool InitVideo(void) {
             snesrecomp_presenter_vsync_state(s_presenter)),
         preset_active ? ", GLSL preset active" : "");
     fprintf(stderr,
-        "[video] visual preset=%s HD Mode 7=%s perspective=%s\n",
+        "[video] visual preset=%s HD Mode 7=%s filter=%s perspective=%s\n",
         s_visual_preset == LUFIA2_VISUAL_CLEAN_HD ? "CleanHD" : "Original",
         s_hd_mode7_scale == 2 ? "2x" : "Off",
-        s_hd_mode7_perspective ? "unsupported" : "Off");
+        s_hd_mode7_filter ? "On" : "Off",
+        s_hd_mode7_perspective ? "On" : "Off");
     if (s_visual_preset == LUFIA2_VISUAL_CLEAN_HD && !preset_active) {
         fprintf(stderr,
             "[video] CleanHD requires OpenGL; using original presentation.\n");
@@ -1109,7 +1118,7 @@ static bool PresentFrame(void) {
         s_current_video_layout == LUFIA2_VIDEO_INTRO_MODE7 ||
         s_current_video_layout == LUFIA2_VIDEO_WORLD_MAP;
     const bool hd_requested =
-        mode7_layout && s_hd_mode7_scale == 2u && !s_hd_mode7_perspective &&
+        mode7_layout && s_hd_mode7_scale == 2u &&
         (snesrecomp_presenter_capabilities(s_presenter) &
          SNESRECOMP_PRESENT_CAP_HD_MODE7);
 
@@ -1190,6 +1199,8 @@ static bool PresentFrame(void) {
             hd_frame.obj = wants_obj ? &obj : NULL;
             hd_frame.map_source = map_source;
             hd_frame.scale = s_hd_mode7_scale;
+            hd_frame.filter_bg = s_hd_mode7_filter;
+            hd_frame.interpolate_lines = s_hd_mode7_perspective;
             frame_presented = snesrecomp_presenter_present_mode7_hd(
                 s_presenter, &hd_frame);
             used_hd = frame_presented;
