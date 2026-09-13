@@ -393,10 +393,16 @@ set(LUFIA2_HOST_SOURCES
     src/lufia2_ppu_capture.c
     src/lufia2_room_data.c
     src/lufia2_runtime.c
-    src/lufia2_sprite_visibility.c
     src/lufia2_video_policy.c
     src/gen_stubs.c
 )
+
+# The C caller needs a continuation only recomp/bank83.cfg generates.
+if(EXISTS "${CMAKE_SOURCE_DIR}/recomp/bank83.cfg")
+    list(APPEND LUFIA2_HOST_SOURCES src/lufia2_sprite_visibility.c)
+else()
+    message(STATUS "Lufia2 actor HLE OFF: recomp/bank83.cfg absent")
+endif()
 
 if(LUFIA2_ENABLE_GAMEPLAY_CAPTURE)
     include("${CMAKE_SOURCE_DIR}/cmake/Lufia2GameplayCapture.cmake")
