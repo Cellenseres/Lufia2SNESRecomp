@@ -28,11 +28,6 @@ static int lufia2_diag_wlog(void) {
     if (value < 0) value = getenv("SNESRECOMP_WLOG_STATE") != NULL;
     return value;
 }
-static int lufia2_diag_yield(void) {
-    static int value = -1;
-    if (value < 0) value = getenv("SNESRECOMP_YIELD_DIAG") != NULL;
-    return value;
-}
 static int lufia2_diag_stack(void) {
     static int value = -1;
     if (value < 0) value = getenv("SNESRECOMP_YIELD_STACK_DIAG") != NULL;
@@ -47,9 +42,6 @@ unsigned long long lufia2_poll_skipped_count(void) {
     lufia2_interp_replace(_source
         "const int wlog_state_sync = getenv(\"SNESRECOMP_WLOG_STATE\") != NULL;"
         "const int wlog_state_sync = lufia2_diag_wlog();" 1)
-    lufia2_interp_replace(_source
-        "getenv(\"SNESRECOMP_YIELD_DIAG\") &&"
-        "lufia2_diag_yield() &&" 1)
     lufia2_interp_replace(_source
         "getenv(\"SNESRECOMP_YIELD_STACK_DIAG\") &&"
         "lufia2_diag_stack() &&" 1)
