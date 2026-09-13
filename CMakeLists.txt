@@ -369,6 +369,18 @@ if(NOT LUFIA2_GENERATED_SOURCES)
         "No generated C files were found in ${LUFIA2_GENERATED_DIR}.")
 endif()
 
+# Guarded: older cores have no snes_set_hdma_beam_enabled().
+# This host walks the HDMA tables itself; switchable for an A/B.
+option(LUFIA2_ENABLE_HDMA_BEAM_SWITCH
+    "Disable the core's beam-timeline HDMA; this host replays the tables" ON)
+if(EXISTS "${SNESRECOMP_ROOT}/runner/src/snes/snes.h")
+    file(READ "${SNESRECOMP_ROOT}/runner/src/snes/snes.h" _snes_h)
+    if(_snes_h MATCHES "snes_set_hdma_beam_enabled" AND LUFIA2_ENABLE_HDMA_BEAM_SWITCH)
+        add_compile_definitions(LUFIA2_HAVE_HDMA_BEAM_SWITCH=1)
+    endif()
+    unset(_snes_h)
+endif()
+
 set(LUFIA2_HOST_SOURCES
     src/main.c
     src/desktop_glue.c
