@@ -8,6 +8,7 @@
 
 #include "desktop/sdl_compat.h"
 #include "host_paths.h"
+#include "lufia2_ui_assets.h"
 #include "snes_osd.h"
 #include "snes_rewind.h"
 
@@ -76,7 +77,9 @@ static const Lufia2OverlayUiTheme kDefaultTheme = {
 static Lufia2OverlayUiTheme s_theme;
 static Lufia2OverlayUiTheme s_default_theme;
 static Lufia2OverlayUiNineSlice s_asset_panel;
+static Lufia2OverlayUiNineSlice s_rom_panel;
 static uint32_t *s_asset_panel_pixels;
+static uint32_t *s_rom_panel_pixels;
 static bool s_theme_ready, s_panel_ready, s_assets_attempted, s_user_scale_ready;
 static UiImage s_rewind, s_fps, s_toast, s_volume;
 static SnesRecompOverlayLayer s_layers[4];
@@ -185,7 +188,133 @@ static bool load_slice_margins(const char *path, int width, int height,
     }
     fclose(file);
     return found && *left >= 0 && *top >= 0 && *right >= 0 && *bottom >= 0 &&
-           *left + *right < width && *top + *bottom < height;
+           *right < width && *bottom < height &&
+           *left < width - *right && *top < height - *bottom;
+}
+
+static void use_lufia_panel(const Lufia2OverlayUiNineSlice *panel) {
+    s_default_theme.panel = panel;
+    s_default_theme.accent = 0xFF4A3110u;
+    s_default_theme.text = 0xFF422921u;
+    s_default_theme.muted = 0xFF7B6342u;
+    s_default_theme.shadow = 0x00000000u;
+    s_default_theme.track = 0xFF7B6342u;
+}
+
+bool Lufia2OverlayUiInstallRomPanel(Lufia2UiPanelAsset *asset) {
+    if (!asset || !asset->pixels || asset->width <= 0 || asset->height <= 0 ||
+        asset->left < 0 || asset->top < 0 ||
+        asset->right < 0 || asset->bottom < 0 ||
+        asset->right >= asset->width || asset->bottom >= asset->height ||
+        asset->left >= asset->width - asset->right ||
+        asset->top >= asset->height - asset->bottom ||
+        s_assets_attempted || s_theme_ready)
+        return false;
+
+    free(s_rom_panel_pixels);
+    s_rom_panel_pixels = asset->pixels;
+    s_rom_panel = (Lufia2OverlayUiNineSlice){
+        s_rom_panel_pixels,
+        asset->width,
+        asset->height,
+        asset->left,
+        asset->top,
+        asset->right,
+        asset->bottom,
+        asset->tiled,
+    };
+    *asset = (Lufia2UiPanelAsset){0};
+    return true;
+}
+
+static bool try_load_external_panel(const char *tga_path,
+                                    const char *slice_path) {
+    FILE *probe = fopen(tga_path, "rb");
+    if (!probe)
+        return false;
+    fclose(probe);
+
+    int width = 0;
+    int height = 0;
+    if (!load_tga_argb(tga_path, &s_asset_panel_pixels, &width, &height)) {
+        fprintf(stderr,
+                "[Lufia2 UI] Invalid panel TGA '%s'; "
+                "trying the ROM-derived skin.\n", tga_path);
+        return false;
+    }
+
+    int left = width / 4;
+    int right = width / 4;
+    int top = height / 4;
+    int bottom = height / 4;
+    bool tiled = false;
+    if (!load_slice_margins(slice_path, width, height,
+                            &left, &top, &right, &bottom, &tiled)) {
+        fprintf(stderr,
+                "[Lufia2 UI] Missing/invalid '%s'; "
+                "using quarter-size slices.\n", slice_path);
+    }
+
+    s_asset_panel = (Lufia2OverlayUiNineSlice){
+        s_asset_panel_pixels,
+        width, height, left, top, right, bottom, tiled,
+    };
+    use_lufia_panel(&s_asset_panel);
+#ifdef LUFIA2_ENABLE_RUNTIME_LOG
+    fprintf(stderr, "[Lufia2 UI] Loaded external panel skin '%s' "
+            "(%dx%d; %d %d %d %d; %s).\n",
+            tga_path, width, height, left, top, right, bottom,
+            tiled ? "tiled" : "stretched");
+#endif
+    return true;
+}
+
+static void use_rom_panel(const char *slice_path) {
+    if (!s_rom_panel_pixels)
+        return;
+
+    const int default_left = s_rom_panel.left;
+    const int default_top = s_rom_panel.top;
+    const int default_right = s_rom_panel.right;
+    const int default_bottom = s_rom_panel.bottom;
+    const bool default_tiled = s_rom_panel.tiled;
+    int left = default_left;
+    int top = default_top;
+    int right = default_right;
+    int bottom = default_bottom;
+    bool tiled = default_tiled;
+
+    FILE *probe = fopen(slice_path, "r");
+    if (probe) {
+        fclose(probe);
+        if (!load_slice_margins(
+                slice_path, s_rom_panel.width, s_rom_panel.height,
+                &left, &top, &right, &bottom, &tiled)) {
+            left = default_left;
+            top = default_top;
+            right = default_right;
+            bottom = default_bottom;
+            tiled = default_tiled;
+            fprintf(stderr,
+                    "[Lufia2 UI] Invalid '%s'; using canonical "
+                    "ROM panel slices.\n", slice_path);
+        }
+    }
+
+    s_rom_panel.left = left;
+    s_rom_panel.top = top;
+    s_rom_panel.right = right;
+    s_rom_panel.bottom = bottom;
+    s_rom_panel.tiled = tiled;
+    use_lufia_panel(&s_rom_panel);
+#ifdef LUFIA2_ENABLE_RUNTIME_LOG
+    fprintf(stderr,
+            "[Lufia2 UI] Using ROM-derived panel skin "
+            "(%dx%d; %d %d %d %d; %s).\n",
+            s_rom_panel.width, s_rom_panel.height,
+            left, top, right, bottom,
+            tiled ? "tiled" : "stretched");
+#endif
 }
 
 static void load_default_assets(void) {
@@ -202,39 +331,8 @@ static void load_default_assets(void) {
     if (!snesrecomp_exe_dir_path(slice_leaf, slice_path, sizeof(slice_path)))
         snprintf(slice_path, sizeof(slice_path), "%s", slice_leaf);
 
-    FILE *probe = fopen(tga_path, "rb");
-    if (!probe) return;
-    fclose(probe);
-
-    int width = 0, height = 0;
-    if (!load_tga_argb(tga_path, &s_asset_panel_pixels, &width, &height)) {
-        fprintf(stderr, "[Lufia2 UI] Invalid panel TGA '%s'; using built-in skin.\n",
-                tga_path);
-        return;
-    }
-    int left = width / 4, right = width / 4;
-    int top = height / 4, bottom = height / 4;
-    bool tiled = false;
-    if (!load_slice_margins(slice_path, width, height,
-                            &left, &top, &right, &bottom, &tiled)) {
-        fprintf(stderr,
-                "[Lufia2 UI] Missing/invalid '%s'; using quarter-size slices.\n",
-                slice_path);
-    }
-    s_asset_panel = (Lufia2OverlayUiNineSlice){
-        s_asset_panel_pixels, width, height, left, top, right, bottom, tiled,
-    };
-    s_default_theme.panel = &s_asset_panel;
-    /* Match the captured Lufia menu palette when its panel asset is active. */
-    s_default_theme.accent = 0xFF4A3110u;
-    s_default_theme.text = 0xFF422921u;
-    s_default_theme.muted = 0xFF7B6342u;
-    s_default_theme.shadow = 0x00000000u;
-    s_default_theme.track = 0xFF7B6342u;
-    fprintf(stderr, "[Lufia2 UI] Loaded panel skin '%s' "
-            "(%dx%d; %d %d %d %d; %s).\n",
-            tga_path, width, height, left, top, right, bottom,
-            tiled ? "tiled" : "stretched");
+    if (!try_load_external_panel(tga_path, slice_path))
+        use_rom_panel(slice_path);
 }
 
 const Lufia2OverlayUiTheme *Lufia2OverlayUiDefaultTheme(void) {
@@ -685,6 +783,9 @@ void Lufia2OverlayUiShutdown(void) {
     free(s_asset_panel_pixels);
     s_asset_panel_pixels = NULL;
     s_asset_panel = (Lufia2OverlayUiNineSlice){0};
+    free(s_rom_panel_pixels);
+    s_rom_panel_pixels = NULL;
+    s_rom_panel = (Lufia2OverlayUiNineSlice){0};
     s_frame = (SnesRecompOverlayFrame){0};
     memset(s_layers, 0, sizeof(s_layers));
     s_toast_text[0] = '\0';
