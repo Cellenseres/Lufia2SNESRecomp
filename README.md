@@ -119,12 +119,14 @@ whole game pixels in this mode). The game-owned skin in
 `src/lufia2_overlay_ui.c` supplies a replaceable bitmap font, nine-slice panel
 texture, colours and spacing; the shared presenter remains game-neutral.
 
-An optional editable panel skin is loaded from
-`assets/img/lufia2_menu_panel.tga`. Put `left top right bottom tile` source-pixel
-margins in `assets/img/lufia2_menu_panel.9slice`; `tile` makes patterned edges
-repeat like the original SNES tilemap instead of stretching. See
-[`assets/img/README.md`](assets/img/README.md) for the format. Missing or invalid
-files fall back to the embedded skin.
+An optional external panel override can be placed beside the executable as
+`assets/img/lufia2_menu_panel.tga`. Put `left top right bottom tile`
+source-pixel margins in the adjacent `lufia2_menu_panel.9slice`; `tile` makes
+patterned edges repeat like the original SNES tilemap instead of stretching.
+Missing or invalid TGA files fall through to the authentic panel reconstructed
+in memory from the verified ROM. The embedded neutral skin remains the final
+fallback if that defensive extraction fails. No reconstructed pixels are
+written to disk and no panel image ships with the project.
 
 `scripts/ui_asset_tool.py` crops PNG/BMP/TGA screenshots, applies integer
 nearest-neighbour downscaling, losslessly compacts tiled panels, writes the
@@ -132,7 +134,8 @@ runtime TGA, and renders a tiled or stretched 9-slice preview. It requires
 Pillow (`python -m pip install Pillow`). Example for the native 120x88 panel:
 
 ```powershell
-python scripts/ui_asset_tool.py panel.png assets/img/lufia2_menu_panel.tga `
+python scripts/ui_asset_tool.py panel.png `
+  build/windows/Debug/assets/img/lufia2_menu_panel.tga `
   --slice 16 16 16 16 --tile 16x16 --compact --preview 240x88
 ```
 
