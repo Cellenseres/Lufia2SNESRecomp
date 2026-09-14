@@ -248,6 +248,7 @@ jobs:
           pattern: Lufia2Recomp-*
           path: dist
           merge-multiple: true
+          skip-decompress: true
 
       - name: Create release
         shell: bash
