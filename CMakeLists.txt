@@ -619,16 +619,6 @@ add_custom_command(TARGET Lufia2Recomp POST_BUILD
         "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/shaders"
 )
 
-# Game-owned UI skins stay editable runtime assets. A missing or invalid panel
-# is harmless because the host keeps an embedded fallback skin.
-add_custom_command(TARGET Lufia2Recomp POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E make_directory
-        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/img"
-    COMMAND "${CMAKE_COMMAND}" -E copy_directory
-        "${CMAKE_SOURCE_DIR}/assets/img"
-        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/img"
-)
-
 if(WIN32 AND TARGET SDL3::SDL3-shared)
     add_custom_command(TARGET Lufia2Recomp POST_BUILD
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
