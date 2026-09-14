@@ -390,6 +390,8 @@ set(LUFIA2_HOST_SOURCES
     src/lufia2_map_load.c
     src/lufia2_map_widescreen.c
     src/lufia2_overlay_ui.c
+    src/lufia2_resource.c
+    src/lufia2_ui_assets.c
     src/lufia2_msu_driver.c
     src/lufia2_ppu_capture.c
     src/lufia2_room_data.c

@@ -38,6 +38,7 @@
 #include "widescreen.h"
 #include "desktop/display_aspect.h"
 #include "lufia2_overlay_ui.h"
+#include "lufia2_ui_assets.h"
 
 #include "recomp_launcher.h"
 #include "launcher_profile.h"
@@ -1843,6 +1844,7 @@ static void UpdatePerfTitle(void) {
 
 static void ShutdownDesktop(void) {
     L2CaptureShutdown();
+    Lufia2OverlayUiShutdown();
     if (s_audio_stream) {
         SDL_PauseAudioStreamDevice(s_audio_stream);
         SDL_DestroyAudioStream(s_audio_stream);
@@ -1945,6 +1947,19 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    {
+        Lufia2UiPanelAsset rom_panel = {0};
+        if (!Lufia2UiAssetsExtract(rom_data, rom_size, &rom_panel)) {
+            fprintf(stderr,
+                    "[Lufia2 UI] ROM panel extraction failed; "
+                    "the neutral fallback remains available.\n");
+        } else if (!Lufia2OverlayUiInstallRomPanel(&rom_panel)) {
+            fprintf(stderr,
+                    "[Lufia2 UI] Could not install the ROM panel; "
+                    "the neutral fallback remains available.\n");
+        }
+        Lufia2UiAssetsDestroy(&rom_panel);
+    }
     Lufia2IntroMode7WorldInit(rom_data, rom_size);
 
     snesrecomp_rom_cache_write(rom_path);
@@ -1982,6 +1997,7 @@ int main(int argc, char **argv) {
     if (!snesrecomp_sdl_init(
             SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_GAMEPAD)) {
         fprintf(stderr, "SDL_Init failed: %s\n", SDL_GetError());
+        Lufia2OverlayUiShutdown();
         free(rom_data);
         return 1;
     }
@@ -1989,6 +2005,7 @@ int main(int argc, char **argv) {
     if (!LufiaDesktopCreateAudioMutex()) {
         fprintf(stderr, "SDL_CreateMutex failed: %s\n", SDL_GetError());
         SDL_Quit();
+        Lufia2OverlayUiShutdown();
         free(rom_data);
         return 1;
     }
@@ -2135,7 +2152,6 @@ int main(int argc, char **argv) {
 
     RtlWriteSram();
     snes_rewind_shutdown();
-    Lufia2OverlayUiShutdown();
 
     if (s_audio_stream) {
         SDL_PauseAudioStreamDevice(s_audio_stream);

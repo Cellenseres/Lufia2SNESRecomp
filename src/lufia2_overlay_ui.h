@@ -6,6 +6,8 @@
 
 #include "snesrecomp_platform/presenter.h"
 
+struct Lufia2UiPanelAsset;
+
 typedef struct Lufia2OverlayUiFont {
     /* One byte per glyph row, low bits left-to-right. Unsupported input falls
      * back to '?'; lowercase is mapped to uppercase by the renderer. */
@@ -57,6 +59,9 @@ typedef struct Lufia2OverlayUiTheme {
 } Lufia2OverlayUiTheme;
 
 const Lufia2OverlayUiTheme *Lufia2OverlayUiDefaultTheme(void);
+/* Takes ownership of asset->pixels on success and clears the caller's asset.
+ * Install before resolving the default theme. */
+bool Lufia2OverlayUiInstallRomPanel(struct Lufia2UiPanelAsset *asset);
 /* The structure is copied; font/texture storage referenced by it must remain
  * alive until another theme is selected or the UI is shut down. */
 void Lufia2OverlayUiSetTheme(const Lufia2OverlayUiTheme *theme);
