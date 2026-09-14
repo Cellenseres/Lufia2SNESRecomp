@@ -153,8 +153,8 @@ typedef enum Lufia2VisualPreset {
     LUFIA2_VISUAL_CLEAN_HD,
 } Lufia2VisualPreset;
 
-static Lufia2VisualPreset s_visual_preset = LUFIA2_VISUAL_ORIGINAL;
-static unsigned s_hd_mode7_scale;
+static Lufia2VisualPreset s_visual_preset = LUFIA2_VISUAL_CLEAN_HD;
+static unsigned s_hd_mode7_scale = 2;
 static bool s_hd_mode7_perspective;
 static bool s_hd_mode7_filter;
 static SnesRecompMode7Line s_hd_mode7_lines[SNES_HEIGHT];
@@ -262,20 +262,17 @@ static bool ReadIniText(const char *path, const char *wanted_section,
 static void LoadVisualConfig(const char *path) {
     char value[64];
 
-    s_visual_preset = LUFIA2_VISUAL_ORIGINAL;
+    s_visual_preset = LUFIA2_VISUAL_CLEAN_HD;
     if (ReadIniText(path, "Graphics", "VisualPreset",
                     value, sizeof(value)) &&
-        (AsciiEqualsNoCase(value, "CleanHD") ||
-         AsciiEqualsNoCase(value, "Clean-HD"))) {
-        s_visual_preset = LUFIA2_VISUAL_CLEAN_HD;
-    }
+        AsciiEqualsNoCase(value, "Original"))
+        s_visual_preset = LUFIA2_VISUAL_ORIGINAL;
 
-    s_hd_mode7_scale = 0;
+    s_hd_mode7_scale = 2;
     if (ReadIniText(path, "Graphics", "HDMode7", value, sizeof(value)) &&
-        (AsciiEqualsNoCase(value, "2x") ||
-         AsciiEqualsNoCase(value, "2"))) {
-        s_hd_mode7_scale = 2;
-    }
+        (AsciiEqualsNoCase(value, "Off") ||
+         AsciiEqualsNoCase(value, "0")))
+        s_hd_mode7_scale = 0;
 
     /* Both refine the HD pass only; the ordinary path stays exact. Filtering
      * is off by default: it softens a palette image more than it smooths it,
@@ -371,8 +368,8 @@ static bool EnsureDefaultConfig(const char *path) {
         "OutputMethod = OpenGL\n"
         "LinearFiltering = 0\n"
         "Shader =\n"
-        "VisualPreset = Original\n"
-        "HDMode7 = Off\n"
+        "VisualPreset = CleanHD\n"
+        "HDMode7 = 2x\n"
         "HDMode7Filter = Off\n"
         "HDMode7Perspective = On\n"
         "NewRenderer = 0\n"
