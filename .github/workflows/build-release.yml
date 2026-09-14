@@ -1,0 +1,294 @@
+name: Build & Release Lufia II Recomp
+run-name: Build ${{ inputs.ref }} (${{ inputs.release_mode }})
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: Commit SHA, branch or tag to build
+        required: true
+        default: main
+        type: string
+      release_mode:
+        description: What to do with the finished builds
+        required: true
+        default: artifacts-only
+        type: choice
+        options:
+          - artifacts-only
+          - draft
+          - prerelease
+          - release
+      release_tag:
+        description: Release tag (optional)
+        required: false
+        type: string
+      release_title:
+        description: Release title (optional)
+        required: false
+        type: string
+      release_description:
+        description: Release description / notes (optional)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  resolve:
+    name: Resolve commit
+    runs-on: ubuntu-24.04
+    outputs:
+      sha: ${{ steps.revision.outputs.sha }}
+      short_sha: ${{ steps.revision.outputs.short_sha }}
+    steps:
+      - name: Checkout requested revision
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.ref }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Resolve exact commit SHA
+        id: revision
+        shell: bash
+        run: |
+          set -euo pipefail
+          SHA="$(git rev-parse HEAD)"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SHA:0:8}" >> "$GITHUB_OUTPUT"
+
+  build-windows:
+    name: Windows x64
+    needs: resolve
+    runs-on: windows-2022
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          fetch-depth: 1
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Checkout private ROM
+        uses: actions/checkout@v7
+        with:
+          repository: Cellenseres/Lufia2SNESRecomp_PrivateContent
+          token: ${{ secrets.PRIVATE_CONTENT_TOKEN }}
+          path: private-content
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prepare ROM
+        shell: pwsh
+        run: |
+          $source = "private-content/lufia2.sfc"
+          if (-not (Test-Path -LiteralPath $source)) { throw "Missing ROM: $source" }
+          $expected = "7C34ECB16C10F551120ED7B86CFBC947042F479B52EE74BB3C40E92FDD192B3A"
+          $actual = (Get-FileHash -LiteralPath $source -Algorithm SHA256).Hash
+          if ($actual -ne $expected) { throw "Unexpected ROM SHA-256: $actual" }
+          Copy-Item -LiteralPath $source -Destination "lufia2.sfc" -Force
+
+      - name: Configure
+        shell: pwsh
+        run: |
+          $rom = Join-Path $env:GITHUB_WORKSPACE "lufia2.sfc"
+          cmake --preset windows-release -B build/windows `
+            -DVITA=OFF `
+            -DLUFIA2_SNESRECOMP_ROOT= `
+            -DLUFIA2_RECOMP_UI_ROOT= `
+            -DLUFIA2_SDL3_ROOT= `
+            "-DLUFIA2_ROM=$rom"
+          if ($LASTEXITCODE -ne 0) { throw "CMake configure failed: $LASTEXITCODE" }
+
+      - name: Build
+        shell: pwsh
+        run: |
+          cmake --build build/windows --config Release --parallel
+          if ($LASTEXITCODE -ne 0) { throw "Build failed: $LASTEXITCODE" }
+
+      - name: Remove private content
+        if: ${{ always() }}
+        shell: pwsh
+        run: |
+          Remove-Item "lufia2.sfc" -Force -ErrorAction SilentlyContinue
+          Remove-Item "private-content" -Recurse -Force -ErrorAction SilentlyContinue
+
+      - name: Package
+        shell: pwsh
+        run: |
+          $source = "build/windows/Release"
+          $package = "package/Lufia2Recomp-windows-x64"
+          if (-not (Test-Path "$source/Lufia2Recomp.exe")) { throw "Lufia2Recomp.exe was not produced" }
+          Remove-Item "package" -Recurse -Force -ErrorAction SilentlyContinue
+          New-Item -ItemType Directory -Path $package -Force | Out-Null
+          Copy-Item "$source/Lufia2Recomp.exe" $package
+          Get-ChildItem $source -Filter "*.dll" -File | ForEach-Object { Copy-Item $_.FullName $package }
+          foreach ($dir in @("assets", "data", "msu")) {
+            if (Test-Path "$source/$dir") { Copy-Item "$source/$dir" $package -Recurse }
+          }
+          Compress-Archive -Path $package -DestinationPath "Lufia2Recomp-windows-x64.zip" -CompressionLevel Optimal -Force
+
+      - name: Upload Windows build
+        uses: actions/upload-artifact@v7
+        with:
+          path: Lufia2Recomp-windows-x64.zip
+          archive: false
+          if-no-files-found: error
+          retention-days: 30
+
+  build-linux:
+    name: Linux x64
+    needs: resolve
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.sha }}
+          fetch-depth: 1
+          submodules: recursive
+          persist-credentials: false
+
+      - name: Install build dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y build-essential ninja-build pkg-config \
+            libasound2-dev libpulse-dev libx11-dev libxext-dev libxrandr-dev \
+            libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev \
+            libdrm-dev libgbm-dev libgl1-mesa-dev libegl1-mesa-dev libwayland-dev \
+            libdecor-0-dev libudev-dev libdbus-1-dev libibus-1.0-dev libpipewire-0.3-dev
+
+      - name: Checkout private ROM
+        uses: actions/checkout@v7
+        with:
+          repository: Cellenseres/Lufia2SNESRecomp_PrivateContent
+          token: ${{ secrets.PRIVATE_CONTENT_TOKEN }}
+          path: private-content
+          fetch-depth: 1
+          persist-credentials: false
+
+      - name: Prepare ROM
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f private-content/lufia2.sfc
+          echo "7c34ecb16c10f551120ed7b86cfbc947042f479b52ee74bb3c40e92fdd192b3a  private-content/lufia2.sfc" | sha256sum -c -
+          cp private-content/lufia2.sfc ./lufia2.sfc
+
+      - name: Configure
+        shell: bash
+        run: |
+          set -euo pipefail
+          cmake -S . -B build/linux -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DVITA=OFF \
+            -DLUFIA2_SNESRECOMP_ROOT= \
+            -DLUFIA2_RECOMP_UI_ROOT= \
+            -DLUFIA2_SDL3_ROOT= \
+            -DLUFIA2_ROM="$GITHUB_WORKSPACE/lufia2.sfc"
+
+      - name: Build
+        shell: bash
+        run: cmake --build build/linux --parallel "$(nproc)"
+
+      - name: Remove private content
+        if: ${{ always() }}
+        shell: bash
+        run: |
+          rm -f lufia2.sfc
+          rm -rf private-content
+
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          SOURCE="build/linux"
+          PACKAGE="package/Lufia2Recomp-linux-x64"
+          test -x "$SOURCE/Lufia2Recomp"
+          rm -rf package
+          mkdir -p "$PACKAGE"
+          cp "$SOURCE/Lufia2Recomp" "$PACKAGE/"
+          shopt -s nullglob
+          SDL_LIBS=("$SOURCE"/libSDL3.so*)
+          (( ${#SDL_LIBS[@]} > 0 )) || { echo "SDL3 runtime library missing"; exit 1; }
+          for lib in "${SDL_LIBS[@]}"; do cp -L "$lib" "$PACKAGE/$(basename "$lib")"; done
+          for dir in assets data msu; do
+            if [[ -d "$SOURCE/$dir" ]]; then cp -a "$SOURCE/$dir" "$PACKAGE/"; fi
+          done
+          ldd "$PACKAGE/Lufia2Recomp"
+          if ldd "$PACKAGE/Lufia2Recomp" | grep -q "not found"; then
+            echo "Packaged Linux build has missing shared libraries"
+            exit 1
+          fi
+          tar -C package -czf Lufia2Recomp-linux-x64.tar.gz Lufia2Recomp-linux-x64
+
+      - name: Upload Linux build
+        uses: actions/upload-artifact@v7
+        with:
+          path: Lufia2Recomp-linux-x64.tar.gz
+          archive: false
+          if-no-files-found: error
+          retention-days: 30
+
+  release:
+    name: Create GitHub Release
+    needs: [resolve, build-windows, build-linux]
+    if: ${{ inputs.release_mode != 'artifacts-only' }}
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Download finished builds
+        uses: actions/download-artifact@v8
+        with:
+          pattern: Lufia2Recomp-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          MODE: ${{ inputs.release_mode }}
+          INPUT_TAG: ${{ inputs.release_tag }}
+          INPUT_TITLE: ${{ inputs.release_title }}
+          DESCRIPTION: ${{ inputs.release_description }}
+          SHA: ${{ needs.resolve.outputs.sha }}
+          SHORT_SHA: ${{ needs.resolve.outputs.short_sha }}
+          REQUESTED_REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          test -f dist/Lufia2Recomp-windows-x64.zip
+          test -f dist/Lufia2Recomp-linux-x64.tar.gz
+
+          TAG="${INPUT_TAG:-build-${GITHUB_RUN_NUMBER}-${GITHUB_RUN_ATTEMPT}}"
+          TITLE="${INPUT_TITLE:-Lufia II Recomp ${SHORT_SHA}}"
+
+          {
+            if [[ -n "$DESCRIPTION" ]]; then printf '%s\n\n' "$DESCRIPTION"; fi
+            echo "---"
+            echo "Built from \`$REQUESTED_REF\` at commit \`$SHA\`."
+            echo
+            echo "The original Lufia II ROM is not included."
+          } > release-notes.md
+
+          EXTRA_ARGS=()
+          case "$MODE" in
+            draft) EXTRA_ARGS+=(--draft) ;;
+            prerelease) EXTRA_ARGS+=(--prerelease) ;;
+            release) EXTRA_ARGS+=(--latest) ;;
+            *) echo "Unknown release mode: $MODE"; exit 1 ;;
+          esac
+
+          gh release create "$TAG" \
+            "dist/Lufia2Recomp-windows-x64.zip#Windows x64" \
+            "dist/Lufia2Recomp-linux-x64.tar.gz#Linux x64" \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$SHA" \
+            --title "$TITLE" \
+            --notes-file release-notes.md \
+            "${EXTRA_ARGS[@]}"
