@@ -158,7 +158,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential ninja-build pkg-config \
             libasound2-dev libpulse-dev libx11-dev libxext-dev libxrandr-dev \
-            libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxkbcommon-dev \
+            libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev \
             libdrm-dev libgbm-dev libgl1-mesa-dev libegl1-mesa-dev libwayland-dev \
             libdecor-0-dev libudev-dev libdbus-1-dev libibus-1.0-dev libpipewire-0.3-dev
 
