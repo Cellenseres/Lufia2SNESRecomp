@@ -55,6 +55,7 @@
 #include "lufia2_intro_mode7_world.h"
 #include "lufia2_mode7_substep.h"
 #include "lufia2_runtime.h"
+#include "lufia2_video_handoff.h"
 #include "lufia2_video_policy.h"
 #include "desktop_glue.h"
 
@@ -127,6 +128,10 @@ static SDL_Gamepad *s_gamepad;
 
 static uint8_t s_pixels[SNES_WIDE_WIDTH * 4 * PPU_BUFFER_HEIGHT];
 static uint8_t s_present_pixels[SNES_WIDE_WIDTH * 4 * SNES_HEIGHT];
+static uint8_t s_map_handoff_pixels[SNES_WIDE_WIDTH * 4 * SNES_HEIGHT];
+static uint16_t s_handoff_line_scroll_x[SNES_HEIGHT];
+static uint16_t s_handoff_line_scroll_y[SNES_HEIGHT];
+static uint8_t s_handoff_line_mosaic[SNES_HEIGHT];
 static uint8_t *s_audio_scratch;
 static size_t s_audio_scratch_size;
 
@@ -146,6 +151,7 @@ static uint32_t s_input_release_mask;
 static Lufia2VideoLayout s_last_video_layout = LUFIA2_VIDEO_LAYOUT_COUNT;
 static Lufia2VideoLayout s_held_video_layout = LUFIA2_VIDEO_CENTERED;
 static Lufia2VideoLayout s_current_video_layout = LUFIA2_VIDEO_CENTERED;
+static Lufia2VideoHandoff s_video_handoff;
 static uint64_t s_last_intro_raster_reject_signature = UINT64_MAX;
 
 typedef enum Lufia2VisualPreset {
@@ -1129,6 +1135,48 @@ static bool PresentMode7Reference(
 static unsigned s_present_stall;
 static bool s_present_stall_reported;
 
+static Lufia2VideoHandoffScene VideoLayoutHandoffScene(
+    Lufia2VideoLayout layout) {
+    switch (layout) {
+    case LUFIA2_VIDEO_REGULAR_MAP:
+        /* The only layout whose scroll registers move the margin pixels. */
+        return LUFIA2_VIDEO_HANDOFF_SCENE_WIDE_MAP;
+    case LUFIA2_VIDEO_WORLD_MAP:
+    case LUFIA2_VIDEO_INTRO_MODE7:
+    case LUFIA2_VIDEO_PATTERN_MENU:
+        return LUFIA2_VIDEO_HANDOFF_SCENE_WIDE;
+    case LUFIA2_VIDEO_MAP_LOADING:
+        return LUFIA2_VIDEO_HANDOFF_SCENE_MAP_LOADING;
+    default:
+        return LUFIA2_VIDEO_HANDOFF_SCENE_OWN_FRAME;
+    }
+}
+
+/* Must run after Lufia2DrawPpuFrame(): the per-line history belongs to the
+   frame the renderer has just walked. */
+static void ObserveHandoffRaster(void) {
+    if (!Lufia2CapturePpuRasterEffects(
+            0,
+            s_handoff_line_scroll_x,
+            s_handoff_line_scroll_y,
+            s_handoff_line_mosaic,
+            SNES_HEIGHT)) {
+        return;
+    }
+    for (size_t y = 0; y < SNES_HEIGHT; y++) {
+        const uint8_t mosaic = s_handoff_line_mosaic[y];
+        s_handoff_line_mosaic[y] = (mosaic & 0x03u)
+            ? (uint8_t)((mosaic >> 4) + 1u)
+            : 1u;
+    }
+    Lufia2VideoHandoffObserveRaster(
+        &s_video_handoff,
+        s_handoff_line_scroll_x,
+        s_handoff_line_scroll_y,
+        s_handoff_line_mosaic,
+        SNES_HEIGHT);
+}
+
 static bool PresentFrame(bool include_rewind) {
     bool frame_presented = false;
     RtlWidescreenPresent(
@@ -1137,6 +1185,14 @@ static bool PresentFrame(bool include_rewind) {
         s_pixels,
         s_frame_width,
         SNES_HEIGHT);
+    Lufia2VideoHandoffApply(
+        &s_video_handoff,
+        s_present_pixels,
+        s_map_handoff_pixels,
+        (size_t)s_frame_width,
+        SNES_HEIGHT,
+        g_ws_extra > 0 ? (size_t)g_ws_extra : 0u,
+        LUFIA2_MAP_STREAM_GUARD_PIXELS);
     if (!include_rewind) {
         snes_rewind_note_framebuffer(
             (const uint32_t *)s_present_pixels,
@@ -1433,8 +1489,8 @@ static void PrepareVideoFrame(void) {
             finalize_map_widescreen = true;
             break;
         case LUFIA2_MAP_WIDESCREEN_LOADING:
-            /* Keep the 16:9 canvas but show only the authentic 256 pixels
-               until the new map is readable. */
+            /* Keep the PPU on its safe 256-pixel path; presentation holds
+               the previous wide edges until the new map is readable. */
             layout = LUFIA2_VIDEO_MAP_LOADING;
             PpuSetExtraSpaceCentered(g_ppu, (uint8_t)g_ws_extra);
             break;
@@ -1447,7 +1503,7 @@ static void PrepareVideoFrame(void) {
         break;
 
     case LUFIA2_VIDEO_MAP_LOADING:
-        /* Only reached as a relabelled centered frame. */
+        /* The live center stays on the safe path behind bridged margins. */
         PpuSetExtraSpaceCentered(g_ppu, (uint8_t)g_ws_extra);
         break;
 
@@ -1485,6 +1541,17 @@ static void PrepareVideoFrame(void) {
         Lufia2FinalizeMapWidescreen(g_ppu, g_ws_extra);
 
     s_current_video_layout = layout;
+    Lufia2VideoHandoffObserve(
+        &s_video_handoff,
+        VideoLayoutHandoffScene(layout),
+        g_ppu && !PPU_forcedBlank(g_ppu)
+            ? (uint8_t)PPU_brightness(g_ppu)
+            : 0u,
+        g_ppu && (g_ppu->mosaic & 0x03u)
+            ? (uint8_t)PPU_mosaicSize(g_ppu)
+            : 1u,
+        g_ppu ? g_ppu->hScroll[0] : 0u,
+        g_ppu ? g_ppu->vScroll[0] : 0u);
 
     if (layout != s_last_video_layout) {
         fprintf(stderr,
@@ -1631,6 +1698,8 @@ static void HandleHostCommand(int cmd, bool pressed) {
 
     case kKeys_ToggleWidescreen:
         g_config.widescreen = !g_config.widescreen;
+        /* The saved frame was cut for the old canvas width. */
+        Lufia2VideoHandoffReset(&s_video_handoff);
         PersistInt("Graphics", "Widescreen",
                    g_config.widescreen ? 1 : 0);
         s_window_resize_pending = true;
@@ -1704,6 +1773,7 @@ static void InvalidateDerivedHostState(bool reset_rewind) {
     s_last_video_layout = LUFIA2_VIDEO_LAYOUT_COUNT;
     s_held_video_layout = LUFIA2_VIDEO_CENTERED;
     s_current_video_layout = LUFIA2_VIDEO_CENTERED;
+    Lufia2VideoHandoffReset(&s_video_handoff);
     s_last_intro_raster_reject_signature = UINT64_MAX;
     s_hd_mode7_last_reject = SNES_PPU_SUPPORTED;
     s_hd_mode7_present_error_reported = false;
@@ -2106,6 +2176,7 @@ int main(int argc, char **argv) {
         Lufia2DrawPpuFrame();
         Lufia2EndMapRenderOverlay(g_ppu);
         L2CaptureFrameEnd();
+        ObserveHandoffRaster();
         if (!PresentFrame(false)) {
             g_fail = true;
             break;
