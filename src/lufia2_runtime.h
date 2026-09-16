@@ -27,6 +27,13 @@ enum { LUFIA2_PPU_VISIBLE_LINES = 224 };
  * scanline is drawn. Row y maps to PPU line y+1. */
 const uint8_t *Lufia2LineRegisters(unsigned y);
 bool Lufia2PpuRasterHistory(const uint8_t **rows, size_t *stride);
+/* Per-line BG scroll and mosaic for the frame the renderer last drew. */
+bool Lufia2CapturePpuRasterEffects(
+    unsigned bg,
+    uint16_t *h_scroll,
+    uint16_t *v_scroll,
+    uint8_t *mosaic,
+    size_t line_count);
 uint32_t Lufia2PpuRasterMemoryFlags(void);
 
 /* Guest boundary at which the next frame resumes. This is observation only;

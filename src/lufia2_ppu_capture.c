@@ -101,6 +101,34 @@ static bool BandsIdentical(const SnesPpuRasterBand *a,
                   sizeof *a - offsetof(SnesPpuRasterBand, bg_mode)) == 0;
 }
 
+bool Lufia2CapturePpuRasterEffects(
+    unsigned bg,
+    uint16_t *h_scroll,
+    uint16_t *v_scroll,
+    uint8_t *mosaic,
+    size_t line_count) {
+    const uint8_t *rows = NULL;
+    size_t stride = 0;
+    if (bg >= 4u || !h_scroll || !v_scroll || !mosaic ||
+        line_count > LUFIA2_PPU_VISIBLE_LINES ||
+        !Lufia2PpuRasterHistory(&rows, &stride) || !rows ||
+        stride < PPU_SAVESTATE_REGS_SIZE) {
+        return false;
+    }
+
+    for (size_t y = 0; y < line_count; y++) {
+        const uint8_t *regs = rows + y * stride;
+        memcpy(
+            &h_scroll[y], regs + PPU_RAW_OFFSET(hScroll) + bg * 2u,
+            sizeof(h_scroll[y]));
+        memcpy(
+            &v_scroll[y], regs + PPU_RAW_OFFSET(vScroll) + bg * 2u,
+            sizeof(v_scroll[y]));
+        mosaic[y] = regs[PPU_RAW_OFFSET(mosaic)];
+    }
+    return true;
+}
+
 bool Lufia2CapturePpuFrame(SnesPpuFrameCapture *out,
                            unsigned canvas_width,
                            unsigned canvas_extra) {
