@@ -185,7 +185,7 @@ const char *Lufia2VideoLayoutName(Lufia2VideoLayout layout) {
     case LUFIA2_VIDEO_REGULAR_MAP:
         return "regular map";
     case LUFIA2_VIDEO_MAP_LOADING:
-        return "map loading (centered)";
+        return "map loading (safe handoff)";
     case LUFIA2_VIDEO_BLANK:
         return "forced blank";
     case LUFIA2_VIDEO_PATTERN_MENU:
