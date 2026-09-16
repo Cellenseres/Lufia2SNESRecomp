@@ -1,4 +1,5 @@
 #include "lufia2_overlay_ui.h"
+#include "lufia2_tga.h"
 
 #include <ctype.h>
 #include <stddef.h>
@@ -109,59 +110,6 @@ static void init_panel(void) {
     s_panel_ready = true;
 }
 
-static uint16_t read_u16_le(const uint8_t *p) {
-    return (uint16_t)(p[0] | ((uint16_t)p[1] << 8));
-}
-
-static bool load_tga_argb(const char *path, uint32_t **out_pixels,
-                          int *out_width, int *out_height) {
-    uint8_t header[18];
-    FILE *file = fopen(path, "rb");
-    if (!file) return false;
-    bool ok = fread(header, 1, sizeof(header), file) == sizeof(header);
-    int width = ok ? (int)read_u16_le(header + 12) : 0;
-    int height = ok ? (int)read_u16_le(header + 14) : 0;
-    int depth = ok ? header[16] : 0;
-    ok = ok && header[1] == 0 && header[2] == 2 &&
-         (depth == 24 || depth == 32) && width > 0 && height > 0 &&
-         width <= 4096 && height <= 4096 &&
-         (size_t)width <= SIZE_MAX / (size_t)height;
-    size_t count = ok ? (size_t)width * height : 0;
-    ok = ok && count <= SIZE_MAX / sizeof(uint32_t) &&
-         fseek(file, header[0], SEEK_CUR) == 0;
-    uint32_t *pixels = ok ? (uint32_t *)malloc(count * sizeof(*pixels)) : NULL;
-    ok = ok && pixels != NULL;
-    bool top_origin = (header[17] & 0x20u) != 0;
-    bool right_origin = (header[17] & 0x10u) != 0;
-    int bytes_per_pixel = depth / 8;
-    for (int file_y = 0; ok && file_y < height; file_y++) {
-        for (int file_x = 0; file_x < width; file_x++) {
-            uint8_t bgra[4] = {0, 0, 0, 255};
-            if (fread(bgra, 1, (size_t)bytes_per_pixel, file) !=
-                (size_t)bytes_per_pixel) {
-                ok = false;
-                break;
-            }
-            uint32_t a = bgra[3];
-            uint32_t r = ((uint32_t)bgra[2] * a + 127u) / 255u;
-            uint32_t g = ((uint32_t)bgra[1] * a + 127u) / 255u;
-            uint32_t b = ((uint32_t)bgra[0] * a + 127u) / 255u;
-            int x = right_origin ? width - 1 - file_x : file_x;
-            int y = top_origin ? file_y : height - 1 - file_y;
-            pixels[(size_t)y * width + x] =
-                (a << 24) | (r << 16) | (g << 8) | b;
-        }
-    }
-    fclose(file);
-    if (!ok) {
-        free(pixels);
-        return false;
-    }
-    *out_pixels = pixels;
-    *out_width = width;
-    *out_height = height;
-    return true;
-}
 
 static bool load_slice_margins(const char *path, int width, int height,
                                int *left, int *top, int *right, int *bottom,
@@ -236,7 +184,7 @@ static bool try_load_external_panel(const char *tga_path,
 
     int width = 0;
     int height = 0;
-    if (!load_tga_argb(tga_path, &s_asset_panel_pixels, &width, &height)) {
+    if (!Lufia2LoadTgaArgb(tga_path, &s_asset_panel_pixels, &width, &height)) {
         fprintf(stderr,
                 "[Lufia2 UI] Invalid panel TGA '%s'; "
                 "trying the ROM-derived skin.\n", tga_path);
