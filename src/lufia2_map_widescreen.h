@@ -5,7 +5,11 @@
 
 #include "snes/ppu.h"
 
-enum { LUFIA2_WS_SHADOW_TILE_BIAS = 128 };
+enum {
+    LUFIA2_WS_SHADOW_TILE_BIAS = 128,
+    /* Lufia hides these native edge columns while streaming its tilemap. */
+    LUFIA2_MAP_STREAM_GUARD_PIXELS = 16,
+};
 
 typedef enum Lufia2MapWidescreenResult {
     LUFIA2_MAP_WIDESCREEN_DISABLED = 0,
