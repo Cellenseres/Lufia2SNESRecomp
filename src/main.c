@@ -54,6 +54,7 @@
 #include "lufia2_map_widescreen.h"
 #include "lufia2_intro_mode7_world.h"
 #include "lufia2_mode7_substep.h"
+#include "lufia2_intro_widescreen.h"
 #include "lufia2_runtime.h"
 #include "lufia2_video_handoff.h"
 #include "lufia2_video_policy.h"
@@ -1185,6 +1186,9 @@ static bool PresentFrame(bool include_rewind) {
         s_pixels,
         s_frame_width,
         SNES_HEIGHT);
+    Lufia2IntroWidescreenPaint(
+        g_ppu, s_present_pixels, (size_t)s_frame_width, SNES_HEIGHT,
+        g_ws_extra > 0 ? (unsigned)g_ws_extra : 0u);
     Lufia2VideoHandoffApply(
         &s_video_handoff,
         s_present_pixels,
@@ -1520,6 +1524,11 @@ static void PrepareVideoFrame(void) {
 
     case LUFIA2_VIDEO_CENTERED:
         Lufia2DeactivateMapWidescreen();
+        if (Lufia2IntroWidescreenPrepare(
+                g_ppu, observation.runtime_map,
+                g_ws_extra > 0 ? (unsigned)g_ws_extra : 0u)) {
+            break;
+        }
         /* A blanked or reconfigured screen during a map load is the load,
            not an unsupported scene. */
         if (Lufia2MapLoadInProgress())
@@ -1539,6 +1548,9 @@ static void PrepareVideoFrame(void) {
         WsShadowFrame(g_ppu);
     if (finalize_map_widescreen)
         Lufia2FinalizeMapWidescreen(g_ppu, g_ws_extra);
+
+    if (layout != LUFIA2_VIDEO_CENTERED)
+        Lufia2IntroWidescreenRelease(g_ppu);
 
     s_current_video_layout = layout;
     Lufia2VideoHandoffObserve(
@@ -1782,6 +1794,7 @@ static void InvalidateDerivedHostState(bool reset_rewind) {
     s_current_video_layout = LUFIA2_VIDEO_CENTERED;
     Lufia2VideoHandoffReset(&s_video_handoff);
     s_last_intro_raster_reject_signature = UINT64_MAX;
+    Lufia2IntroWidescreenRelease(g_ppu);
     s_hd_mode7_last_reject = SNES_PPU_SUPPORTED;
     s_hd_mode7_present_error_reported = false;
     s_last_intro_world_status = LUFIA2_INTRO_WORLD_INVALID_ARGUMENT;
@@ -2184,6 +2197,7 @@ int main(int argc, char **argv) {
         Lufia2EndMapRenderOverlay(g_ppu);
         L2CaptureFrameEnd();
         ObserveHandoffRaster();
+        Lufia2IntroWidescreenObserve(g_ppu);
         if (!PresentFrame(false)) {
             g_fail = true;
             break;
