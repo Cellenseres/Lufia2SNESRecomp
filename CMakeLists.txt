@@ -396,6 +396,7 @@ set(LUFIA2_HOST_SOURCES
     src/lufia2_ppu_capture.c
     src/lufia2_room_data.c
     src/lufia2_runtime.c
+    src/lufia2_tga.c
     src/lufia2_video_handoff.c
     src/lufia2_video_policy.c
     src/gen_stubs.c
