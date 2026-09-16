@@ -7,6 +7,29 @@ The game boots from the original US ROM and supports the intro, title screen,
 normal gameplay, battles, audio, input, saves and the desktop launcher. Video
 output can use SDL or OpenGL 3.3.
 
+<p align="center">
+  <img src="docs/assets/screenshots/intro2.png" alt="The Lufia II intro flyover rendered at 16:9" width="100%">
+  <br><sub><b>The intro flyover in widescreen</b></sub>
+</p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/intro1.png" alt="The opening scene of Lufia II Recompiled" width="100%"><br><sub><b>Opening</b></sub></td>
+    <td width="50%"><img src="docs/assets/screenshots/saveselectscreen.png" alt="The Lufia II save selection screen" width="100%"><br><sub><b>Save selection</b></sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/screenshots/city1.png" alt="A town in Lufia II Recompiled at 16:9" width="100%"><br><sub><b>Town</b></sub></td>
+    <td><img src="docs/assets/screenshots/interior1.png" alt="A building interior in Lufia II Recompiled" width="100%"><br><sub><b>Interior</b></sub></td>
+  </tr>
+  <tr>
+    <td><img src="docs/assets/screenshots/shop1.png" alt="A shop in Lufia II Recompiled" width="100%"><br><sub><b>Shop</b></sub></td>
+    <td><img src="docs/assets/screenshots/dungeon1.png" alt="A dungeon in Lufia II Recompiled at 16:9" width="100%"><br><sub><b>Dungeon</b></sub></td>
+  </tr>
+  <tr>
+    <td colspan="2"><img src="docs/assets/screenshots/overworld1.png" alt="The Lufia II Mode 7 overworld rendered at 16:9" width="100%"><br><sub><b>Mode 7 overworld</b></sub></td>
+  </tr>
+</table>
+
 ## ROM
 
 The ROM is not included. Use the clean, headerless US release:
