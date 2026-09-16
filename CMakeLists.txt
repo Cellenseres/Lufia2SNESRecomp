@@ -624,6 +624,15 @@ add_custom_command(TARGET Lufia2Recomp POST_BUILD
         "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/shaders"
 )
 
+# Hand-authored margin art for the intro cutscene.
+add_custom_command(TARGET Lufia2Recomp POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E make_directory
+        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/img"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/assets/img/lufia2_intro_margins.tga"
+        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/img/lufia2_intro_margins.tga"
+)
+
 if(WIN32 AND TARGET SDL3::SDL3-shared)
     add_custom_command(TARGET Lufia2Recomp POST_BUILD
         COMMAND "${CMAKE_COMMAND}" -E copy_if_different
