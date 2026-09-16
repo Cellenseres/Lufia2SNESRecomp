@@ -676,7 +676,9 @@ void Lufia2BeginMapRenderOverlay(Ppu *ppu) {
     for (int bg = 0; bg < 2; bg++) {
         const uint32_t flags = ppu->windowsel >> (bg * 4);
         if ((flags & 3u) != 3u ||
-            ppu->window1left > 16 || ppu->window1right < 239 ||
+            ppu->window1left > LUFIA2_MAP_STREAM_GUARD_PIXELS ||
+            ppu->window1right <
+                LUFIA2_NATIVE_WIDTH - 1 - LUFIA2_MAP_STREAM_GUARD_PIXELS ||
             ppu->window1left > ppu->window1right) {
             continue;
         }
@@ -694,7 +696,7 @@ void Lufia2BeginMapRenderOverlay(Ppu *ppu) {
 
     /* The widescreen window expansion shifts a game-authored edge outward by
        the margin instead of opening it to the frame edge, so a guard band at
-       column 16/239 still clips the outermost 16 margin pixels to black. The
+       column 16/239 still clips the outermost margin pixels to black. The
        band's content has just been restored above, so the band can be opened
        for this draw and put back in Lufia2EndMapRenderOverlay(). */
     s_guard_band_left = ppu->window1left;
