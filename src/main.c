@@ -1556,15 +1556,22 @@ static void PrepareVideoFrame(void) {
     if (layout != s_last_video_layout) {
         fprintf(stderr,
             "[video] layout: %s (%dx%d, PPU mode=%u, main=$%02X, "
-            "BG maps=%u/%u, scroll=%u,%u, map=$%02X, world=%u,%u)\n",
+            "sub=$%02X, tiles=$%04X, BG maps=%u/%u, "
+            "scroll=%u,%u/%u,%u/%u,%u, map=$%02X, world=%u,%u)\n",
             Lufia2VideoLayoutName(layout),
             s_frame_width, SNES_HEIGHT,
             g_ppu ? (unsigned)PPU_mode(g_ppu) : 0,
             g_ppu ? (unsigned)g_ppu->screenEnabled[0] : 0,
+            g_ppu ? (unsigned)g_ppu->screenEnabled[1] : 0,
+            g_ppu ? (unsigned)g_ppu->bgTileAdr : 0,
             g_ppu ? (unsigned)(g_ppu->bgXsc[0] & 3) : 0,
             g_ppu ? (unsigned)(g_ppu->bgXsc[1] & 3) : 0,
             g_ppu ? (unsigned)g_ppu->hScroll[0] : 0,
             g_ppu ? (unsigned)g_ppu->vScroll[0] : 0,
+            g_ppu ? (unsigned)g_ppu->hScroll[1] : 0,
+            g_ppu ? (unsigned)g_ppu->vScroll[1] : 0,
+            g_ppu ? (unsigned)g_ppu->hScroll[2] : 0,
+            g_ppu ? (unsigned)g_ppu->vScroll[2] : 0,
             (unsigned)g_ram[0x05ac],
             (unsigned)(g_ram[0x0594] | (g_ram[0x0595] << 8)),
             (unsigned)(g_ram[0x0596] | (g_ram[0x0597] << 8)));
