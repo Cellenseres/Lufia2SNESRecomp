@@ -414,6 +414,7 @@ set(LUFIA2_HOST_SOURCES
     src/lufia2_intro_trees.c
     src/lufia2_intro_widescreen.c
     src/lufia2_runtime.c
+    src/lufia2_splash_credit.c
     src/lufia2_tga.c
     src/lufia2_video_handoff.c
     src/lufia2_video_policy.c
