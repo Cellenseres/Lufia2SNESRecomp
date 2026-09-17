@@ -4,7 +4,7 @@ include_guard(GLOBAL)
 # an overlay copy; neither fetched sources nor game AOT output are edited.
 function(lufia2_prepare_native_patch_sources sources_var core_root)
     file(SHA256 "${core_root}/runner/src/snes/interp_bridge.c" _core_hash)
-    if(NOT _core_hash STREQUAL "41ffb2f6bb9098e8996bcb0a9b03d0d3448906e85779c11eb064cbab5256c326")
+    if(NOT _core_hash STREQUAL "9b60c571e6bbf9d4480a8ec2fa7829a6ffb1fb0ebae122819e7fe90c59481b57")
         message(FATAL_ERROR "Native patches require the reviewed pinned interpreter bridge; "
             "review the patch contract, then accept ${_core_hash}")
     endif()
@@ -19,9 +19,9 @@ function(lufia2_prepare_native_patch_sources sources_var core_root)
             # adds its host-cost overlay on top, so two inputs are reviewed.
             string(SHA256 _input_hash "${_text}")
             if(NOT _input_hash STREQUAL
-                   "ee29ddc28f5b7b46b54ef9b1380cf6fed8e625b1a5bcae235fe50e2d2a914258" AND
+                   "d2c0ee21451237a58f432de8ce2011a22a80238af9be06a73c74d577abf8b7b3" AND
                NOT _input_hash STREQUAL
-                   "7075c3473d54456e32da315d524a14b9bb9b2bef59daf17f58c7b856168ac3bf")
+                   "d7f15f12e19220443862fb77620192759d52c46b4630b0a99c57ac0084e592d4")
                 message(FATAL_ERROR
                     "Native patch input changed after the Platform overlay; "
                     "review the bridge contract, then accept ${_input_hash}")
