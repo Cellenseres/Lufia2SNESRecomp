@@ -71,6 +71,16 @@ jobs:
           submodules: recursive
           persist-credentials: false
 
+      - name: Install Vulkan SDK
+        shell: pwsh
+        run: |
+          choco install vulkan-sdk --no-progress -y
+          $vulkanSdk = [Environment]::GetEnvironmentVariable("VULKAN_SDK", "Machine")
+          if (-not $vulkanSdk) { throw "VULKAN_SDK was not configured by the Vulkan SDK installer" }
+          "VULKAN_SDK=$vulkanSdk" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          "$vulkanSdk\Bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          if (-not (Test-Path "$vulkanSdk\Bin\glslc.exe")) { throw "glslc.exe was not found in the Vulkan SDK" }
+
       - name: Checkout private ROM
         uses: actions/checkout@v7
         with:
@@ -96,6 +106,7 @@ jobs:
           $rom = Join-Path $env:GITHUB_WORKSPACE "lufia2.sfc"
           cmake --preset windows-release -B build/windows `
             -DVITA=OFF `
+            -DLUFIA2_ENABLE_VULKAN=ON `
             -DLUFIA2_SNESRECOMP_ROOT= `
             -DLUFIA2_RECOMP_UI_ROOT= `
             -DLUFIA2_SDL3_ROOT= `
@@ -160,7 +171,8 @@ jobs:
             libasound2-dev libpulse-dev libx11-dev libxext-dev libxrandr-dev \
             libxcursor-dev libxfixes-dev libxi-dev libxss-dev libxtst-dev libxkbcommon-dev \
             libdrm-dev libgbm-dev libgl1-mesa-dev libegl1-mesa-dev libwayland-dev \
-            libdecor-0-dev libudev-dev libdbus-1-dev libibus-1.0-dev libpipewire-0.3-dev
+            libdecor-0-dev libudev-dev libdbus-1-dev libibus-1.0-dev libpipewire-0.3-dev \
+            libvulkan-dev glslc
 
       - name: Checkout private ROM
         uses: actions/checkout@v7
@@ -186,6 +198,7 @@ jobs:
           cmake -S . -B build/linux -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
             -DVITA=OFF \
+            -DLUFIA2_ENABLE_VULKAN=ON \
             -DLUFIA2_SNESRECOMP_ROOT= \
             -DLUFIA2_RECOMP_UI_ROOT= \
             -DLUFIA2_SDL3_ROOT= \
