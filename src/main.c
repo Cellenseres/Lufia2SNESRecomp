@@ -111,6 +111,9 @@ enum {
     LUFIA2_LAUNCHER_RENDERER_SDL = 0,
     LUFIA2_LAUNCHER_RENDERER_SDL_SOFTWARE,
     LUFIA2_LAUNCHER_RENDERER_OPENGL,
+#if SNESRECOMP_PLATFORM_HAS_VULKAN
+    LUFIA2_LAUNCHER_RENDERER_VULKAN,
+#endif
     LUFIA2_LAUNCHER_RENDERER_COUNT,
 };
 
@@ -118,7 +121,15 @@ static const char *const kLufia2LauncherRendererLabels[] = {
     "SDL Accelerated",
     "SDL Software",
     "OpenGL 3.3",
+#if SNESRECOMP_PLATFORM_HAS_VULKAN
+    "Vulkan",
+#endif
 };
+
+/* The launcher config enum comes from the pinned snesrecomp source and has
+ * no Vulkan entry, so the value is read here rather than by patching a
+ * hash-pinned file. */
+static bool s_output_vulkan;
 
 extern Ppu *g_ppu;
 extern bool g_fail;
@@ -270,6 +281,14 @@ static bool ReadIniText(const char *path, const char *wanted_section,
 static void LoadVisualConfig(const char *path) {
     char value[64];
 
+    s_output_vulkan = false;
+#if SNESRECOMP_PLATFORM_HAS_VULKAN
+    if (ReadIniText(path, "Graphics", "OutputMethod", value,
+                    sizeof(value)) &&
+        AsciiEqualsNoCase(value, "Vulkan"))
+        s_output_vulkan = true;
+#endif
+
     s_visual_preset = LUFIA2_VISUAL_CLEAN_HD;
     if (ReadIniText(path, "Graphics", "VisualPreset",
                     value, sizeof(value)) &&
@@ -373,6 +392,9 @@ static bool EnsureDefaultConfig(const char *path) {
         "Fullscreen = 0\n"
         "IgnoreAspectRatio = 0\n"
         "DisplayAspect = 4:3\n"
+        "# OutputMethod: SDL, SDL-Software, OpenGL, Vulkan.\n"
+        "# Vulkan needs a build configured with LUFIA2_ENABLE_VULKAN=ON;\n"
+        "# it falls back to OpenGL when it cannot start.\n"
         "OutputMethod = OpenGL\n"
         "LinearFiltering = 0\n"
         "Shader =\n"
@@ -558,6 +580,10 @@ static bool CachedRomIsValid(const char *path) {
 }
 
 static int LauncherRendererFromOutputMethod(int output_method) {
+#if SNESRECOMP_PLATFORM_HAS_VULKAN
+    if (s_output_vulkan)
+        return LUFIA2_LAUNCHER_RENDERER_VULKAN;
+#endif
     switch (output_method) {
     case kOutputMethod_SDLSoftware:
         return LUFIA2_LAUNCHER_RENDERER_SDL_SOFTWARE;
@@ -570,6 +596,14 @@ static int LauncherRendererFromOutputMethod(int output_method) {
 }
 
 static uint8 OutputMethodFromLauncherRenderer(int renderer) {
+#if SNESRECOMP_PLATFORM_HAS_VULKAN
+    s_output_vulkan = renderer == LUFIA2_LAUNCHER_RENDERER_VULKAN;
+    if (s_output_vulkan) {
+        /* The stored enum keeps OpenGL, the fallback if Vulkan cannot start; the
+         * Vulkan spelling is written over it afterwards. */
+        return kOutputMethod_OpenGL;
+    }
+#endif
     switch (renderer) {
     case LUFIA2_LAUNCHER_RENDERER_SDL_SOFTWARE:
         return kOutputMethod_SDLSoftware;
@@ -779,6 +813,10 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     WriteConfigFile("config.ini");
 
     /* These fields are not persisted by mmx_config.c at this revision. */
+#if SNESRECOMP_PLATFORM_HAS_VULKAN
+    if (s_output_vulkan)
+        PersistText("Graphics", "OutputMethod", "Vulkan");
+#endif
     PersistInt("Graphics", "Fullscreen", g_config.fullscreen);
     PersistInt("Graphics", "IgnoreAspectRatio",
                g_config.ignore_aspect_ratio ? 1 : 0);
@@ -962,6 +1000,11 @@ static bool InitVideo(void) {
     memset(&config, 0, sizeof(config));
     config.window_title =
         "Lufia II: Rise of the Sinistrals (Recompiled)";
+#if SNESRECOMP_PLATFORM_HAS_VULKAN
+    if (s_output_vulkan) {
+        config.backend = SNESRECOMP_PRESENT_BACKEND_VULKAN;
+    } else
+#endif
     if (g_config.output_method == kOutputMethod_OpenGL) {
         config.backend = SNESRECOMP_PRESENT_BACKEND_OPENGL;
     } else if (g_config.output_method == kOutputMethod_SDLSoftware) {
@@ -987,11 +1030,39 @@ static bool InitVideo(void) {
                 ? kCleanHdPresetPath : g_config.shader;
         config.shader_preset_interface =
             snesrecomp_glsl_shader_preset_interface();
+    } else if (config.backend == SNESRECOMP_PRESENT_BACKEND_VULKAN) {
+        /* Clean-HD reaches Vulkan as a scaling policy, not a preset file: the
+         * backend runs the same two passes natively and parses no .glslp. */
+        config.scaling = s_visual_preset == LUFIA2_VISUAL_CLEAN_HD
+            ? SNESRECOMP_PRESENT_SCALING_SHARP_BILINEAR
+            : SNESRECOMP_PRESENT_SCALING_DEFAULT;
     }
 
     char error[256];
-    if (!snesrecomp_presenter_create(
-            &config, &s_presenter, error, sizeof(error))) {
+    bool created = snesrecomp_presenter_create(
+        &config, &s_presenter, error, sizeof(error));
+
+    /* Each backend is tried once, in descending capability, so a machine with
+     * no usable Vulkan driver keeps HD Mode 7 and Clean-HD. */
+    if (!created && config.backend == SNESRECOMP_PRESENT_BACKEND_VULKAN) {
+        fprintf(stderr,
+            "[video] Vulkan initialization failed: %s\n"
+            "[video] Falling back to OpenGL for this session.\n",
+            error);
+        host_report_breadcrumb(
+            "Vulkan presenter failed; OpenGL fallback: %s", error);
+        config.backend = SNESRECOMP_PRESENT_BACKEND_OPENGL;
+        config.scaling = SNESRECOMP_PRESENT_SCALING_DEFAULT;
+        config.shader_preset_path =
+            s_visual_preset == LUFIA2_VISUAL_CLEAN_HD
+                ? kCleanHdPresetPath : g_config.shader;
+        config.shader_preset_interface =
+            snesrecomp_glsl_shader_preset_interface();
+        created = snesrecomp_presenter_create(
+            &config, &s_presenter, error, sizeof(error));
+    }
+
+    if (!created) {
         if (config.backend != SNESRECOMP_PRESENT_BACKEND_OPENGL) {
             fprintf(stderr, "Presenter creation failed: %s\n", error);
             return false;
@@ -1025,18 +1096,26 @@ static bool InitVideo(void) {
         snesrecomp_vsync_state_name(
             snesrecomp_presenter_vsync_state(s_presenter)),
         (unsigned)snesrecomp_presenter_capabilities(s_presenter));
+    /* Both mean the preset is doing something; an arbitrary Shader= entry is
+     * still OpenGL only. */
+    const SnesRecompPresentBackend active_backend =
+        snesrecomp_presenter_backend(s_presenter);
     const bool preset_active =
-        snesrecomp_presenter_backend(s_presenter) ==
-            SNESRECOMP_PRESENT_BACKEND_OPENGL &&
-        ((s_visual_preset == LUFIA2_VISUAL_CLEAN_HD) ||
-         (g_config.shader && g_config.shader[0]));
+        (active_backend == SNESRECOMP_PRESENT_BACKEND_OPENGL &&
+         ((s_visual_preset == LUFIA2_VISUAL_CLEAN_HD) ||
+          (g_config.shader && g_config.shader[0]))) ||
+        (active_backend == SNESRECOMP_PRESENT_BACKEND_VULKAN &&
+         s_visual_preset == LUFIA2_VISUAL_CLEAN_HD);
     fprintf(stderr,
         "[video] presenter ready: %s, capabilities=0x%x, VSync %s%s\n",
         snesrecomp_presenter_backend_name(s_presenter),
         (unsigned)snesrecomp_presenter_capabilities(s_presenter),
         snesrecomp_vsync_state_name(
             snesrecomp_presenter_vsync_state(s_presenter)),
-        preset_active ? ", GLSL preset active" : "");
+        preset_active
+            ? (active_backend == SNESRECOMP_PRESENT_BACKEND_VULKAN
+                ? ", native Clean-HD active" : ", GLSL preset active")
+            : "");
     fprintf(stderr,
         "[video] visual preset=%s HD Mode 7=%s filter=%s perspective=%s\n",
         s_visual_preset == LUFIA2_VISUAL_CLEAN_HD ? "CleanHD" : "Original",
@@ -1045,14 +1124,22 @@ static bool InitVideo(void) {
         s_hd_mode7_perspective ? "On" : "Off");
     if (s_visual_preset == LUFIA2_VISUAL_CLEAN_HD && !preset_active) {
         fprintf(stderr,
-            "[video] CleanHD requires OpenGL; using original presentation.\n");
+            "[video] CleanHD requires OpenGL or Vulkan; using original "
+            "presentation.\n");
+    }
+    if (active_backend == SNESRECOMP_PRESENT_BACKEND_VULKAN &&
+        g_config.shader && g_config.shader[0]) {
+        fprintf(stderr,
+            "[video] Vulkan does not load GLSLP presets; `Shader = %s` is "
+            "inactive.\n",
+            g_config.shader);
     }
     if (s_hd_mode7_scale == 2u &&
         !(snesrecomp_presenter_capabilities(s_presenter) &
           SNESRECOMP_PRESENT_CAP_HD_MODE7)) {
         fprintf(stderr,
-            "[video] HD Mode 7 requires the OpenGL HD capability; using "
-            "the authentic renderer.\n");
+            "[video] HD Mode 7 needs a backend with the HD capability; "
+            "using the authentic renderer.\n");
     }
     return true;
 }
