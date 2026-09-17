@@ -318,6 +318,21 @@ add_subdirectory(
 set(SNESRECOMP_PLATFORM_ENABLE_OPENGL ON CACHE BOOL "" FORCE)
 set(SNESRECOMP_PLATFORM_GL_CORE_DIR
     "${RECOMP_UI_ROOT}/src/third_party" CACHE PATH "" FORCE)
+
+# The native Vulkan backend is opt-in: it needs a Vulkan SDK for the headers,
+# the loader and glslc, and OpenGL stays the shipped default renderer. Turn it
+# on with -DLUFIA2_ENABLE_VULKAN=ON, and point SNESRECOMP_PLATFORM_GLSLC at a
+# glslc binary if it is not inside $VULKAN_SDK.
+option(LUFIA2_ENABLE_VULKAN
+    "Build the native Vulkan renderer and offer it in the launcher" OFF)
+set(SNESRECOMP_PLATFORM_ENABLE_VULKAN ${LUFIA2_ENABLE_VULKAN}
+    CACHE BOOL "" FORCE)
+
+option(LUFIA2_VULKAN_VALIDATION
+    "Request the Vulkan validation layer (development builds only)" OFF)
+set(SNESRECOMP_PLATFORM_VULKAN_VALIDATION ${LUFIA2_VULKAN_VALIDATION}
+    CACHE BOOL "" FORCE)
+
 enable_testing()
 add_subdirectory("${CMAKE_SOURCE_DIR}/lib/snesrecomp-platform")
 
