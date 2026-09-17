@@ -6,7 +6,8 @@
 
 #include "snes/ppu.h"
 
-/* Widens the intro scenes. LUFIA2_INTRO_WIDE=on, =trees.
+/* Widens the intro scenes while widescreen is on.
+   LUFIA2_INTRO_WIDE=off, =on (waves only), =trees overrides.
    Per frame: Prepare, draw, Observe, Paint. */
 
 /* False leaves the layout to the caller. */

@@ -41,18 +41,41 @@ typedef struct IntroWidescreen {
 
 static IntroWidescreen s_state;
 
+/* Whole words: "on" and "off" share a first letter. */
+static bool ChoiceIs(const char *choice, const char *name) {
+    for (; *choice && *name; choice++, name++) {
+        const char lower = (*choice >= 'A' && *choice <= 'Z')
+            ? (char)(*choice + ('a' - 'A'))
+            : *choice;
+        if (lower != *name)
+            return false;
+    }
+    return !*choice && !*name;
+}
+
 /* Which layers may leave the authentic columns. */
 static uint8_t RequestedLayers(void) {
     static int s_layers = -1;
     if (s_layers < 0) {
         const char *choice = getenv("LUFIA2_INTRO_WIDE");
-        const char first = choice ? *choice : '\0';
-        if (first == 't' || first == 'T')
+        if (!choice || !*choice ||
+            ChoiceIs(choice, "trees") || ChoiceIs(choice, "t"))
             s_layers = WAVE_BG | TREE_BG;
-        else if (first == '1' || first == 'o' || first == 'O' || first == 'y')
-            s_layers = WAVE_BG;
-        else
+        else if (ChoiceIs(choice, "off") || ChoiceIs(choice, "0") ||
+                 ChoiceIs(choice, "no") || ChoiceIs(choice, "n") ||
+                 ChoiceIs(choice, "false"))
             s_layers = 0;
+        else if (ChoiceIs(choice, "on") || ChoiceIs(choice, "1") ||
+                 ChoiceIs(choice, "yes") || ChoiceIs(choice, "y") ||
+                 ChoiceIs(choice, "waves"))
+            s_layers = WAVE_BG;
+        else {
+            /* An unreadable override must not narrow the scene. */
+            fprintf(stderr,
+                "[intro] LUFIA2_INTRO_WIDE=%s not understood; "
+                "keeping the default widescreen intro\n", choice);
+            s_layers = WAVE_BG | TREE_BG;
+        }
     }
     return (uint8_t)s_layers;
 }
