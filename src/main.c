@@ -57,6 +57,7 @@
 #include "lufia2_mode7_substep.h"
 #include "lufia2_intro_widescreen.h"
 #include "lufia2_runtime.h"
+#include "lufia2_splash_credit.h"
 #include "lufia2_video_handoff.h"
 #include "lufia2_video_policy.h"
 #include "desktop_glue.h"
@@ -1631,6 +1632,11 @@ static void PrepareVideoFrame(void) {
         PpuSetExtraSpace(g_ppu, 0);
         break;
     }
+
+    /* Before WsShadowFrame: the widescreen shadow reads through
+       PpuRenderVram() too, so the credit has to be bound by now or the
+       margins would be sampled from a different picture than the centre. */
+    Lufia2SplashCreditPrepare(g_ppu);
 
     if (layout != LUFIA2_VIDEO_INTRO_MODE7)
         WsShadowFrame(g_ppu);
