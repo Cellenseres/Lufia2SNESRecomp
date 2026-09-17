@@ -5,6 +5,7 @@
 #include <string.h>
 
 #include "host_paths.h"
+#include "lufia2_log.h"
 #include "lufia2_tga.h"
 
 static uint32_t *s_pixels;
@@ -32,7 +33,7 @@ static void LoadOnce(size_t width, size_t height) {
         s_pixels = NULL;
         return;
     }
-    fprintf(stderr, "[intro-margins] using '%s'\n", path);
+    LUFIA2_LOG("[intro-margins] using '%s'\n", path);
 }
 
 static uint32_t LoadPixel(const uint8_t *address) {
