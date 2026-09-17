@@ -5,7 +5,7 @@ A native recompilation of **Lufia II: Rise of the Sinistrals** using
 
 The game boots from the original US ROM and supports the intro, title screen,
 normal gameplay, battles, audio, input, saves and the desktop launcher. Video
-output can use SDL or OpenGL 3.3.
+output can use SDL, OpenGL 3.3 or a native Vulkan renderer.
 
 <p align="center">
   <img src="docs/assets/screenshots/intro2.png" alt="The Lufia II title screen rendered at 16:9" width="100%">
@@ -132,6 +132,16 @@ Save data is stored in `saves\save.srm` next to the executable.
 The launcher offers SDL accelerated, SDL software and OpenGL 3.3. OpenGL can
 also use GLSL shader presets. If it cannot start, the game falls back to SDL for
 that run.
+
+A build configured with `-DLUFIA2_ENABLE_VULKAN=ON` adds a fourth entry,
+`Vulkan`, and accepts `OutputMethod = Vulkan` in `config.ini`. It is a direct
+Vulkan renderer: SDL still owns the window, input, audio and the surface, and
+everything below the surface is Vulkan. It presents the ordinary framebuffer,
+the overlays and HD Mode 7, and it implements Clean-HD as native passes rather
+than by loading a `.glslp` preset, so an arbitrary `Shader =` entry stays an
+OpenGL-only feature. Vulkan is not the default, and a run that cannot start it
+steps down to OpenGL and then to SDL, reporting which renderer it actually
+got. Building it needs a Vulkan SDK for the headers, the loader and `glslc`.
 
 FPS, volume, toast and rewind overlays are composited after the game and its
 shaders. The default Lufia skin uses the game's logical coordinate space: one
