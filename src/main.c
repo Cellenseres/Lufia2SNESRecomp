@@ -49,6 +49,7 @@
 #include "snes_rewind.h"
 
 #include "config.h"
+#include "lufia2_log.h"
 #include "lufia2_map_load.h"
 #include "lufia2_msu_driver.h"
 #include "lufia2_map_widescreen.h"
@@ -1254,8 +1255,8 @@ static bool PresentFrame(bool include_rewind) {
                         s_intro_mode7_world_lines, SNES_HEIGHT,
                         &s_intro_mode7_world_source);
                 if (world_status != s_last_intro_world_status) {
-                    fprintf(stderr, "[video] Intro full-world Mode 7: %s\n",
-                            Lufia2IntroMode7WorldStatusName(world_status));
+                    LUFIA2_LOG("[video] Intro full-world Mode 7: %s\n",
+                               Lufia2IntroMode7WorldStatusName(world_status));
                     s_last_intro_world_status = world_status;
                 }
                 /* Without a verified world, keep rendering through the
@@ -1316,7 +1317,7 @@ static bool PresentFrame(bool include_rewind) {
         }
         if (frame_presented && map_source &&
             !s_intro_mode7_world_active_reported) {
-            fprintf(stderr,
+            LUFIA2_LOG(
                 "[video] Intro full-world Mode 7: active (%s)\n",
                 used_hd ? "HD 2x" : "native 1x");
             s_intro_mode7_world_active_reported = true;
@@ -1330,7 +1331,7 @@ static bool PresentFrame(bool include_rewind) {
                     for (unsigned i = 0; i < capture.band_count; i++) {
                         const SnesPpuRasterBand *band = &capture.bands[i];
                         if (!band->forced_blank && (band->cgwsel & 0x01u)) {
-                            fprintf(stderr,
+                            LUFIA2_LOG(
                                 "[video] HD Mode 7 direct-colour band: "
                                 "lines=%u..%u CGWSEL=$%02X "
                                 "CGADSUB=$%02X TS=$%02X\n",
@@ -1367,7 +1368,7 @@ static bool PresentFrame(bool include_rewind) {
         s_present_stall = 0;
     } else if (++s_present_stall == 240u && !s_present_stall_reported) {
         s_present_stall_reported = true;
-        fprintf(stderr,
+        LUFIA2_LOG(
             "[video] ordinary presentation idle for %u frames "
             "(layout=%s); the Mode 7 path is holding every frame\n",
             s_present_stall, Lufia2VideoLayoutName(s_current_video_layout));
@@ -1418,7 +1419,7 @@ static void PrepareVideoFrame(void) {
             ((uint64_t)intro_raster.main_enable << 8) |
             intro_raster.sub_enable;
         if (signature != s_last_intro_raster_reject_signature) {
-            fprintf(stderr,
+            LUFIA2_LOG(
                 "[video] Intro Mode 7 raster rejected: %s at line %u "
                 "(INIDISP=$%02X BGMODE=$%02X SETINI=$%02X "
                 "TM=$%02X TS=$%02X)\n",
@@ -1566,7 +1567,7 @@ static void PrepareVideoFrame(void) {
         g_ppu ? g_ppu->vScroll[0] : 0u);
 
     if (layout != s_last_video_layout) {
-        fprintf(stderr,
+        LUFIA2_LOG(
             "[video] layout: %s (%dx%d, PPU mode=%u, main=$%02X, "
             "sub=$%02X, tiles=$%04X, BG maps=%u/%u, "
             "scroll=%u,%u/%u,%u/%u,%u, map=$%02X, world=%u,%u)\n",

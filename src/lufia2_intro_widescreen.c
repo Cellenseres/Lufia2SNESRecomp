@@ -5,6 +5,7 @@
 
 #include "lufia2_intro_margins.h"
 #include "lufia2_intro_trees.h"
+#include "lufia2_log.h"
 #include "lufia2_runtime.h"
 
 enum {
@@ -247,7 +248,7 @@ bool Lufia2IntroWidescreenPrepare(
         ppu, (uint8_t)(ppu->screenEnabled[0] & SCENE_BG_MASK), WINDOW_MASK);
 
     if (static_lines != s_state.reported_static_lines) {
-        fprintf(stderr,
+        LUFIA2_LOG(
             "[intro] widescreen: ppu layers $%02X, host layers $%02X, "
             "painting holds lines 0-%u\n",
             (unsigned)ppu_layers, (unsigned)(wants_trees ? TREE_BG : 0u),
@@ -299,5 +300,5 @@ void Lufia2IntroWidescreenRelease(Ppu *ppu) {
     }
     Lufia2IntroTreesReset();
     s_state.reported_static_lines = 0;
-    fprintf(stderr, "[intro] widescreen: scene over, layers returned\n");
+    LUFIA2_LOG("[intro] widescreen: scene over, layers returned\n");
 }
