@@ -1,5 +1,7 @@
 #include "lufia2_map_widescreen.h"
 
+#include "lufia2_wide_range.h"
+
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -324,6 +326,13 @@ static void CameraOrigin(const Ppu *ppu, int32_t *x, int32_t *y) {
     *y = UnwrapScroll(scroll_y, player_y - LUFIA2_VISIBLE_HEIGHT / 2);
 }
 
+/* Screen pixels this layer trails BG1 by; outdoors they differ. */
+static void LayerScrollBias(const Ppu *ppu, int bg,
+                            int32_t *dx, int32_t *dy) {
+    *dx = (int32_t)ppu->hScroll[bg] - (int32_t)ppu->hScroll[0];
+    *dy = (int32_t)ppu->vScroll[bg] - (int32_t)ppu->vScroll[0];
+}
+
 /* Sample the streamed tilemaps against the processed map. This is the gate
    for maps whose widescreen extent is inferred rather than authored: without
    room metadata the wider view is only safe once the map in bank $7F
@@ -334,19 +343,24 @@ static bool NativeViewportMatches(
     int32_t camera_x = 0;
     int32_t camera_y = 0;
     CameraOrigin(ppu, &camera_x, &camera_y);
-    const int32_t world_tile_x0 = camera_x >> 3;
-    const int32_t world_tile_y0 = camera_y >> 3;
     unsigned checked = 0;
     unsigned matched = 0;
 
     for (int bg = 0; bg < 2; bg++) {
         const int logical_layer = bg == 0 ? 1 : 0;
         const uint16_t map_base = (uint16_t)PPU_bgTilemapAdr(ppu, bg);
+        int32_t bias_x = 0;
+        int32_t bias_y = 0;
+        LayerScrollBias(ppu, bg, &bias_x, &bias_y);
+
+        /* Shift before dividing; a negative bias rounds the wrong way. */
+        const int32_t bg_tile_x0 = (camera_x + bias_x) >> 3;
+        const int32_t bg_tile_y0 = (camera_y + bias_y) >> 3;
 
         for (int32_t dy = 0; dy < LUFIA2_NATIVE_SAMPLE_Y; dy++) {
             for (int32_t dx = 0; dx < LUFIA2_NATIVE_SAMPLE_X; dx++) {
-                const int32_t tile_x = world_tile_x0 + dx;
-                const int32_t tile_y = world_tile_y0 + dy;
+                const int32_t tile_x = bg_tile_x0 + dx;
+                const int32_t tile_y = bg_tile_y0 + dy;
                 uint16_t expected = 0;
                 if (!ResolveMapTile(
                         map, logical_layer, tile_x, tile_y, &expected)) {
@@ -481,26 +495,32 @@ static bool CurrentAreaIsEnclosed(
 }
 
 static void FillWideViewport(
+    const Ppu *ppu,
     const Lufia2RuntimeMap *map,
     const Lufia2RoomSelection *room,
     int margin_pixels,
-    uint32_t world_x,
-    uint32_t world_y,
     int32_t camera_x,
     int32_t camera_y) {
-    const uint32_t reach = (uint32_t)margin_pixels + LUFIA2_TILE_SIZE;
-    const uint32_t origin_x = world_x + LUFIA2_SHADOW_WORLD_BIAS;
-    const uint32_t right = origin_x + LUFIA2_NATIVE_WIDTH + reach;
-    const uint32_t bottom = world_y + LUFIA2_VISIBLE_HEIGHT + LUFIA2_TILE_SIZE;
-    const uint32_t tile_x0 = (origin_x - reach) >> 3;
-    const uint32_t tile_x1 = (right + 7u) >> 3;
-    const uint32_t tile_y0 = world_y >> 3;
-    const uint32_t tile_y1 = (bottom + 7u) >> 3;
-    const int32_t delta_x = (camera_x - (int32_t)origin_x) >> 3;
-    const int32_t delta_y = (camera_y - (int32_t)world_y) >> 3;
-
     for (int bg = 0; bg < 2; bg++) {
         const int logical_layer = bg == 0 ? 1 : 0;
+        const uint32_t world_x = (uint32_t)ppu->hScroll[bg];
+        const uint32_t world_y = (uint32_t)ppu->vScroll[bg];
+        const uint32_t origin_x = world_x + LUFIA2_SHADOW_WORLD_BIAS;
+        const Lufia2WideTileRange range =
+            Lufia2WideFillRange(origin_x, world_y, (uint32_t)margin_pixels);
+        const uint32_t tile_x0 = range.tile_x0;
+        const uint32_t tile_x1 = range.tile_x1;
+        const uint32_t tile_y0 = range.tile_y0;
+        const uint32_t tile_y1 = range.tile_y1;
+        int32_t bias_x = 0;
+        int32_t bias_y = 0;
+        LayerScrollBias(ppu, bg, &bias_x, &bias_y);
+        /* The bias cancels against this layer's own origin. */
+        const int32_t delta_x =
+            (camera_x + bias_x - (int32_t)origin_x) >> 3;
+        const int32_t delta_y =
+            (camera_y + bias_y - (int32_t)world_y) >> 3;
+
         for (uint32_t tile_y = tile_y0; tile_y < tile_y1; tile_y++) {
             for (uint32_t tile_x = tile_x0; tile_x < tile_x1; tile_x++) {
                 WsShadowForceTile(
@@ -893,10 +913,10 @@ static Lufia2MapWidescreenResult AdoptSource(
         s_room = *room;
     s_settle_frames = 0;
 
-    const uint32_t world_x = (uint32_t)ppu->hScroll[0];
-    const uint32_t world_y = (uint32_t)ppu->vScroll[0];
     for (int bg = 0; bg < 2; bg++) {
-        WsShadowSetWorld(bg, world_x + LUFIA2_SHADOW_WORLD_BIAS, world_y);
+        WsShadowSetWorld(
+            bg, (uint32_t)ppu->hScroll[bg] + LUFIA2_SHADOW_WORLD_BIAS,
+            (uint32_t)ppu->vScroll[bg]);
         WsShadowSetScroll(
             bg, (uint32_t)ppu->hScroll[bg], (uint32_t)ppu->vScroll[bg]);
         WsShadowSetBlankTile(bg, 0);
@@ -1111,9 +1131,7 @@ void Lufia2FinalizeMapWidescreen(Ppu *ppu, int margin_pixels) {
     int32_t camera_y = 0;
     CameraOrigin(ppu, &camera_x, &camera_y);
     FillWideViewport(
-        &s_map, s_room_active ? &s_room : NULL, margin_pixels,
-        (uint32_t)ppu->hScroll[0],
-        (uint32_t)ppu->vScroll[0],
+        ppu, &s_map, s_room_active ? &s_room : NULL, margin_pixels,
         camera_x, camera_y);
 }
 

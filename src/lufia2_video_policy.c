@@ -161,10 +161,8 @@ Lufia2VideoLayout Lufia2SelectVideoLayoutObserved(
     const bool known_tiles =
         ppu->bgTileAdr == 0x1144 &&
         (ppu->bgXsc[0] & 3) == 0 && (ppu->bgXsc[1] & 3) == 0;
-    const bool paired_camera =
-        ppu->hScroll[0] == ppu->hScroll[1] &&
-        ppu->vScroll[0] == ppu->vScroll[1];
-    if (mode_1 && known_layers && known_tiles && paired_camera)
+    /* Outdoors each layer has its own camera. */
+    if (mode_1 && known_layers && known_tiles)
         return LUFIA2_VIDEO_REGULAR_MAP;
 
     return LUFIA2_VIDEO_CENTERED;
