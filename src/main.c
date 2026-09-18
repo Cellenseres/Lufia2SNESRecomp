@@ -23,8 +23,10 @@
 
 #include "desktop/sdl_compat.h"
 #include "snesrecomp_platform/glsl_shader_adapter.h"
+#include "snesrecomp_platform/present_timeline.h"
 #include "snesrecomp_platform/presenter.h"
 #include "snesrecomp_platform/snes_bg_upload.h"
+#include "snesrecomp_platform/task.h"
 #include "snesrecomp_platform/msu_pack.h"
 #include "snes/msu1.h"
 #include "host_report.h"
@@ -177,6 +179,13 @@ static Lufia2VisualPreset s_visual_preset = LUFIA2_VISUAL_CLEAN_HD;
 static unsigned s_hd_mode7_scale = 2;
 /* The launcher's checkbox must not forget the configured scale. */
 static unsigned s_hd_mode7_preferred_scale = 2;
+/* Present on the display's clock, not the guest's. */
+static bool s_high_refresh;
+/* Overrides the reported refresh; a remote session misreports it. */
+static unsigned s_present_rate_millihertz;
+static SnesRecompPresentTimeline s_present_timeline;
+/* The last picture can be shown again without recomposing. */
+static bool s_frame_repeatable;
 static bool s_hd_mode7_perspective;
 static bool s_hd_mode7_filter;
 static SnesRecompMode7Line s_hd_mode7_lines[SNES_HEIGHT];
@@ -340,6 +349,19 @@ static void LoadVisualConfig(const char *path) {
         (AsciiEqualsNoCase(value, "On") ||
          AsciiEqualsNoCase(value, "1")))
         s_hd_mode7_filter = true;
+
+    s_high_refresh = false;
+    if (ReadIniText(path, "Graphics", "PresentRate", value, sizeof(value)) &&
+        (AsciiEqualsNoCase(value, "Display") ||
+         AsciiEqualsNoCase(value, "On")))
+        s_high_refresh = true;
+
+    s_present_rate_millihertz = 0;
+    if (ReadIniText(path, "Graphics", "PresentRateHz", value, sizeof(value))) {
+        const double hz = atof(value);
+        if (hz > 0.0 && hz < 1000.0)
+            s_present_rate_millihertz = (unsigned)(hz * 1000.0 + 0.5);
+    }
 
     s_hd_mode7_perspective = true;
     if (ReadIniText(path, "Graphics", "HDMode7Perspective",
@@ -1188,6 +1210,24 @@ static bool InitVideo(void) {
             "inactive.\n",
             g_config.shader);
     }
+    if (s_high_refresh) {
+        const unsigned reported =
+            snesrecomp_presenter_display_millihertz(s_presenter);
+        const unsigned display_mhz =
+            s_present_rate_millihertz ? s_present_rate_millihertz : reported;
+        snesrecomp_present_timeline_init(&s_present_timeline, 60u, 1u);
+        snesrecomp_present_timeline_set_display(
+            &s_present_timeline, display_mhz);
+        snesrecomp_present_timeline_reset(
+            &s_present_timeline, snesrecomp_now_us());
+        fprintf(stderr,
+            "[video] presentation timeline: display=%u.%03u Hz%s, %s\n",
+            display_mhz / 1000u, display_mhz % 1000u,
+            s_present_rate_millihertz ? " (configured)" : " (reported)",
+            snesrecomp_present_timeline_is_decoupled(&s_present_timeline)
+                ? "decoupled from the 60 Hz guest"
+                : "one present per guest frame");
+    }
     if (s_hd_mode7_scale &&
         !(snesrecomp_presenter_capabilities(s_presenter) &
           SNESRECOMP_PRESENT_CAP_HD_MODE7)) {
@@ -1320,8 +1360,8 @@ static void ObserveHandoffRaster(void) {
         SNES_HEIGHT);
 }
 
-static bool PresentFrame(bool include_rewind) {
-    bool frame_presented = false;
+/* Guest cadence: build the picture to be shown. */
+static void ComposeFrame(bool include_rewind) {
     RtlWidescreenPresent(
         s_present_pixels,
         (size_t)s_frame_width * 4,
@@ -1345,6 +1385,11 @@ static bool PresentFrame(bool include_rewind) {
             s_frame_width,
             SNES_HEIGHT);
     }
+}
+
+/* Display cadence: submit the composed picture. */
+static bool SubmitFrame(bool include_rewind) {
+    bool frame_presented = false;
     const SnesRecompOverlayFrame *overlay =
         BuildPresentationOverlay(include_rewind);
     const bool intro_world_requested =
@@ -1505,6 +1550,7 @@ static bool PresentFrame(bool include_rewind) {
         }
     }
     snes_osd_present_done();
+    s_frame_repeatable = !frame_presented;
     if (!frame_presented || mode7_layout) {
         /* A Mode 7 scene is meant to hold every frame. */
         s_present_stall = 0;
@@ -1525,6 +1571,11 @@ static bool PresentFrame(bool include_rewind) {
         s_window_resize_pending = false;
     }
     return true;
+}
+
+static bool PresentFrame(bool include_rewind) {
+    ComposeFrame(include_rewind);
+    return SubmitFrame(include_rewind);
 }
 
 static void PrepareVideoFrame(void) {
@@ -1933,6 +1984,11 @@ static bool HandleEvents(void) {
 static void InvalidateDerivedHostState(bool reset_rewind) {
     if (s_audio_stream)
         (void)SDL_ClearAudioStream(s_audio_stream);
+    /* The picture being paced no longer exists. */
+    s_frame_repeatable = false;
+    if (s_high_refresh)
+        snesrecomp_present_timeline_reset(
+            &s_present_timeline, snesrecomp_now_us());
     Lufia2MapLoadStateChanged();
     Lufia2MapWidescreenStateChanged();
     Lufia2Mode7SubstepStateChanged();
@@ -2319,47 +2375,72 @@ int main(int argc, char **argv) {
             continue;
         }
 
-        const uint32_t raw_input =
-            ReadKeyboardInput() | ReadGamepadInput();
-        s_input_release_mask &= raw_input;
-        const uint32_t input = raw_input & ~s_input_release_mask;
+        /* Turbo and a disabled limiter pace themselves. */
+        const bool timeline_paced =
+            s_high_refresh && !s_turbo && !g_config.disable_frame_delay;
+        SnesRecompPresentStep step;
+        step.run_guest = true;
+        step.present = true;
+        step.alpha = 0.0f;
+        step.sleep_us = 0;
+        if (timeline_paced)
+            snesrecomp_present_timeline_step(
+                &s_present_timeline, snesrecomp_now_us(), &step);
 
-        L2CaptureFrameBegin(input);
-        RtlRunFrame(input);
-        L2CaptureGuestEnd();
-        snes_osd_note_frame();
-        snes_rewind_note_frame();
+        if (step.run_guest) {
+            const uint32_t raw_input =
+                ReadKeyboardInput() | ReadGamepadInput();
+            s_input_release_mask &= raw_input;
+            const uint32_t input = raw_input & ~s_input_release_mask;
 
-        PrepareVideoFrame();
+            L2CaptureFrameBegin(input);
+            RtlRunFrame(input);
+            L2CaptureGuestEnd();
+            snes_osd_note_frame();
+            snes_rewind_note_frame();
 
-        int ppu_flags = 0;
-        if (g_config.new_renderer || g_ws_active)
-            ppu_flags |= kPpuRenderFlags_NewRenderer;
-        if (g_config.no_sprite_limits)
-            ppu_flags |= kPpuRenderFlags_NoSpriteLimits;
+            PrepareVideoFrame();
 
-        Lufia2BeginMapRenderOverlay(g_ppu);
-        PpuBeginDrawing(
-            g_ppu, s_pixels, (size_t)s_frame_width * 4, ppu_flags);
-        Lufia2DrawPpuFrame();
-        Lufia2EndMapRenderOverlay(g_ppu);
-        L2CaptureFrameEnd();
-        ObserveHandoffRaster();
-        Lufia2IntroWidescreenObserve(g_ppu);
-        if (!PresentFrame(false)) {
-            g_fail = true;
-            break;
+            int ppu_flags = 0;
+            if (g_config.new_renderer || g_ws_active)
+                ppu_flags |= kPpuRenderFlags_NewRenderer;
+            if (g_config.no_sprite_limits)
+                ppu_flags |= kPpuRenderFlags_NoSpriteLimits;
+
+            Lufia2BeginMapRenderOverlay(g_ppu);
+            PpuBeginDrawing(
+                g_ppu, s_pixels, (size_t)s_frame_width * 4, ppu_flags);
+            Lufia2DrawPpuFrame();
+            Lufia2EndMapRenderOverlay(g_ppu);
+            L2CaptureFrameEnd();
+            ObserveHandoffRaster();
+            Lufia2IntroWidescreenObserve(g_ppu);
+            ComposeFrame(false);
+
+            frame_counter++;
+            UpdatePerfTitle();
         }
 
-        frame_counter++;
-        UpdatePerfTitle();
+        /* Mode 7 frames cannot repeat; those stay at guest cadence. */
+        if (step.present && (step.run_guest || s_frame_repeatable)) {
+            if (!SubmitFrame(false)) {
+                g_fail = true;
+                break;
+            }
+            if (timeline_paced)
+                snesrecomp_present_timeline_note_present(
+                    &s_present_timeline, snesrecomp_now_us());
+        }
 
 #ifdef LUFIA2_ENABLE_RUNTIME_LOG
         if (frame_counter <= 10 || (frame_counter % 600) == 0)
             Lufia2PrintDiagnostics();
 #endif
 
-        if (!s_turbo && !g_config.disable_frame_delay) {
+        if (timeline_paced) {
+            if (step.sleep_us)
+                SDL_DelayNS(step.sleep_us * 1000ull);
+        } else if (!s_turbo && !g_config.disable_frame_delay) {
             static const uint8_t delays[3] = {17, 17, 16};
             frame_deadline_ms += delays[frame_counter % 3];
 
@@ -2380,6 +2461,22 @@ int main(int argc, char **argv) {
     fprintf(stderr,
         "[desktop] leaving main loop: frames=%u fail=%d\n",
         frame_counter, g_fail ? 1 : 0);
+    if (s_high_refresh) {
+        SnesRecompPresentStats stats;
+        snesrecomp_present_timeline_stats(&s_present_timeline, &stats);
+        fprintf(stderr,
+            "[video] timeline: guest=%llu presents=%llu repeats=%llu "
+            "late=%llu worst_late=%llums resyncs=%llu "
+            "last_guest=%lluus last_present=%lluus\n",
+            (unsigned long long)stats.guest_frames,
+            (unsigned long long)stats.presents,
+            (unsigned long long)stats.extra_presents,
+            (unsigned long long)stats.late_guest_frames,
+            (unsigned long long)(stats.worst_guest_late_us / 1000u),
+            (unsigned long long)stats.resyncs,
+            (unsigned long long)stats.last_guest_interval_us,
+            (unsigned long long)stats.last_present_interval_us);
+    }
 #ifdef LUFIA2_ENABLE_NATIVE_WAIT
     Lufia2NativePatchesSummary();
 #endif
