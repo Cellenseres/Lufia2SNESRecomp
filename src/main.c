@@ -22,6 +22,7 @@
 #include <string.h>
 
 #include "desktop/sdl_compat.h"
+#include "snesrecomp_platform/frame_overscan.h"
 #include "snesrecomp_platform/glsl_shader_adapter.h"
 #include "snesrecomp_platform/present_timeline.h"
 #include "snesrecomp_platform/presenter.h"
@@ -190,6 +191,7 @@ static SnesRecompPresentTimeline s_present_timeline;
 static bool s_frame_repeatable;
 static bool s_hd_mode7_perspective;
 static bool s_hd_mode7_filter;
+static bool s_hide_bottom_scanline = true;
 static SnesRecompMode7Line s_hd_mode7_lines[SNES_HEIGHT];
 static SnesRecompMode7Line s_intro_mode7_world_lines[SNES_HEIGHT];
 static SnesRecompMode7MapSource s_intro_mode7_world_source;
@@ -352,6 +354,14 @@ static void LoadVisualConfig(const char *path) {
          AsciiEqualsNoCase(value, "1")))
         s_hd_mode7_filter = true;
 
+    /* Consumer sets cropped the bottom scanline. */
+    s_hide_bottom_scanline = true;
+    if (ReadIniText(path, "Graphics", "HideBottomScanline", value,
+                    sizeof(value)) &&
+        (AsciiEqualsNoCase(value, "Off") ||
+         AsciiEqualsNoCase(value, "0")))
+        s_hide_bottom_scanline = false;
+
     s_high_refresh = false;
     if (ReadIniText(path, "Graphics", "PresentRate", value, sizeof(value)) &&
         (AsciiEqualsNoCase(value, "Display") ||
@@ -456,6 +466,7 @@ static bool EnsureDefaultConfig(const char *path) {
         "HDMode7 = 2x\n"
         "HDMode7Filter = Off\n"
         "HDMode7Perspective = On\n"
+        "HideBottomScanline = On\n"
         "NewRenderer = 0\n"
         "NoSpriteLimits = 0\n"
         "Widescreen = 0\n"
@@ -878,6 +889,8 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     PersistText("Graphics", "VisualPreset",
         s_visual_preset == LUFIA2_VISUAL_CLEAN_HD
             ? "CleanHD" : "Original");
+    PersistText("Graphics", "HideBottomScanline",
+        s_hide_bottom_scanline ? "On" : "Off");
     PersistText("Graphics", "HDMode7",
         Lufia2HdMode7ScaleName(s_hd_mode7_scale));
 
@@ -1381,6 +1394,12 @@ static void ComposeFrame(bool include_rewind) {
         SNES_HEIGHT,
         g_ws_extra > 0 ? (size_t)g_ws_extra : 0u,
         LUFIA2_MAP_STREAM_GUARD_PIXELS);
+    if (s_hide_bottom_scanline) {
+        SnesRecompFrameHideBottomRows(
+            s_present_pixels, (size_t)s_frame_width * 4,
+            (unsigned)s_frame_width, SNES_HEIGHT, 1u);
+    }
+
     if (!include_rewind) {
         snes_rewind_note_framebuffer(
             (const uint32_t *)s_present_pixels,
