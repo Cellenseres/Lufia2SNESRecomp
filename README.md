@@ -143,6 +143,14 @@ OpenGL-only feature. Vulkan is not the default, and a run that cannot start it
 steps down to OpenGL and then to SDL, reporting which renderer it actually
 got. Building it needs a Vulkan SDK for the headers, the loader and `glslc`.
 
+`HDMode7` in `config.ini` takes `Off` or a scale from `1x` to `8x`; the
+launcher's checkbox turns that configured scale on and off rather than
+replacing it. The scale only decides how finely the affine plane is sampled,
+never where -- it is separate from `HDMode7Filter`, which stays off so the
+pass remains pixel exact. A renderer reports which scales it can allocate, and
+a request above that is announced and reduced to the largest one it offers
+instead of being dropped or silently substituted.
+
 FPS, volume, toast and rewind overlays are composited after the game and its
 shaders. The default Lufia skin uses the game's logical coordinate space: one
 UI texture pixel receives the same aspect, resize, fullscreen, and letterbox

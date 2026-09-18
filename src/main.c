@@ -175,6 +175,8 @@ typedef enum Lufia2VisualPreset {
 
 static Lufia2VisualPreset s_visual_preset = LUFIA2_VISUAL_CLEAN_HD;
 static unsigned s_hd_mode7_scale = 2;
+/* The launcher's checkbox must not forget the configured scale. */
+static unsigned s_hd_mode7_preferred_scale = 2;
 static bool s_hd_mode7_perspective;
 static bool s_hd_mode7_filter;
 static SnesRecompMode7Line s_hd_mode7_lines[SNES_HEIGHT];
@@ -279,6 +281,33 @@ static bool ReadIniText(const char *path, const char *wanted_section,
     return false;
 }
 
+/* `Off`, or a scale written as `2`, `2x` or `x2`. */
+static unsigned Lufia2HdMode7ScaleFromText(const char *text,
+                                           unsigned fallback) {
+    unsigned scale = 0;
+
+    if (!text || !text[0])
+        return fallback;
+    if (AsciiEqualsNoCase(text, "Off") || AsciiEqualsNoCase(text, "0"))
+        return 0;
+    if (*text == 'x' || *text == 'X')
+        text++;
+    while (*text >= '0' && *text <= '9')
+        scale = scale * 10u + (unsigned)(*text++ - '0');
+    if (*text == 'x' || *text == 'X')
+        text++;
+    if (*text || !scale || scale > SNESRECOMP_MODE7_MAX_SCALE)
+        return fallback;
+    return scale;
+}
+
+static const char *Lufia2HdMode7ScaleName(unsigned scale) {
+    static const char *const kNames[SNESRECOMP_MODE7_MAX_SCALE + 1u] = {
+        "Off", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x",
+    };
+    return scale <= SNESRECOMP_MODE7_MAX_SCALE ? kNames[scale] : "?";
+}
+
 static void LoadVisualConfig(const char *path) {
     char value[64];
 
@@ -297,10 +326,10 @@ static void LoadVisualConfig(const char *path) {
         s_visual_preset = LUFIA2_VISUAL_ORIGINAL;
 
     s_hd_mode7_scale = 2;
-    if (ReadIniText(path, "Graphics", "HDMode7", value, sizeof(value)) &&
-        (AsciiEqualsNoCase(value, "Off") ||
-         AsciiEqualsNoCase(value, "0")))
-        s_hd_mode7_scale = 0;
+    if (ReadIniText(path, "Graphics", "HDMode7", value, sizeof(value)))
+        s_hd_mode7_scale = Lufia2HdMode7ScaleFromText(value, 2u);
+    if (s_hd_mode7_scale)
+        s_hd_mode7_preferred_scale = s_hd_mode7_scale;
 
     /* Both refine the HD pass only; the ordinary path stays exact. Filtering
      * is off by default: it softens a palette image more than it smooths it,
@@ -722,7 +751,7 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     ls.widescreen = g_config.widescreen ? 1 : 0;
     ls.sharp_filter =
         s_visual_preset == LUFIA2_VISUAL_CLEAN_HD ? 1 : 0;
-    ls.affine_filter = s_hd_mode7_scale == 2u ? 1 : 0;
+    ls.affine_filter = s_hd_mode7_scale ? 1 : 0;
     ls.enable_audio = g_config.enable_audio ? 1 : 0;
     ls.audio_freq = g_config.audio_freq ? g_config.audio_freq : 32040;
     ls.volume = 100;
@@ -797,7 +826,8 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     g_config.widescreen = ls.widescreen != 0;
     s_visual_preset = ls.sharp_filter
         ? LUFIA2_VISUAL_CLEAN_HD : LUFIA2_VISUAL_ORIGINAL;
-    s_hd_mode7_scale = ls.affine_filter ? 2u : 0u;
+    /* The checkbox toggles the enhancement, it does not pick the scale. */
+    s_hd_mode7_scale = ls.affine_filter ? s_hd_mode7_preferred_scale : 0u;
     g_config.enable_audio = ls.enable_audio != 0;
     g_config.audio_freq = (uint16)ls.audio_freq;
     g_config.enable_gamepad[0] =
@@ -825,7 +855,7 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
         s_visual_preset == LUFIA2_VISUAL_CLEAN_HD
             ? "CleanHD" : "Original");
     PersistText("Graphics", "HDMode7",
-        s_hd_mode7_scale == 2u ? "2x" : "Off");
+        Lufia2HdMode7ScaleName(s_hd_mode7_scale));
 
     ConfigReloadKeyMap("config.ini");
 
@@ -1117,10 +1147,33 @@ static bool InitVideo(void) {
             ? (active_backend == SNESRECOMP_PRESENT_BACKEND_VULKAN
                 ? ", native Clean-HD active" : ", GLSL preset active")
             : "");
+    /* Take the largest offered scale at or below the configured one. */
+    if (s_hd_mode7_scale) {
+        const uint32_t offered =
+            snesrecomp_presenter_mode7_scales(s_presenter);
+        unsigned granted = 0;
+        for (unsigned candidate = s_hd_mode7_scale; candidate >= 1u;
+             candidate--) {
+            if (offered & (1u << candidate)) {
+                granted = candidate;
+                break;
+            }
+        }
+        if (granted != s_hd_mode7_scale) {
+            fprintf(stderr,
+                "[video] HD Mode 7 %s is not available on %s "
+                "(offers 0x%X); using %s.\n",
+                Lufia2HdMode7ScaleName(s_hd_mode7_scale),
+                snesrecomp_presenter_backend_name(s_presenter),
+                (unsigned)offered,
+                Lufia2HdMode7ScaleName(granted));
+            s_hd_mode7_scale = granted;
+        }
+    }
     fprintf(stderr,
         "[video] visual preset=%s HD Mode 7=%s filter=%s perspective=%s\n",
         s_visual_preset == LUFIA2_VISUAL_CLEAN_HD ? "CleanHD" : "Original",
-        s_hd_mode7_scale == 2 ? "2x" : "Off",
+        Lufia2HdMode7ScaleName(s_hd_mode7_scale),
         s_hd_mode7_filter ? "On" : "Off",
         s_hd_mode7_perspective ? "On" : "Off");
     if (s_visual_preset == LUFIA2_VISUAL_CLEAN_HD && !preset_active) {
@@ -1135,7 +1188,7 @@ static bool InitVideo(void) {
             "inactive.\n",
             g_config.shader);
     }
-    if (s_hd_mode7_scale == 2u &&
+    if (s_hd_mode7_scale &&
         !(snesrecomp_presenter_capabilities(s_presenter) &
           SNESRECOMP_PRESENT_CAP_HD_MODE7)) {
         fprintf(stderr,
@@ -1303,9 +1356,9 @@ static bool PresentFrame(bool include_rewind) {
         s_current_video_layout == LUFIA2_VIDEO_INTRO_MODE7 ||
         s_current_video_layout == LUFIA2_VIDEO_WORLD_MAP;
     const bool hd_requested =
-        mode7_layout && s_hd_mode7_scale == 2u &&
-        (snesrecomp_presenter_capabilities(s_presenter) &
-         SNESRECOMP_PRESENT_CAP_HD_MODE7);
+        mode7_layout && s_hd_mode7_scale != 0u &&
+        snesrecomp_presenter_mode7_scale_supported(
+            s_presenter, s_hd_mode7_scale);
 
     if (!intro_world_requested) {
         s_last_intro_world_status = LUFIA2_INTRO_WORLD_INVALID_ARGUMENT;
@@ -1406,8 +1459,9 @@ static bool PresentFrame(bool include_rewind) {
         if (frame_presented && map_source &&
             !s_intro_mode7_world_active_reported) {
             LUFIA2_LOG(
-                "[video] Intro full-world Mode 7: active (%s)\n",
-                used_hd ? "HD 2x" : "native 1x");
+                "[video] Intro full-world Mode 7: active (%s%s)\n",
+                used_hd ? "HD " : "native ",
+                used_hd ? Lufia2HdMode7ScaleName(s_hd_mode7_scale) : "1x");
             s_intro_mode7_world_active_reported = true;
         }
         if (hd_requested && support != s_hd_mode7_last_reject) {
