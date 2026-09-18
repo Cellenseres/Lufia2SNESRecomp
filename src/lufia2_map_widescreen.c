@@ -19,6 +19,8 @@ enum {
     LUFIA2_BLOCKSET_HEADER_SIZE = 16,
     LUFIA2_TILE_SIZE = 8,
     LUFIA2_BLOCK_SIZE = 16,
+    /* How far past the cell layers the blockset marker may sit. */
+    LUFIA2_BLOCKSET_SEARCH_BYTES = 8192,
     LUFIA2_NATIVE_WIDTH = 256,
     LUFIA2_NATIVE_SAMPLE_X = 16,
     LUFIA2_NATIVE_SAMPLE_Y = 8,
@@ -130,6 +132,18 @@ static uint16_t Read16(const uint8_t *data) {
     return (uint16_t)(data[0] | ((uint16_t)data[1] << 8));
 }
 
+/* Some maps pad before the blockset, so search for it. */
+static uint32_t FindBlockset(const uint8_t *bank, uint32_t from) {
+    const uint32_t limit = from + LUFIA2_BLOCKSET_SEARCH_BYTES;
+
+    for (uint32_t at = from; at + LUFIA2_BLOCKSET_HEADER_SIZE <=
+             LUFIA2_BANK_SIZE && at <= limit; at += 2) {
+        if (bank[at] == 'M' && bank[at + 1] == 'C')
+            return at;
+    }
+    return 0;
+}
+
 static bool ReadRuntimeMap(Lufia2RuntimeMap *map) {
     const uint8_t *bank = g_ram + LUFIA2_BANK_SIZE;
     if (bank[0] != 0x02)
@@ -149,14 +163,15 @@ static bool ReadRuntimeMap(Lufia2RuntimeMap *map) {
         return false;
     }
 
-    const uint8_t *blockset = bank + map_size;
-    if (blockset[0] != 'M' || blockset[1] != 'C')
+    const uint32_t blockset_at = FindBlockset(bank, map_size);
+    if (!blockset_at)
         return false;
 
+    const uint8_t *blockset = bank + blockset_at;
     const uint16_t block_count = Read16(blockset + 2);
     const uint32_t blockset_size =
         LUFIA2_BLOCKSET_HEADER_SIZE + (uint32_t)block_count * 8;
-    if (!block_count || map_size + blockset_size > LUFIA2_BANK_SIZE)
+    if (!block_count || blockset_at + blockset_size > LUFIA2_BANK_SIZE)
         return false;
 
     map->data = bank;
