@@ -151,6 +151,14 @@ pass remains pixel exact. A renderer reports which scales it can allocate, and
 a request above that is announced and reduced to the largest one it offers
 instead of being dropped or silently substituted.
 
+`PresentRate = Display` in `config.ini` presents on the display's clock
+instead of the guest's, so a 144 Hz monitor shows the picture 144 times a
+second while the game still advances 60 times. It does not interpolate
+motion yet, and it does not touch guest timing, audio or input. Mode 7 scenes
+stay at guest cadence because their frame cannot be shown again without
+rebuilding it. `PresentRateHz` overrides the detected refresh, which a remote
+desktop session reports incorrectly.
+
 FPS, volume, toast and rewind overlays are composited after the game and its
 shaders. The default Lufia skin uses the game's logical coordinate space: one
 UI texture pixel receives the same aspect, resize, fullscreen, and letterbox
