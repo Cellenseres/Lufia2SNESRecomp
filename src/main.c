@@ -88,7 +88,9 @@ enum {
     LUFIA2_ROM_SIZE = 2621440,
     LUFIA2_COPIER_HEADER = 512,
 
-    LUFIA2_MAP_LAYER_MASK = 0x03,
+    /* BG1 and BG2 carry the map; BG3 is its parallax backdrop. */
+    LUFIA2_MAP_LAYER_MASK = 0x07,
+    LUFIA2_MAP_BACKDROP_LAYER_MASK = 0x04,
     LUFIA2_MAP_WINDOW_LAYER_MASK = 0x33,
     LUFIA2_WORLD_WINDOW_LAYER_MASK = 0x31,
     LUFIA2_OUTDOOR_WINDOW_MASK = 0x03,
@@ -1680,6 +1682,9 @@ static void PrepareVideoFrame(void) {
         case LUFIA2_MAP_WIDESCREEN_ACTIVE:
             PpuSetExtraSpace(g_ppu, (uint8_t)g_ws_extra);
             PpuSetWidescreenLayerMask(g_ppu, LUFIA2_MAP_LAYER_MASK);
+            /* No map data extends the backdrop; cycle its scanline. */
+            PpuSetWidescreenLayerRepeat(
+                g_ppu, LUFIA2_MAP_BACKDROP_LAYER_MASK);
             PpuSetWidescreenWindowExpansion(
                 g_ppu,
                 LUFIA2_MAP_WINDOW_LAYER_MASK,
