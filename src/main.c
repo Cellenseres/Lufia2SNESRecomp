@@ -23,6 +23,8 @@
 
 #include "desktop/sdl_compat.h"
 #include "snesrecomp_platform/frame_overscan.h"
+#include "snesrecomp_platform/snes_bg_continuity.h"
+#include "snesrecomp_platform/snes_obj_continuity.h"
 #include "snesrecomp_platform/glsl_shader_adapter.h"
 #include "snesrecomp_platform/present_timeline.h"
 #include "snesrecomp_platform/presenter.h"
@@ -53,6 +55,8 @@
 
 #include "config.h"
 #include "lufia2_log.h"
+#include "lufia2_wide_range.h"
+#include "lufia2_scene_dump.h"
 #include "lufia2_map_load.h"
 #include "lufia2_msu_driver.h"
 #include "lufia2_map_widescreen.h"
@@ -192,6 +196,7 @@ static bool s_frame_repeatable;
 static bool s_hd_mode7_perspective;
 static bool s_hd_mode7_filter;
 static bool s_hide_bottom_scanline = true;
+static bool s_motion_interpolation;
 static SnesRecompMode7Line s_hd_mode7_lines[SNES_HEIGHT];
 static SnesRecompMode7Line s_intro_mode7_world_lines[SNES_HEIGHT];
 static SnesRecompMode7MapSource s_intro_mode7_world_source;
@@ -362,6 +367,14 @@ static void LoadVisualConfig(const char *path) {
          AsciiEqualsNoCase(value, "0")))
         s_hide_bottom_scanline = false;
 
+    /* Off until sprites move with the camera too. */
+    s_motion_interpolation = false;
+    if (ReadIniText(path, "Graphics", "MotionInterpolation", value,
+                    sizeof(value)) &&
+        (AsciiEqualsNoCase(value, "On") ||
+         AsciiEqualsNoCase(value, "1")))
+        s_motion_interpolation = true;
+
     s_high_refresh = false;
     if (ReadIniText(path, "Graphics", "PresentRate", value, sizeof(value)) &&
         (AsciiEqualsNoCase(value, "Display") ||
@@ -467,6 +480,7 @@ static bool EnsureDefaultConfig(const char *path) {
         "HDMode7Filter = Off\n"
         "HDMode7Perspective = On\n"
         "HideBottomScanline = On\n"
+        "MotionInterpolation = Off\n"
         "NewRenderer = 0\n"
         "NoSpriteLimits = 0\n"
         "Widescreen = 0\n"
@@ -889,6 +903,8 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     PersistText("Graphics", "VisualPreset",
         s_visual_preset == LUFIA2_VISUAL_CLEAN_HD
             ? "CleanHD" : "Original");
+    PersistText("Graphics", "MotionInterpolation",
+        s_motion_interpolation ? "On" : "Off");
     PersistText("Graphics", "HideBottomScanline",
         s_hide_bottom_scanline ? "On" : "Off");
     PersistText("Graphics", "HDMode7",
@@ -1376,36 +1392,268 @@ static void ObserveHandoffRaster(void) {
 }
 
 /* Guest cadence: build the picture to be shown. */
-static void ComposeFrame(bool include_rewind) {
+/* Extra frames only; the authoritative frame is untouched. */
+typedef struct Lufia2InterpFrame {
+    SnesPpuRasterBand bands[SNES_PPU_MAX_BANDS];
+    SnesPpuFrameCapture capture;
+    uint16_t oam[SNES_OBJ_SLOTS * 2];
+    uint8_t high_oam[SNES_OBJ_SLOTS / 4];
+    bool valid;
+} Lufia2InterpFrame;
+
+/* Bounded by the margin fill slack; sprites get twice that. */
+enum { LUFIA2_INTERP_MAX_STEP_PX = LUFIA2_WIDE_TILE,
+       LUFIA2_INTERP_OBJ_MAX_STEP_PX = 2 * LUFIA2_WIDE_TILE,
+       LUFIA2_SHADOW_LAYERS = 2 };
+
+static Lufia2InterpFrame s_interp_prev;
+static Lufia2InterpFrame s_interp_cur;
+static SnesBgInterpolation s_interp_state;
+static SnesBgInterpolation s_interp_last;
+static bool s_interp_last_valid;
+static SnesObjInterpolation s_interp_obj;
+static Ppu s_interp_source;
+static Ppu s_interp_ppu;
+static uint8_t s_interp_pixels[SNES_WIDE_WIDTH * 4 * PPU_BUFFER_HEIGHT];
+static int s_interp_flags;
+static bool s_interp_ready;
+static bool s_interp_reported;
+
+static void Lufia2InterpForget(void) {
+    s_interp_ready = false;
+    s_interp_prev.valid = false;
+    s_interp_cur.valid = false;
+}
+
+/* Called once the PPU state matches the frame just rendered. */
+static void Lufia2InterpNoteFrame(int ppu_flags) {
+    s_interp_ready = false;
+    if (!s_motion_interpolation || !s_high_refresh ||
+        Lufia2VideoHandoffIsHolding(&s_video_handoff) ||
+        s_current_video_layout != LUFIA2_VIDEO_REGULAR_MAP) {
+        Lufia2InterpForget();
+        return;
+    }
+
+    s_interp_prev = s_interp_cur;
+    s_interp_prev.capture.bands = s_interp_prev.bands;
+    s_interp_cur.valid = false;
+
+    SnesPpuFrameCapture capture;
+    if (!Lufia2CapturePpuFrame(&capture, (unsigned)s_frame_width,
+                               (unsigned)g_ws_extra) ||
+        !capture.band_count || capture.band_count > SNES_PPU_MAX_BANDS)
+        return;
+
+    memcpy(s_interp_cur.bands, capture.bands,
+           capture.band_count * sizeof capture.bands[0]);
+    memcpy(s_interp_cur.oam, g_ppu->oam, sizeof s_interp_cur.oam);
+    memcpy(s_interp_cur.high_oam, g_ppu->highOam,
+           sizeof s_interp_cur.high_oam);
+    s_interp_cur.capture = capture;
+    s_interp_cur.capture.bands = s_interp_cur.bands;
+    s_interp_cur.valid = true;
+
+    if (!s_interp_prev.valid)
+        return;
+
+    SnesObjCompare(s_interp_prev.oam, s_interp_prev.high_oam,
+                   s_interp_cur.oam, s_interp_cur.high_oam,
+                   LUFIA2_INTERP_OBJ_MAX_STEP_PX, &s_interp_obj);
+    const SnesBgInterpolation last = s_interp_last;
+    const bool had_last = s_interp_last_valid;
+    SnesBgCompare(&s_interp_prev.capture, &s_interp_cur.capture,
+                  LUFIA2_INTERP_MAX_STEP_PX, &s_interp_state);
+    s_interp_last = s_interp_state;
+    s_interp_last_valid = s_interp_state.verdict == SNES_BG_CONTINUOUS;
+    if (s_interp_state.verdict != SNES_BG_CONTINUOUS ||
+        !s_interp_state.safe_layers)
+        return;
+
+    /* A half rate parallax layer steps 0,1,0,1: require a repeat. */
+    if (!had_last || last.band_count != s_interp_state.band_count) {
+        s_interp_state.safe_layers = 0;
+        return;
+    }
+    for (unsigned band = 0; band < s_interp_state.band_count; band++) {
+        for (unsigned layer = 0; layer < SNES_PPU_BG_COUNT; layer++) {
+            if (s_interp_state.bands[band].dx[layer] ==
+                    last.bands[band].dx[layer] &&
+                s_interp_state.bands[band].dy[layer] ==
+                    last.bands[band].dy[layer])
+                continue;
+            s_interp_state.safe_layers &= (uint8_t)~(1u << layer);
+        }
+    }
+    if (!s_interp_state.safe_layers)
+        return;
+
+    memcpy(&s_interp_source, g_ppu, sizeof s_interp_source);
+    s_interp_flags = ppu_flags;
+    s_interp_ready = true;
+}
+
+/* The edge column is shadow-fed; keep the camera in its tile. */
+static float GuardedAlpha(float alpha, const Ppu *ppu) {
+    const SnesPpuFrameCapture *cur = &s_interp_cur.capture;
+
+    for (unsigned band = 0; band < cur->band_count; band++) {
+        const SnesPpuRasterBand *state = &cur->bands[band];
+        for (unsigned layer = 0; layer < LUFIA2_SHADOW_LAYERS; layer++) {
+            if (!(s_interp_state.safe_layers & (1u << layer)))
+                continue;
+            const float bound = SnesBgTileBoundAlpha(
+                state->bg[layer].h_scroll,
+                s_interp_state.bands[band].dx[layer]);
+            if (bound < alpha)
+                alpha = bound;
+        }
+    }
+    (void)ppu;
+    return alpha;
+}
+
+/* Extrapolate the last inter-frame step, band by band. */
+static bool Lufia2InterpRender(float alpha) {
+    if (!s_interp_ready)
+        return false;
+    alpha = GuardedAlpha(alpha, NULL);
+    if (alpha <= 0.0f)
+        return false;
+
+    Ppu *ppu = &s_interp_ppu;
+    memcpy(ppu, &s_interp_source, sizeof *ppu);
+    PpuBeginDrawing(ppu, s_interp_pixels, (size_t)s_frame_width * 4,
+                    s_interp_flags);
+
+    /* The margins are world-keyed, so their anchor has to move with the
+       camera or the two halves of the picture come apart. */
+    uint32_t saved_world_x[LUFIA2_SHADOW_LAYERS];
+    uint32_t saved_world_y[LUFIA2_SHADOW_LAYERS];
+    uint32_t saved_scroll_x[LUFIA2_SHADOW_LAYERS];
+    uint32_t saved_scroll_y[LUFIA2_SHADOW_LAYERS];
+    bool shadowed[LUFIA2_SHADOW_LAYERS];
+
+    for (int bg = 0; bg < LUFIA2_SHADOW_LAYERS; bg++) {
+        shadowed[bg] = WsShadowLayerActive(bg);
+        if (!shadowed[bg])
+            continue;
+        saved_world_x[bg] = WsShadowWorldX(bg);
+        saved_world_y[bg] = WsShadowWorldY(bg);
+        saved_scroll_x[bg] = WsShadowScrollX(bg);
+        saved_scroll_y[bg] = WsShadowScrollY(bg);
+    }
+
+    for (unsigned slot = 0; slot < SNES_OBJ_SLOTS; slot++) {
+        if (!SnesObjSlotSafe(&s_interp_obj, slot))
+            continue;
+        const unsigned index = slot * 2u;
+        const uint8_t xbit = (uint8_t)(1u << (index & 7u));
+        const unsigned x = SnesObjPositionAt(
+            (ppu->oam[index] & 0xffu) |
+                (unsigned)((ppu->highOam[index >> 3] & xbit) ? 0x100u : 0u),
+            s_interp_obj.dx[slot], alpha, SNES_OBJ_X_MODULUS);
+        const unsigned y = SnesObjPositionAt(
+            ppu->oam[index] >> 8, s_interp_obj.dy[slot], alpha,
+            SNES_OBJ_Y_MODULUS);
+
+        ppu->oam[index] = (uint16_t)((y << 8) | (x & 0xffu));
+        if (x & 0x100u)
+            ppu->highOam[index >> 3] |= xbit;
+        else
+            ppu->highOam[index >> 3] &= (uint8_t)~xbit;
+    }
+
+    const SnesPpuFrameCapture *cur = &s_interp_cur.capture;
+    if (!s_interp_reported) {
+        s_interp_reported = true;
+        fprintf(stderr,
+            "[video] interpolation active: layers=0x%x bands=%u sprites=%u\n",
+            (unsigned)s_interp_state.safe_layers, cur->band_count,
+            s_interp_obj.matched);
+    }
+
+    for (unsigned band = 0; band < cur->band_count; band++) {
+        const SnesPpuRasterBand *state = &cur->bands[band];
+
+        for (unsigned layer = 0; layer < SNES_PPU_BG_COUNT; layer++) {
+            const uint16_t h = state->bg[layer].h_scroll;
+            const uint16_t v = state->bg[layer].v_scroll;
+            const bool safe =
+                (s_interp_state.safe_layers & (1u << layer)) != 0;
+            ppu->hScroll[layer] =
+                safe ? SnesBgScrollAt(h, s_interp_state.bands[band].dx[layer],
+                                      alpha)
+                     : h;
+            ppu->vScroll[layer] =
+                safe ? SnesBgScrollAt(v, s_interp_state.bands[band].dy[layer],
+                                      alpha)
+                     : v;
+        }
+        for (int bg = 0; bg < LUFIA2_SHADOW_LAYERS; bg++) {
+            if (!shadowed[bg])
+                continue;
+            const int32_t dh = SnesBgScrollDelta(
+                state->bg[bg].h_scroll, (uint16_t)ppu->hScroll[bg]);
+            const int32_t dv = SnesBgScrollDelta(
+                state->bg[bg].v_scroll, (uint16_t)ppu->vScroll[bg]);
+            WsShadowSetWorld(bg, (uint32_t)((int32_t)saved_world_x[bg] + dh),
+                             (uint32_t)((int32_t)saved_world_y[bg] + dv));
+            WsShadowSetScroll(bg, (uint32_t)((int32_t)saved_scroll_x[bg] + dh),
+                              (uint32_t)((int32_t)saved_scroll_y[bg] + dv));
+        }
+
+        for (unsigned y = state->y_begin; y < state->y_end; y++)
+            ppu_runLine(ppu, (int)(y + 1u));
+    }
+
+    for (int bg = 0; bg < LUFIA2_SHADOW_LAYERS; bg++) {
+        if (!shadowed[bg])
+            continue;
+        WsShadowSetWorld(bg, saved_world_x[bg], saved_world_y[bg]);
+        WsShadowSetScroll(bg, saved_scroll_x[bg], saved_scroll_y[bg]);
+    }
+
+    return true;
+}
+
+static void ComposeFrom(const uint8_t *pixels, bool include_rewind,
+                        bool authoritative) {
     RtlWidescreenPresent(
         s_present_pixels,
         (size_t)s_frame_width * 4,
-        s_pixels,
+        pixels,
         s_frame_width,
         SNES_HEIGHT);
     Lufia2IntroWidescreenPaint(
         g_ppu, s_present_pixels, (size_t)s_frame_width, SNES_HEIGHT,
         g_ws_extra > 0 ? (unsigned)g_ws_extra : 0u);
-    Lufia2VideoHandoffApply(
-        &s_video_handoff,
-        s_present_pixels,
-        s_map_handoff_pixels,
-        (size_t)s_frame_width,
-        SNES_HEIGHT,
-        g_ws_extra > 0 ? (size_t)g_ws_extra : 0u,
-        LUFIA2_MAP_STREAM_GUARD_PIXELS);
+    if (authoritative) {
+        Lufia2VideoHandoffApply(
+            &s_video_handoff,
+            s_present_pixels,
+            s_map_handoff_pixels,
+            (size_t)s_frame_width,
+            SNES_HEIGHT,
+            g_ws_extra > 0 ? (size_t)g_ws_extra : 0u,
+            LUFIA2_MAP_STREAM_GUARD_PIXELS);
+    }
     if (s_hide_bottom_scanline) {
         SnesRecompFrameHideBottomRows(
             s_present_pixels, (size_t)s_frame_width * 4,
             (unsigned)s_frame_width, SNES_HEIGHT, 1u);
     }
 
-    if (!include_rewind) {
+    if (authoritative && !include_rewind) {
         snes_rewind_note_framebuffer(
             (const uint32_t *)s_present_pixels,
             s_frame_width,
             SNES_HEIGHT);
     }
+}
+
+static void ComposeFrame(bool include_rewind) {
+    ComposeFrom(s_pixels, include_rewind, true);
 }
 
 /* Display cadence: submit the composed picture. */
@@ -1977,6 +2225,11 @@ static bool HandleEvents(void) {
                 continue;
             }
 #endif
+            if (e.key.key == SDLK_F11 && (e.key.mod & SDL_KMOD_CTRL) &&
+                    (e.key.mod & SDL_KMOD_SHIFT)) {
+                if (down && !e.key.repeat) Lufia2DumpScene();
+                continue;
+            }
             if (down && !e.key.repeat &&
                 e.key.key == SDLK_ESCAPE) {
                 return false;
@@ -2405,6 +2658,7 @@ int main(int argc, char **argv) {
         SnesRecompPresentStep step;
         step.run_guest = true;
         step.present = true;
+        step.carries_guest_frame = true;
         step.alpha = 0.0f;
         step.sleep_us = 0;
         if (timeline_paced)
@@ -2435,6 +2689,7 @@ int main(int argc, char **argv) {
             PpuBeginDrawing(
                 g_ppu, s_pixels, (size_t)s_frame_width * 4, ppu_flags);
             Lufia2DrawPpuFrame();
+            Lufia2InterpNoteFrame(ppu_flags);
             Lufia2EndMapRenderOverlay(g_ppu);
             L2CaptureFrameEnd();
             ObserveHandoffRaster();
@@ -2446,7 +2701,11 @@ int main(int argc, char **argv) {
         }
 
         /* Mode 7 frames cannot repeat; those stay at guest cadence. */
-        if (step.present && (step.run_guest || s_frame_repeatable)) {
+        if (step.present &&
+                (step.carries_guest_frame || s_frame_repeatable)) {
+            if (!step.carries_guest_frame &&
+                    Lufia2InterpRender(step.alpha))
+                ComposeFrom(s_interp_pixels, false, false);
             if (!SubmitFrame(false)) {
                 g_fail = true;
                 break;
