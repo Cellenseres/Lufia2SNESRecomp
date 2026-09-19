@@ -17,18 +17,20 @@ typedef struct Lufia2WideTileRange {
     uint32_t tile_y0, tile_y1;
 } Lufia2WideTileRange;
 
-/* One tile of slack past the margin absorbs fine scroll. */
+/* One tile of slack per side; upward it saturates at zero. */
 static inline Lufia2WideTileRange Lufia2WideFillRange(
     uint32_t origin_x, uint32_t world_y, uint32_t margin_pixels) {
     const uint32_t reach = margin_pixels + LUFIA2_WIDE_TILE;
     const uint32_t right = origin_x + LUFIA2_WIDE_NATIVE_WIDTH + reach;
     const uint32_t bottom =
         world_y + LUFIA2_WIDE_VISIBLE_HEIGHT + LUFIA2_WIDE_TILE;
+    const uint32_t top =
+        world_y > LUFIA2_WIDE_TILE ? world_y - LUFIA2_WIDE_TILE : 0u;
     Lufia2WideTileRange range;
 
     range.tile_x0 = (origin_x - reach) >> 3;
     range.tile_x1 = (right + 7u) >> 3;
-    range.tile_y0 = world_y >> 3;
+    range.tile_y0 = top >> 3;
     range.tile_y1 = (bottom + 7u) >> 3;
     return range;
 }
