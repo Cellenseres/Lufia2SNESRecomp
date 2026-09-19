@@ -481,6 +481,8 @@ static bool EnsureDefaultConfig(const char *path) {
         "HDMode7Perspective = On\n"
         "HideBottomScanline = On\n"
         "MotionInterpolation = Off\n"
+        "PresentRate = Guest\n"
+        "PresentRateHz = 0\n"
         "NewRenderer = 0\n"
         "NoSpriteLimits = 0\n"
         "Widescreen = 0\n"
@@ -801,6 +803,9 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     ls.sharp_filter =
         s_visual_preset == LUFIA2_VISUAL_CLEAN_HD ? 1 : 0;
     ls.affine_filter = s_hd_mode7_scale ? 1 : 0;
+    /* One switch: present off the guest clock and interpolate between. */
+    ls.frame_interp = (s_high_refresh && s_motion_interpolation) ? 1 : 0;
+    ls.frame_interp_fps = (int)(s_present_rate_millihertz / 1000u);
     ls.enable_audio = g_config.enable_audio ? 1 : 0;
     ls.audio_freq = g_config.audio_freq ? g_config.audio_freq : 32040;
     ls.volume = 100;
@@ -834,6 +839,7 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     gi.num_renderers = LUFIA2_LAUNCHER_RENDERER_COUNT;
     gi.has_sharp_filter = 1;
     gi.has_affine_filter = 1;
+    gi.has_frame_interp = 1;
 
     host_report_breadcrumb("launcher: opening recomp-ui");
 
@@ -877,6 +883,10 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
         ? LUFIA2_VISUAL_CLEAN_HD : LUFIA2_VISUAL_ORIGINAL;
     /* The checkbox toggles the enhancement, it does not pick the scale. */
     s_hd_mode7_scale = ls.affine_filter ? s_hd_mode7_preferred_scale : 0u;
+    s_high_refresh = ls.frame_interp != 0;
+    s_motion_interpolation = ls.frame_interp != 0;
+    s_present_rate_millihertz = ls.frame_interp_fps > 0
+        ? (unsigned)ls.frame_interp_fps * 1000u : 0u;
     g_config.enable_audio = ls.enable_audio != 0;
     g_config.audio_freq = (uint16)ls.audio_freq;
     g_config.enable_gamepad[0] =
@@ -905,6 +915,10 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
             ? "CleanHD" : "Original");
     PersistText("Graphics", "MotionInterpolation",
         s_motion_interpolation ? "On" : "Off");
+    PersistText("Graphics", "PresentRate",
+        s_high_refresh ? "Display" : "Guest");
+    PersistInt("Graphics", "PresentRateHz",
+        (int)(s_present_rate_millihertz / 1000u));
     PersistText("Graphics", "HideBottomScanline",
         s_hide_bottom_scanline ? "On" : "Off");
     PersistText("Graphics", "HDMode7",
