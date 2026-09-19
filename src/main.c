@@ -42,7 +42,9 @@
 #include "snes/ws_shadow.h"
 #include "widescreen.h"
 #include "desktop/display_aspect.h"
+#include "lufia2_map_names.h"
 #include "lufia2_overlay_ui.h"
+#include "lufia2_savestate_menu.h"
 #include "lufia2_ui_assets.h"
 
 #include "recomp_launcher.h"
@@ -169,6 +171,7 @@ static int s_frame_width = SNES_WIDTH;
 static bool s_vsync_enabled = true;
 static bool s_window_resize_pending;
 static bool s_rewind_requested;
+static bool s_savestate_menu_requested;
 static uint64_t s_state_generation;
 static uint32_t s_input_release_mask;
 static Lufia2VideoLayout s_last_video_layout = LUFIA2_VIDEO_LAYOUT_COUNT;
@@ -500,8 +503,9 @@ static bool EnsureDefaultConfig(const char *path) {
         "\n"
         "[KeyMap]\n"
         "# Controller buttons are stored separately in keybinds.ini.\n"
-        "Load = F1, F2, F3, F4, F5, F6, F7, F8, F9, F10\n"
-        "Save = Shift+F1, Shift+F2, Shift+F3, Shift+F4, Shift+F5, Shift+F6, Shift+F7, Shift+F8, Shift+F9, Shift+F10\n"
+        "# Slots belong to SaveStateMenu; leaving these empty unbinds them.\n"
+        "Load =\n"
+        "Save =\n"
         "Reset =\n"
         "ToggleWidescreen =\n"
         "Fullscreen = Alt+Return\n"
@@ -514,6 +518,7 @@ static bool EnsureDefaultConfig(const char *path) {
         "WindowSmaller =\n"
         "VolumeUp =\n"
         "VolumeDown =\n"
+        "SaveStateMenu = F11\n"
         "Rewind = F12\n";
 
     const size_t n = sizeof(kDefaultConfig) - 1;
@@ -2119,31 +2124,9 @@ static void HandleHostCommand(int cmd, bool pressed) {
     if (!pressed)
         return;
 
-    if (cmd >= kKeys_Load && cmd <= kKeys_Load_Last) {
-        const int slot = cmd - kKeys_Load;
-        char path[256];
-        RtlEnsureSaveDir();
-        RtlSaveSlotPath(slot, path, sizeof(path));
-        if (!FileExists(path))
-            Lufia2OverlayUiPushSlotEmpty(slot);
-        else if (RtlLoadSnapshot(path))
-            Lufia2OverlayUiPushSlotLoaded(slot);
-        else
-            Lufia2OverlayUiPush("State load failed", 2000);
+    /* Slots are the save-state menu's alone; the F-key ranges are dead. */
+    if (cmd >= kKeys_Load && cmd <= kKeys_Save_Last)
         return;
-    }
-
-    if (cmd >= kKeys_Save && cmd <= kKeys_Save_Last) {
-        const int slot = cmd - kKeys_Save;
-        char path[256];
-        RtlEnsureSaveDir();
-        RtlSaveSlotPath(slot, path, sizeof(path));
-        if (RtlSaveSnapshot(path))
-            Lufia2OverlayUiPushSlotSaved(slot);
-        else
-            Lufia2OverlayUiPush("State save failed", 2000);
-        return;
-    }
 
     switch (cmd) {
     case kKeys_Fullscreen:
@@ -2189,6 +2172,10 @@ static void HandleHostCommand(int cmd, bool pressed) {
 
     case kKeys_Rewind:
         s_rewind_requested = true;
+        break;
+
+    case kKeys_SaveStateMenu:
+        s_savestate_menu_requested = true;
         break;
 
     case kKeys_ToggleRenderer:
@@ -2327,6 +2314,64 @@ static bool PresentFrozenRewind(void) {
     }
     snes_osd_present_done();
     return true;
+}
+
+static bool PresentFrozenMenu(void) {
+    const SnesRecompOverlayFrame *overlay =
+        BuildPresentationOverlay(false);
+    const SnesRecompVideoFrame frame = {
+        .pixels = s_present_pixels,
+        .pixel_format = SNESRECOMP_PIXEL_FORMAT_ARGB8888,
+        .width = s_frame_width,
+        .height = SNES_HEIGHT,
+        .pitch = s_frame_width * 4,
+        .overlay = overlay,
+    };
+    if (!snesrecomp_presenter_present(s_presenter, &frame)) {
+        fprintf(stderr, "Save-state menu present failed: %s\n",
+            snesrecomp_presenter_last_error(s_presenter));
+        return false;
+    }
+    snes_osd_present_done();
+    return true;
+}
+
+static bool RunSaveStateMenuLoop(void) {
+    bool running = true;
+
+    while (running && Lufia2SavestateMenuIsOpen()) {
+        SDL_Event e;
+        while (SDL_PollEvent(&e)) {
+            if (e.type == SDL_EVENT_QUIT) {
+                running = false;
+                Lufia2SavestateMenuClose();
+            } else if (e.type == SDL_EVENT_KEY_DOWN) {
+                Lufia2SavestateMenuHandleKey(
+                    (int)e.key.key, e.key.repeat ? 1 : 0);
+            } else if (e.type == SDL_EVENT_GAMEPAD_ADDED && !s_gamepad) {
+                TryOpenFirstGamepad();
+            } else if (e.type == SDL_EVENT_GAMEPAD_REMOVED && s_gamepad &&
+                       SDL_GetGamepadID(s_gamepad) == e.gdevice.which) {
+                SDL_CloseGamepad(s_gamepad);
+                s_gamepad = NULL;
+                TryOpenFirstGamepad();
+            }
+        }
+
+        Lufia2SavestateMenuPollNav(
+            ReadKeyboardInput() | ReadGamepadInput(),
+            (uint32_t)SDL_GetTicks());
+
+        if (Lufia2SavestateMenuIsOpen() && !PresentFrozenMenu()) {
+            running = false;
+            Lufia2SavestateMenuClose();
+        }
+        SDL_Delay(8);
+    }
+
+    s_input_release_mask |= ReadKeyboardInput() | ReadGamepadInput();
+    ObserveStateGeneration(true);
+    return running;
 }
 
 static bool RunRewindLoop(void) {
@@ -2543,6 +2588,8 @@ int main(int argc, char **argv) {
         Lufia2UiAssetsDestroy(&rom_panel);
     }
     Lufia2IntroMode7WorldInit(rom_data, rom_size);
+    if (!Lufia2MapNamesInit(rom_data, rom_size))
+        fprintf(stderr, "[savestate] map names unavailable; ids only.\n");
 
     snesrecomp_rom_cache_write(rom_path);
 
@@ -2626,6 +2673,7 @@ int main(int argc, char **argv) {
     TryOpenFirstGamepad();
 
     snes_rewind_configure();
+    Lufia2SavestateMenuInstall();
     {
         const char *osd_fps = getenv("SNESRECOMP_OSD_FPS");
         if (osd_fps && atoi(osd_fps) != 0) {
@@ -2656,6 +2704,18 @@ int main(int argc, char **argv) {
             } else {
                 Lufia2OverlayUiPush("Rewind history unavailable", 1600);
             }
+        }
+
+        if (Lufia2SavestateMenuGesturePressed(
+                ReadKeyboardInput() | ReadGamepadInput()))
+            s_savestate_menu_requested = true;
+
+        if (s_savestate_menu_requested) {
+            s_savestate_menu_requested = false;
+            if (Lufia2SavestateMenuOpen())
+                running = RunSaveStateMenuLoop() && running;
+            else
+                Lufia2OverlayUiPush("Load a game save first", 1800);
         }
 
         if (!running || g_fail)
@@ -2709,6 +2769,9 @@ int main(int argc, char **argv) {
             ObserveHandoffRaster();
             Lufia2IntroWidescreenObserve(g_ppu);
             ComposeFrame(false);
+            Lufia2SavestateMenuNoteFrame(
+                (const uint32_t *)s_present_pixels,
+                s_frame_width, SNES_HEIGHT);
 
             frame_counter++;
             UpdatePerfTitle();
@@ -2783,6 +2846,7 @@ int main(int argc, char **argv) {
 
     RtlWriteSram();
     snes_rewind_shutdown();
+    Lufia2SavestateMenuShutdown();
 
     if (s_audio_stream) {
         SDL_PauseAudioStreamDevice(s_audio_stream);

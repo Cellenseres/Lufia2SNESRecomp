@@ -375,6 +375,9 @@ endif()
 
 list(FILTER SNESRECOMP_RUNNER_SOURCES EXCLUDE REGEX "launcher(_picker)?\\.c$")
 list(FILTER SNESRECOMP_RUNNER_SOURCES EXCLUDE REGEX "keybinds\\.c$")
+# Replaced by src/lufia2_savestate_menu.c, which carries slot metadata.
+# Only host_main.c consumed it, and this host has its own main.
+list(FILTER SNESRECOMP_RUNNER_SOURCES EXCLUDE REGEX "snes_savestate_menu\\.c$")
 
 file(GLOB LUFIA2_GENERATED_SOURCES CONFIGURE_DEPENDS
     "${LUFIA2_GENERATED_DIR}/*.c")
@@ -406,6 +409,7 @@ set(LUFIA2_HOST_SOURCES
     src/lufia2_map_widescreen.c
     src/lufia2_map_names.c
     src/lufia2_overlay_ui.c
+    src/lufia2_savestate_menu.c
     src/lufia2_resource.c
     src/lufia2_ui_assets.c
     src/lufia2_msu_driver.c

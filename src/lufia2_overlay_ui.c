@@ -9,6 +9,7 @@
 
 #include "desktop/sdl_compat.h"
 #include "host_paths.h"
+#include "lufia2_savestate_menu.h"
 #include "lufia2_ui_assets.h"
 #include "snes_osd.h"
 #include "snes_rewind.h"
@@ -28,7 +29,21 @@ enum {
     REWIND_CELL_STEP = 78,
     REWIND_CELLS = 6,
     REWIND_THUMB_GAP = 1,
+
+    SSM_ROWS = 3,
+    SSM_ROW_H = 48,
+    SSM_ROW_GAP = 3,
+    /* A quarter of the stored thumbnail, both axes. */
+    SSM_CELL_W = LUFIA2_SAVESTATE_THUMB_W / 4,
+    SSM_CELL_H = LUFIA2_SAVESTATE_THUMB_H / 4,
+    SSM_PAD = 8,
+    SSM_HEADER_H = 18,
+    SSM_FOOTER_H = 18,
+    /* Below this the slot text is unreadable. */
+    SSM_MIN_W = 200,
 };
+
+_Static_assert(SSM_ROWS <= LUFIA2_SAVESTATE_SLOTS, "more rows than slots");
 
 /* Data-driven 5x7 font. A game can replace it through the theme. */
 static const char kFontChars[] =
@@ -82,8 +97,8 @@ static Lufia2OverlayUiNineSlice s_rom_panel;
 static uint32_t *s_asset_panel_pixels;
 static uint32_t *s_rom_panel_pixels;
 static bool s_theme_ready, s_panel_ready, s_assets_attempted, s_user_scale_ready;
-static UiImage s_rewind, s_fps, s_toast, s_volume;
-static SnesRecompOverlayLayer s_layers[4];
+static UiImage s_rewind, s_fps, s_toast, s_volume, s_savestate;
+static SnesRecompOverlayLayer s_layers[5];
 static SnesRecompOverlayFrame s_frame;
 static char s_toast_text[96];
 static uint32_t s_toast_expire, s_volume_expire;
@@ -317,7 +332,7 @@ void Lufia2OverlayUiPush(const char *message, int duration_ms) {
 
 static void push_slot(int slot, const char *action) {
     char text[48];
-    snprintf(text, sizeof(text), "Slot %d %s", slot, action);
+    snprintf(text, sizeof(text), "Slot %d %s", slot + 1, action);
     Lufia2OverlayUiPush(text, 0);
 }
 void Lufia2OverlayUiPushSlotSaved(int slot) { push_slot(slot, "saved"); }
@@ -593,6 +608,137 @@ static bool rewind_panel(int max_width) {
     return true;
 }
 
+static void stroke(UiImage *image, int x, int y, int w, int h,
+                   uint32_t colour) {
+    rect(image, x, y, w, 1, colour);
+    rect(image, x, y + h - 1, w, 1, colour);
+    rect(image, x, y, 1, h, colour);
+    rect(image, x + w - 1, y, 1, h, colour);
+}
+
+/* Box average; two nearest steps left the picture aliased.
+ * Forced opaque: the PPU renders XRGB, alpha zero shows through. */
+static void slot_thumb(UiImage *image, int x0, int y0,
+                       const uint32_t *thumb) {
+    enum { FX = LUFIA2_SAVESTATE_THUMB_W / SSM_CELL_W,
+           FY = LUFIA2_SAVESTATE_THUMB_H / SSM_CELL_H,
+           N  = FX * FY };
+    for (int y = 0; y < SSM_CELL_H; y++) {
+        for (int x = 0; x < SSM_CELL_W; x++) {
+            unsigned r = 0, g = 0, b = 0;
+            for (int sy = 0; sy < FY; sy++) {
+                const uint32_t *row = thumb +
+                    (size_t)(y * FY + sy) * LUFIA2_SAVESTATE_THUMB_W + x * FX;
+                for (int sx = 0; sx < FX; sx++) {
+                    r += (row[sx] >> 16) & 0xFFu;
+                    g += (row[sx] >> 8) & 0xFFu;
+                    b += row[sx] & 0xFFu;
+                }
+            }
+            pixel(image, x0 + x, y0 + y,
+                  0xFF000000u | ((r / N) << 16) | ((g / N) << 8) | (b / N));
+        }
+    }
+}
+
+/* Clamp rather than wrap; wrapping would jump the view. */
+static int slot_window_start(int selected) {
+    int first = selected - SSM_ROWS / 2;
+    if (first < 0) first = 0;
+    if (first + SSM_ROWS > LUFIA2_SAVESTATE_SLOTS)
+        first = LUFIA2_SAVESTATE_SLOTS - SSM_ROWS;
+    return first;
+}
+
+static void slot_row(UiImage *image, int x, int y, int width, int index,
+                     bool selected) {
+    const Lufia2SavestateSlot *slot = Lufia2SavestateMenuSlot(index);
+    int line = s_theme.font->glyph_height * s_theme.font_scale;
+    int text_x = x + SSM_CELL_W + 6;
+    int text_w = width - SSM_CELL_W - 6;
+    char value[64];
+
+    /* No fill: the panel is the surface, and theme.shadow is transparent
+     * under the ROM skin, so filling would punch through it. */
+    if (selected) {
+        stroke(image, x, y, width, SSM_ROW_H, s_theme.accent);
+        stroke(image, x + 1, y + 1, width - 2, SSM_ROW_H - 2, s_theme.accent);
+    }
+
+    if (slot && slot->thumbnail)
+        slot_thumb(image, x + 2, y + 2, slot->thumbnail);
+    else
+        rect(image, x + 2, y + 2, SSM_CELL_W, SSM_CELL_H, s_theme.track);
+    stroke(image, x + 2, y + 2, SSM_CELL_W, SSM_CELL_H, s_theme.accent);
+
+    snprintf(value, sizeof(value), "SLOT %02d", index + 1);
+    text(image, text_x, y + 3, value, selected ? s_theme.accent : s_theme.text);
+
+    if (!slot || !slot->used) {
+        text(image, text_x, y + 5 + line, "EMPTY", s_theme.muted);
+        return;
+    }
+
+    text(image, text_x, y + 5 + line, slot->when, s_theme.muted);
+
+    if (!slot->has_meta)
+        snprintf(value, sizeof(value), "NO SLOT DATA");
+    else if (slot->map_name)
+        snprintf(value, sizeof(value), "%s", slot->map_name);
+    else
+        snprintf(value, sizeof(value), "MAP %02X", slot->map_id);
+    if (text_width(value) <= text_w)
+        text(image, text_x, y + 7 + line * 2, value, s_theme.muted);
+}
+
+static bool savestate_panel(int max_width) {
+    if (!Lufia2SavestateMenuIsOpen()) return false;
+
+    int panel_w = tile_aligned(max_width - 16);
+    if (panel_w > max_width) panel_w = max_width;
+    if (panel_w < SSM_MIN_W) return false;
+
+    int rows_h = SSM_ROWS * SSM_ROW_H + (SSM_ROWS - 1) * SSM_ROW_GAP;
+    int panel_h = tile_aligned(
+        SSM_PAD * 2 + SSM_HEADER_H + SSM_FOOTER_H + rows_h);
+    if (!image_resize(&s_savestate, panel_w, panel_h)) return false;
+
+    nine_slice(&s_savestate);
+    char heading[40];
+    snprintf(heading, sizeof(heading), "SAVE STATES  FILE %d",
+             Lufia2SavestateMenuGameSlot() + 1);
+    text(&s_savestate, SSM_PAD + 4, SSM_PAD, heading, s_theme.text);
+
+    const char *status = Lufia2SavestateMenuStatus();
+    if (status && status[0] &&
+        text_width(status) <=
+            panel_w - SSM_PAD * 2 - 8 - text_width(heading) - 8)
+        text(&s_savestate, panel_w - SSM_PAD - 4 - text_width(status),
+             SSM_PAD, status, s_theme.accent);
+
+    int selected = Lufia2SavestateMenuSelected();
+    int first = slot_window_start(selected);
+    int row_w = panel_w - SSM_PAD * 2;
+    for (int i = 0; i < SSM_ROWS; i++) {
+        int index = first + i;
+        int row_y = SSM_PAD + SSM_HEADER_H + i * (SSM_ROW_H + SSM_ROW_GAP);
+        slot_row(&s_savestate, SSM_PAD, row_y, row_w, index,
+                 index == selected);
+        if (i + 1 < SSM_ROWS)
+            rect(&s_savestate, SSM_PAD, row_y + SSM_ROW_H + 1, row_w, 1,
+                 s_theme.track);
+    }
+
+    int footer_y = SSM_PAD + SSM_HEADER_H + rows_h + 8;
+    button(&s_savestate, SSM_PAD + 10, footer_y, 'A');
+    text(&s_savestate, SSM_PAD + 19, footer_y - 3, "LOAD", s_theme.text);
+    button(&s_savestate, SSM_PAD + 62, footer_y, 'X');
+    text(&s_savestate, SSM_PAD + 71, footer_y - 3, "SAVE", s_theme.text);
+    button(&s_savestate, SSM_PAD + 114, footer_y, 'B');
+    text(&s_savestate, SSM_PAD + 123, footer_y - 3, "BACK", s_theme.text);
+    return true;
+}
+
 static bool volume_panel(void) {
     if (!image_resize(&s_volume, 48, 88)) return false;
     nine_slice(&s_volume);
@@ -678,6 +824,15 @@ const SnesRecompOverlayFrame *Lufia2OverlayUiBuild(
     int bottom = margin;
     int fps_right_margin = margin;
 
+    if (savestate_panel(dw)) {
+        float scale = match_game ? 1.0f : fit(preferred, &s_savestate, aw, ah);
+        if (scale > 0.0f) {
+            int w = scaled(s_savestate.width, scale);
+            int h = scaled(s_savestate.height, scale);
+            layer(&s_savestate, (dw - w) / 2, (dh - h) / 2, scale);
+        }
+    }
+
     if (include_rewind && rewind_panel(dw)) {
         /* The rewind core has already rasterised each framed preview cell.
          * Never resample those pixels a second time in the Lufia skin. */
@@ -726,8 +881,10 @@ const SnesRecompOverlayFrame *Lufia2OverlayUiBuild(
 void Lufia2OverlayUiShutdown(void) {
     free(s_rewind.pixels); free(s_fps.pixels);
     free(s_toast.pixels); free(s_volume.pixels);
+    free(s_savestate.pixels);
     s_rewind = (UiImage){0}; s_fps = (UiImage){0};
     s_toast = (UiImage){0}; s_volume = (UiImage){0};
+    s_savestate = (UiImage){0};
     free(s_asset_panel_pixels);
     s_asset_panel_pixels = NULL;
     s_asset_panel = (Lufia2OverlayUiNineSlice){0};
