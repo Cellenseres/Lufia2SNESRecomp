@@ -22,11 +22,16 @@ typedef struct HandoffRow {
 
 static bool SceneIsWide(Lufia2VideoHandoffScene scene) {
     return scene == LUFIA2_VIDEO_HANDOFF_SCENE_WIDE ||
+           scene == LUFIA2_VIDEO_HANDOFF_SCENE_WIDE_EFFECTS ||
            scene == LUFIA2_VIDEO_HANDOFF_SCENE_WIDE_MAP;
 }
 
 static bool SceneTracksScroll(Lufia2VideoHandoffScene scene) {
     return scene == LUFIA2_VIDEO_HANDOFF_SCENE_WIDE_MAP;
+}
+
+static bool SceneSupportsFullFrameEffects(Lufia2VideoHandoffScene scene) {
+    return scene == LUFIA2_VIDEO_HANDOFF_SCENE_WIDE_EFFECTS;
 }
 
 static uint8_t ClampBrightness(uint8_t brightness) {
@@ -162,6 +167,8 @@ static void SaveScrollSource(
     handoff->frame_valid = true;
     handoff->saved_brightness = handoff->current_brightness;
     handoff->saved_scroll_tracks = SceneTracksScroll(handoff->current_scene);
+    handoff->saved_full_frame_effects =
+        SceneSupportsFullFrameEffects(handoff->current_scene);
     handoff->saved_scroll_x = handoff->current_scroll_x;
     handoff->saved_scroll_y = handoff->current_scroll_y;
     handoff->saved_raster_lines = handoff->current_raster_lines;
@@ -252,7 +259,9 @@ void Lufia2VideoHandoffObserveRaster(
         if (size > handoff->current_mosaic_size)
             handoff->current_mosaic_size = size;
         if (size > 1u ||
-            (y && (scroll_x[y] != scroll_x[0] ||
+            (handoff->current_scene !=
+                 LUFIA2_VIDEO_HANDOFF_SCENE_WIDE_EFFECTS &&
+             y && (scroll_x[y] != scroll_x[0] ||
                    scroll_y[y] != scroll_y[0]))) {
             handoff->current_raster_effect = true;
         }
@@ -281,8 +290,8 @@ void Lufia2VideoHandoffApply(
 
     const bool raster_effect = SpendEffectBudget(handoff);
     const bool effect_ready =
-        raster_effect && handoff->frame_valid &&
-        handoff->saved_scroll_tracks && handoff->saved_brightness;
+        raster_effect && handoff->frame_valid && handoff->saved_brightness &&
+        (handoff->saved_scroll_tracks || handoff->saved_full_frame_effects);
     const bool wide_scene = SceneIsWide(handoff->current_scene);
 
     if (!handoff->holding && !(wide_scene && effect_ready)) {

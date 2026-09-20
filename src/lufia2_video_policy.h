@@ -12,6 +12,7 @@ typedef enum Lufia2VideoLayout {
     LUFIA2_VIDEO_PATTERN_MENU,
     LUFIA2_VIDEO_WORLD_MAP,
     LUFIA2_VIDEO_INTRO_MODE7,
+    LUFIA2_VIDEO_BATTLE,
     LUFIA2_VIDEO_REGULAR_MAP,
     LUFIA2_VIDEO_MAP_LOADING,
     LUFIA2_VIDEO_BLANK,
@@ -50,6 +51,7 @@ typedef struct Lufia2VideoObservation {
     uint8_t runtime_map;
     uint32_t resume_pc;
     Lufia2IntroMode7Raster intro_raster;
+    bool battle_layout;
 } Lufia2VideoObservation;
 
 bool Lufia2IntroMode7Candidate(const Lufia2VideoObservation *observation);

@@ -123,12 +123,16 @@ Lufia2VideoLayout Lufia2SelectVideoLayoutObserved(
     }
 
     if (!ppu)
-        return LUFIA2_VIDEO_CENTERED;
+        return observation && observation->battle_layout
+            ? LUFIA2_VIDEO_BATTLE : LUFIA2_VIDEO_CENTERED;
     /* The guest blanks the screen for room and scene transitions. The
        registers in flight say nothing about the scene, so the caller
        holds its previous decision instead. */
     if (PPU_forcedBlank(ppu))
         return LUFIA2_VIDEO_BLANK;
+
+    if (observation && observation->battle_layout)
+        return LUFIA2_VIDEO_BATTLE;
 
     /* Save selection, name entry and the matching menu family put their
        repeating backdrop on BG2, windows on BG1 and text on BG3. */
@@ -180,6 +184,8 @@ const char *Lufia2VideoLayoutName(Lufia2VideoLayout layout) {
         return "Mode 7 world map";
     case LUFIA2_VIDEO_INTRO_MODE7:
         return "Intro Mode 7 flyover";
+    case LUFIA2_VIDEO_BATTLE:
+        return "battle margins";
     case LUFIA2_VIDEO_REGULAR_MAP:
         return "regular map";
     case LUFIA2_VIDEO_MAP_LOADING:
