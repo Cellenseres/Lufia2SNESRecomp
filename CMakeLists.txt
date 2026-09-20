@@ -238,6 +238,30 @@ endif()
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
+# Full-width TGAs stay outside release artifacts.
+file(GLOB LUFIA2_BATTLE_MARGIN_AUTHORING CONFIGURE_DEPENDS
+    "${CMAKE_SOURCE_DIR}/assets-src/battle_margins/battle_*.tga")
+set(LUFIA2_MARGIN_PACK
+    "${CMAKE_SOURCE_DIR}/assets/lufia2_margins.l2mp")
+if(LUFIA2_BATTLE_MARGIN_AUTHORING)
+    set(LUFIA2_MARGIN_PACK
+        "${CMAKE_BINARY_DIR}/assets/lufia2_margins.l2mp")
+    add_custom_command(
+        OUTPUT "${LUFIA2_MARGIN_PACK}"
+        COMMAND "${Python3_EXECUTABLE}"
+            "${CMAKE_SOURCE_DIR}/scripts/margin_asset_tool.py"
+            --no-intro
+            --output "${LUFIA2_MARGIN_PACK}"
+        WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+        DEPENDS
+            "${CMAKE_SOURCE_DIR}/scripts/margin_asset_tool.py"
+            ${LUFIA2_BATTLE_MARGIN_AUTHORING}
+        COMMENT "Packing sparse Lufia II widescreen margins"
+        VERBATIM
+    )
+    add_custom_target(lufia2_margin_pack DEPENDS "${LUFIA2_MARGIN_PACK}")
+endif()
+
 set(LUFIA2_GENERATED_DIR "${CMAKE_SOURCE_DIR}/src/gen")
 if(EXISTS "${LUFIA2_ROM}")
     file(SHA256 "${LUFIA2_ROM}" _rom_sha256)
@@ -402,6 +426,8 @@ endif()
 set(LUFIA2_HOST_SOURCES
     src/main.c
     src/desktop_glue.c
+    src/lufia2_battle.c
+    src/lufia2_battle_widescreen.c
     src/lufia2_game_info.c
     patches/lufia2_intro_mode7_world.c
     patches/lufia2_mode7_substep.c
@@ -418,6 +444,7 @@ set(LUFIA2_HOST_SOURCES
     src/lufia2_intro_margins.c
     src/lufia2_intro_trees.c
     src/lufia2_intro_widescreen.c
+    src/lufia2_margin_assets.c
     src/lufia2_runtime.c
     src/lufia2_splash_credit.c
     src/lufia2_tga.c
@@ -508,6 +535,9 @@ add_executable(Lufia2Recomp
     ${LUFIA2_HOST_SOURCES}
     ${LUFIA2_GENERATED_SOURCES}
 )
+if(TARGET lufia2_margin_pack)
+    add_dependencies(Lufia2Recomp lufia2_margin_pack)
+endif()
 
 if(LUFIA2_ENABLE_GAMEPLAY_CAPTURE)
     target_compile_definitions(Lufia2Recomp PRIVATE LUFIA2_ENABLE_GAMEPLAY_CAPTURE=1)
@@ -645,7 +675,15 @@ add_custom_command(TARGET Lufia2Recomp POST_BUILD
         "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/shaders"
 )
 
-# Hand-authored margin art for the intro cutscene.
+add_custom_command(TARGET Lufia2Recomp POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E make_directory
+        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+        "${LUFIA2_MARGIN_PACK}"
+        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/lufia2_margins.l2mp"
+)
+
+# Intro margins use their existing compositor.
 add_custom_command(TARGET Lufia2Recomp POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E make_directory
         "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/img"
