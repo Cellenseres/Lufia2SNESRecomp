@@ -58,13 +58,15 @@
 #include "config.h"
 #include "lufia2_log.h"
 #include "lufia2_wide_range.h"
-#include "lufia2_scene_dump.h"
+#include "lufia2_battle.h"
+#include "lufia2_battle_widescreen.h"
 #include "lufia2_map_load.h"
 #include "lufia2_msu_driver.h"
 #include "lufia2_map_widescreen.h"
 #include "lufia2_intro_mode7_world.h"
 #include "lufia2_mode7_substep.h"
 #include "lufia2_intro_widescreen.h"
+#include "lufia2_margin_assets.h"
 #include "lufia2_runtime.h"
 #include "lufia2_splash_credit.h"
 #include "lufia2_video_handoff.h"
@@ -178,6 +180,7 @@ static Lufia2VideoLayout s_last_video_layout = LUFIA2_VIDEO_LAYOUT_COUNT;
 static Lufia2VideoLayout s_held_video_layout = LUFIA2_VIDEO_CENTERED;
 static Lufia2VideoLayout s_current_video_layout = LUFIA2_VIDEO_CENTERED;
 static Lufia2VideoHandoff s_video_handoff;
+static Lufia2BattleWidescreen s_battle_widescreen;
 static uint64_t s_last_intro_raster_reject_signature = UINT64_MAX;
 
 typedef enum Lufia2VisualPreset {
@@ -1378,6 +1381,8 @@ static Lufia2VideoHandoffScene VideoLayoutHandoffScene(
     case LUFIA2_VIDEO_INTRO_MODE7:
     case LUFIA2_VIDEO_PATTERN_MENU:
         return LUFIA2_VIDEO_HANDOFF_SCENE_WIDE;
+    case LUFIA2_VIDEO_BATTLE:
+        return LUFIA2_VIDEO_HANDOFF_SCENE_WIDE_EFFECTS;
     case LUFIA2_VIDEO_MAP_LOADING:
         return LUFIA2_VIDEO_HANDOFF_SCENE_MAP_LOADING;
     default:
@@ -1647,6 +1652,8 @@ static void ComposeFrom(const uint8_t *pixels, bool include_rewind,
     Lufia2IntroWidescreenPaint(
         g_ppu, s_present_pixels, (size_t)s_frame_width, SNES_HEIGHT,
         g_ws_extra > 0 ? (unsigned)g_ws_extra : 0u);
+
+    /* Margins follow the handoff. */
     if (authoritative) {
         Lufia2VideoHandoffApply(
             &s_video_handoff,
@@ -1657,6 +1664,17 @@ static void ComposeFrom(const uint8_t *pixels, bool include_rewind,
             g_ws_extra > 0 ? (size_t)g_ws_extra : 0u,
             LUFIA2_MAP_STREAM_GUARD_PIXELS);
     }
+
+    uint8_t margin_background;
+    if (g_ws_active &&
+        Lufia2BattleWidescreenMargin(
+            &s_battle_widescreen, g_ppu, &margin_background)) {
+        Lufia2MarginAssetApply(
+            LUFIA2_MARGIN_SCENE_BATTLE, margin_background,
+            s_present_pixels, (size_t)s_frame_width, SNES_HEIGHT,
+            (unsigned)PPU_brightness(g_ppu));
+    }
+
     if (s_hide_bottom_scanline) {
         SnesRecompFrameHideBottomRows(
             s_present_pixels, (size_t)s_frame_width * 4,
@@ -1884,10 +1902,15 @@ static void PrepareVideoFrame(void) {
         Lufia2InspectIntroMode7Raster(
             raster_rows, raster_stride, LUFIA2_PPU_VISIBLE_LINES,
             raster_valid);
+    const Lufia2BattleState battle = Lufia2BattleInspect(g_ram);
+    Lufia2BattleWidescreenObserve(
+        &s_battle_widescreen, &battle, g_ppu,
+        raster_rows, raster_stride, LUFIA2_PPU_VISIBLE_LINES, raster_valid);
     const Lufia2VideoObservation observation = {
         g_ram[0x05ac],
         Lufia2ResumePc(),
         intro_raster.classification,
+        battle.layout_hint,
     };
 
     if (Lufia2IntroMode7Candidate(&observation) &&
@@ -1961,6 +1984,11 @@ static void PrepareVideoFrame(void) {
             g_ppu,
             LUFIA2_WORLD_WINDOW_LAYER_MASK,
             LUFIA2_OUTDOOR_WINDOW_MASK);
+        break;
+
+    case LUFIA2_VIDEO_BATTLE:
+        Lufia2DeactivateMapWidescreen();
+        PpuSetExtraSpaceCentered(g_ppu, (uint8_t)g_ws_extra);
         break;
 
     case LUFIA2_VIDEO_REGULAR_MAP:
@@ -2226,11 +2254,6 @@ static bool HandleEvents(void) {
                 continue;
             }
 #endif
-            if (e.key.key == SDLK_F11 && (e.key.mod & SDL_KMOD_CTRL) &&
-                    (e.key.mod & SDL_KMOD_SHIFT)) {
-                if (down && !e.key.repeat) Lufia2DumpScene();
-                continue;
-            }
             if (down && !e.key.repeat &&
                 e.key.key == SDLK_ESCAPE) {
                 return false;
@@ -2274,6 +2297,7 @@ static void InvalidateDerivedHostState(bool reset_rewind) {
     s_last_video_layout = LUFIA2_VIDEO_LAYOUT_COUNT;
     s_held_video_layout = LUFIA2_VIDEO_CENTERED;
     s_current_video_layout = LUFIA2_VIDEO_CENTERED;
+    Lufia2BattleWidescreenReset(&s_battle_widescreen);
     Lufia2VideoHandoffReset(&s_video_handoff);
     s_last_intro_raster_reject_signature = UINT64_MAX;
     Lufia2IntroWidescreenRelease(g_ppu);
@@ -2847,6 +2871,7 @@ int main(int argc, char **argv) {
     RtlWriteSram();
     snes_rewind_shutdown();
     Lufia2SavestateMenuShutdown();
+    Lufia2MarginAssetsShutdown();
 
     if (s_audio_stream) {
         SDL_PauseAudioStreamDevice(s_audio_stream);

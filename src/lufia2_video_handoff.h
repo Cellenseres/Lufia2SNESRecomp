@@ -18,6 +18,7 @@ typedef enum Lufia2VideoHandoffScene {
     LUFIA2_VIDEO_HANDOFF_SCENE_OWN_FRAME = 0,
     LUFIA2_VIDEO_HANDOFF_SCENE_MAP_LOADING,
     LUFIA2_VIDEO_HANDOFF_SCENE_WIDE,
+    LUFIA2_VIDEO_HANDOFF_SCENE_WIDE_EFFECTS,
     LUFIA2_VIDEO_HANDOFF_SCENE_WIDE_MAP,
 } Lufia2VideoHandoffScene;
 
@@ -25,6 +26,7 @@ typedef struct Lufia2VideoHandoff {
     Lufia2VideoHandoffScene current_scene;
     bool previous_wide_scene;
     bool saved_scroll_tracks;
+    bool saved_full_frame_effects;
     bool frame_valid;
     bool holding;
     bool current_raster_effect;
