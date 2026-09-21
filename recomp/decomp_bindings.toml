@@ -1,0 +1,5 @@
+format = 1
+
+[[binding]]
+address = "83:BBF3"
+bridge = "Lufia2DecompBridge_BBF3"

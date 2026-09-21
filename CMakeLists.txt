@@ -6,6 +6,8 @@ set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+include("${CMAKE_SOURCE_DIR}/cmake/Lufia2Decomp.cmake")
+
 option(LUFIA2_ENABLE_PERF_AUDIT "Finite Vita performance audit; no AOT promotion" OFF)
 if(LUFIA2_ENABLE_PERF_AUDIT AND NOT VITA)
     message(FATAL_ERROR "LUFIA2_ENABLE_PERF_AUDIT currently supports the Vita host only")
@@ -238,6 +240,13 @@ endif()
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
+lufia2_prepare_decomp(
+    CFG_DIR "${CMAKE_SOURCE_DIR}/recomp"
+    OUTPUT_DIR "${CMAKE_BINARY_DIR}/generated/effective-cfg"
+    REPORT "${CMAKE_BINARY_DIR}/generated/decomp_coverage.json"
+    TEXT_REPORT "${CMAKE_BINARY_DIR}/generated/LUFIA2_FUNCTION_SOURCES.txt"
+    OUT_CFG_DIR LUFIA2_EFFECTIVE_CFG_DIR)
+
 # Full-width TGAs stay outside release artifacts.
 file(GLOB LUFIA2_BATTLE_MARGIN_AUTHORING CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/assets-src/battle_margins/battle_*.tga")
@@ -291,7 +300,7 @@ if(EXISTS "${LUFIA2_ROM}")
             "${Python3_EXECUTABLE}"
             "${SNESRECOMP_ROOT}/tools/v2_emit.py"
             --rom "${LUFIA2_ROM}"
-            --cfg-dir "${CMAKE_SOURCE_DIR}/recomp"
+            --cfg-dir "${LUFIA2_EFFECTIVE_CFG_DIR}"
             --out-dir "${LUFIA2_GENERATED_DIR}"
             --analysis-backend python
             --no-host-root-scan
@@ -647,6 +656,7 @@ target_link_libraries(Lufia2Recomp PRIVATE
     snesrecomp::runtime
     ${SNESRECOMP_RUNNER_LIBRARIES}
 )
+lufia2_add_decomp_bridge(Lufia2Recomp "${SNESRECOMP_ROOT}")
 
 lufia2_target_config_overlay(Lufia2Recomp "${SNESRECOMP_ROOT}")
 snesrecomp_platform_target_glsl_presets(Lufia2Recomp)
