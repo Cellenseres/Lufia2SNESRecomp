@@ -65,7 +65,12 @@ The executable is written to:
 
 ```text
 build\windows\Release\Lufia2Recomp.exe
+build\windows\Release\LUFIA2_FUNCTION_SOURCES.txt
 ```
+
+`LUFIA2_FUNCTION_SOURCES.txt` lists the standalone-decomp replacements used by
+that build, decomp candidates that stayed on static recomp fallback, and
+consumer-owned HLE overrides.
 
 You can also open `lufia2.sln` and build the Release configuration in Visual
 Studio.
@@ -106,6 +111,9 @@ production code and are always built; only their instrumentation switches:
 | `LUFIA2_ENABLE_PATCH_REPORTING` | patch counters and scheduler time every 120 boundaries |
 | `LUFIA2_ENABLE_PATCH_TESTS` | the contract selftests and their command-line entries |
 | `LUFIA2_ENABLE_PERF_AUDIT` | the finite Vita performance audit |
+| `LUFIA2_ENABLE_DECOMP` | use verified-and-bound standalone decomp replacements when available |
+| `LUFIA2_DECOMP_ROOT` | optional local `Lufia2Decomp` checkout; releases use the pinned submodule |
+| `LUFIA2_DECOMP_REFERENCE_ONLY` | expose the decomp library without activating native replacements |
 
 Errors are always reported.
 

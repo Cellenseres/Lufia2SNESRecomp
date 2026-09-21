@@ -106,6 +106,13 @@ endif()
 
 find_package(Python3 COMPONENTS Interpreter REQUIRED)
 
+lufia2_prepare_decomp(
+    CFG_DIR "${CMAKE_SOURCE_DIR}/recomp"
+    OUTPUT_DIR "${CMAKE_BINARY_DIR}/generated/effective-cfg"
+    REPORT "${CMAKE_BINARY_DIR}/generated/decomp_coverage.json"
+    TEXT_REPORT "${CMAKE_BINARY_DIR}/generated/LUFIA2_FUNCTION_SOURCES.txt"
+    OUT_CFG_DIR LUFIA2_EFFECTIVE_CFG_DIR)
+
 set(LUFIA2_GENERATED_DIR "${CMAKE_SOURCE_DIR}/src/gen")
 if(EXISTS "${LUFIA2_ROM}")
     file(SHA256 "${LUFIA2_ROM}" _rom_sha256)
@@ -131,7 +138,7 @@ if(EXISTS "${LUFIA2_ROM}")
             "${Python3_EXECUTABLE}"
             "${SNESRECOMP_ROOT}/tools/v2_emit.py"
             --rom "${LUFIA2_ROM}"
-            --cfg-dir "${CMAKE_SOURCE_DIR}/recomp"
+            --cfg-dir "${LUFIA2_EFFECTIVE_CFG_DIR}"
             --out-dir "${LUFIA2_GENERATED_DIR}"
             --analysis-backend python
             --no-host-root-scan
@@ -422,6 +429,7 @@ target_link_libraries(Lufia2Recomp PRIVATE
     snesrecomp::runtime
     ${SNESRECOMP_RUNNER_LIBRARIES}
 )
+lufia2_add_decomp_bridge(Lufia2Recomp "${SNESRECOMP_ROOT}")
 
 snesrecomp_target_mmx_config(Lufia2Recomp)
 snesrecomp_target_adapter_apply(TARGET Lufia2Recomp)
