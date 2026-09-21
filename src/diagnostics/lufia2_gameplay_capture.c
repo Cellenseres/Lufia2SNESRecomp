@@ -223,17 +223,27 @@ void L2CaptureCall(const CpuState *c, const Interp816 *i, uint32_t site,
     int which = key == 0x83c7f8 ? 0 : key == 0x83d508 ? 1 : -1;
     unsigned actor = 0;
     if (tracked < 0 || body || i->e) return;
-    if (s.calls == CALLS || s.target_count[tracked] >= (which >= 0 ? 16u : 8u)) return;
-    if (s.target_count[tracked] && s.frames - s.target_last[tracked] < 30) return;
 
+    /* Actor-target hit accounting must happen before snapshot throttling.
+     * Otherwise actor_index describes only whichever slot happened to pass
+     * the global time gate instead of the runtime actor distribution. */
     if (which >= 0) {
         if ((unsigned)i->dp + 0xa7u >= 0x2000u) return;
         actor = c->ram[i->dp + 0xa7u];
         ++s.actor_hits[which][actor];
         s.actor_last_seen[which][actor] = s.frames;
-        /* A time-only gate repeatedly selected the first eligible actor (8/0).
-         * Prefer less-recorded indices among actors seen in the last 30 frames.
-         * A disappeared actor must not block sampling in a new scene. */
+    }
+
+    if (s.calls == CALLS || s.target_count[tracked] >= (which >= 0 ? 16u : 8u)) return;
+
+    /* Generic targets are sampled over time. Actor targets instead use the
+     * per-index balancing below so multiple distinct slots in one update can
+     * be captured rather than always selecting the first slot every 30 frames. */
+    if (which < 0 && s.target_count[tracked] &&
+            s.frames - s.target_last[tracked] < 30)
+        return;
+
+    if (which >= 0) {
         unsigned least = s.actor_captured[which][actor];
         for (unsigned j=0; j<256; ++j)
             if (s.actor_hits[which][j] && s.frames-s.actor_last_seen[which][j] <= 30 &&
