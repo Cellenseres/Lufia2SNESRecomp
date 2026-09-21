@@ -17,8 +17,9 @@
 #define MAKE_DIR(p) mkdir(p, 0755)
 #endif
 
-enum { FRAMES = 900, CALLS = 32, RAM_SIZE = 0x20000,
-       HITS = 16384, EDGES = 4096, BUS = 65536, WAITS = 6, EXAMPLES = 16 };
+enum { FRAMES = 900, CALLS = 48, RAM_SIZE = 0x20000,
+       HITS = 16384, EDGES = 4096, BUS = 65536, WAITS = 6, EXAMPLES = 16,
+       TARGETS = 16 };
 extern Snes *g_snes;
 extern int snes_frame_counter;
 int lufia2_capture_active;
@@ -58,7 +59,8 @@ typedef struct Frame {
 static struct {
     Hit hit[HITS]; Edge edge[EDGES]; BusEvent bus[BUS]; Call call[CALLS];
     Wait wait[WAITS]; Frame frame[FRAMES];
-    unsigned frames, calls, buses, dropped, target_count[2], target_last[2];
+    unsigned frames, calls, buses, dropped, target_count[TARGETS], target_last[TARGETS];
+    uint32_t target[TARGETS]; unsigned target_total;
     uint64_t actor_hits[2][256];
     unsigned actor_captured[2][256], actor_last_seen[2][256];
     uint64_t instructions, begin_ns, before_insns, nmi_writes, non_opcode_steps;
@@ -75,6 +77,38 @@ static uint32_t canonical(uint32_t p) {
      * distinguishable: $80:0067 is not treated as immutable ROM. */
     if ((p & 0xffffu) >= 0x8000 && (p >> 16) < 0x40) p |= 0x800000;
     return p;
+}
+static void add_target(uint32_t pc) {
+    pc = canonical(pc & 0xffffffu);
+    for (unsigned n=0; n<s.target_total; ++n)
+        if (s.target[n] == pc) return;
+    if (s.target_total < TARGETS) s.target[s.target_total++] = pc;
+}
+static void parse_targets(const char *text) {
+    if (!text || !*text) return;
+    while (*text && s.target_total < TARGETS) {
+        char *end = NULL;
+        unsigned long value = strtoul(text, &end, 16);
+        if (end == text) {
+            while (*text && *text != ',') ++text;
+        } else {
+            add_target((uint32_t)value);
+            text = end;
+        }
+        while (*text == ',' || *text == ';' || *text == ' ' || *text == '\t') ++text;
+    }
+}
+static void configure_targets(void) {
+    const char *configured = getenv("SNESRECOMP_DECOMP_CAPTURE_TARGETS");
+    parse_targets(configured);
+    if (!s.target_total)
+        parse_targets("83C7F8,83D508,83C1B4,80E365,80E566");
+}
+static int target_index(uint32_t pc) {
+    pc = canonical(pc);
+    for (unsigned n=0; n<s.target_total; ++n)
+        if (s.target[n] == pc) return (int)n;
+    return -1;
 }
 static State state(const CpuState *c, const Interp816 *i, uint32_t pc) {
     State r = {0};
@@ -185,22 +219,29 @@ void L2CaptureCall(const CpuState *c, const Interp816 *i, uint32_t site,
         if (body && bounce) s.call[s.pending].native_child = 1;
         return;
     }
+    const int tracked = target_index(key);
     int which = key == 0x83c7f8 ? 0 : key == 0x83d508 ? 1 : -1;
-    if (which < 0 || body || i->e || (unsigned)i->dp + 0xa7u >= 0x2000u) return;
-    unsigned actor = c->ram[i->dp + 0xa7u];
-    ++s.actor_hits[which][actor];
-    s.actor_last_seen[which][actor] = s.frames;
-    if (s.calls == CALLS || s.target_count[which] >= 16) return;
-    if (s.target_count[which] && s.frames - s.target_last[which] < 30) return;
-    /* A time-only gate repeatedly selected the first eligible actor (8/0).
-     * Prefer less-recorded indices among actors seen in the last 30 frames.
-     * A disappeared actor must not block sampling in a new scene. */
-    unsigned least = s.actor_captured[which][actor];
-    for (unsigned j=0; j<256; ++j)
-        if (s.actor_hits[which][j] && s.frames-s.actor_last_seen[which][j] <= 30 &&
-                s.actor_captured[which][j] < least)
-            least = s.actor_captured[which][j];
-    if (s.actor_captured[which][actor] != least) return;
+    unsigned actor = 0;
+    if (tracked < 0 || body || i->e) return;
+    if (s.calls == CALLS || s.target_count[tracked] >= (which >= 0 ? 16u : 8u)) return;
+    if (s.target_count[tracked] && s.frames - s.target_last[tracked] < 30) return;
+
+    if (which >= 0) {
+        if ((unsigned)i->dp + 0xa7u >= 0x2000u) return;
+        actor = c->ram[i->dp + 0xa7u];
+        ++s.actor_hits[which][actor];
+        s.actor_last_seen[which][actor] = s.frames;
+        /* A time-only gate repeatedly selected the first eligible actor (8/0).
+         * Prefer less-recorded indices among actors seen in the last 30 frames.
+         * A disappeared actor must not block sampling in a new scene. */
+        unsigned least = s.actor_captured[which][actor];
+        for (unsigned j=0; j<256; ++j)
+            if (s.actor_hits[which][j] && s.frames-s.actor_last_seen[which][j] <= 30 &&
+                    s.actor_captured[which][j] < least)
+                least = s.actor_captured[which][j];
+        if (s.actor_captured[which][actor] != least) return;
+    }
+
     unsigned width = op == 0x22 ? 3 : 2;
     if ((unsigned)i->sp + width >= 0x2000) return; /* only native WRAM stack */
     Call *p = &s.call[s.calls];
@@ -216,8 +257,8 @@ void L2CaptureCall(const CpuState *c, const Interp816 *i, uint32_t site,
     memcpy(p->before, c->ram, RAM_SIZE);
     p->begin_ns = SDL_GetTicksNS();
     s.pending = (int)s.calls++;
-    ++s.target_count[which]; s.target_last[which]=s.frames;
-    ++s.actor_captured[which][actor];
+    ++s.target_count[tracked]; s.target_last[tracked]=s.frames;
+    if (which >= 0) ++s.actor_captured[which][actor];
 }
 void L2CaptureBus(uint32_t address, unsigned value, int write) {
     if (s.pending < 0) return;
@@ -294,10 +335,13 @@ static void stop(void) {
     } else ok=0;
     f=open_output("summary.jsonl","w");
     if(f) {
-        fprintf(f,"{\"schema\":\"lufia2 observational capture v1\",\"frames\":%u,"
-            "\"instructions\":%llu,\"calls\":%u,\"dropped\":%u,\"aborted\":%d,\"prior_io_ok\":%d,\"nmi_tick_writes\":%llu,\"non_opcode_steps\":%llu,\"sampler\":\"recent-actor-index-balanced-v2\"}\n",
+        fprintf(f,"{\"schema\":\"lufia2 observational capture v2\",\"frames\":%u,"
+            "\"instructions\":%llu,\"calls\":%u,\"dropped\":%u,\"aborted\":%d,\"prior_io_ok\":%d,\"nmi_tick_writes\":%llu,\"non_opcode_steps\":%llu,\"sampler\":\"configurable-function-targets-v1\"}\n",
             s.frames,(unsigned long long)s.instructions,s.calls,s.dropped,s.failed,ok,
             (unsigned long long)s.nmi_writes,(unsigned long long)s.non_opcode_steps);
+        for (unsigned n=0; n<s.target_total; ++n)
+            fprintf(f,"{\"kind\":\"capture_target\",\"target\":%u,\"captured\":%u}\n",
+                s.target[n],s.target_count[n]);
         for (unsigned t=0; t<2; ++t) for (unsigned j=0; j<256; ++j)
             if (s.actor_hits[t][j])
                 fprintf(f,"{\"kind\":\"actor_index\",\"target\":%u,\"index\":%u,\"calls\":%llu,\"captured\":%u}\n",
@@ -332,7 +376,7 @@ static void stop(void) {
 }
 void L2CaptureToggle(void) {
     if(lufia2_capture_active) { stop(); return; }
-    memset(&s,0,sizeof(s)); s.pending=-1;
+    memset(&s,0,sizeof(s)); s.pending=-1; configure_targets();
     if(MAKE_DIR("captures")!=0 && errno!=EEXIST) {
         fprintf(stderr,"[gameplay-capture] cannot create captures directory\n"); return;
     }
@@ -346,7 +390,8 @@ void L2CaptureToggle(void) {
     }
     if(suffix==10000) return;
     lufia2_capture_active=1;
-    fprintf(stderr,"[gameplay-capture] recording %s; Ctrl+Shift+F10 stops; cap=900 frames\n",s.directory);
+    fprintf(stderr,"[gameplay-capture] recording %s; Ctrl+Shift+F10 stops; cap=900 frames targets=%u\n",
+        s.directory,s.target_total);
 }
 void L2CaptureShutdown(void) { if(lufia2_capture_active) stop(); }
 void L2CaptureFrameBegin(uint32_t input) {

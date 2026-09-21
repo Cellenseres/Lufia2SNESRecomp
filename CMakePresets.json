@@ -25,6 +25,18 @@
       "name": "windows-release",
       "displayName": "Windows Release",
       "inherits": "windows"
+    },
+    {
+      "name": "windows-decomp-capture",
+      "displayName": "Windows Decomp Research Capture",
+      "inherits": "windows",
+      "binaryDir": "${sourceDir}/build/windows-decomp-capture",
+      "cacheVariables": {
+        "LUFIA2_ENABLE_GAMEPLAY_CAPTURE": "ON",
+        "LUFIA2_ENABLE_ACTOR_EARLY_RETURN": "OFF",
+        "LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD": "OFF",
+        "LUFIA2_DECOMP_REFERENCE_ONLY": "ON"
+      }
     }
   ],
   "buildPresets": [
@@ -39,6 +51,14 @@
     {
       "name": "windows-release",
       "configurePreset": "windows-release",
+      "configuration": "Release",
+      "targets": [
+        "Lufia2Recomp"
+      ]
+    },
+    {
+      "name": "windows-decomp-capture",
+      "configurePreset": "windows-decomp-capture",
       "configuration": "Release",
       "targets": [
         "Lufia2Recomp"
