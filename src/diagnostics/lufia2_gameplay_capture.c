@@ -346,7 +346,7 @@ static void stop(void) {
     f=open_output("summary.jsonl","w");
     if(f) {
         fprintf(f,"{\"schema\":\"lufia2 observational capture v2\",\"frames\":%u,"
-            "\"instructions\":%llu,\"calls\":%u,\"dropped\":%u,\"aborted\":%d,\"prior_io_ok\":%d,\"nmi_tick_writes\":%llu,\"non_opcode_steps\":%llu,\"sampler\":\"configurable-function-targets-v1\"}\n",
+            "\"instructions\":%llu,\"calls\":%u,\"dropped\":%u,\"aborted\":%d,\"prior_io_ok\":%d,\"nmi_tick_writes\":%llu,\"non_opcode_steps\":%llu,\"sampler\":\"configurable-function-targets-v2\"}\n",
             s.frames,(unsigned long long)s.instructions,s.calls,s.dropped,s.failed,ok,
             (unsigned long long)s.nmi_writes,(unsigned long long)s.non_opcode_steps);
         for (unsigned n=0; n<s.target_total; ++n)
