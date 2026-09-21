@@ -121,7 +121,7 @@ static void EnsureLoaded(void) {
 
     const char *path = getenv("LUFIA2_ROOM_DATA");
     if (!path || !*path)
-        path = "data/widescreen/lufia2_rooms.l2rooms";
+        path = "assets/widescreen/lufia2.l2rooms";
 
     if (!LoadFile(path)) {
         LUFIA2_LOG(

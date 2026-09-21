@@ -428,14 +428,14 @@ snesrecomp_target_adapter_apply(TARGET Lufia2Recomp)
 snesrecomp_platform_target_host_boot(Lufia2Recomp)
 snesrecomp_target_adapter_package(TARGET Lufia2Recomp
     APP_ID CELL00001 APP_NAME "Lufia II Recompiled" VERSION 01.50
-    FILE "${CMAKE_SOURCE_DIR}/data/widescreen/lufia2_rooms.l2rooms"
-         data/widescreen/lufia2_rooms.l2rooms)
+    FILE "${CMAKE_SOURCE_DIR}/assets/widescreen/lufia2.l2rooms"
+         assets/widescreen/lufia2.l2rooms)
 add_custom_command(TARGET Lufia2Recomp POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E make_directory
-        "$<TARGET_FILE_DIR:Lufia2Recomp>/data/widescreen"
+        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/widescreen"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-        "${CMAKE_SOURCE_DIR}/data/widescreen/lufia2_rooms.l2rooms"
-        "$<TARGET_FILE_DIR:Lufia2Recomp>/data/widescreen/lufia2_rooms.l2rooms"
+        "${CMAKE_SOURCE_DIR}/assets/widescreen/lufia2.l2rooms"
+        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/widescreen/lufia2.l2rooms"
 )
 
 if(WIN32 AND TARGET SDL3::SDL3-shared)
