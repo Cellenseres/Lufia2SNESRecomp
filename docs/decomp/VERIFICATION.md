@@ -43,3 +43,19 @@ consumer-bridge concern and is not claimed by this first semantic verifier.
 LoROM/WRAM reference bus and bounded `interp816` execution helper intended to
 be reusable by additional SNESRecomp projects. Game-specific adapters live in
 separate verifier translation units.
+
+
+## Consumer bridge verification
+
+The same `decomp-verify` target also runs a consumer-specific bridge check and
+writes:
+
+```text
+build/windows/generated/DECOMP_BRIDGE_VERIFY_REPORT.txt
+```
+
+For `$83:BBF3` this compares the SNESRecomp bridge against original 65816
+execution for normal-return paths and at both child-call boundaries. It checks
+the architectural CPU state, stack position, REP/SEP index-width behavior and
+the exact JSR target/source sites. This remains development-only and is not
+linked into the shipped game.

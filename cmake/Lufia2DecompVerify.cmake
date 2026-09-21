@@ -34,18 +34,37 @@ function(lufia2_add_decomp_verifier)
     target_link_libraries(Lufia2DecompVerify PRIVATE Lufia2::Decomp)
     target_compile_features(Lufia2DecompVerify PRIVATE c_std_11)
 
+    add_executable(Lufia2DecompBridgeVerify EXCLUDE_FROM_ALL
+        "${CMAKE_SOURCE_DIR}/tests/decomp_verify/snes_function_verify.c"
+        "${CMAKE_SOURCE_DIR}/tests/decomp_verify/lufia2_bbf3_bridge_verify.c"
+        "${CMAKE_SOURCE_DIR}/src/decomp_bridge/player_update_bridge.c"
+        "${VERIFY_SNESRECOMP_ROOT}/runner/src/snes/interp816.c")
+
+    target_include_directories(Lufia2DecompBridgeVerify PRIVATE
+        "${CMAKE_SOURCE_DIR}/tests/decomp_verify"
+        "${VERIFY_SNESRECOMP_ROOT}/runner/src"
+        "${VERIFY_SNESRECOMP_ROOT}/runner/src/snes")
+    target_link_libraries(Lufia2DecompBridgeVerify PRIVATE Lufia2::Decomp)
+    target_compile_features(Lufia2DecompBridgeVerify PRIVATE c_std_11)
+
     set(_report "${CMAKE_BINARY_DIR}/generated/DECOMP_VERIFY_REPORT.txt")
+    set(_bridge_report
+        "${CMAKE_BINARY_DIR}/generated/DECOMP_BRIDGE_VERIFY_REPORT.txt")
     add_custom_target(decomp-verify
         COMMAND "${CMAKE_COMMAND}" -E make_directory
             "${CMAKE_BINARY_DIR}/generated"
         COMMAND "$<TARGET_FILE:Lufia2DecompVerify>"
             "${VERIFY_ROM}"
             --report "${_report}"
-        DEPENDS Lufia2DecompVerify
+        COMMAND "$<TARGET_FILE:Lufia2DecompBridgeVerify>"
+            "${VERIFY_ROM}"
+            --report "${_bridge_report}"
+        DEPENDS Lufia2DecompVerify Lufia2DecompBridgeVerify
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
         COMMENT "Comparing native decomp semantics against original ROM code"
         VERBATIM)
 
     set_property(TARGET Lufia2DecompVerify PROPERTY FOLDER "Development")
+    set_property(TARGET Lufia2DecompBridgeVerify PROPERTY FOLDER "Development")
     set_property(TARGET decomp-verify PROPERTY FOLDER "Development")
 endfunction()
