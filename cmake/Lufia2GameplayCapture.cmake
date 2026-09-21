@@ -32,10 +32,10 @@ function(lufia2_prepare_gameplay_capture sources_var core_root)
             if (_l2_capture_opcode) L2_CAPTURE_CALL(cpu, &in, pc_before, target, op, has_body, bounce_ok);]=])
                 lufia2_capture_replace(_text [=[    return value;
 }
-static void bridge_bus_write]=] [=[    L2_CAPTURE_BUS(adr, value, 0);
+/* Diagnostic env gates, read once.]=] [=[    L2_CAPTURE_BUS(adr, value, 0);
     return value;
 }
-static void bridge_bus_write]=])
+/* Diagnostic env gates, read once.]=])
                 lufia2_capture_replace(_text [=[    cpu_write8(cpu, (uint8)((adr >> 16) & 0xFF), (uint16)(adr & 0xFFFF), val);]=] [=[    cpu_write8(cpu, (uint8)((adr >> 16) & 0xFF), (uint16)(adr & 0xFFFF), val);
     L2_CAPTURE_BUS(adr, val, 1);]=])
                 lufia2_capture_replace(_text [=[    *out = cpu_read16(cpu, (uint8)((adrl >> 16) & 0xFF), (uint16)(adrl & 0xFFFF));]=] [=[    *out = cpu_read16(cpu, (uint8)((adrl >> 16) & 0xFF), (uint16)(adrl & 0xFFFF));
