@@ -6,6 +6,8 @@ set(LUFIA2_DECOMP_ROOT "" CACHE PATH
     "Optional Lufia2Decomp checkout; otherwise use lib/lufia2-decomp")
 option(LUFIA2_DECOMP_REFERENCE_ONLY
     "Expose the decomp dependency without selecting native replacements" OFF)
+option(LUFIA2_DECOMP_ALLOW_DRAFT_REPLACEMENTS
+    "Allow explicitly opted-in draft replacements for runtime validation" ON)
 
 function(lufia2_write_decomp_fallback_report path reason)
     get_filename_component(_report_dir "${path}" DIRECTORY)
@@ -74,6 +76,9 @@ function(lufia2_prepare_decomp)
     if(LUFIA2_DECOMP_REFERENCE_ONLY)
         list(APPEND _args --reference-only)
     endif()
+    if(LUFIA2_DECOMP_ALLOW_DRAFT_REPLACEMENTS)
+        list(APPEND _args --allow-draft)
+    endif()
     execute_process(
         COMMAND
             "${CMAKE_COMMAND}" -E env "PYTHONDONTWRITEBYTECODE=1"
@@ -100,6 +105,9 @@ function(lufia2_prepare_decomp)
     if(LUFIA2_DECOMP_REFERENCE_ONLY)
         message(STATUS "Lufia2 decomp reference-only mode: replacements disabled")
     else()
+        if(LUFIA2_DECOMP_ALLOW_DRAFT_REPLACEMENTS)
+            message(STATUS "Lufia2 decomp draft validation: explicitly opted-in drafts enabled")
+        endif()
         message(STATUS "Lufia2 decomp selection report: ${DECOMP_REPORT}")
     endif()
 endfunction()

@@ -45,6 +45,7 @@ class Function:
 class Binding:
     address: str
     bridge: str
+    allow_draft: bool
 
 
 @dataclass(frozen=True)
@@ -175,13 +176,16 @@ def load_bindings(path: Path) -> list[Binding]:
             raise ManifestError(f"{context}: expected a table")
         address = _format_address(record.get("address"), context)
         bridge = _symbol(record.get("bridge"), context)
+        allow_draft = record.get("allow_draft", False)
+        if not isinstance(allow_draft, bool):
+            raise ManifestError(f"{context}: allow_draft must be a boolean")
         if address in addresses:
             raise ManifestError(f"{path}: duplicate binding address {address}")
         if bridge in bridges:
             raise ManifestError(f"{path}: duplicate bridge symbol {bridge}")
         addresses.add(address)
         bridges.add(bridge)
-        bindings.append(Binding(address, bridge))
+        bindings.append(Binding(address, bridge, allow_draft))
     return sorted(bindings, key=lambda item: item.address)
 
 
@@ -228,6 +232,7 @@ def render_text_report(report: dict) -> str:
         "not_verified": "metadata status is not verified",
         "verified_not_integrated": "verified, but no consumer binding exists",
         "reference_only": "reference-only mode disables native replacements",
+        "draft_not_enabled": "draft replacement is not enabled for runtime validation",
     }
     selected = report["selected"]
     fallbacks = [
@@ -248,9 +253,14 @@ def render_text_report(report: dict) -> str:
     ]
     if selected:
         for function in selected:
+            qualifier = (
+                " [draft runtime validation]"
+                if function["status"] == "draft"
+                else ""
+            )
             lines.append(
                 f"- ${function['address']} {function['name']} "
-                f"via {function['bridge']}"
+                f"via {function['bridge']}{qualifier}"
             )
     else:
         lines.append("- None")
@@ -306,6 +316,7 @@ def generate(
     report_path: Path,
     reference_only: bool = False,
     text_report_path: Path | None = None,
+    allow_draft: bool = False,
 ) -> dict:
     functions = load_functions(decomp_root / "metadata" / "functions.toml")
     bindings = load_bindings(bindings_path)
@@ -319,9 +330,16 @@ def generate(
     for function in functions:
         binding = binding_by_address.get(function.address)
         is_selected = (
-            function.status == "verified"
-            and binding is not None
+            binding is not None
             and not reference_only
+            and (
+                function.status == "verified"
+                or (
+                    allow_draft
+                    and function.status == "draft"
+                    and binding.allow_draft
+                )
+            )
         )
         if is_selected:
             if function.address in hand_hle:
@@ -339,10 +357,17 @@ def generate(
 
         if function.status == "verified" and binding is None:
             integration = "verified_not_integrated"
-        elif function.status != "verified":
-            integration = "not_verified"
         elif reference_only:
             integration = "reference_only"
+        elif (
+            function.status == "draft"
+            and binding is not None
+            and binding.allow_draft
+            and not allow_draft
+        ):
+            integration = "draft_not_enabled"
+        elif function.status != "verified" and not is_selected:
+            integration = "not_verified"
         else:
             integration = "selected"
         function_report.append(
@@ -390,6 +415,7 @@ def generate(
                 "address": function.address,
                 "bridge": binding.bridge,
                 "name": function.name,
+                "status": function.status,
             }
             for function, binding in selected
         ],
@@ -418,6 +444,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--report", type=Path, required=True)
     parser.add_argument("--text-report", type=Path)
     parser.add_argument("--reference-only", action="store_true")
+    parser.add_argument("--allow-draft", action="store_true")
     args = parser.parse_args(argv)
     try:
         generate(
@@ -428,6 +455,7 @@ def main(argv: list[str] | None = None) -> int:
             args.report,
             args.reference_only,
             args.text_report,
+            args.allow_draft,
         )
     except (ManifestError, OSError) as exc:
         print(f"decomp_manifest: error: {exc}", file=sys.stderr)
