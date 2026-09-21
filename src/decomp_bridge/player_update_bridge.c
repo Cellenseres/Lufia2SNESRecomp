@@ -21,15 +21,25 @@ static RecompReturn Lufia2BridgeRunChild(
 }
 
 static uint8_t Lufia2BridgeReadByte(void *context, uint16_t address) {
-    return cpu_read8((CpuState *)context, 0x00, address);
+    CpuState *cpu = (CpuState *)context;
+    return cpu_read8(cpu, cpu->DB, address);
 }
 
 static uint32_t Lufia2BridgePeekRtsTarget(CpuState *cpu) {
     const uint16_t pcl_address = (uint16_t)(cpu->S + 1);
     const uint16_t pch_address = (uint16_t)(cpu->S + 2);
-    const uint16_t return_minus_one = (uint16_t)(
-        cpu_read8(cpu, 0x00, pcl_address) |
-        ((uint16_t)cpu_read8(cpu, 0x00, pch_address) << 8));
+    const int32_t pcl_offset = cpu_wram_offset(0x00, pcl_address);
+    const int32_t pch_offset = cpu_wram_offset(0x00, pch_address);
+    uint16_t return_minus_one;
+
+    if (pcl_offset >= 0 && pch_offset >= 0) {
+        return_minus_one = (uint16_t)(
+            cpu->ram[pcl_offset] | ((uint16_t)cpu->ram[pch_offset] << 8));
+    } else {
+        return_minus_one = (uint16_t)(
+            cpu_read8(cpu, 0x00, pcl_address) |
+            ((uint16_t)cpu_read8(cpu, 0x00, pch_address) << 8));
+    }
     return ((uint32_t)cpu->PB << 16) |
            (uint16_t)(return_minus_one + 1);
 }
@@ -64,7 +74,8 @@ RecompReturn Lufia2DecompBridge_BBF3(CpuState *cpu) {
     };
     const uint16_t entry_s = cpu->S;
     const uint8_t entry_hrv = cpu->host_return_valid;
-    const uint32_t paired_return_pc = Lufia2BridgePeekRtsTarget(cpu);
+    const uint32_t paired_return_pc =
+        entry_hrv == 2 ? Lufia2BridgePeekRtsTarget(cpu) : 0xffffffffu;
     RecompReturn child_result = RECOMP_RETURN_NORMAL;
 
     Lufia2BridgeSetIndexWidth(cpu, 0);
@@ -76,10 +87,10 @@ RecompReturn Lufia2DecompBridge_BBF3(CpuState *cpu) {
     cpu_mirrors_to_p(cpu);
     switch (result.action) {
     case LUFIA2_PLAYER_SLOT_SPECIAL_CHILD:
-        child_result = Lufia2BridgeRunChild(cpu, 0x83bc28u, 0x83bc1bu);
+        child_result = Lufia2BridgeRunChild(cpu, 0x83bc28u, 0x83bc1du);
         break;
     case LUFIA2_PLAYER_SLOT_STANDARD_CHILD:
-        child_result = Lufia2BridgeRunChild(cpu, 0x83c1b4u, 0x83bc20u);
+        child_result = Lufia2BridgeRunChild(cpu, 0x83c1b4u, 0x83bc22u);
         break;
     case LUFIA2_PLAYER_SLOT_NO_CHILD:
         break;
