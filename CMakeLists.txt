@@ -241,11 +241,15 @@ find_package(Python3 COMPONENTS Interpreter REQUIRED)
 # Full-width TGAs stay outside release artifacts.
 file(GLOB LUFIA2_BATTLE_MARGIN_AUTHORING CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/assets-src/battle_margins/battle_*.tga")
+set(LUFIA2_WIDESCREEN_ASSET_DIR
+    "${CMAKE_SOURCE_DIR}/assets/widescreen")
+set(LUFIA2_ROOM_DATA
+    "${LUFIA2_WIDESCREEN_ASSET_DIR}/lufia2.l2rooms")
 set(LUFIA2_MARGIN_PACK
-    "${CMAKE_SOURCE_DIR}/assets/lufia2_margins.l2mp")
+    "${LUFIA2_WIDESCREEN_ASSET_DIR}/lufia2.l2mp")
 if(LUFIA2_BATTLE_MARGIN_AUTHORING)
     set(LUFIA2_MARGIN_PACK
-        "${CMAKE_BINARY_DIR}/assets/lufia2_margins.l2mp")
+        "${CMAKE_BINARY_DIR}/assets/widescreen/lufia2.l2mp")
     add_custom_command(
         OUTPUT "${LUFIA2_MARGIN_PACK}"
         COMMAND "${Python3_EXECUTABLE}"
@@ -659,10 +663,13 @@ snesrecomp_platform_target_launcher_overlays(
 
 add_custom_command(TARGET Lufia2Recomp POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E make_directory
-        "$<TARGET_FILE_DIR:Lufia2Recomp>/data/widescreen"
+        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/widescreen"
     COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-        "${CMAKE_SOURCE_DIR}/data/widescreen/lufia2_rooms.l2rooms"
-        "$<TARGET_FILE_DIR:Lufia2Recomp>/data/widescreen/lufia2_rooms.l2rooms"
+        "${LUFIA2_ROOM_DATA}"
+        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/widescreen/lufia2.l2rooms"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+        "${LUFIA2_MARGIN_PACK}"
+        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/widescreen/lufia2.l2mp"
 )
 
 # Project-owned presentation presets. They remain ordinary runtime assets;
@@ -673,14 +680,6 @@ add_custom_command(TARGET Lufia2Recomp POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
         "${CMAKE_SOURCE_DIR}/assets/shaders"
         "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/shaders"
-)
-
-add_custom_command(TARGET Lufia2Recomp POST_BUILD
-    COMMAND "${CMAKE_COMMAND}" -E make_directory
-        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets"
-    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
-        "${LUFIA2_MARGIN_PACK}"
-        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/lufia2_margins.l2mp"
 )
 
 # Intro margins use their existing compositor.

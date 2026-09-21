@@ -674,7 +674,7 @@ int main(int argc, char **argv) {
 
     char room_path[512];
     if (snesrecomp_host_resolve_data_file(&kLufia2HostGame,
-            "lufia2_rooms.l2rooms", "data/widescreen/lufia2_rooms.l2rooms",
+            "lufia2.l2rooms", "assets/widescreen/lufia2.l2rooms",
             room_path, sizeof room_path))
         snesrecomp_host_set_environment("LUFIA2_ROOM_DATA", room_path);
     Lufia2MapLoadInstallHooks();

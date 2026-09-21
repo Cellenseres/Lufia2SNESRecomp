@@ -65,7 +65,7 @@
     "lib/snesrecomp-platform/include/snesrecomp_platform/msu_pack.h": "79ebe92da48882f16e3fe4e312757b992612a415c2271cf5edd5cbd35a72bce3",
     "lib/snesrecomp-platform/include/snesrecomp_platform/presenter.h": "39f65c311770fbbed05813187653d71f3e486310c08b61a531c515bd0d34b37c",
     "lib/snesrecomp-platform/include/snesrecomp_platform/runtime_policy.h": "a28a015286ce7c833bda7321ec78d5725e70ce71050d45f78695314475dce744",
-    "data/widescreen/lufia2_rooms.l2rooms": "057a9e8c20509873c6ef32b6f14bccd71ae25865dcba5e5aed3ff874a615f0a9"
+    "assets/widescreen/lufia2.l2rooms": "057a9e8c20509873c6ef32b6f14bccd71ae25865dcba5e5aed3ff874a615f0a9"
   },
   "native_sources_from": "G:\\Development\\SNESRecomp\\Lufia2SNESRecomp",
   "policy": "Historical import policy: Windows used unchanged CleanMain source/library trees; Vita initially used clean serial guest/PPU execution plus separate host/GXM integration.",

@@ -19,7 +19,7 @@ static uint32_t s_last_failed_asset = UINT32_MAX;
 static bool LoadOnce(void) {
     char path[1024];
     char error[256];
-    const char *leaf = "assets/lufia2_margins.l2mp";
+    const char *leaf = "assets/widescreen/lufia2.l2mp";
     s_attempted = true;
     if (!snesrecomp_exe_dir_path(leaf, path, sizeof path))
         snprintf(path, sizeof path, "%s", leaf);

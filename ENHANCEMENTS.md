@@ -14,7 +14,7 @@ Generated files under `src/gen/` are never edited by hand.
 
 ## Widescreen room-data coverage
 
-`data/widescreen/lufia2_rooms.l2rooms` currently contains 76 authored maps,
+`assets/widescreen/lufia2.l2rooms` currently contains 76 authored maps,
 224 rooms, and 373 directional room transitions. Story-sequence coverage
 reaches North Dungeon B4 (`0x49`), with these authored location groups:
 
