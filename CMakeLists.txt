@@ -247,6 +247,7 @@ lufia2_prepare_decomp(
     TEXT_REPORT "${CMAKE_BINARY_DIR}/generated/LUFIA2_FUNCTION_SOURCES.txt"
     OUT_CFG_DIR LUFIA2_EFFECTIVE_CFG_DIR)
 
+
 # Full-width TGAs stay outside release artifacts.
 file(GLOB LUFIA2_BATTLE_MARGIN_AUTHORING CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/assets-src/battle_margins/battle_*.tga")
@@ -319,35 +320,6 @@ elseif(NOT EXISTS "${CMAKE_SOURCE_DIR}/src/gen/dispatch_v2.c")
         "root or set LUFIA2_ROM to its path.")
 endif()
 
-set(SDL_SHARED ON CACHE BOOL "" FORCE)
-set(SDL_STATIC OFF CACHE BOOL "" FORCE)
-set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
-set(SDL_TESTS OFF CACHE BOOL "" FORCE)
-set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
-set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
-
-if(LUFIA2_SDL3_ROOT)
-    set(SDL3_SOURCE_DIR "${LUFIA2_SDL3_ROOT}")
-else()
-    set(SDL3_SOURCE_DIR "${_deps_root}/SDL3-src")
-    lufia2_download_source(
-        "https://github.com/libsdl-org/SDL/releases/download/release-${LUFIA2_SDL_VERSION}/SDL3-${LUFIA2_SDL_VERSION}.tar.gz"
-        "SDL3-${LUFIA2_SDL_VERSION}.tar.gz"
-        "SDL3-${LUFIA2_SDL_VERSION}"
-        "${SDL3_SOURCE_DIR}"
-        "CMakeLists.txt"
-    )
-endif()
-
-if(NOT EXISTS "${SDL3_SOURCE_DIR}/CMakeLists.txt")
-    message(FATAL_ERROR "Invalid SDL3 source tree: ${SDL3_SOURCE_DIR}")
-endif()
-
-add_subdirectory(
-    "${SDL3_SOURCE_DIR}"
-    "${CMAKE_BINARY_DIR}/_deps/sdl3-build"
-    EXCLUDE_FROM_ALL
-)
 
 # Project-owned, game-neutral host-platform layer. Its runtime policy target is
 # SDL-free; its presentation target consumes only public SDL types and raw video
