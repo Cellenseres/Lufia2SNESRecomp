@@ -247,6 +247,8 @@ lufia2_prepare_decomp(
     TEXT_REPORT "${CMAKE_BINARY_DIR}/generated/LUFIA2_FUNCTION_SOURCES.txt"
     OUT_CFG_DIR LUFIA2_EFFECTIVE_CFG_DIR)
 
+include("${CMAKE_SOURCE_DIR}/cmake/Lufia2DecompVerify.cmake")
+
 # Full-width TGAs stay outside release artifacts.
 file(GLOB LUFIA2_BATTLE_MARGIN_AUTHORING CONFIGURE_DEPENDS
     "${CMAKE_SOURCE_DIR}/assets-src/battle_margins/battle_*.tga")
@@ -318,6 +320,10 @@ elseif(NOT EXISTS "${CMAKE_SOURCE_DIR}/src/gen/dispatch_v2.c")
         "lufia2.sfc was not found. Place the supported ROM in the repository "
         "root or set LUFIA2_ROM to its path.")
 endif()
+
+lufia2_add_decomp_verifier(
+    SNESRECOMP_ROOT "${SNESRECOMP_ROOT}"
+    ROM "${LUFIA2_ROM}")
 
 set(SDL_SHARED ON CACHE BOOL "" FORCE)
 set(SDL_STATIC OFF CACHE BOOL "" FORCE)
