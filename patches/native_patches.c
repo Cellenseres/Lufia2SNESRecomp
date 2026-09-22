@@ -250,7 +250,7 @@ void Lufia2NativePatchesInit(void) {
         "LUFIA2_ACTOR_D508_EARLY_RETURN", 1);
 #ifdef LUFIA2_ENABLE_PATCH_REPORTING
     fprintf(stderr,
-        "[actor-fastpath] revision=c7f8-step2+d508-step1 "
+        "[actor-fastpath] revision=c7f8-step3+d508-step1 "
         "c7f8=%s d508=%s path=write-free-early-return bus=preserved\n",
         lufia2_actor_early_return_enabled ? "native" : "original",
         lufia2_actor_d508_early_return_enabled ? "native" : "original");
