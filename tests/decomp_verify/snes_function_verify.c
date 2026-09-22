@@ -122,7 +122,11 @@ uint8_t SnesVerifyBusRead(void *opaque, uint32_t address) {
     size_t rom_offset;
     uint8_t value = 0xffu;
 
-    if (wram_offset >= 0)
+    if ((address & 0xffffffu) == 0x004216u)
+        value = (uint8_t)bus->multiply_result;
+    else if ((address & 0xffffffu) == 0x004217u)
+        value = (uint8_t)(bus->multiply_result >> 8);
+    else if (wram_offset >= 0)
         value = bus->wram[wram_offset];
     else if (LoRomOffset(bus, address, &rom_offset))
         value = bus->rom[rom_offset];
@@ -135,8 +139,15 @@ void SnesVerifyBusWrite(void *opaque, uint32_t address, uint8_t value) {
     SnesVerifyBus *bus = (SnesVerifyBus *)opaque;
     const int32_t wram_offset = WramOffset(address);
 
-    if (wram_offset >= 0)
+    if ((address & 0xffffffu) == 0x004202u) {
+        bus->multiply_a = value;
+    } else if ((address & 0xffffffu) == 0x004203u) {
+        bus->multiply_b = value;
+        bus->multiply_result =
+            (uint16_t)((uint16_t)bus->multiply_a * value);
+    } else if (wram_offset >= 0) {
         bus->wram[wram_offset] = value;
+    }
     Trace(bus, address, value, true);
 }
 

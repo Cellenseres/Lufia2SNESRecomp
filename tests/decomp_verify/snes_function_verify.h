@@ -29,6 +29,9 @@ typedef struct SnesVerifyBus {
     SnesVerifyBusEvent events[SNES_VERIFY_MAX_BUS_EVENTS];
     size_t event_count;
     bool event_overflow;
+    uint8_t multiply_a;
+    uint8_t multiply_b;
+    uint16_t multiply_result;
 } SnesVerifyBus;
 
 bool SnesVerifyLoadFile(
