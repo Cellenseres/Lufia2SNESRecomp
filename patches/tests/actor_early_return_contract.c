@@ -103,7 +103,7 @@ static void InitCase(Interp816 *in, TestBus *bus, uint8_t actor,
 static int CheckPositiveCases(void) {
     static const unsigned seeds[] = {0,1,2,4,8,16,32,63};
     unsigned cases = 0;
-    for (unsigned actor = 8; actor <= 0x78; actor += 8) {
+    for (unsigned actor = 1; actor < 0x28; ++actor) {
         for (unsigned flags = 0; flags <= 0x30; flags += 0x10) {
             for (unsigned state = 0; state <= 0xF8; state += 0x78) {
                 for (unsigned si = 0; si < sizeof(seeds) / sizeof(seeds[0]); ++si) {
@@ -201,7 +201,7 @@ static int CheckGuards(void) {
     REJECT(in.e = true);
     REJECT(in.nmiWanted = true);
     REJECT(bus.ram[0x00A7] = 0);
-    REJECT(bus.ram[0x00A7] = 9);
+    REJECT(bus.ram[0x00A7] = 0x28);
     REJECT(bus.ram[0x062A] = 0x80);
     REJECT(bus.ram[0x062A] = 0x08);
     REJECT(bus.ram[0x062A] = 0x40);
