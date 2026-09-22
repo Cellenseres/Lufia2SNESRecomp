@@ -47,6 +47,18 @@ function(lufia2_add_decomp_verifier)
     target_link_libraries(Lufia2DecompBridgeVerify PRIVATE Lufia2::Decomp)
     target_compile_features(Lufia2DecompBridgeVerify PRIVATE c_std_11)
 
+
+    add_executable(Lufia2ActorDispatchVerify EXCLUDE_FROM_ALL
+        "${CMAKE_SOURCE_DIR}/tests/decomp_verify/snes_function_verify.c"
+        "${CMAKE_SOURCE_DIR}/tests/decomp_verify/lufia2_actor_dispatch_verify.c"
+        "${VERIFY_SNESRECOMP_ROOT}/runner/src/snes/interp816.c")
+
+    target_include_directories(Lufia2ActorDispatchVerify PRIVATE
+        "${CMAKE_SOURCE_DIR}/tests/decomp_verify"
+        "${VERIFY_SNESRECOMP_ROOT}/runner/src/snes")
+    target_link_libraries(Lufia2ActorDispatchVerify PRIVATE Lufia2::Decomp)
+    target_compile_features(Lufia2ActorDispatchVerify PRIVATE c_std_11)
+
     set(_report "${CMAKE_BINARY_DIR}/generated/DECOMP_VERIFY_REPORT.txt")
     set(_bridge_report
         "${CMAKE_BINARY_DIR}/generated/DECOMP_BRIDGE_VERIFY_REPORT.txt")
@@ -59,12 +71,16 @@ function(lufia2_add_decomp_verifier)
         COMMAND "$<TARGET_FILE:Lufia2DecompBridgeVerify>"
             "${VERIFY_ROM}"
             --report "${_bridge_report}"
+        COMMAND "$<TARGET_FILE:Lufia2ActorDispatchVerify>"
+            "${VERIFY_ROM}"
         DEPENDS Lufia2DecompVerify Lufia2DecompBridgeVerify
+            Lufia2ActorDispatchVerify
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
         COMMENT "Comparing native decomp semantics against original ROM code"
         VERBATIM)
 
     set_property(TARGET Lufia2DecompVerify PROPERTY FOLDER "Development")
     set_property(TARGET Lufia2DecompBridgeVerify PROPERTY FOLDER "Development")
+    set_property(TARGET Lufia2ActorDispatchVerify PROPERTY FOLDER "Development")
     set_property(TARGET decomp-verify PROPERTY FOLDER "Development")
 endfunction()

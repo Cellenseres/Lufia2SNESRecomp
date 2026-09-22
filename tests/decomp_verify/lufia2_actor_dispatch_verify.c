@@ -1,0 +1,438 @@
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "interp816.h"
+#include "lufia2/actor_frontend.h"
+#include "snes_function_verify.h"
+
+enum {
+    LUFIA2_ROM_SIZE = 0x280000,
+    PRIMARY_DISPATCH_PC = 0x83c83c,
+    SECONDARY_DISPATCH_PC = 0x83d59a,
+    TEST_STACK = 0x1ff0,
+    TEST_SCRIPT = 0x3000,
+    PRIMARY_CASES_PER_OPCODE = 8,
+    SECONDARY_CASES_PER_OPCODE = 8,
+};
+
+typedef struct NativeMemory {
+    SnesVerifyBus *bus;
+} NativeMemory;
+
+static uint8_t NativeRead(void *opaque, uint32_t address) {
+    NativeMemory *memory = (NativeMemory *)opaque;
+    return SnesVerifyBusRead(memory->bus, address);
+}
+
+static void NativeWrite(void *opaque, uint32_t address, uint8_t value) {
+    NativeMemory *memory = (NativeMemory *)opaque;
+    SnesVerifyBusWrite(memory->bus, address, value);
+}
+
+static size_t LoRomOffset(uint32_t address) {
+    const uint8_t bank = (uint8_t)(address >> 16);
+    const uint16_t offset = (uint16_t)address;
+    return ((size_t)(bank & 0x7fu) << 15) | (offset & 0x7fffu);
+}
+
+static uint8_t Rom8(const SnesVerifyBus *bus, uint32_t address) {
+    const size_t offset = LoRomOffset(address);
+    return offset < bus->rom_size ? bus->rom[offset] : 0xffu;
+}
+
+static uint16_t Rom16(const SnesVerifyBus *bus, uint32_t address) {
+    const uint8_t lo = Rom8(bus, address);
+    const uint32_t hi_address =
+        (address & 0xff0000u) | (uint16_t)((uint16_t)address + 1u);
+    return (uint16_t)(lo | ((uint16_t)Rom8(bus, hi_address) << 8));
+}
+
+static uint32_t PrimaryHandler(const SnesVerifyBus *bus, uint8_t opcode) {
+    const uint8_t index = (uint8_t)(opcode << 1);
+    const uint16_t target = Rom16(bus, 0x83d467u + index);
+    return 0x830000u | target;
+}
+
+static uint32_t SecondaryHandler(const SnesVerifyBus *bus, uint8_t opcode) {
+    const uint16_t first = Rom16(
+        bus, 0x83df17u + (uint16_t)((opcode >> 4) * 2u));
+    uint16_t table = 0;
+
+    if (first == 0xd5d4u)
+        table = 0xdf37u;
+    else if (first == 0xd5e0u)
+        table = 0xdf57u;
+    else if (first == 0xd5ecu)
+        table = 0xdf77u;
+    else
+        return 0x830000u | first;
+
+    return 0x830000u |
+           Rom16(bus, 0x830000u |
+               (uint16_t)(table + ((opcode & 0x0fu) * 2u)));
+}
+
+static bool Poke16(SnesVerifyBus *bus, uint32_t address, uint16_t value) {
+    return SnesVerifyBusPoke(bus, address, (uint8_t)value) &&
+           SnesVerifyBusPoke(
+               bus, address + 1u, (uint8_t)(value >> 8));
+}
+
+static void InitInterp(
+    Interp816 *cpu,
+    uint32_t pc,
+    const Lufia2ActorFrontendCpu *input) {
+    cpu->a = input->accumulator;
+    cpu->x = input->x;
+    cpu->y = input->y;
+    cpu->sp = input->stack;
+    cpu->pc = (uint16_t)pc;
+    cpu->dp = input->direct_page;
+    cpu->k = input->program_bank;
+    cpu->db = input->data_bank;
+    cpu->c = input->carry != 0;
+    cpu->z = input->zero != 0;
+    cpu->n = input->negative != 0;
+    cpu->v = false;
+    cpu->d = false;
+    cpu->i = false;
+    cpu->mf = input->accumulator_is_8_bit != 0;
+    cpu->xf = input->index_is_8_bit != 0;
+    cpu->e = false;
+    cpu->irqWanted = false;
+    cpu->nmiWanted = false;
+    cpu->waiting = false;
+    cpu->stopped = false;
+    interp816_set_brk_hook_enabled(cpu, false);
+}
+
+static bool SameState(
+    const Lufia2ActorFrontendCpu *native, const Interp816 *reference) {
+    return native->accumulator == reference->a &&
+           native->x == reference->x &&
+           native->y == reference->y &&
+           native->stack == reference->sp &&
+           native->direct_page == reference->dp &&
+           native->data_bank == reference->db &&
+           native->program_bank == reference->k &&
+           native->carry == (uint8_t)reference->c &&
+           native->zero == (uint8_t)reference->z &&
+           native->negative == (uint8_t)reference->n &&
+           native->accumulator_is_8_bit == (uint8_t)reference->mf &&
+           native->index_is_8_bit == (uint8_t)reference->xf;
+}
+
+static bool SeedPrimary(
+    SnesVerifyBus *bus,
+    unsigned variant,
+    uint8_t opcode,
+    Lufia2ActorFrontendCpu *input) {
+    const uint8_t slot =
+        (uint8_t)((variant * 7u + opcode) % 40u);
+    const uint16_t record = (uint16_t)(slot * 3u);
+    const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
+
+    memset(bus->wram, 0, SNES_VERIFY_WRAM_SIZE);
+    memset(input, 0, sizeof(*input));
+    input->accumulator = (uint16_t)(0xa500u | opcode);
+    input->x = slot;
+    input->y = (uint16_t)(variant * 11u);
+    input->stack = TEST_STACK;
+    input->direct_page = dp;
+    input->data_bank = 0x83;
+    input->program_bank = 0x83;
+    input->carry = variant & 1u;
+    input->zero = (variant >> 1) & 1u;
+    input->negative = (variant >> 2) & 1u;
+    input->accumulator_is_8_bit = 1;
+    input->index_is_8_bit = 1;
+
+    return SnesVerifyBusPoke(
+               bus, 0x830736u + slot, (uint8_t)(variant * 19u)) &&
+           Poke16(bus, dp + 0x00abu, record) &&
+           Poke16(bus, dp + 0x002au,
+               (uint16_t)(0x5a00u | variant)) &&
+           Poke16(bus, 0x7fe506u + record, TEST_SCRIPT) &&
+           SnesVerifyBusPoke(
+               bus, 0x7fe508u + record, 0x7eu) &&
+           SnesVerifyBusPoke(
+               bus, 0x7e0000u + TEST_SCRIPT, opcode);
+}
+
+static bool SeedSecondary(
+    SnesVerifyBus *bus,
+    unsigned variant,
+    uint8_t opcode,
+    Lufia2ActorFrontendCpu *input) {
+    const uint8_t slot = (variant & 3u) == 0 ? 0u :
+        (uint8_t)((variant * 5u + opcode) % 39u + 1u);
+    const uint16_t record = (uint16_t)(slot * 3u);
+    const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
+
+    memset(bus->wram, 0, SNES_VERIFY_WRAM_SIZE);
+    memset(input, 0, sizeof(*input));
+    input->accumulator =
+        (uint16_t)(0x3c00u | (opcode ^ 0x5au));
+    input->x = slot;
+    input->y = (uint16_t)(variant * 13u);
+    input->stack = TEST_STACK;
+    input->direct_page = dp;
+    input->data_bank = 0x83;
+    input->program_bank = 0x83;
+    input->carry = variant & 1u;
+    input->zero = (variant >> 1) & 1u;
+    input->negative = (variant >> 2) & 1u;
+    input->accumulator_is_8_bit = 1;
+    input->index_is_8_bit = (variant & 1u) ? 0u : 1u;
+
+    return SnesVerifyBusPoke(bus, dp + 0x00a7u, slot) &&
+           SnesVerifyBusPoke(bus, dp + 0x00a8u, 0) &&
+           Poke16(bus, dp + 0x00abu, record) &&
+           SnesVerifyBusPoke(bus, dp + 0x0047u,
+               (variant & 2u) ? 0xc0u : 0x40u) &&
+           SnesVerifyBusPoke(bus, dp + 0x004bu,
+               (variant & 4u) ? 0xc0u : 0x80u) &&
+           Poke16(bus, 0x7fe3eeu + record, TEST_SCRIPT) &&
+           SnesVerifyBusPoke(
+               bus, 0x7fe3f0u + record, 0x7eu) &&
+           SnesVerifyBusPoke(
+               bus, 0x7e0000u + TEST_SCRIPT, opcode);
+}
+
+static bool RunPrimaryCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned variant,
+    uint8_t opcode,
+    unsigned case_index) {
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    Lufia2ActorScriptDispatchResult result;
+    uint32_t target;
+    unsigned instructions = 0;
+
+    if (!SeedPrimary(bus, variant, opcode, &input))
+        return false;
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    SnesVerifyBusResetTrace(bus);
+    result = Lufia2ActorPrimaryScriptDispatch(&memory, &native);
+    target = PrimaryHandler(bus, opcode);
+    if (result.opcode != opcode || result.handler_pc != target) {
+        fprintf(stderr,
+            "FAIL primary case %u: opcode=%02X handler=%06X/%06X\n",
+            case_index, opcode, result.handler_pc, target);
+        return false;
+    }
+
+    {
+        uint8_t *native_wram =
+            (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+        int stop;
+        if (!native_wram)
+            return false;
+        memcpy(
+            native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+        memcpy(
+            bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+        InitInterp(reference, PRIMARY_DISPATCH_PC, &input);
+        SnesVerifyBusResetTrace(bus);
+        stop = SnesVerifyRunUntil(
+            reference, &target, 1, 96, &instructions);
+        if (stop != 0 ||
+            !SameState(&native, reference) ||
+            memcmp(
+                native_wram, bus->wram,
+                SNES_VERIFY_WRAM_SIZE) != 0) {
+            fprintf(stderr,
+                "FAIL primary case %u: opcode=%02X stop=%d "
+                "insns=%u A=%04X/%04X X=%04X/%04X "
+                "Y=%04X/%04X S=%04X/%04X DB=%02X/%02X "
+                "M=%u/%u Xf=%u/%u\n",
+                case_index, opcode, stop, instructions,
+                native.accumulator, reference->a,
+                native.x, reference->x,
+                native.y, reference->y,
+                native.stack, reference->sp,
+                native.data_bank, reference->db,
+                native.accumulator_is_8_bit, reference->mf,
+                native.index_is_8_bit, reference->xf);
+            free(native_wram);
+            return false;
+        }
+        free(native_wram);
+    }
+    return true;
+}
+
+static bool RunSecondaryCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned variant,
+    uint8_t opcode,
+    unsigned case_index) {
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    Lufia2ActorScriptDispatchResult result;
+    uint32_t target;
+    unsigned instructions = 0;
+
+    if (!SeedSecondary(bus, variant, opcode, &input))
+        return false;
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    SnesVerifyBusResetTrace(bus);
+    result =
+        Lufia2ActorSecondaryScriptDispatch(&memory, &native);
+    target = SecondaryHandler(bus, opcode);
+    if (result.opcode != opcode || result.handler_pc != target) {
+        fprintf(stderr,
+            "FAIL secondary case %u: opcode=%02X "
+            "handler=%06X/%06X\n",
+            case_index, opcode, result.handler_pc, target);
+        return false;
+    }
+
+    {
+        uint8_t *native_wram =
+            (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+        int stop;
+        if (!native_wram)
+            return false;
+        memcpy(
+            native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+        memcpy(
+            bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+        InitInterp(reference, SECONDARY_DISPATCH_PC, &input);
+        SnesVerifyBusResetTrace(bus);
+        stop = SnesVerifyRunUntil(
+            reference, &target, 1, 128, &instructions);
+        if (stop != 0 ||
+            !SameState(&native, reference) ||
+            memcmp(
+                native_wram, bus->wram,
+                SNES_VERIFY_WRAM_SIZE) != 0) {
+            fprintf(stderr,
+                "FAIL secondary case %u: opcode=%02X stop=%d "
+                "insns=%u A=%04X/%04X X=%04X/%04X "
+                "Y=%04X/%04X S=%04X/%04X DB=%02X/%02X "
+                "M=%u/%u Xf=%u/%u\n",
+                case_index, opcode, stop, instructions,
+                native.accumulator, reference->a,
+                native.x, reference->x,
+                native.y, reference->y,
+                native.stack, reference->sp,
+                native.data_bank, reference->db,
+                native.accumulator_is_8_bit, reference->mf,
+                native.index_is_8_bit, reference->xf);
+            free(native_wram);
+            return false;
+        }
+        free(native_wram);
+    }
+    return true;
+}
+
+int interp816_opcode_hook(uint32_t address) {
+    (void)address;
+    return 0;
+}
+
+int main(int argc, char **argv) {
+    const char *rom_path;
+    uint8_t *rom = NULL;
+    uint8_t *initial = NULL;
+    size_t rom_size = 0;
+    SnesVerifyBus bus;
+    Interp816 *reference = NULL;
+    unsigned primary_passed = 0;
+    unsigned secondary_passed = 0;
+    unsigned failed = 0;
+    unsigned case_index = 0;
+    bool bus_initialized = false;
+
+    if (argc < 2) {
+        fprintf(stderr, "usage: %s <lufia2.sfc>\n", argv[0]);
+        return 2;
+    }
+    rom_path = argv[1];
+
+    printf("Lufia II actor script-dispatch verifier\n");
+    printf("=======================================\n\n");
+
+    if (!SnesVerifyLoadFile(rom_path, &rom, &rom_size) ||
+        rom_size != LUFIA2_ROM_SIZE ||
+        !SnesVerifyBusInit(&bus, rom, rom_size)) {
+        fprintf(stderr,
+            "ERROR: reference ROM/bus initialization failed\n");
+        failed = 1;
+        goto done;
+    }
+    bus_initialized = true;
+    initial = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    reference =
+        interp816_init(&bus, SnesVerifyBusRead, SnesVerifyBusWrite);
+    if (!initial || !reference) {
+        fprintf(stderr, "ERROR: verifier allocation failed\n");
+        failed = 1;
+        goto done;
+    }
+
+    for (unsigned opcode = 0;
+         opcode < 256 && failed < 20; ++opcode) {
+        for (unsigned variant = 0;
+             variant < PRIMARY_CASES_PER_OPCODE && failed < 20;
+             ++variant, ++case_index) {
+            if (RunPrimaryCase(
+                    &bus, reference, initial, variant,
+                    (uint8_t)opcode, case_index))
+                ++primary_passed;
+            else
+                ++failed;
+        }
+    }
+
+    case_index = 0;
+    for (unsigned opcode = 0;
+         opcode < 256 && failed < 20; ++opcode) {
+        for (unsigned variant = 0;
+             variant < SECONDARY_CASES_PER_OPCODE && failed < 20;
+             ++variant, ++case_index) {
+            if (RunSecondaryCase(
+                    &bus, reference, initial, variant,
+                    (uint8_t)opcode, case_index))
+                ++secondary_passed;
+            else
+                ++failed;
+        }
+    }
+
+    printf("$83:C83C primary dispatch cases passed:   %u / %u\n",
+        primary_passed, 256u * PRIMARY_CASES_PER_OPCODE);
+    printf("$83:D59A secondary dispatch cases passed: %u / %u\n",
+        secondary_passed, 256u * SECONDARY_CASES_PER_OPCODE);
+    printf("failures: %u\n", failed);
+    printf(failed
+        ? "RESULT: FAIL - actor dispatch mismatch found\n"
+        : "RESULT: PASS - actor dispatch prefixes matched original ROM\n");
+
+done:
+    if (reference)
+        interp816_free(reference);
+    free(initial);
+    if (bus_initialized)
+        SnesVerifyBusDestroy(&bus);
+    free(rom);
+    return failed ? 1 : 0;
+}
