@@ -743,6 +743,10 @@ static bool SeedActionCoreCase(
     input->negative = (variant >> 2) & 1u;
     input->accumulator_is_8_bit = 1;
     input->index_is_8_bit = variant & 1u;
+    if (input->index_is_8_bit) {
+        input->x &= 0x00ffu;
+        input->y &= 0x00ffu;
+    }
 
     if (mode == 2u)
         flags = 0x08u;
