@@ -17,6 +17,7 @@ enum {
     PRIMARY_CASES_PER_OPCODE = 8,
     SECONDARY_CASES_PER_OPCODE = 8,
     KNOWN_HANDLER_VARIANTS = 4,
+    ACTION_CORE_VARIANTS = 16,
 };
 
 typedef struct NativeMemory {
@@ -711,6 +712,172 @@ static bool RunD14DCase(
         flow, 0, case_index, "D14D");
 }
 
+
+static bool SeedActionCoreCase(
+    SnesVerifyBus *bus,
+    unsigned variant,
+    uint8_t action,
+    Lufia2ActorFrontendCpu *input) {
+    const uint16_t dp = (variant & 2u) ? 0x0020u : 0;
+    const uint8_t slot =
+        (uint8_t)(8u + ((action + variant * 3u) % 24u));
+    const uint16_t record = (uint16_t)(slot * 3u);
+    const unsigned mode = (variant >> 2) & 3u;
+    uint8_t x_coordinate = 0x30u;
+    uint8_t y_coordinate = 0x40u;
+    uint8_t flags = 0;
+
+    memset(bus->wram, 0, SNES_VERIFY_WRAM_SIZE);
+    memset(input, 0, sizeof(*input));
+
+    input->accumulator =
+        (uint16_t)(0xa500u | action);
+    input->x = (uint16_t)(0x1200u | slot);
+    input->y = (uint16_t)(0x4300u | variant);
+    input->stack = TEST_STACK;
+    input->direct_page = dp;
+    input->data_bank = 0x7e;
+    input->program_bank = 0x83;
+    input->carry = variant & 1u;
+    input->zero = (variant >> 1) & 1u;
+    input->negative = (variant >> 2) & 1u;
+    input->accumulator_is_8_bit = 1;
+    input->index_is_8_bit = variant & 1u;
+
+    if (mode == 2u)
+        flags = 0x08u;
+    else if (mode == 3u)
+        flags = 0x20u;
+
+    if (action < 4u && mode < 2u) {
+        const bool carry_path = mode == 1u;
+        switch (action) {
+        case 0:
+            y_coordinate = carry_path ? 5u : 0u;
+            if (!SnesVerifyBusPoke(
+                    bus, 0x7fe61eu + slot,
+                    carry_path ? 1u : 0u))
+                return false;
+            break;
+        case 1:
+            y_coordinate = 5u;
+            if (!SnesVerifyBusPoke(
+                    bus, 0x7fe66eu + slot,
+                    carry_path ? 10u : 3u))
+                return false;
+            break;
+        case 2:
+            x_coordinate = carry_path ? 5u : 0u;
+            if (!SnesVerifyBusPoke(
+                    bus, 0x7fe5f6u + slot,
+                    carry_path ? 1u : 0u))
+                return false;
+            break;
+        case 3:
+            x_coordinate = 5u;
+            if (!SnesVerifyBusPoke(
+                    bus, 0x7fe646u + slot,
+                    carry_path ? 10u : 3u))
+                return false;
+            break;
+        default:
+            break;
+        }
+    }
+
+    return Poke16(bus, dp + 0x00a7u, slot) &&
+           Poke16(bus, dp + 0x00abu, record) &&
+           SnesVerifyBusPoke(
+               bus, 0x7e0736u + slot,
+               (uint8_t)(0xf0u | (variant & 0x0fu))) &&
+           SnesVerifyBusPoke(
+               bus, 0x7e0622u + slot, flags) &&
+           SnesVerifyBusPoke(
+               bus, 0x7e06bau + slot, x_coordinate) &&
+           SnesVerifyBusPoke(
+               bus, 0x7e06e2u + slot, y_coordinate) &&
+           Poke16(
+               bus, 0x7fe3eeu + record,
+               (uint16_t)(0x1111u + variant)) &&
+           SnesVerifyBusPoke(
+               bus, 0x7fe3f0u + record, 0x55u);
+}
+
+static bool RunActionCoreCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned variant,
+    uint8_t action,
+    unsigned case_index) {
+    static const uint32_t stop_pc[2] = {
+        0x83d3aeu,
+        0x83d389u,
+    };
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    Lufia2ActorPrimaryActionFlow flow;
+    uint8_t *native_wram;
+    unsigned instructions = 0;
+    int stop;
+    int expected_stop;
+
+    if (!SeedActionCoreCase(bus, variant, action, &input))
+        return false;
+
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    SnesVerifyBusResetTrace(bus);
+    flow = Lufia2ActorPrimaryActionCore(&memory, &native);
+    if (flow == LUFIA2_ACTOR_PRIMARY_ACTION_UNKNOWN_D370_TARGET) {
+        fprintf(stderr,
+            "FAIL D350 case %u: action=%02X unexpected D370 target\n",
+            case_index, action);
+        return false;
+    }
+
+    expected_stop =
+        flow == LUFIA2_ACTOR_PRIMARY_ACTION_CONTINUE_D389 ? 1 : 0;
+
+    native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    if (!native_wram)
+        return false;
+    memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+
+    InitInterp(reference, 0x83d350u, &input);
+    SnesVerifyBusResetTrace(bus);
+    stop = SnesVerifyRunUntil(
+        reference, stop_pc, 2, 256, &instructions);
+
+    if (stop != expected_stop ||
+        !SameState(&native, reference) ||
+        memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        fprintf(stderr,
+            "FAIL D350 case %u: action=%02X variant=%u "
+            "flow=%u stop=%d/%d insns=%u "
+            "A=%04X/%04X X=%04X/%04X Y=%04X/%04X "
+            "S=%04X/%04X DB=%02X/%02X M=%u/%u Xf=%u/%u\n",
+            case_index, action, variant, (unsigned)flow,
+            stop, expected_stop, instructions,
+            native.accumulator, reference->a,
+            native.x, reference->x,
+            native.y, reference->y,
+            native.stack, reference->sp,
+            native.data_bank, reference->db,
+            native.accumulator_is_8_bit, reference->mf,
+            native.index_is_8_bit, reference->xf);
+        free(native_wram);
+        return false;
+    }
+
+    free(native_wram);
+    return true;
+}
+
 int interp816_opcode_hook(uint32_t address) {
     (void)address;
     return 0;
@@ -733,6 +900,7 @@ int main(int argc, char **argv) {
     unsigned coordinate_x_passed = 0;
     unsigned coordinate_y_passed = 0;
     unsigned d14d_passed = 0;
+    unsigned action_core_passed = 0;
     unsigned failed = 0;
     unsigned case_index = 0;
     bool bus_initialized = false;
@@ -911,6 +1079,21 @@ int main(int argc, char **argv) {
         }
     }
 
+
+    case_index = 0;
+    for (unsigned action = 0; action < 256 && failed < 20; ++action) {
+        for (unsigned variant = 0;
+             variant < ACTION_CORE_VARIANTS && failed < 20;
+             ++variant, ++case_index) {
+            if (RunActionCoreCase(
+                    &bus, reference, initial, variant,
+                    (uint8_t)action, case_index))
+                ++action_core_passed;
+            else
+                ++failed;
+        }
+    }
+
     printf("$83:C83C primary dispatch cases passed:   %u / %u\n",
         primary_passed, 256u * PRIMARY_CASES_PER_OPCODE);
     printf("$83:D59A secondary dispatch cases passed: %u / %u\n",
@@ -931,6 +1114,8 @@ int main(int argc, char **argv) {
         coordinate_y_passed, 256u * KNOWN_HANDLER_VARIANTS);
     printf("$83:D14D conditional cases passed:         %u / %u\n",
         d14d_passed, 256u * KNOWN_HANDLER_VARIANTS);
+    printf("$83:D350 action-core cases passed:         %u / %u\n",
+        action_core_passed, 256u * ACTION_CORE_VARIANTS);
     printf("failures: %u\n", failed);
     printf(failed
         ? "RESULT: FAIL - actor dispatch mismatch found\n"
