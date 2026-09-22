@@ -236,10 +236,11 @@ void L2CaptureCall(const CpuState *c, const Interp816 *i, uint32_t site,
 
     if (s.calls == CALLS || s.target_count[tracked] >= (which >= 0 ? 16u : 8u)) return;
 
-    /* Generic targets are sampled over time. Actor targets instead use the
-     * per-index balancing below so multiple distinct slots in one update can
-     * be captured rather than always selecting the first slot every 30 frames. */
-    if (which < 0 && s.target_count[tracked] &&
+    /* Keep snapshots temporally spaced for every target. Actor hit accounting
+     * happens above this gate, so the balancing pass still learns about every
+     * slot seen while snapshots are throttled instead of repeatedly selecting
+     * the first slot of a frame. */
+    if (s.target_count[tracked] &&
             s.frames - s.target_last[tracked] < 30)
         return;
 
@@ -346,7 +347,7 @@ static void stop(void) {
     f=open_output("summary.jsonl","w");
     if(f) {
         fprintf(f,"{\"schema\":\"lufia2 observational capture v2\",\"frames\":%u,"
-            "\"instructions\":%llu,\"calls\":%u,\"dropped\":%u,\"aborted\":%d,\"prior_io_ok\":%d,\"nmi_tick_writes\":%llu,\"non_opcode_steps\":%llu,\"sampler\":\"configurable-function-targets-v2\"}\n",
+            "\"instructions\":%llu,\"calls\":%u,\"dropped\":%u,\"aborted\":%d,\"prior_io_ok\":%d,\"nmi_tick_writes\":%llu,\"non_opcode_steps\":%llu,\"sampler\":\"configurable-function-targets-v3\"}\n",
             s.frames,(unsigned long long)s.instructions,s.calls,s.dropped,s.failed,ok,
             (unsigned long long)s.nmi_writes,(unsigned long long)s.non_opcode_steps);
         for (unsigned n=0; n<s.target_total; ++n)
