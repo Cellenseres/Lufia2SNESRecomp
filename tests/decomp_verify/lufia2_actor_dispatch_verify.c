@@ -934,8 +934,15 @@ static bool SeedMapProbeCase(
         (uint8_t)((case_index * 7u + 1u) & 0x1fu);
     const uint8_t width =
         (uint8_t)(16u + ((case_index >> 5) & 0x0fu));
+    /*
+     * Keep the synthetic layer index inside the normal small table window.
+     * 0x36 aliases $7F:D03E ($7F:D008 + 0x36), which is also the
+     * attribute-base pointer used later by FB71. That alias is legal memory
+     * behavior but makes the independently precomputed expected value depend
+     * on write order instead of testing the map-probe semantics.
+     */
     const uint16_t layer_index =
-        (uint16_t)((case_index * 2u) & 0x003eu);
+        (uint16_t)((case_index * 2u) & 0x001eu);
     const uint16_t base_offset =
         (uint16_t)(0x0800u + ((case_index & 0x0fu) * 0x20u));
     const uint16_t cell_offset =
