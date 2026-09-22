@@ -559,6 +559,158 @@ static bool RunMaskHandlerCase(
         next_opcode, case_index, name);
 }
 
+
+static bool RunJumpTailAliasCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned variant,
+    uint8_t next_opcode,
+    unsigned case_index) {
+    Lufia2ActorFrontendCpu input;
+    const uint16_t pointer =
+        (uint16_t)(0x6200u |
+            ((unsigned)next_opcode + variant * 17u));
+    const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
+    const uint32_t stop_pc = PrimaryHandler(bus, next_opcode);
+
+    if (!SeedKnownPrimaryHandler(
+            bus, variant, TEST_SCRIPT, &input) ||
+        !SnesVerifyBusPoke(
+            bus, dp + 0x002bu, (uint8_t)(pointer >> 8)) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | pointer, next_opcode))
+        return false;
+
+    input.accumulator =
+        (uint16_t)(0xa500u | (uint8_t)pointer);
+
+    return CompareKnownPrimaryBoundary(
+        bus, reference, initial, &input,
+        0x83d2bdu, 0x83c85au, stop_pc, 0x83d2bdu,
+        LUFIA2_ACTOR_PRIMARY_SCRIPT_REDISPATCHED,
+        next_opcode, case_index, "D2BD");
+}
+
+static bool RunCoordinateHandlerCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned variant,
+    uint8_t next_opcode,
+    uint32_t handler_pc,
+    uint16_t coordinate_base,
+    unsigned case_index,
+    const char *name) {
+    Lufia2ActorFrontendCpu input;
+    const uint16_t slot =
+        (uint16_t)(8u +
+            (((unsigned)next_opcode + variant * 7u) % 20u));
+    const uint8_t radius = (uint8_t)(2u + (variant & 1u));
+    const bool take_jump = (variant & 2u) == 0;
+    const uint8_t target_coordinate =
+        (uint8_t)(0x60u + (next_opcode & 0x0fu));
+    const uint8_t actor_coordinate =
+        take_jump ? target_coordinate :
+        (uint8_t)(target_coordinate - 0x30u);
+    const uint16_t jump_cursor =
+        (uint16_t)(0x6800u +
+            ((unsigned)next_opcode << 3) + variant);
+    const uint16_t jump_operand =
+        (uint16_t)(jump_cursor - 0xa1d4u);
+    const uint32_t stop_pc = PrimaryHandler(bus, next_opcode);
+    const uint32_t redispatch_pc =
+        take_jump ? 0x83c85au : 0x83c85cu;
+    const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
+
+    if (!SeedKnownPrimaryHandler(
+            bus, variant, TEST_SCRIPT, &input) ||
+        !Poke16(bus, dp + 0x00a7u, slot) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | (uint16_t)(TEST_SCRIPT + 1u),
+            radius) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | (uint16_t)(TEST_SCRIPT + 2u),
+            (uint8_t)jump_operand) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | (uint16_t)(TEST_SCRIPT + 3u),
+            (uint8_t)(jump_operand >> 8)) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | (uint16_t)(TEST_SCRIPT + 4u),
+            next_opcode) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | jump_cursor, next_opcode) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | coordinate_base,
+            target_coordinate) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u |
+                (uint16_t)(coordinate_base + slot),
+            actor_coordinate))
+        return false;
+
+    return CompareKnownPrimaryBoundary(
+        bus, reference, initial, &input,
+        handler_pc, redispatch_pc, stop_pc, handler_pc,
+        LUFIA2_ACTOR_PRIMARY_SCRIPT_REDISPATCHED,
+        next_opcode, case_index, name);
+}
+
+static bool RunD14DCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned variant,
+    uint8_t value,
+    unsigned case_index) {
+    Lufia2ActorFrontendCpu input;
+    const uint16_t slot =
+        (uint16_t)(8u + ((unsigned)value % 24u));
+    const uint16_t record =
+        (uint16_t)(((unsigned)value % 40u) * 3u);
+    const uint8_t indirect_index =
+        (uint8_t)(0x40u + (value & 0x1fu));
+    const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
+    const bool needs_child = variant == 3u;
+    const uint32_t stop_pc =
+        needs_child ? 0x83d166u : 0x83c8d2u;
+    const Lufia2ActorPrimaryScriptStepFlow flow =
+        needs_child
+            ? LUFIA2_ACTOR_PRIMARY_SCRIPT_CONTINUE_D166
+            : LUFIA2_ACTOR_PRIMARY_SCRIPT_CONTINUE_C8D2;
+
+    if (!SeedKnownPrimaryHandler(
+            bus, variant,
+            (uint16_t)(TEST_SCRIPT + value), &input) ||
+        !Poke16(bus, dp + 0x00a7u, slot) ||
+        !Poke16(bus, dp + 0x00abu, record) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7fe5a6u + slot, indirect_index))
+        return false;
+
+    if (variant == 0u) {
+        if (!SnesVerifyBusPoke(bus, 0x7e09a1u, 0x01u) ||
+            !SnesVerifyBusPoke(bus, 0x7e09a6u, 0x00u))
+            return false;
+    } else {
+        if (!SnesVerifyBusPoke(bus, 0x7e09a1u, 0x80u) ||
+            !SnesVerifyBusPoke(
+                bus, 0x7e09a6u,
+                variant == 1u ? 0x01u : 0x00u))
+            return false;
+    }
+
+    if (!SnesVerifyBusPoke(
+            bus, 0x7e09a1u + indirect_index,
+            variant == 2u ? 0x80u : 0x01u))
+        return false;
+
+    return CompareKnownPrimaryBoundary(
+        bus, reference, initial, &input,
+        0x83d14du, 0, stop_pc, 0x83d14du,
+        flow, 0, case_index, "D14D");
+}
+
 int interp816_opcode_hook(uint32_t address) {
     (void)address;
     return 0;
@@ -577,6 +729,10 @@ int main(int argc, char **argv) {
     unsigned jump_handler_passed = 0;
     unsigned mask_or_passed = 0;
     unsigned mask_and_passed = 0;
+    unsigned jump_tail_alias_passed = 0;
+    unsigned coordinate_x_passed = 0;
+    unsigned coordinate_y_passed = 0;
+    unsigned d14d_passed = 0;
     unsigned failed = 0;
     unsigned case_index = 0;
     bool bus_initialized = false;
@@ -696,6 +852,65 @@ int main(int argc, char **argv) {
         }
     }
 
+
+    case_index = 0;
+    for (unsigned opcode = 0; opcode < 256 && failed < 20; ++opcode) {
+        for (unsigned variant = 0;
+             variant < KNOWN_HANDLER_VARIANTS && failed < 20;
+             ++variant, ++case_index) {
+            if (RunJumpTailAliasCase(
+                    &bus, reference, initial, variant,
+                    (uint8_t)opcode, case_index))
+                ++jump_tail_alias_passed;
+            else
+                ++failed;
+        }
+    }
+
+    case_index = 0;
+    for (unsigned opcode = 0; opcode < 256 && failed < 20; ++opcode) {
+        for (unsigned variant = 0;
+             variant < KNOWN_HANDLER_VARIANTS && failed < 20;
+             ++variant, ++case_index) {
+            if (RunCoordinateHandlerCase(
+                    &bus, reference, initial, variant,
+                    (uint8_t)opcode, 0x83cc85u, 0x06bau,
+                    case_index, "CC85"))
+                ++coordinate_x_passed;
+            else
+                ++failed;
+        }
+    }
+
+    case_index = 0;
+    for (unsigned opcode = 0; opcode < 256 && failed < 20; ++opcode) {
+        for (unsigned variant = 0;
+             variant < KNOWN_HANDLER_VARIANTS && failed < 20;
+             ++variant, ++case_index) {
+            if (RunCoordinateHandlerCase(
+                    &bus, reference, initial, variant,
+                    (uint8_t)opcode, 0x83cca3u, 0x06e2u,
+                    case_index, "CCA3"))
+                ++coordinate_y_passed;
+            else
+                ++failed;
+        }
+    }
+
+    case_index = 0;
+    for (unsigned value = 0; value < 256 && failed < 20; ++value) {
+        for (unsigned variant = 0;
+             variant < KNOWN_HANDLER_VARIANTS && failed < 20;
+             ++variant, ++case_index) {
+            if (RunD14DCase(
+                    &bus, reference, initial, variant,
+                    (uint8_t)value, case_index))
+                ++d14d_passed;
+            else
+                ++failed;
+        }
+    }
+
     printf("$83:C83C primary dispatch cases passed:   %u / %u\n",
         primary_passed, 256u * PRIMARY_CASES_PER_OPCODE);
     printf("$83:D59A secondary dispatch cases passed: %u / %u\n",
@@ -708,6 +923,14 @@ int main(int argc, char **argv) {
         mask_or_passed, 256u * KNOWN_HANDLER_VARIANTS);
     printf("$83:D2D5 mask-AND cases passed:            %u / %u\n",
         mask_and_passed, 256u * KNOWN_HANDLER_VARIANTS);
+    printf("$83:D2BD alias-tail cases passed:          %u / %u\n",
+        jump_tail_alias_passed, 256u * KNOWN_HANDLER_VARIANTS);
+    printf("$83:CC85 X-range cases passed:             %u / %u\n",
+        coordinate_x_passed, 256u * KNOWN_HANDLER_VARIANTS);
+    printf("$83:CCA3 Y-range cases passed:             %u / %u\n",
+        coordinate_y_passed, 256u * KNOWN_HANDLER_VARIANTS);
+    printf("$83:D14D conditional cases passed:         %u / %u\n",
+        d14d_passed, 256u * KNOWN_HANDLER_VARIANTS);
     printf("failures: %u\n", failed);
     printf(failed
         ? "RESULT: FAIL - actor dispatch mismatch found\n"
