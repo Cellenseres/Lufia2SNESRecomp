@@ -24,7 +24,9 @@ enum {
     L2_ACTOR_EARLY_RETURN_MAX_MASTER = 418,
 };
 
-/* Accepted actors are $08..$78 in steps of 8, so this is 52 or 53. */
+/* BB93 supplies slot indices 0..39. Eligible nonzero slots never cross the
+ * $1291 page, so observed BB93 callers take 52 cycles here. Keep the helper
+ * general so the cycle contract remains explicit. */
 static inline unsigned L2ActorEarlyReturnCycles(unsigned actor) {
     const unsigned crossed =
         ((L2_ACTOR_EARLY_RETURN_STATE_BASE + actor) >> 8) !=
@@ -78,8 +80,9 @@ static inline int L2ActorEarlyReturnBytesMatch(
 
 /* This is deliberately narrower than every architectural path that reaches
  * $C83B. It accepts only the common, write-free actor-idle path proved by
- * the gameplay corpus. All other states remain authoritative interpreter
- * work. Actor slots are byte offsets 08,10,...,78 in this routine. */
+ * the gameplay corpus. BB93 stores the current slot index (0..39) in $00A7;
+ * slot zero takes a different branch at $C81C, so only slots 1..39 are
+ * eligible. All other states remain authoritative interpreter work. */
 static inline int L2ActorEarlyReturnEligible(
         const CpuState *cpu, const Interp816 *in, int bridge_safe) {
     if (!bridge_safe || !cpu || !cpu->ram || !in || !in->read ||
@@ -89,7 +92,7 @@ static inline int L2ActorEarlyReturnEligible(
         return 0;
 
     const uint8_t actor = cpu->ram[0x00A7u];
-    if (actor == 0 || actor > 0x78u || (actor & 7u) != 0)
+    if (actor == 0 || actor >= 0x28u)
         return 0;
 
     const uint8_t flags = cpu->ram[0x0622u + actor];
