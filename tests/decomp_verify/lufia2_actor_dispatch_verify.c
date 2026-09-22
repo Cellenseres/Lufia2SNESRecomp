@@ -379,6 +379,7 @@ static bool CompareKnownPrimaryBoundary(
     uint8_t *initial,
     const Lufia2ActorFrontendCpu *input,
     uint32_t start_pc,
+    uint32_t redispatch_pc,
     uint32_t stop_pc,
     uint32_t handler_pc,
     Lufia2ActorPrimaryScriptStepFlow expected_flow,
@@ -420,12 +421,26 @@ static bool CompareKnownPrimaryBoundary(
     memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
 
     InitInterp(reference, start_pc, input);
-    if (start_pc != 0x83c8c7u) {
-        interp816_runOpcode(reference);
-        ++instructions;
+    if (redispatch_pc != 0) {
+        unsigned to_redispatch = 0;
+        stop = SnesVerifyRunUntil(
+            reference, &redispatch_pc, 1, 128, &to_redispatch);
+        instructions += to_redispatch;
+        if (stop != 0) {
+            fprintf(stderr,
+                "FAIL %s case %u: did not reach redispatch %06X "
+                "stop=%d insns=%u\n",
+                name, case_index, redispatch_pc, stop, instructions);
+            free(native_wram);
+            return false;
+        }
     }
-    stop = SnesVerifyRunUntil(
-        reference, &stop_pc, 1, 128, &instructions);
+    {
+        unsigned to_target = 0;
+        stop = SnesVerifyRunUntil(
+            reference, &stop_pc, 1, 128, &to_target);
+        instructions += to_target;
+    }
 
     if (stop != 0 ||
         !SameState(&native, reference) ||
@@ -470,7 +485,7 @@ static bool RunCommitTailCase(
 
     return CompareKnownPrimaryBoundary(
         bus, reference, initial, &input,
-        0x83c8c7u, 0x83c8d2u, 0x83c8c7u,
+        0x83c8c7u, 0, 0x83c8d2u, 0x83c8c7u,
         LUFIA2_ACTOR_PRIMARY_SCRIPT_CONTINUE_C8D2,
         0, case_index, "C8C7");
 }
@@ -505,7 +520,7 @@ static bool RunJumpHandlerCase(
 
     return CompareKnownPrimaryBoundary(
         bus, reference, initial, &input,
-        0x83d2b4u, stop_pc, 0x83d2b4u,
+        0x83d2b4u, 0x83c85au, stop_pc, 0x83d2b4u,
         LUFIA2_ACTOR_PRIMARY_SCRIPT_REDISPATCHED,
         next_opcode, case_index, "D2B4");
 }
@@ -539,7 +554,7 @@ static bool RunMaskHandlerCase(
 
     return CompareKnownPrimaryBoundary(
         bus, reference, initial, &input,
-        handler_pc, stop_pc, handler_pc,
+        handler_pc, 0x83c85cu, stop_pc, handler_pc,
         LUFIA2_ACTOR_PRIMARY_SCRIPT_REDISPATCHED,
         next_opcode, case_index, name);
 }
