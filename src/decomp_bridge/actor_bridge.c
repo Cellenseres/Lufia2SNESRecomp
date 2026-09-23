@@ -229,6 +229,54 @@ RecompReturn Lufia2DecompBridge_D508(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x83d508u, Lufia2ActorSecondaryUpdate);
 }
 
+typedef struct ActorSlotsCall {
+    CpuState *cpu;
+    RecompReturn unwound;
+} ActorSlotsCall;
+
+/* BB93 child through the runtime dispatcher. */
+static uint8_t ActorBridgeSlotChild(
+    void *context,
+    Lufia2ActorFrontendCpu *state,
+    uint32_t target,
+    uint32_t site) {
+    ActorSlotsCall *call = (ActorSlotsCall *)context;
+    RecompReturn result;
+
+    ActorBridgeStore(call->cpu, state);
+    result = cpu_dispatch_call_pc(call->cpu, target, site);
+    if (result != RECOMP_RETURN_NORMAL) {
+        call->unwound = result;
+        return 0;
+    }
+    ActorBridgeLoad(call->cpu, state);
+    return 1;
+}
+
+RecompReturn Lufia2DecompBridge_BB93(CpuState *cpu) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2ActorFrontendMemory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu};
+    ActorSlotsCall call;
+    Lufia2ActorFrontendCpu state;
+    Lufia2ActorPrimaryUpdateResult result;
+
+    if (!ActorBridgeSupported(cpu, 1, 0))
+        return ActorBridgeFallback(cpu, &frame, 0x83bb93u);
+    call.cpu = cpu;
+    call.unwound = RECOMP_RETURN_NORMAL;
+    ActorBridgeLoad(cpu, &state);
+    result = Lufia2UpdateActorSlots(
+        &memory, &state, ActorBridgeSlotChild, &call);
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_BOUNDARY)
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+}
+
 RecompReturn Lufia2DecompBridge_C1B4(CpuState *cpu) {
     return ActorBridgeWhole(
         cpu, 0x83c1b4u, Lufia2PlayerSlotStandardUpdate);
