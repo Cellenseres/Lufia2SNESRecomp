@@ -122,10 +122,11 @@ function(lufia2_add_decomp_bridge target snesrecomp_root)
     if(NOT LUFIA2_DECOMP_AVAILABLE)
         return()
     endif()
-    set(_bridge_source
-        "${CMAKE_SOURCE_DIR}/src/decomp_bridge/player_update_bridge.c")
-    target_sources(${target} PRIVATE "${_bridge_source}")
-    source_group("Decomp Bridge" FILES "${_bridge_source}")
+    set(_bridge_sources
+        "${CMAKE_SOURCE_DIR}/src/decomp_bridge/player_update_bridge.c"
+        "${CMAKE_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c")
+    target_sources(${target} PRIVATE ${_bridge_sources})
+    source_group("Decomp Bridge" FILES ${_bridge_sources})
     target_include_directories(${target} PRIVATE
         "${CMAKE_SOURCE_DIR}/recomp"
         "${snesrecomp_root}/runner/src"
