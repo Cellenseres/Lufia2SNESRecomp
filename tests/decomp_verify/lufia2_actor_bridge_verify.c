@@ -15,6 +15,7 @@ extern RecompReturn Lufia2DecompBridge_FB12(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_FB71(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_C7F8(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_D508(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_C1B4(CpuState *cpu);
 
 enum {
     LUFIA2_ROM_SIZE = 0x280000,
@@ -558,6 +559,92 @@ static void SeedD508(CpuState *cpu) {
     cpu_mirrors_to_p(cpu);
 }
 
+/* Leader, controller, map and door table for C1B4. */
+static void SeedC1B4(CpuState *cpu) {
+    static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
+    static const uint8_t banks[8] = {
+        0x83u, 0x83u, 0x83u, 0x83u, 0x83u, 0x00u, 0x80u, 0x7eu};
+    static const uint8_t pads[4] = {1, 2, 4, 8};
+    const uint16_t dp = dps[Random32() & 7u];
+    const uint8_t px = (uint8_t)(4u + Random32() % 8u);
+    const uint8_t py = (uint8_t)(4u + Random32() % 8u);
+    const unsigned doors = Random32() % 4u;
+    uint32_t entry = 0xf010u;
+
+    RandomFill(g_bus.wram);
+    if (Random32() & 7u)
+        g_bus.wram[0x099bu] &= 0x7fu;
+    g_bus.wram[dp + 0x46u] &= (Random32() & 3u) ? 0x5fu : 0xffu;
+    g_bus.wram[dp + 0x47u] = (uint8_t)(
+        (Random32() & 0xe0u & ((Random32() & 3u) ? 0xdfu : 0xffu)) |
+        ((Random32() & 7u) ? pads[Random32() & 3u]
+                           : (uint8_t)(Random32() & 0x0fu)));
+    if (Random32() & 1u)
+        g_bus.wram[0x057cu] = 0;
+    Poke16(g_bus.wram, dp + 0xa7u,
+        (Random32() & 7u) ? 0u : (uint16_t)(Random32() % 40u));
+    g_bus.wram[0x06bau] = px;
+    g_bus.wram[0x06e2u] = py;
+    if (Random32() & 7u)
+        g_bus.wram[0x0692u] = (uint8_t)((Random32() & 3u) * 2u);
+    for (unsigned slot = 8; slot < 40u; ++slot) {
+        g_bus.wram[0x06bau + slot] = (uint8_t)(px + Random32() % 7u - 3u);
+        g_bus.wram[0x06e2u + slot] = (uint8_t)(py + Random32() % 7u - 3u);
+        if (Random32() & 3u)
+            g_bus.wram[0x0622u + slot] &= 0xfbu;
+        g_bus.wram[0x1e216u + slot] = (uint8_t)(1u + (Random32() & 1u));
+    }
+    g_bus.wram[0x05b9u] = (uint8_t)(0x20u + (Random32() & 0x10u));
+    Poke16(g_bus.wram, 0x05aau, 0);
+    Poke16(g_bus.wram, 0x1d008u, 0);
+    Poke16(g_bus.wram, 0x1d03eu, 0x8000u);
+    for (unsigned i = 0; i < 0x2000u; ++i)
+        if (Random32() & 1u)
+            g_bus.wram[0x4000u + i] &= 0x31u;
+    for (unsigned i = 0; i < 0x400u; ++i) {
+        const unsigned roll = Random32() % 6u;
+        g_bus.wram[0x18000u + i] = roll < 2u ? 6u : roll == 2u ? 7u :
+            roll == 3u ? 0u : (uint8_t)Random32();
+    }
+    Poke16(g_bus.wram, 0xf002u, 0x0010u);
+    for (unsigned i = 0; i < doors; ++i, entry += 15u) {
+        for (unsigned r = 0; r < 2u; ++r) {
+            const uint32_t rect = entry + 5u + 4u * r;
+            g_bus.wram[rect + 0u] = (uint8_t)(px + 2u - Random32() % 5u);
+            g_bus.wram[rect + 1u] = (uint8_t)(py + 2u - Random32() % 5u);
+            g_bus.wram[rect + 2u] = (uint8_t)(px + Random32() % 5u - 1u);
+            g_bus.wram[rect + 3u] = (uint8_t)(py + Random32() % 5u - 1u);
+        }
+        g_bus.wram[entry] = (uint8_t)(Random32() % 0xffu);
+        g_bus.wram[entry + 2u] = (uint8_t)(py + Random32() % 5u - 2u);
+    }
+    g_bus.wram[entry] = 0xffu;
+    g_bus.wram[0x1ff1u] = (uint8_t)RETURN_WORD;
+    g_bus.wram[0x1ff2u] = (uint8_t)(RETURN_WORD >> 8);
+
+    memset(cpu, 0, sizeof(*cpu));
+    cpu->A = (uint16_t)Random32();
+    cpu->X = (uint16_t)Random32();
+    cpu->Y = (uint16_t)Random32();
+    cpu->S = 0x1ff0u;
+    cpu->D = dp;
+    cpu->DB = banks[Random32() & 7u];
+    cpu->PB = 0x83;
+    cpu->m_flag = 1;
+    cpu->x_flag = (Random32() & 3u) ? 0u : 1u;
+    cpu->_flag_C = Random32() & 1u;
+    cpu->_flag_Z = Random32() & 1u;
+    cpu->_flag_V = Random32() & 1u;
+    cpu->_flag_N = Random32() & 1u;
+    cpu->_flag_I = Random32() & 1u;
+    cpu->ram = g_bus.wram;
+    if (cpu->x_flag) {
+        cpu->X &= 0x00ffu;
+        cpu->Y &= 0x00ffu;
+    }
+    cpu_mirrors_to_p(cpu);
+}
+
 typedef Lufia2ActorPrimaryUpdateResult (*WholeDecomp)(
     const Lufia2ActorFrontendMemory *memory, Lufia2ActorFrontendCpu *cpu);
 
@@ -570,11 +657,13 @@ typedef struct WholeTarget {
     RecompReturn (*bridge)(CpuState *cpu);
 } WholeTarget;
 
-static const WholeTarget kWholeTargets[2] = {
+static const WholeTarget kWholeTargets[3] = {
     {"C7F8", 0x83c7f8u, 0x83c864u, SeedC7F8, Lufia2ActorPrimaryUpdate,
      Lufia2DecompBridge_C7F8},
     {"D508", 0x83d508u, 0x83d5d1u, SeedD508, Lufia2ActorSecondaryUpdate,
      Lufia2DecompBridge_D508},
+    {"C1B4", 0x83c1b4u, 0u, SeedC1B4, Lufia2PlayerSlotStandardUpdate,
+     Lufia2DecompBridge_C1B4},
 };
 
 static bool RunWholeCase(
@@ -718,8 +807,9 @@ int main(int argc, char **argv) {
     unsigned passed[4][3] = {{0}};
     unsigned unsupported[4] = {0};
     unsigned fb12_oob = 0;
-    unsigned whole_passed[2] = {0, 0};
-    WholeStats whole_stats[2] = {{0, 0, 0, 0}, {0, 0, 0, 0}};
+    unsigned whole_passed[3] = {0, 0, 0};
+    WholeStats whole_stats[3] = {
+        {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
     unsigned failed = 0;
     bool bus_ready = false;
 
@@ -776,7 +866,7 @@ int main(int argc, char **argv) {
             ++failed;
     }
 
-    for (unsigned t = 0; t < 2u && failed < 20; ++t) {
+    for (unsigned t = 0; t < 3u && failed < 20; ++t) {
         const WholeTarget *target = &kWholeTargets[t];
 
         for (unsigned i = 0; i < WHOLE_CASES && failed < 20; ++i) {
@@ -811,7 +901,7 @@ int main(int argc, char **argv) {
                 unsupported[t], UNSUPPORTED_CASES);
         fprintf(out, "$83:FB12 out-of-range tail %u/%u\n",
             fb12_oob, UNSUPPORTED_CASES);
-        for (unsigned t = 0; t < 2u; ++t)
+        for (unsigned t = 0; t < 3u; ++t)
             fprintf(out,
                 "$83:%s %u/%u (host return %u, dispatch return %u, "
                 "LLE boundary %u, LLE entry %u)\n",

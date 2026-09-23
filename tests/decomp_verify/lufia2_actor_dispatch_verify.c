@@ -2508,6 +2508,210 @@ static bool RunActionCoreX8Case(
     return true;
 }
 
+enum { PLAYER_STANDARD_CASES = 16384 };
+
+typedef struct PlayerStandardStats {
+    unsigned early;
+    unsigned walked;
+    unsigned boundary[11];
+} PlayerStandardStats;
+
+static const uint32_t kPlayerBoundaries[10] = {
+    0x83c1ccu, 0x83c1d7u, 0x83c1dcu, 0x8ebbd1u, 0x8eb6d4u, 0x83d38du,
+    0x83d370u, 0x83fbc2u, 0x83ba1cu, 0x83fb17u};
+
+static uint64_t g_player_rng = UINT64_C(0x14057b7ef767814f);
+
+static uint32_t PlayerRandom(void) {
+    g_player_rng ^= g_player_rng << 13;
+    g_player_rng ^= g_player_rng >> 7;
+    g_player_rng ^= g_player_rng << 17;
+    return (uint32_t)(g_player_rng >> 32);
+}
+
+/* Door rectangles around the leader at $7E:F010. */
+static void SeedPlayerDoors(SnesVerifyBus *bus, uint8_t px, uint8_t py) {
+    const unsigned count = PlayerRandom() % 4u;
+    uint32_t entry = 0xf010u;
+
+    Poke16(bus, 0x7ef002u, 0x0010u);
+    for (unsigned i = 0; i < count; ++i, entry += 15u) {
+        for (unsigned r = 0; r < 2u; ++r) {
+            const uint32_t rect = entry + 5u + 4u * r;
+            bus->wram[rect + 0u] = (uint8_t)(px + 2u - PlayerRandom() % 5u);
+            bus->wram[rect + 1u] = (uint8_t)(py + 2u - PlayerRandom() % 5u);
+            bus->wram[rect + 2u] = (uint8_t)(px + PlayerRandom() % 5u - 1u);
+            bus->wram[rect + 3u] = (uint8_t)(py + PlayerRandom() % 5u - 1u);
+        }
+        bus->wram[entry] = (uint8_t)(PlayerRandom() % 0xffu);
+        bus->wram[entry + 2u] = (uint8_t)(py + PlayerRandom() % 5u - 2u);
+        if (PlayerRandom() & 1u)
+            bus->wram[entry + 9u] = 0xffu;
+        bus->wram[entry + 13u] =
+            (PlayerRandom() & 3u) ? (uint8_t)PlayerRandom() : 0xffu;
+    }
+    bus->wram[entry] = 0xffu;
+}
+
+/* Whole $83:C1B4 from the BBF3 JSR against the ROM. */
+static bool RunPlayerStandardCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index,
+    PlayerStandardStats *stats) {
+    static const uint16_t dps[8] = {
+        0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
+    static const uint8_t banks[8] = {
+        0x83u, 0x83u, 0x83u, 0x83u, 0x83u, 0x00u, 0x80u, 0x7eu};
+    static const uint8_t pads[8] = {1, 2, 4, 8, 1, 2, 4, 8};
+    const uint16_t dp = dps[PlayerRandom() & 7u];
+    const uint8_t px = (uint8_t)(4u + PlayerRandom() % 8u);
+    const uint8_t py = (uint8_t)(4u + PlayerRandom() % 8u);
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    Lufia2ActorPrimaryUpdateResult result;
+    uint8_t *native_wram;
+    unsigned instructions = 0;
+    bool stopped = false;
+
+    for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
+        const uint32_t word = PlayerRandom();
+        memcpy(bus->wram + i, &word, 4);
+    }
+    /* Controller, debug flag and leader. */
+    if (PlayerRandom() & 7u)
+        bus->wram[0x099bu] &= 0x7fu;
+    bus->wram[dp + 0x46u] &= (PlayerRandom() & 3u) ? 0x5fu : 0xffu;
+    bus->wram[dp + 0x47u] = (uint8_t)(
+        (PlayerRandom() & 0xe0u & ((PlayerRandom() & 3u) ? 0xdfu : 0xffu)) |
+        ((PlayerRandom() & 7u) ? pads[PlayerRandom() & 7u]
+                               : (uint8_t)(PlayerRandom() & 0x0fu)));
+    if (PlayerRandom() & 1u)
+        bus->wram[0x057cu] = 0;
+    Poke16(bus, dp + 0xa7u,
+        (PlayerRandom() & 7u) ? 0u : (uint16_t)(PlayerRandom() % 40u));
+    bus->wram[0x06bau] = px;
+    bus->wram[0x06e2u] = py;
+    if (PlayerRandom() & 7u)
+        bus->wram[0x0692u] = (uint8_t)((PlayerRandom() & 3u) * 2u);
+    /* Other actors near the leader. */
+    for (unsigned slot = 8; slot < 40u; ++slot) {
+        bus->wram[0x06bau + slot] = (uint8_t)(px + PlayerRandom() % 7u - 3u);
+        bus->wram[0x06e2u + slot] = (uint8_t)(py + PlayerRandom() % 7u - 3u);
+        if (PlayerRandom() & 3u)
+            bus->wram[0x0622u + slot] &= 0xfbu;
+        bus->wram[0x1e216u + slot] = (uint8_t)(1u + (PlayerRandom() & 1u));
+        if ((PlayerRandom() & 7u) == 0)
+            bus->wram[0x05d2u + slot] = 0x70u;
+    }
+    /* Map: width, sparse collision, values biased to 6. */
+    bus->wram[0x05b9u] = (uint8_t)(0x20u + (PlayerRandom() & 0x10u));
+    Poke16(bus, 0x05aau, 0);
+    Poke16(bus, 0x7fd008u, 0);
+    Poke16(bus, 0x7fd03eu, 0x8000u);
+    for (unsigned i = 0; i < 0x2000u; ++i)
+        if (PlayerRandom() & 1u)
+            bus->wram[0x4000u + i] &= 0x31u;
+    for (unsigned i = 0; i < 0x400u; ++i) {
+        const unsigned roll = PlayerRandom() % 6u;
+        bus->wram[0x18000u + i] = roll < 2u ? 6u : roll == 2u ? 7u :
+            roll == 3u ? 0u : (uint8_t)PlayerRandom();
+    }
+    SeedPlayerDoors(bus, px, py);
+    /* JSR $C1B4 at $83:BC22. */
+    bus->wram[0x1ff1u] = 0x24u;
+    bus->wram[0x1ff2u] = 0xbcu;
+
+    memset(&input, 0, sizeof(input));
+    input.accumulator = (uint16_t)PlayerRandom();
+    input.x = (uint16_t)PlayerRandom();
+    input.y = (uint16_t)PlayerRandom();
+    input.stack = 0x1ff0u;
+    input.direct_page = dp;
+    input.data_bank = banks[PlayerRandom() & 7u];
+    input.program_bank = 0x83u;
+    input.carry = PlayerRandom() & 1u;
+    input.zero = PlayerRandom() & 1u;
+    input.negative = PlayerRandom() & 1u;
+    input.overflow = PlayerRandom() & 1u;
+    input.irq_disable = PlayerRandom() & 1u;
+    input.accumulator_is_8_bit = 1;
+    input.index_is_8_bit = (PlayerRandom() & 3u) ? 0u : 1u;
+    if (input.index_is_8_bit) {
+        input.x &= 0x00ffu;
+        input.y &= 0x00ffu;
+    }
+
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    result = Lufia2PlayerSlotStandardUpdate(&memory, &native);
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+        native.stack = (uint16_t)(native.stack + 2u);   /* RTS */
+
+    native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    if (!native_wram)
+        return false;
+    memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+
+    InitInterp(reference, 0x83c1b4u, &input);
+    while (instructions < 400000u) {
+        const uint32_t pc = SnesVerifyPc24(reference);
+        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+                ? pc == 0x83bc25u
+                : pc == result.pc && reference->sp == native.stack) {
+            stopped = true;
+            break;
+        }
+        interp816_runOpcode(reference);
+        ++instructions;
+    }
+
+    if (!stopped || !SameState(&native, reference) ||
+        memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        size_t diff = 0;
+        while (diff < SNES_VERIFY_WRAM_SIZE &&
+               native_wram[diff] == bus->wram[diff])
+            ++diff;
+        fprintf(stderr,
+            "FAIL C1B4 case %u: flow=%u pc=%06X/%06X insns=%u "
+            "A=%04X/%04X X=%04X/%04X Y=%04X/%04X S=%04X/%04X "
+            "DB=%02X/%02X PB=%02X/%02X Xf=%u/%u C=%u/%u Z=%u/%u "
+            "N=%u/%u V=%u/%u wram@%05X %02X/%02X\n",
+            case_index, (unsigned)result.flow, result.pc,
+            SnesVerifyPc24(reference), instructions,
+            native.accumulator, reference->a, native.x, reference->x,
+            native.y, reference->y, native.stack, reference->sp,
+            native.data_bank, reference->db, native.program_bank,
+            reference->k, native.index_is_8_bit, reference->xf,
+            native.carry, reference->c, native.zero, reference->z,
+            native.negative, reference->n, native.overflow, reference->v,
+            (unsigned)diff,
+            diff < SNES_VERIFY_WRAM_SIZE ? native_wram[diff] : 0,
+            diff < SNES_VERIFY_WRAM_SIZE ? bus->wram[diff] : 0);
+        free(native_wram);
+        return false;
+    }
+    free(native_wram);
+
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+        if (result.pc == 0x83c1e2u)
+            ++stats->early;
+        else
+            ++stats->walked;
+    } else {
+        unsigned k = 0;
+        while (k < 10u && kPlayerBoundaries[k] != result.pc)
+            ++k;
+        ++stats->boundary[k];
+    }
+    return true;
+}
+
 enum { SECONDARY_UPDATE_CASES = 16384 };
 
 /* Whole $83:D508 against the ROM, random machine and scripts. */
@@ -2728,6 +2932,8 @@ int main(int argc, char **argv) {
     unsigned action_core_passed = 0;
     unsigned action_core_x8_passed = 0;
     ActionCoreX8Stats action_core_x8 = {0, 0, 0};
+    unsigned player_standard_passed = 0;
+    PlayerStandardStats player_standard;
     unsigned movement_step_passed = 0;
     unsigned map_offset_passed = 0;
     unsigned map_value_passed = 0;
@@ -2954,6 +3160,14 @@ int main(int argc, char **argv) {
     for (unsigned i = 0; i < ACTION_CORE_X8_CASES && failed < 20; ++i) {
         if (RunActionCoreX8Case(&bus, reference, initial, i, &action_core_x8))
             ++action_core_x8_passed;
+        else
+            ++failed;
+    }
+    memset(&player_standard, 0, sizeof(player_standard));
+    for (unsigned i = 0; i < PLAYER_STANDARD_CASES && failed < 20; ++i) {
+        if (RunPlayerStandardCase(
+                &bus, reference, initial, i, &player_standard))
+            ++player_standard_passed;
         else
             ++failed;
     }
@@ -3198,6 +3412,18 @@ int main(int argc, char **argv) {
         action_core_x8_passed, ACTION_CORE_X8_CASES,
         action_core_x8.returned, action_core_x8.installed,
         action_core_x8.boundary);
+    printf("$83:C1B4 whole-function cases passed:      %u / %u "
+        "(RTS C1E2 %u, RTS C245 %u; LLE C1CC %u, C1D7 %u, C1DC %u, "
+        "8E:BBD1 %u, 8E:B6D4 %u, D38D %u, D370 %u, FBC2 %u, BA1C %u, "
+        "FB17 %u, other %u)\n",
+        player_standard_passed, PLAYER_STANDARD_CASES,
+        player_standard.early, player_standard.walked,
+        player_standard.boundary[0], player_standard.boundary[1],
+        player_standard.boundary[2], player_standard.boundary[3],
+        player_standard.boundary[4], player_standard.boundary[5],
+        player_standard.boundary[6], player_standard.boundary[7],
+        player_standard.boundary[8], player_standard.boundary[9],
+        player_standard.boundary[10]);
     printf("$83:FB12 movement-step cases passed:       %u / %u\n",
         movement_step_passed, MOVEMENT_HELPER_CASES);
     printf("$83:F9D4 map-offset cases passed:          %u / %u\n",
