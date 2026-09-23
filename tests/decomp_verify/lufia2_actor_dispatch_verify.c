@@ -2712,6 +2712,263 @@ static bool RunPlayerStandardCase(
     return true;
 }
 
+enum { ACTOR_SLOTS_CASES = 2048 };
+
+typedef struct ActorSlotsStats {
+    unsigned returned;
+    unsigned unterminated;
+    unsigned boundary;
+} ActorSlotsStats;
+
+typedef struct SlotsChildContext {
+    SnesVerifyBus *bus;
+    Interp816 *interp;
+    bool stuck;
+    bool bad_site;
+} SlotsChildContext;
+
+static void InterpToNative(
+    const Interp816 *reference, Lufia2ActorFrontendCpu *cpu) {
+    cpu->accumulator = reference->a;
+    cpu->x = reference->x;
+    cpu->y = reference->y;
+    cpu->stack = reference->sp;
+    cpu->direct_page = reference->dp;
+    cpu->data_bank = reference->db;
+    cpu->program_bank = reference->k;
+    cpu->carry = reference->c;
+    cpu->zero = reference->z;
+    cpu->negative = reference->n;
+    cpu->overflow = reference->v;
+    cpu->decimal = reference->d;
+    cpu->irq_disable = reference->i;
+    cpu->accumulator_is_8_bit = reference->mf;
+    cpu->index_is_8_bit = reference->xf;
+}
+
+/* JSR child in interp816 until its RTS. */
+static uint8_t RunSlotChild(
+    void *opaque,
+    Lufia2ActorFrontendCpu *cpu,
+    uint32_t target,
+    uint32_t site) {
+    SlotsChildContext *context = (SlotsChildContext *)opaque;
+    const uint16_t entry_s = cpu->stack;
+    const uint16_t pushed = (uint16_t)(site + 2u);
+    const uint32_t back = (site & 0xff0000u) | (uint16_t)(site + 3u);
+
+    /* site must hold JSR target. */
+    if (Rom8(context->bus, site) != 0x20u ||
+        (Rom8(context->bus, site + 1u) |
+         ((uint32_t)Rom8(context->bus, site + 2u) << 8)) !=
+            (target & 0xffffu)) {
+        context->stuck = true;
+        context->bad_site = true;
+        return 0;
+    }
+    SnesVerifyBusWrite(context->bus, cpu->stack, (uint8_t)(pushed >> 8));
+    cpu->stack = (uint16_t)(cpu->stack - 1u);
+    SnesVerifyBusWrite(context->bus, cpu->stack, (uint8_t)pushed);
+    cpu->stack = (uint16_t)(cpu->stack - 1u);
+    cpu->program_bank = (uint8_t)(target >> 16);
+    InitInterp(context->interp, target, cpu);
+    for (unsigned n = 0; n < 1000000u; ++n) {
+        if (SnesVerifyPc24(context->interp) == back &&
+            context->interp->sp == entry_s) {
+            InterpToNative(context->interp, cpu);
+            return 1;
+        }
+        interp816_runOpcode(context->interp);
+    }
+    context->stuck = true;
+    return 0;
+}
+
+/* Multiplier latches survive a run; replay them. */
+typedef struct BusRegisters {
+    uint8_t multiply_a;
+    uint8_t multiply_b;
+    uint16_t multiply_result;
+    uint8_t m7_latch;
+    uint16_t m7_a;
+    uint8_t m7_b;
+} BusRegisters;
+
+static BusRegisters SaveBusRegisters(const SnesVerifyBus *bus) {
+    BusRegisters saved;
+    saved.multiply_a = bus->multiply_a;
+    saved.multiply_b = bus->multiply_b;
+    saved.multiply_result = bus->multiply_result;
+    saved.m7_latch = bus->m7_latch;
+    saved.m7_a = bus->m7_a;
+    saved.m7_b = bus->m7_b;
+    return saved;
+}
+
+static void RestoreBusRegisters(
+    SnesVerifyBus *bus, const BusRegisters *saved) {
+    bus->multiply_a = saved->multiply_a;
+    bus->multiply_b = saved->multiply_b;
+    bus->multiply_result = saved->multiply_result;
+    bus->m7_latch = saved->m7_latch;
+    bus->m7_a = saved->m7_a;
+    bus->m7_b = saved->m7_b;
+}
+
+static uint64_t g_slots_rng = UINT64_C(0x3c6ef372fe94f82b);
+
+static uint32_t SlotsRandom(void) {
+    g_slots_rng ^= g_slots_rng << 13;
+    g_slots_rng ^= g_slots_rng >> 7;
+    g_slots_rng ^= g_slots_rng << 17;
+    return (uint32_t)(g_slots_rng >> 32);
+}
+
+/* Whole $83:BB93 from the field-loop JSL; children in interp816. */
+static bool RunActorSlotsCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index,
+    ActorSlotsStats *stats) {
+    static const uint8_t banks[4] = {0x83u, 0x83u, 0x83u, 0x00u};
+    static const uint8_t ops[] = {
+        0xf0, 0xf0, 0x00, 0x43, 0xfa, 0x13, 0x22, 0x92, 0xe9, 0xd0,
+        0x0c, 0x0d, 0x0e, 0x21, 0x23, 0x30, 0x31, 0x3a, 0x3d, 0x40};
+    const uint16_t dp = (case_index & 7u) == 7u ? 0x0020u : 0x0000u;
+    SlotsChildContext child = {bus, reference, false, false};
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    Lufia2ActorPrimaryUpdateResult result;
+    uint8_t *native_wram;
+    unsigned instructions = 0;
+    unsigned visits = 0;
+    BusRegisters registers;
+    bool stopped = false;
+
+    for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
+        const uint32_t word = SlotsRandom();
+        memcpy(bus->wram + i, &word, 4);
+    }
+    for (uint16_t i = 0x1800u; i < 0x1f00u; ++i)
+        bus->wram[i] = ops[SlotsRandom() % sizeof(ops)];
+    for (unsigned slot = 0; slot < 40u; ++slot) {
+        const uint16_t record = (uint16_t)(slot * 3u);
+        /* Most slots idle, some run both VMs. */
+        if (SlotsRandom() % 3u)
+            bus->wram[0x0622u + slot] |= 0x04u;
+        Poke16(bus, 0x7fe3eeu + record,
+            (uint16_t)(0x1800u + (SlotsRandom() & 0x3ffu)));
+        bus->wram[0x1e3f0u + record] = (SlotsRandom() & 1u) ? 0x7eu : 0x00u;
+        Poke16(bus, 0x7fe506u + record,
+            (uint16_t)(0x1800u + (SlotsRandom() & 0x3ffu)));
+        bus->wram[0x1e508u + record] = (SlotsRandom() & 1u) ? 0x7eu : 0x00u;
+        bus->wram[0x1e4deu + slot] = (uint8_t)(1u << (SlotsRandom() & 3u));
+        bus->wram[0x1e216u + slot] = (uint8_t)(1u + (SlotsRandom() & 1u));
+    }
+    bus->wram[0x05b9u] = 0x20u;
+    Poke16(bus, 0x05aau, 0);
+    Poke16(bus, 0x7fd008u, 0);
+    for (unsigned i = 0; i < 0x2000u; ++i)
+        if (SlotsRandom() & 1u)
+            bus->wram[0x4000u + i] = 0;
+    if (SlotsRandom() & 1u)
+        bus->wram[0x1d0feu] = 0;
+    if (SlotsRandom() & 3u)
+        bus->wram[0x09a1u] = 0xffu;
+    /* JSL $83:BB93 at $83:807D. */
+    bus->wram[0x1ff1u] = 0x80u;
+    bus->wram[0x1ff2u] = 0x80u;
+    bus->wram[0x1ff3u] = 0x83u;
+
+    memset(&input, 0, sizeof(input));
+    input.accumulator = (uint16_t)SlotsRandom();
+    input.x = (uint16_t)(SlotsRandom() & 0xffu);
+    input.y = (uint16_t)(SlotsRandom() & 0xffu);
+    input.stack = 0x1ff0u;
+    input.direct_page = dp;
+    input.data_bank = banks[SlotsRandom() & 3u];
+    input.program_bank = 0x83u;
+    input.carry = SlotsRandom() & 1u;
+    input.zero = SlotsRandom() & 1u;
+    input.negative = SlotsRandom() & 1u;
+    input.overflow = SlotsRandom() & 1u;
+    input.irq_disable = SlotsRandom() & 1u;
+    input.accumulator_is_8_bit = 1;
+    input.index_is_8_bit = (SlotsRandom() & 7u) ? 1u : 0u;
+    if (!input.index_is_8_bit)
+        input.x = (uint16_t)SlotsRandom();
+
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    registers = SaveBusRegisters(bus);
+    native = input;
+    result = Lufia2UpdateActorSlots(&memory, &native, RunSlotChild, &child);
+    if (child.bad_site) {
+        fprintf(stderr, "FAIL BB93 case %u: child site mismatch\n",
+            case_index);
+        return false;
+    }
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_CHILD_UNWOUND) {
+        ++stats->unterminated;
+        return true;
+    }
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+        native.stack = (uint16_t)(native.stack + 3u);   /* RTL */
+
+    native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    if (!native_wram)
+        return false;
+    memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+
+    RestoreBusRegisters(bus, &registers);
+    InitInterp(reference, 0x83bb93u, &input);
+    while (instructions < 100000000u) {
+        const uint32_t pc = SnesVerifyPc24(reference);
+        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+                ? pc == 0x838081u
+                : pc == 0x83bba1u && ++visits == result.dispatches) {
+            stopped = true;
+            break;
+        }
+        interp816_runOpcode(reference);
+        ++instructions;
+    }
+
+    if (!stopped || !SameState(&native, reference) ||
+        memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        size_t diff = 0;
+        while (diff < SNES_VERIFY_WRAM_SIZE &&
+               native_wram[diff] == bus->wram[diff])
+            ++diff;
+        fprintf(stderr,
+            "FAIL BB93 case %u: stop=%d insns=%u A=%04X/%04X "
+            "X=%04X/%04X Y=%04X/%04X S=%04X/%04X DB=%02X/%02X "
+            "M=%u/%u Xf=%u/%u C=%u/%u Z=%u/%u N=%u/%u wram@%05X %02X/%02X\n",
+            case_index, stopped ? 1 : 0, instructions,
+            native.accumulator, reference->a, native.x, reference->x,
+            native.y, reference->y, native.stack, reference->sp,
+            native.data_bank, reference->db,
+            native.accumulator_is_8_bit, reference->mf,
+            native.index_is_8_bit, reference->xf,
+            native.carry, reference->c, native.zero, reference->z,
+            native.negative, reference->n, (unsigned)diff,
+            diff < SNES_VERIFY_WRAM_SIZE ? native_wram[diff] : 0,
+            diff < SNES_VERIFY_WRAM_SIZE ? bus->wram[diff] : 0);
+        free(native_wram);
+        return false;
+    }
+    free(native_wram);
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+        ++stats->returned;
+    else
+        ++stats->boundary;
+    return true;
+}
+
 enum { SECONDARY_UPDATE_CASES = 16384 };
 
 /* Whole $83:D508 against the ROM, random machine and scripts. */
@@ -2934,6 +3191,8 @@ int main(int argc, char **argv) {
     ActionCoreX8Stats action_core_x8 = {0, 0, 0};
     unsigned player_standard_passed = 0;
     PlayerStandardStats player_standard;
+    unsigned actor_slots_passed = 0;
+    ActorSlotsStats actor_slots = {0, 0, 0};
     unsigned movement_step_passed = 0;
     unsigned map_offset_passed = 0;
     unsigned map_value_passed = 0;
@@ -3170,6 +3429,17 @@ int main(int argc, char **argv) {
             ++player_standard_passed;
         else
             ++failed;
+    }
+    for (unsigned i = 0; i < ACTOR_SLOTS_CASES && failed < 20; ++i) {
+        if (RunActorSlotsCase(&bus, reference, initial, i, &actor_slots))
+            ++actor_slots_passed;
+        else
+            ++failed;
+    }
+    if (actor_slots.returned < ACTOR_SLOTS_CASES / 2u) {
+        fprintf(stderr, "FAIL BB93 too few terminated cases: %u\n",
+            actor_slots.returned);
+        ++failed;
     }
 
 
@@ -3424,6 +3694,10 @@ int main(int argc, char **argv) {
         player_standard.boundary[6], player_standard.boundary[7],
         player_standard.boundary[8], player_standard.boundary[9],
         player_standard.boundary[10]);
+    printf("$83:BB93 whole-function cases passed:      %u / %u "
+        "(RTL %u, LLE BBA1 %u, child never returned %u)\n",
+        actor_slots_passed, ACTOR_SLOTS_CASES, actor_slots.returned,
+        actor_slots.boundary, actor_slots.unterminated);
     printf("$83:FB12 movement-step cases passed:       %u / %u\n",
         movement_step_passed, MOVEMENT_HELPER_CASES);
     printf("$83:F9D4 map-offset cases passed:          %u / %u\n",

@@ -16,6 +16,7 @@ extern RecompReturn Lufia2DecompBridge_FB71(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_C7F8(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_D508(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_C1B4(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_BB93(CpuState *cpu);
 
 enum {
     LUFIA2_ROM_SIZE = 0x280000,
@@ -432,6 +433,7 @@ typedef struct WholeStats {
     unsigned dispatch_return;
     unsigned lle_boundary;
     unsigned lle_entry;
+    unsigned unterminated;
 } WholeStats;
 
 /* Random actor, script and machine around the BB93 JSR. */
@@ -645,6 +647,186 @@ static void SeedC1B4(CpuState *cpu) {
     cpu_mirrors_to_p(cpu);
 }
 
+/* Children of BB93 run in their own interpreter. */
+static Interp816 *g_child;
+static bool g_child_stuck;
+
+static void InterpToCpu(const Interp816 *ref, CpuState *cpu) {
+    cpu->A = ref->a;
+    cpu->X = ref->x;
+    cpu->Y = ref->y;
+    cpu->S = ref->sp;
+    cpu->D = ref->dp;
+    cpu->DB = ref->db;
+    cpu->PB = ref->k;
+    cpu->_flag_C = ref->c;
+    cpu->_flag_Z = ref->z;
+    cpu->_flag_N = ref->n;
+    cpu->_flag_V = ref->v;
+    cpu->_flag_D = ref->d;
+    cpu->_flag_I = ref->i;
+    cpu->m_flag = ref->mf;
+    cpu->x_flag = ref->xf;
+    cpu_mirrors_to_p(cpu);
+}
+
+/* Run pc24 in g_child until RTS/RTL back to S. */
+static bool RunChildToReturn(
+    CpuState *cpu, uint32_t pc24, uint32_t back, uint16_t entry_s) {
+    InitReference(g_child, cpu, pc24);
+    for (unsigned n = 0; n < 1000000u; ++n) {
+        if (SnesVerifyPc24(g_child) == back && g_child->sp == entry_s) {
+            InterpToCpu(g_child, cpu);
+            return true;
+        }
+        interp816_runOpcode(g_child);
+    }
+    g_child_stuck = true;
+    return false;
+}
+
+static bool g_bad_site;
+
+RecompReturn cpu_dispatch_call_pc(
+    CpuState *cpu, uint32 target, uint32 source_pc24) {
+    const uint16_t entry_s = cpu->S;
+    const uint16_t pushed = (uint16_t)(source_pc24 + 2u);
+
+    /* source_pc24 must hold JSR target. */
+    if (SnesVerifyBusRead(&g_bus, source_pc24) != 0x20u ||
+        (SnesVerifyBusRead(&g_bus, source_pc24 + 1u) |
+         ((uint32_t)SnesVerifyBusRead(&g_bus, source_pc24 + 2u) << 8)) !=
+            (target & 0xffffu))
+        g_bad_site = true;
+
+    cpu_write8(cpu, 0x00, cpu->S, (uint8_t)(pushed >> 8));
+    cpu->S = (uint16_t)(cpu->S - 1u);
+    cpu_write8(cpu, 0x00, cpu->S, (uint8_t)pushed);
+    cpu->S = (uint16_t)(cpu->S - 1u);
+    cpu->host_return_valid = 2;
+    if (!RunChildToReturn(
+            cpu, target,
+            (source_pc24 & 0xff0000u) | (uint16_t)(source_pc24 + 3u),
+            entry_s))
+        return RECOMP_RETURN_SKIP_2;
+    return RECOMP_RETURN_NORMAL;
+}
+
+/* Verifier-side child for the portable BB93. */
+static uint8_t FrontSlotChild(
+    void *context,
+    Lufia2ActorFrontendCpu *state,
+    uint32_t target,
+    uint32_t site) {
+    CpuState cpu;
+
+    (void)context;
+    memset(&cpu, 0, sizeof(cpu));
+    cpu.A = state->accumulator;
+    cpu.X = state->x;
+    cpu.Y = state->y;
+    cpu.S = state->stack;
+    cpu.D = state->direct_page;
+    cpu.DB = state->data_bank;
+    cpu.PB = (uint8_t)(target >> 16);
+    cpu._flag_C = state->carry;
+    cpu._flag_Z = state->zero;
+    cpu._flag_N = state->negative;
+    cpu._flag_V = state->overflow;
+    cpu._flag_D = state->decimal;
+    cpu._flag_I = state->irq_disable;
+    cpu.m_flag = state->accumulator_is_8_bit;
+    cpu.x_flag = state->index_is_8_bit;
+    cpu.ram = g_bus.wram;
+    cpu_mirrors_to_p(&cpu);
+    if (cpu_dispatch_call_pc(&cpu, target, site) != RECOMP_RETURN_NORMAL)
+        return 0;
+    state->accumulator = cpu.A;
+    state->x = cpu.X;
+    state->y = cpu.Y;
+    state->stack = cpu.S;
+    state->direct_page = cpu.D;
+    state->data_bank = cpu.DB;
+    state->program_bank = cpu.PB;
+    state->carry = cpu._flag_C;
+    state->zero = cpu._flag_Z;
+    state->negative = cpu._flag_N;
+    state->overflow = cpu._flag_V;
+    state->decimal = cpu._flag_D;
+    state->irq_disable = cpu._flag_I;
+    state->accumulator_is_8_bit = cpu.m_flag;
+    state->index_is_8_bit = cpu.x_flag;
+    return 1;
+}
+
+/* Iterations before the BBA1 handoff, as counted at BBA5. */
+static Lufia2ActorPrimaryUpdateResult DecompBB93(
+    const Lufia2ActorFrontendMemory *memory, Lufia2ActorFrontendCpu *cpu) {
+    Lufia2ActorPrimaryUpdateResult result =
+        Lufia2UpdateActorSlots(memory, cpu, FrontSlotChild, NULL);
+    if (result.dispatches)
+        --result.dispatches;
+    return result;
+}
+
+/* Field-loop state for BB93: slots, scripts, flags. */
+static void SeedBB93(CpuState *cpu) {
+    static const uint8_t ops[] = {
+        0xf0, 0xf0, 0x00, 0x43, 0xfa, 0x13, 0x22, 0x92, 0xe9, 0xd0,
+        0x0c, 0x0d, 0x0e, 0x21, 0x23, 0x30, 0x31, 0x3a, 0x3d, 0x40};
+    const uint16_t dp = (Random32() & 7u) == 7u ? 0x0020u : 0x0000u;
+
+    RandomFill(g_bus.wram);
+    for (uint16_t i = 0x1800u; i < 0x1f00u; ++i)
+        g_bus.wram[i] = ops[Random32() % sizeof(ops)];
+    for (unsigned slot = 0; slot < 40u; ++slot) {
+        const uint16_t record = (uint16_t)(slot * 3u);
+        if (Random32() % 3u)
+            g_bus.wram[0x0622u + slot] |= 0x04u;
+        Poke16(g_bus.wram, 0x1e3eeu + record,
+            (uint16_t)(0x1800u + (Random32() & 0x3ffu)));
+        g_bus.wram[0x1e3f0u + record] = (Random32() & 1u) ? 0x7eu : 0x00u;
+        Poke16(g_bus.wram, 0x1e506u + record,
+            (uint16_t)(0x1800u + (Random32() & 0x3ffu)));
+        g_bus.wram[0x1e508u + record] = (Random32() & 1u) ? 0x7eu : 0x00u;
+        g_bus.wram[0x1e4deu + slot] = (uint8_t)(1u << (Random32() & 3u));
+        g_bus.wram[0x1e216u + slot] = (uint8_t)(1u + (Random32() & 1u));
+    }
+    g_bus.wram[0x05b9u] = 0x20u;
+    Poke16(g_bus.wram, 0x05aau, 0);
+    Poke16(g_bus.wram, 0x1d008u, 0);
+    for (unsigned i = 0; i < 0x2000u; ++i)
+        if (Random32() & 1u)
+            g_bus.wram[0x4000u + i] = 0;
+    if (Random32() & 1u)
+        g_bus.wram[0x1d0feu] = 0;
+    if (Random32() & 3u)
+        g_bus.wram[0x09a1u] = 0xffu;
+    g_bus.wram[0x1ff1u] = (uint8_t)RETURN_WORD;
+    g_bus.wram[0x1ff2u] = (uint8_t)(RETURN_WORD >> 8);
+    g_bus.wram[0x1ff3u] = 0x83u;
+
+    memset(cpu, 0, sizeof(*cpu));
+    cpu->A = (uint16_t)Random32();
+    cpu->X = (uint16_t)(Random32() & 0xffu);
+    cpu->Y = (uint16_t)(Random32() & 0xffu);
+    cpu->S = 0x1ff0u;
+    cpu->D = dp;
+    cpu->DB = (Random32() & 3u) ? 0x83u : 0x00u;
+    cpu->PB = 0x83;
+    cpu->m_flag = 1;
+    cpu->x_flag = (Random32() & 7u) ? 1u : 0u;
+    cpu->_flag_C = Random32() & 1u;
+    cpu->_flag_Z = Random32() & 1u;
+    cpu->_flag_V = Random32() & 1u;
+    cpu->_flag_N = Random32() & 1u;
+    cpu->_flag_I = Random32() & 1u;
+    cpu->ram = g_bus.wram;
+    if (!cpu->x_flag)
+        cpu->X = (uint16_t)Random32();
+    cpu_mirrors_to_p(cpu);
+}
+
 typedef Lufia2ActorPrimaryUpdateResult (*WholeDecomp)(
     const Lufia2ActorFrontendMemory *memory, Lufia2ActorFrontendCpu *cpu);
 
@@ -655,16 +837,50 @@ typedef struct WholeTarget {
     void (*seed)(CpuState *cpu);
     WholeDecomp decomp;
     RecompReturn (*bridge)(CpuState *cpu);
+    uint8_t frame;
+    unsigned limit;
 } WholeTarget;
 
-static const WholeTarget kWholeTargets[3] = {
+static const WholeTarget kWholeTargets[4] = {
     {"C7F8", 0x83c7f8u, 0x83c864u, SeedC7F8, Lufia2ActorPrimaryUpdate,
-     Lufia2DecompBridge_C7F8},
+     Lufia2DecompBridge_C7F8, 2, 4000000u},
     {"D508", 0x83d508u, 0x83d5d1u, SeedD508, Lufia2ActorSecondaryUpdate,
-     Lufia2DecompBridge_D508},
+     Lufia2DecompBridge_D508, 2, 4000000u},
     {"C1B4", 0x83c1b4u, 0u, SeedC1B4, Lufia2PlayerSlotStandardUpdate,
-     Lufia2DecompBridge_C1B4},
+     Lufia2DecompBridge_C1B4, 2, 4000000u},
+    {"BB93", 0x83bb93u, 0x83bba5u, SeedBB93, DecompBB93,
+     Lufia2DecompBridge_BB93, 3, 100000000u},
 };
+
+/* Multiplier latches carry across runs. */
+typedef struct BusRegisters {
+    uint8_t multiply_a;
+    uint8_t multiply_b;
+    uint16_t multiply_result;
+    uint8_t m7_latch;
+    uint16_t m7_a;
+    uint8_t m7_b;
+} BusRegisters;
+
+static BusRegisters SaveRegisters(void) {
+    BusRegisters saved;
+    saved.multiply_a = g_bus.multiply_a;
+    saved.multiply_b = g_bus.multiply_b;
+    saved.multiply_result = g_bus.multiply_result;
+    saved.m7_latch = g_bus.m7_latch;
+    saved.m7_a = g_bus.m7_a;
+    saved.m7_b = g_bus.m7_b;
+    return saved;
+}
+
+static void RestoreRegisters(const BusRegisters *saved) {
+    g_bus.multiply_a = saved->multiply_a;
+    g_bus.multiply_b = saved->multiply_b;
+    g_bus.multiply_result = saved->multiply_result;
+    g_bus.m7_latch = saved->m7_latch;
+    g_bus.m7_a = saved->m7_a;
+    g_bus.m7_b = saved->m7_b;
+}
 
 static bool RunWholeCase(
     Interp816 *ref, const WholeTarget *target, unsigned index,
@@ -679,12 +895,18 @@ static bool RunWholeCase(
     unsigned instructions = 0;
     unsigned dispatches = 0;
     uint32_t last_pc = 0;
+    BusRegisters registers;
     bool stopped = false;
 
     target->seed(&native);
-    native.host_return_valid = hrv_mode == 0 ? 2u : hrv_mode == 1 ? 0u : 3u;
+    native.host_return_valid = (uint8_t)(
+        hrv_mode == 0 ? target->frame : hrv_mode == 1 ? 0u :
+        target->frame == 2 ? 3u : 2u);
     input = native;
     memcpy(g_seed, g_bus.wram, SNES_VERIFY_WRAM_SIZE);
+    registers = SaveRegisters();
+    g_child_stuck = false;
+    g_bad_site = false;
 
     memset(&probe, 0, sizeof(probe));
     probe.accumulator = input.A;
@@ -703,14 +925,30 @@ static bool RunWholeCase(
     probe.index_is_8_bit = input.x_flag;
     expected = target->decomp(&front, &probe);
     memcpy(g_bus.wram, g_seed, SNES_VERIFY_WRAM_SIZE);
+    if (expected.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_CHILD_UNWOUND) {
+        /* Child stub unwinds SKIP_2; the bridge passes SKIP_1 up. */
+        RestoreRegisters(&registers);
+        memset(&g_stub, 0, sizeof(g_stub));
+        ret = target->bridge(&native);
+        memcpy(g_bus.wram, g_seed, SNES_VERIFY_WRAM_SIZE);
+        if (ret != RECOMP_RETURN_SKIP_1 || g_stub.count != 0) {
+            Report(target->name, "unwind", index, &native, ref, ret, 0,
+                "child unwind");
+            return false;
+        }
+        ++stats->unterminated;
+        return true;
+    }
+    RestoreRegisters(&registers);
 
     memset(&g_stub, 0, sizeof(g_stub));
     ret = target->bridge(&native);
     memcpy(g_native, g_bus.wram, SNES_VERIFY_WRAM_SIZE);
 
     memcpy(g_bus.wram, g_seed, SNES_VERIFY_WRAM_SIZE);
+    RestoreRegisters(&registers);
     InitReference(ref, &input, target->entry);
-    while (instructions < 4000000u) {
+    while (instructions < target->limit) {
         const uint32_t pc = SnesVerifyPc24(ref);
         if (expected.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
             if (pc == sentinel) {
@@ -729,10 +967,10 @@ static bool RunWholeCase(
         ++instructions;
     }
 
-    if (!stopped || !SameState(&native, ref) ||
+    if (!stopped || g_bad_site || !SameState(&native, ref) ||
         memcmp(g_native, g_bus.wram, SNES_VERIFY_WRAM_SIZE) != 0) {
         Report(target->name, "state", index, &native, ref, ret, stopped ? 0 : -1,
-            "state/memory");
+            g_bad_site ? "child site" : "state/memory");
         return false;
     }
     if (expected.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_BOUNDARY) {
@@ -754,7 +992,7 @@ static bool RunWholeCase(
         if (ret != (RecompReturn)STUB_SENTINEL || g_stub.count != 1 ||
             g_stub.kind != STUB_DISPATCH || g_stub.target != sentinel ||
             g_stub.site != last_pc ||
-            g_stub.restore_s != (uint16_t)(input.S + 2u)) {
+            g_stub.restore_s != (uint16_t)(input.S + target->frame)) {
             Report(target->name, "dispatched", index, &native, ref, ret, 0,
                 "dispatch");
             return false;
@@ -807,9 +1045,8 @@ int main(int argc, char **argv) {
     unsigned passed[4][3] = {{0}};
     unsigned unsupported[4] = {0};
     unsigned fb12_oob = 0;
-    unsigned whole_passed[3] = {0, 0, 0};
-    WholeStats whole_stats[3] = {
-        {0, 0, 0, 0}, {0, 0, 0, 0}, {0, 0, 0, 0}};
+    unsigned whole_passed[4] = {0, 0, 0, 0};
+    WholeStats whole_stats[4];
     unsigned failed = 0;
     bool bus_ready = false;
 
@@ -835,6 +1072,7 @@ int main(int argc, char **argv) {
     }
     bus_ready = true;
     ref = interp816_init(&g_bus, SnesVerifyBusRead, SnesVerifyBusWrite);
+    g_child = interp816_init(&g_bus, SnesVerifyBusRead, SnesVerifyBusWrite);
     if (!ref) {
         fprintf(stderr, "ERROR: interp816 initialization failed\n");
         failed = 1;
@@ -866,10 +1104,13 @@ int main(int argc, char **argv) {
             ++failed;
     }
 
-    for (unsigned t = 0; t < 3u && failed < 20; ++t) {
+    memset(whole_stats, 0, sizeof(whole_stats));
+    for (unsigned t = 0; t < 4u && failed < 20; ++t) {
         const WholeTarget *target = &kWholeTargets[t];
 
-        for (unsigned i = 0; i < WHOLE_CASES && failed < 20; ++i) {
+        const unsigned cases = t == 3u ? WHOLE_CASES / 4u : WHOLE_CASES;
+
+        for (unsigned i = 0; i < cases && failed < 20; ++i) {
             if (RunWholeCase(ref, target, i, i % 3u, &whole_stats[t]))
                 ++whole_passed[t];
             else
@@ -901,14 +1142,16 @@ int main(int argc, char **argv) {
                 unsupported[t], UNSUPPORTED_CASES);
         fprintf(out, "$83:FB12 out-of-range tail %u/%u\n",
             fb12_oob, UNSUPPORTED_CASES);
-        for (unsigned t = 0; t < 3u; ++t)
+        for (unsigned t = 0; t < 4u; ++t)
             fprintf(out,
                 "$83:%s %u/%u (host return %u, dispatch return %u, "
-                "LLE boundary %u, LLE entry %u)\n",
+                "LLE boundary %u, LLE entry %u, child never returned %u)\n",
                 kWholeTargets[t].name, whole_passed[t],
-                WHOLE_CASES + UNSUPPORTED_CASES,
+                (t == 3u ? WHOLE_CASES / 4u : WHOLE_CASES) +
+                    UNSUPPORTED_CASES,
                 whole_stats[t].host_return, whole_stats[t].dispatch_return,
-                whole_stats[t].lle_boundary, whole_stats[t].lle_entry);
+                whole_stats[t].lle_boundary, whole_stats[t].lle_entry,
+                whole_stats[t].unterminated);
         fprintf(out, "failures: %u\n", failed);
         fprintf(out, failed
             ? "RESULT: FAIL - actor bridge mismatch found\n"
