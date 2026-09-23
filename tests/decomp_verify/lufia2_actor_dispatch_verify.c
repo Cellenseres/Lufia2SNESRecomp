@@ -436,7 +436,7 @@ static bool CompareKnownPrimaryBoundary(
     if (redispatch_pc != 0) {
         unsigned to_redispatch = 0;
         stop = SnesVerifyRunUntil(
-            reference, &redispatch_pc, 1, 1024, &to_redispatch);
+            reference, &redispatch_pc, 1, 200000, &to_redispatch);
         instructions += to_redispatch;
         if (stop != 0) {
             fprintf(stderr,
@@ -450,7 +450,7 @@ static bool CompareKnownPrimaryBoundary(
     {
         unsigned to_target = 0;
         stop = SnesVerifyRunUntil(
-            reference, &stop_pc, 1, 1024, &to_target);
+            reference, &stop_pc, 1, 200000, &to_target);
         instructions += to_target;
     }
 
@@ -1822,9 +1822,11 @@ static bool RunGenericHandlerCase(
 
     if (low_script) {
         input.data_bank = ((case_index >> 8) & 1u) ? 0x00u : 0x7eu;
-        if (!(case_index & 0x80u))
-            bus->wram[(uint16_t)(script + 1u)] =
-                (uint8_t)((case_index >> 5) & 3u);
+        /* D03F reads it as a direction 0/2/4/6. */
+        bus->wram[(uint16_t)(script + 1u)] =
+            ((case_index & 0x80u) && handler_pc != 0x83d03fu)
+            ? (uint8_t)(bus->wram[(uint16_t)(script + 1u)] & 0xfeu)
+            : (uint8_t)(((case_index >> 5) & 3u) * 2u);
         bus->wram[(uint16_t)(script + 2u)] =
             (uint8_t)((case_index >> 2) % 7u);
         bus->wram[0x0692u] = (uint8_t)(((case_index >> 4) & 3u) * 2u);
@@ -1832,9 +1834,11 @@ static bool RunGenericHandlerCase(
         bus->wram[0x09a1u] = (uint8_t)(case_index * 0x21u);
         bus->wram[0x10000u + 0xe57eu + slot] =
             (uint8_t)(case_index * 0x13u);
-        for (unsigned i = 0; i < 0x100u; ++i)
-            bus->wram[0x10000u + 0xe5a6u + i] =
-                (uint8_t)((i * 0x1du) ^ case_index);
+        /* One record value; D210's operand sits at -1..+2. */
+        memset(bus->wram + 0x10000u + 0xe5a6u,
+            (uint8_t)(case_index * 0x1du), 0x100u);
+        bus->wram[(uint16_t)(script + 3u)] = (uint8_t)(
+            case_index * 0x1du + ((case_index >> 8) & 3u) - 1u);
 
         /* $A9 record, $7F:DB4C slot pick, $05D2 slot states. */
         const uint16_t record = (uint16_t)((case_index * 3u) & 0x3fu);
@@ -1852,13 +1856,49 @@ static bool RunGenericHandlerCase(
             bus->wram[0x06e2u + i] = (uint8_t)(
                 actor_y + deltas[(i * 3u + (case_index >> 2)) & 7u] / 2);
         }
+        /* Only the actor in range: CFB9 must skip itself. */
+        if (case_index & 0x200u) {
+            for (unsigned i = 0; i < 40u; ++i)
+                bus->wram[0x06bau + i] = (uint8_t)(actor_x + 0x40u);
+        }
         bus->wram[0x06bau + slot] = actor_x;
         bus->wram[0x06e2u + slot] = actor_y;
         bus->wram[0x06bau] = leader_x;
         bus->wram[0x06e2u] = leader_y;
 
+        /*
+         * Collision map ($7E:4000 + x + y * width), height bits
+         * ($7F:0001 + cell * 2), actor size and wander bounds.
+         */
+        bus->wram[0x05b9u] = (uint8_t)(0x20u + ((case_index >> 4) & 0x10u));
+        bus->wram[0x05aau] = 0;
+        bus->wram[0x05abu] = 0;
+        bus->wram[0x10000u + 0xd008u] = 0;
+        bus->wram[0x10000u + 0xd009u] = 0;
+        for (unsigned i = 0; i < 0x5000u; ++i) {
+            const unsigned h = (i * 0x9du) ^ (i >> 5) ^ case_index;
+            bus->wram[0x4000u + i] =
+                (h & 0x0cu) == 0 ? (uint8_t)(h * 0x3bu) : 0u;
+        }
+        for (unsigned i = 0; i < 0x4000u; i += 2u)
+            bus->wram[0x10001u + i] =
+                (((i >> 6) ^ case_index) & 0x1cu) == 0
+                    ? (uint8_t)((i + case_index) << 6) : 0x00u;
+        bus->wram[dp + 0x90u] = 0x5au;
+        bus->wram[dp + 0x92u] = 0xa5u;
+        bus->wram[0x10000u + 0xe216u + slot] =
+            (uint8_t)(1u + ((case_index >> 3) & 1u));
+        bus->wram[0x10000u + 0xe5f6u + slot] =
+            (uint8_t)(actor_x - (case_index & 3u));
+        bus->wram[0x10000u + 0xe61eu + slot] =
+            (uint8_t)(actor_y - ((case_index >> 2) & 3u));
+        bus->wram[0x10000u + 0xe646u + slot] =
+            (uint8_t)(actor_x + ((case_index >> 7) & 3u));
+        bus->wram[0x10000u + 0xe66eu + slot] =
+            (uint8_t)(actor_y + ((case_index >> 8) & 3u));
+
         /* Operand point on the actor for CF8C's arrival path. */
-        if ((case_index & 0x0cu) == 0x0cu) {
+        if (handler_pc == 0x83cf8cu && (case_index & 0x0cu) == 0x0cu) {
             bus->wram[(uint16_t)(script + 1u)] = actor_x;
             bus->wram[(uint16_t)(script + 2u)] =
                 (uint8_t)(actor_y + ((case_index >> 4) & 1u));
@@ -1941,6 +1981,8 @@ static const struct {
     {0x83cf8cu, "CF8C", true}, {0x83cfb9u, "CFB9", true},
     {0x83d112u, "D112", true}, {0x83d09au, "D09A", true},
     {0x83ca19u, "CA19", true},
+    {0x83cda5u, "CDA5", true}, {0x83ce7du, "CE7D", true},
+    {0x83cf1au, "CF1A", true}, {0x83d03fu, "D03F", true},
 };
 enum {
     GENERIC_HANDLER_COUNT =
