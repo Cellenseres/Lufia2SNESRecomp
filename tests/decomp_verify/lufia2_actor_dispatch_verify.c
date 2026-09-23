@@ -1835,6 +1835,61 @@ static bool RunGenericHandlerCase(
         for (unsigned i = 0; i < 0x100u; ++i)
             bus->wram[0x10000u + 0xe5a6u + i] =
                 (uint8_t)((i * 0x1du) ^ case_index);
+
+        /* $A9 record, $7F:DB4C slot pick, $05D2 slot states. */
+        const uint16_t record = (uint16_t)((case_index * 3u) & 0x3fu);
+        const uint8_t leader_x = bus->wram[0x06bau];
+        const uint8_t leader_y = bus->wram[0x06e2u];
+        bus->wram[dp + 0xa9u] = (uint8_t)record;
+        bus->wram[dp + 0xaau] = 0;
+        bus->wram[0x10000u + 0xdb4cu + record] =
+            (uint8_t)((case_index >> 3) % 40u);
+        for (unsigned i = 0; i < 40u; ++i) {
+            static const uint8_t states[4] = {0xffu, 0x80u, 0x7fu, 0xc3u};
+            bus->wram[0x05d2u + i] = states[(i + case_index) & 3u];
+            bus->wram[0x06bau + i] = (uint8_t)(
+                actor_x + deltas[(i * 5u + case_index) & 7u] / 2);
+            bus->wram[0x06e2u + i] = (uint8_t)(
+                actor_y + deltas[(i * 3u + (case_index >> 2)) & 7u] / 2);
+        }
+        bus->wram[0x06bau + slot] = actor_x;
+        bus->wram[0x06e2u + slot] = actor_y;
+        bus->wram[0x06bau] = leader_x;
+        bus->wram[0x06e2u] = leader_y;
+
+        /* Operand point on the actor for CF8C's arrival path. */
+        if ((case_index & 0x0cu) == 0x0cu) {
+            bus->wram[(uint16_t)(script + 1u)] = actor_x;
+            bus->wram[(uint16_t)(script + 2u)] =
+                (uint8_t)(actor_y + ((case_index >> 4) & 1u));
+        }
+
+        /*
+         * $7E:F000 point lists for D0AA, strides $0F and 4. D0AA keeps
+         * walking from slot+stride after C9C5 clobbers X, so the rest
+         * of the page reads as terminators, like unused list space.
+         */
+        memset(bus->wram + 0xf000u, 0xff, 0x1000u);
+        {
+            static const struct { uint16_t head; uint16_t list;
+                                  uint8_t stride; } lists[2] = {
+                {0x0002u, 0x0100u, 0x0fu}, {0x0026u, 0x0300u, 0x04u}};
+            for (unsigned l = 0; l < 2u; ++l) {
+                const unsigned count = (case_index >> (l * 2u)) % 5u;
+                uint16_t at = lists[l].list;
+                bus->wram[0xf000u + lists[l].head] = (uint8_t)at;
+                bus->wram[0xf001u + lists[l].head] = (uint8_t)(at >> 8);
+                for (unsigned e = 0; e < count; ++e) {
+                    bus->wram[0xf000u + at] = (uint8_t)e;
+                    bus->wram[0xf001u + at] = (uint8_t)(
+                        actor_x + deltas[(e + case_index) & 7u]);
+                    bus->wram[0xf002u + at] = (uint8_t)(
+                        actor_y + deltas[(e * 3u + case_index) & 7u]);
+                    at = (uint16_t)(at + lists[l].stride);
+                }
+                bus->wram[0xf000u + at] = 0xffu;
+            }
+        }
     }
 
     memcpy(g_generic_seed, bus->wram, SNES_VERIFY_WRAM_SIZE);
@@ -1881,6 +1936,11 @@ static const struct {
     {0x83d210u, "D210", true}, {0x83d293u, "D293", true},
     {0x83d2e6u, "D2E6", true}, {0x83d2f6u, "D2F6", true},
     {0x83d30bu, "D30B", true},
+    {0x83c98au, "C98A", true}, {0x83ccd7u, "CCD7", true},
+    {0x83d01eu, "D01E", true}, {0x83cf6eu, "CF6E", true},
+    {0x83cf8cu, "CF8C", true}, {0x83cfb9u, "CFB9", true},
+    {0x83d112u, "D112", true}, {0x83d09au, "D09A", true},
+    {0x83ca19u, "CA19", true},
 };
 enum {
     GENERIC_HANDLER_COUNT =
