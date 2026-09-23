@@ -124,6 +124,13 @@ void SnesVerifyBusResetTrace(SnesVerifyBus *bus) {
     bus->event_overflow = false;
 }
 
+/* Signed 16 x signed 8, 24-bit result. */
+static uint32_t Mode7Product(const SnesVerifyBus *bus) {
+    const int32_t product =
+        (int32_t)(int16_t)bus->m7_a * (int32_t)(int8_t)bus->m7_b;
+    return (uint32_t)product & 0x00ffffffu;
+}
+
 uint8_t SnesVerifyBusRead(void *opaque, uint32_t address) {
     SnesVerifyBus *bus = (SnesVerifyBus *)opaque;
     const int32_t wram_offset = WramOffset(address);
@@ -132,6 +139,11 @@ uint8_t SnesVerifyBusRead(void *opaque, uint32_t address) {
 
     if (IsCpuRegister(address, 0x4216u))
         value = (uint8_t)bus->multiply_result;
+    else if (IsCpuRegister(address, 0x2134u) ||
+             IsCpuRegister(address, 0x2135u) ||
+             IsCpuRegister(address, 0x2136u))
+        value = (uint8_t)(
+            Mode7Product(bus) >> (8u * ((uint16_t)address - 0x2134u)));
     else if (IsCpuRegister(address, 0x4217u))
         value = (uint8_t)(bus->multiply_result >> 8);
     else if (wram_offset >= 0)
@@ -153,6 +165,12 @@ void SnesVerifyBusWrite(void *opaque, uint32_t address, uint8_t value) {
         bus->multiply_b = value;
         bus->multiply_result =
             (uint16_t)((uint16_t)bus->multiply_a * value);
+    } else if (IsCpuRegister(address, 0x211bu)) {
+        bus->m7_a = (uint16_t)((value << 8) | bus->m7_latch);
+        bus->m7_latch = value;
+    } else if (IsCpuRegister(address, 0x211cu)) {
+        bus->m7_b = value;
+        bus->m7_latch = value;
     } else if (wram_offset >= 0) {
         bus->wram[wram_offset] = value;
     }

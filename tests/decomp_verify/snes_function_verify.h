@@ -32,6 +32,10 @@ typedef struct SnesVerifyBus {
     uint8_t multiply_a;
     uint8_t multiply_b;
     uint16_t multiply_result;
+    /* PPU Mode 7 multiplier. */
+    uint8_t m7_latch;
+    uint16_t m7_a;
+    uint8_t m7_b;
 } SnesVerifyBus;
 
 bool SnesVerifyLoadFile(
