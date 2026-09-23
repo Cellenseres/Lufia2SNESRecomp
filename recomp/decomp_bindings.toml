@@ -3,3 +3,19 @@ format = 1
 [[binding]]
 address = "83:BBF3"
 bridge = "Lufia2DecompBridge_BBF3"
+
+[[binding]]
+address = "83:D350"
+bridge = "Lufia2DecompBridge_D350"
+
+[[binding]]
+address = "83:F9D4"
+bridge = "Lufia2DecompBridge_F9D4"
+
+[[binding]]
+address = "83:FB12"
+bridge = "Lufia2DecompBridge_FB12"
+
+[[binding]]
+address = "83:FB71"
+bridge = "Lufia2DecompBridge_FB71"
