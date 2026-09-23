@@ -196,7 +196,12 @@ RecompReturn Lufia2DecompBridge_FB71(CpuState *cpu) {
     return ActorBridgeReturn(cpu, &frame, 3, 0x83fb8au);
 }
 
-RecompReturn Lufia2DecompBridge_C7F8(CpuState *cpu) {
+typedef Lufia2ActorPrimaryUpdateResult (*ActorWholeFunction)(
+    const Lufia2ActorFrontendMemory *memory, Lufia2ActorFrontendCpu *cpu);
+
+/* Whole JSR routine with exact LLE boundaries. */
+static RecompReturn ActorBridgeWhole(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction run) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2ActorFrontendMemory memory = {
         ActorBridgeRead, ActorBridgeWrite, cpu};
@@ -204,9 +209,9 @@ RecompReturn Lufia2DecompBridge_C7F8(CpuState *cpu) {
     Lufia2ActorPrimaryUpdateResult result;
 
     if (!ActorBridgeSupported(cpu, 1, 0))
-        return ActorBridgeFallback(cpu, &frame, 0x83c7f8u);
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
     ActorBridgeLoad(cpu, &state);
-    result = Lufia2ActorPrimaryUpdate(&memory, &state);
+    result = run(&memory, &state);
     ActorBridgeStore(cpu, &state);
     if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_BOUNDARY) {
         /* Exact ROM state at result.pc; LLE finishes the RTS. */
@@ -214,4 +219,12 @@ RecompReturn Lufia2DecompBridge_C7F8(CpuState *cpu) {
             cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
     }
     return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_C7F8(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x83c7f8u, Lufia2ActorPrimaryUpdate);
+}
+
+RecompReturn Lufia2DecompBridge_D508(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x83d508u, Lufia2ActorSecondaryUpdate);
 }
