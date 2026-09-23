@@ -277,6 +277,10 @@ RecompReturn Lufia2DecompBridge_BB93(CpuState *cpu) {
     return ActorBridgeReturn(cpu, &frame, 3, result.pc);
 }
 
+RecompReturn Lufia2DecompBridge_81C6(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x8381c6u, Lufia2FieldTriggerUpdate);
+}
+
 RecompReturn Lufia2DecompBridge_C1B4(CpuState *cpu) {
     return ActorBridgeWhole(
         cpu, 0x83c1b4u, Lufia2PlayerSlotStandardUpdate);
