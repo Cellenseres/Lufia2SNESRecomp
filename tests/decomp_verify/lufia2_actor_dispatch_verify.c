@@ -21,6 +21,8 @@ enum {
     MOVEMENT_HELPER_CASES = 1024,
     FIXED_ACTION_HANDLER_CASES = 128,
     OPERAND_ACTION_HANDLER_CASES = 1024,
+    LEADER_RADIUS_CASES = 4096,
+    LEADER_STEP_CASES = ACTION_CORE_VARIANTS * 3 * 16,
 };
 
 typedef struct NativeMemory {
@@ -1266,6 +1268,313 @@ static bool RunOperandActionHandlerCase(
         0, case_index, "C877-action");
 }
 
+static bool RunInstallScriptHandlerCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned variant,
+    uint8_t operand,
+    unsigned case_index) {
+    Lufia2ActorFrontendCpu input;
+    const uint16_t slot = (uint16_t)(8u + ((unsigned)operand % 24u));
+    const uint16_t record =
+        (uint16_t)((((unsigned)operand + variant * 7u) % 40u) * 3u);
+    const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
+
+    if (!SeedKnownPrimaryHandler(
+            bus, variant, (uint16_t)(TEST_SCRIPT + variant), &input) ||
+        !Poke16(bus, dp + 0x00a7u, slot) ||
+        !Poke16(bus, dp + 0x00abu, record) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | (uint16_t)(TEST_SCRIPT + variant + 1u),
+            operand) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0622u + slot,
+            (uint8_t)(operand ^ (variant * 0x21u))))
+        return false;
+
+    return CompareKnownPrimaryBoundary(
+        bus, reference, initial, &input,
+        0x83c891u, 0, 0x83c8d2u, 0x83c891u,
+        LUFIA2_ACTOR_PRIMARY_SCRIPT_CONTINUE_C8D2,
+        0, case_index, "C891");
+}
+
+static bool RunTimerStoreHandlerCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned variant,
+    uint8_t next_opcode,
+    unsigned case_index) {
+    Lufia2ActorFrontendCpu input;
+    const uint16_t slot =
+        (uint16_t)(((unsigned)next_opcode + variant * 13u) % 40u);
+    const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
+    const uint8_t operand =
+        (uint8_t)(0x3cu ^ next_opcode ^ (variant * 0x45u));
+    /* Variant 3 crosses from bank $7E into $7F. */
+    const uint16_t cursor =
+        variant == 3u ? 0xffffu : (uint16_t)(TEST_SCRIPT + variant);
+    const uint32_t stop_pc = PrimaryHandler(bus, next_opcode);
+
+    if (!SeedKnownPrimaryHandler(bus, variant, cursor, &input) ||
+        !Poke16(bus, dp + 0x00a7u, slot) ||
+        !SnesVerifyBusPoke(bus, 0x7e0000u + cursor + 1u, operand) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | (uint16_t)(cursor + 2u), next_opcode) ||
+        !SnesVerifyBusPoke(bus, 0x7fe4deu + slot, (uint8_t)~operand))
+        return false;
+
+    return CompareKnownPrimaryBoundary(
+        bus, reference, initial, &input,
+        0x83c8eeu, 0x83c85cu, stop_pc, 0x83c8eeu,
+        LUFIA2_ACTOR_PRIMARY_SCRIPT_REDISPATCHED,
+        next_opcode, case_index, "C8EE");
+}
+
+static bool RunFlagBitHandlerCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned variant,
+    uint8_t next_opcode,
+    uint32_t handler_pc,
+    unsigned case_index,
+    const char *name) {
+    Lufia2ActorFrontendCpu input;
+    const uint16_t slot =
+        (uint16_t)(((unsigned)next_opcode + variant * 11u) % 40u);
+    const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
+    const uint8_t flags =
+        (uint8_t)(next_opcode ^ (variant * 0x5bu));
+    const uint32_t stop_pc = PrimaryHandler(bus, next_opcode);
+
+    if (!SeedKnownPrimaryHandler(
+            bus, variant, (uint16_t)(TEST_SCRIPT + variant), &input) ||
+        !Poke16(bus, dp + 0x00a7u, slot) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | (uint16_t)(TEST_SCRIPT + variant + 1u),
+            next_opcode) ||
+        !SnesVerifyBusPoke(bus, 0x7e0736u + slot, flags))
+        return false;
+
+    return CompareKnownPrimaryBoundary(
+        bus, reference, initial, &input,
+        handler_pc, 0x83c85cu, stop_pc, handler_pc,
+        LUFIA2_ACTOR_PRIMARY_SCRIPT_REDISPATCHED,
+        next_opcode, case_index, name);
+}
+
+static bool RunMapFlagHandlerCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned variant,
+    uint8_t cell_flags,
+    unsigned case_index) {
+    Lufia2ActorFrontendCpu input;
+    const uint16_t slot =
+        (uint16_t)(8u + (((unsigned)cell_flags + variant) % 24u));
+    const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
+    const uint8_t x_coordinate =
+        (uint8_t)((cell_flags * 3u + variant) & 0x1fu);
+    const uint8_t y_coordinate =
+        (uint8_t)((cell_flags * 5u + (variant << 2)) & 0x1fu);
+    const uint8_t width = (uint8_t)(0x20u + (variant << 3));
+    const uint16_t layer_index = (uint16_t)((variant & 2u) * 2u);
+    const uint16_t base_offset = (uint16_t)(0x0400u + variant * 0x40u);
+    const uint16_t cell_offset =
+        (uint16_t)(2u * ((uint16_t)x_coordinate +
+            (uint16_t)y_coordinate * width) + base_offset);
+    const uint8_t next_opcode =
+        (uint8_t)(cell_flags ^ (variant * 0x35u));
+    const bool flagged = (cell_flags & 0x30u) == 0x30u;
+    const uint32_t stop_pc =
+        flagged ? 0x83c8d2u : PrimaryHandler(bus, next_opcode);
+
+    if (!SeedKnownPrimaryHandler(
+            bus, variant, (uint16_t)(TEST_SCRIPT + variant), &input) ||
+        !Poke16(bus, dp + 0x00a7u, slot) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | (uint16_t)(TEST_SCRIPT + variant + 1u),
+            next_opcode) ||
+        !SnesVerifyBusPoke(bus, 0x7e06bau + slot, x_coordinate) ||
+        !SnesVerifyBusPoke(bus, 0x7e06e2u + slot, y_coordinate) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0736u + slot, (uint8_t)(cell_flags * 7u)) ||
+        !SnesVerifyBusPoke(bus, 0x0005b9u, width) ||
+        !Poke16(bus, 0x0005aau, layer_index) ||
+        !Poke16(bus, 0x7fd008u + layer_index, base_offset) ||
+        !Poke16(bus, 0x7f0000u + cell_offset,
+            (uint16_t)(0x0100u * cell_flags + variant)))
+        return false;
+
+    return CompareKnownPrimaryBoundary(
+        bus, reference, initial, &input,
+        0x83cbb7u, flagged ? 0 : 0x83c85cu, stop_pc, 0x83cbb7u,
+        flagged ? LUFIA2_ACTOR_PRIMARY_SCRIPT_CONTINUE_C8D2 :
+                  LUFIA2_ACTOR_PRIMARY_SCRIPT_REDISPATCHED,
+        flagged ? 0 : next_opcode, case_index, "CBB7");
+}
+
+static bool LeaderAxisWithinRadius(
+    uint8_t actor, uint8_t leader, uint8_t radius) {
+    const uint8_t low = (uint8_t)(actor - radius - 1u);
+    const uint8_t high =
+        (uint8_t)(low + (uint8_t)(radius << 1) + 1u);
+
+    return low < leader && high >= leader;
+}
+
+static bool RunLeaderRadiusHandlerCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index) {
+    static const uint8_t radii[4] = {0u, 1u, 3u, 0x90u};
+    static const uint8_t actor_bases[4] = {0x02u, 0x40u, 0xfdu, 0x80u};
+    const unsigned variant = case_index & 3u;
+    const uint8_t radius = radii[(case_index >> 8) & 3u];
+    const uint8_t actor_base = actor_bases[(case_index >> 10) & 3u];
+    const uint8_t actor_x =
+        (uint8_t)(actor_base + ((case_index >> 2) & 1u));
+    const uint8_t actor_y =
+        (uint8_t)(actor_base - ((case_index >> 3) & 1u));
+    const uint8_t leader_x =
+        (uint8_t)(actor_x + ((case_index >> 4) & 7u) - 4u);
+    const uint8_t leader_y =
+        (uint8_t)(actor_y + (((case_index >> 7) & 1u) ? 5u : 0u) +
+            ((case_index >> 5) & 3u) - 2u);
+    const uint16_t slot = (uint16_t)(8u + (case_index % 24u));
+    const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
+    const uint16_t script = (uint16_t)(TEST_SCRIPT + variant);
+    const uint8_t skip_opcode = (uint8_t)(case_index * 37u);
+    const uint8_t jump_opcode = (uint8_t)(skip_opcode ^ 0x80u);
+    const uint16_t jump_cursor =
+        (uint16_t)(0x6800u + ((case_index & 0xffu) << 3));
+    const uint16_t jump_operand = (uint16_t)(jump_cursor - 0xa1d4u);
+    const bool within =
+        LeaderAxisWithinRadius(actor_x, leader_x, radius) &&
+        LeaderAxisWithinRadius(actor_y, leader_y, radius);
+    const uint8_t next_opcode = within ? skip_opcode : jump_opcode;
+    Lufia2ActorFrontendCpu input;
+
+    if (!SeedKnownPrimaryHandler(bus, variant, script, &input) ||
+        !Poke16(bus, dp + 0x00a7u, slot) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | (uint16_t)(script + 1u), radius) ||
+        !Poke16(bus, 0x7e0000u | (uint16_t)(script + 2u), jump_operand) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | (uint16_t)(script + 4u), skip_opcode) ||
+        !SnesVerifyBusPoke(bus, 0x7e0000u | jump_cursor, jump_opcode) ||
+        !SnesVerifyBusPoke(bus, 0x7e06bau, leader_x) ||
+        !SnesVerifyBusPoke(bus, 0x7e06e2u, leader_y) ||
+        !SnesVerifyBusPoke(bus, 0x7e06bau + slot, actor_x) ||
+        !SnesVerifyBusPoke(bus, 0x7e06e2u + slot, actor_y))
+        return false;
+
+    return CompareKnownPrimaryBoundary(
+        bus, reference, initial, &input,
+        0x83cbe1u, within ? 0x83c85cu : 0x83c85au,
+        PrimaryHandler(bus, next_opcode), 0x83cbe1u,
+        LUFIA2_ACTOR_PRIMARY_SCRIPT_REDISPATCHED,
+        next_opcode, case_index, "CBE1");
+}
+
+static bool RunLeaderEqualHandlerCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned variant,
+    uint8_t next_opcode,
+    uint32_t handler_pc,
+    uint16_t coordinate_base,
+    unsigned case_index,
+    const char *name) {
+    Lufia2ActorFrontendCpu input;
+    const uint16_t slot =
+        (uint16_t)(8u + (((unsigned)next_opcode + variant * 7u) % 20u));
+    const bool equal = (variant & 2u) == 0;
+    const uint8_t leader = (uint8_t)(0x50u + (next_opcode & 0x1fu));
+    const uint8_t actor =
+        equal ? leader : (uint8_t)(leader + 1u + (next_opcode >> 5));
+    const uint16_t jump_cursor =
+        (uint16_t)(0x6800u + ((unsigned)next_opcode << 3) + variant);
+    const uint16_t jump_operand = (uint16_t)(jump_cursor - 0xa1d4u);
+    const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
+
+    if (!SeedKnownPrimaryHandler(bus, variant, TEST_SCRIPT, &input) ||
+        !Poke16(bus, dp + 0x00a7u, slot) ||
+        !Poke16(bus, 0x7e0000u | (uint16_t)(TEST_SCRIPT + 1u),
+            jump_operand) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | (uint16_t)(TEST_SCRIPT + 3u), next_opcode) ||
+        !SnesVerifyBusPoke(bus, 0x7e0000u | jump_cursor, next_opcode) ||
+        !SnesVerifyBusPoke(bus, 0x7e0000u | coordinate_base, leader) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | (uint16_t)(coordinate_base + slot), actor))
+        return false;
+
+    return CompareKnownPrimaryBoundary(
+        bus, reference, initial, &input,
+        handler_pc, equal ? 0x83c85au : 0x83c85cu,
+        PrimaryHandler(bus, next_opcode), handler_pc,
+        LUFIA2_ACTOR_PRIMARY_SCRIPT_REDISPATCHED,
+        next_opcode, case_index, name);
+}
+
+static bool RunLeaderStepHandlerCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index,
+    bool x_axis) {
+    const unsigned variant = case_index % ACTION_CORE_VARIANTS;
+    const unsigned outcome = (case_index / ACTION_CORE_VARIANTS) % 3u;
+    const uint8_t next_opcode =
+        (uint8_t)((case_index / (ACTION_CORE_VARIANTS * 3u)) * 0x25u +
+            variant);
+    const uint8_t ahead_action = x_axis ? 0x02u : 0x00u;
+    const uint8_t behind_action = x_axis ? 0x03u : 0x01u;
+    const uint16_t axis_base = x_axis ? 0x06bau : 0x06e2u;
+    const uint32_t handler_pc = x_axis ? 0x83cc41u : 0x83cc63u;
+    uint8_t action = outcome == 1u ? behind_action : ahead_action;
+    Lufia2ActorFrontendCpu input;
+    uint8_t actor;
+    uint8_t leader;
+
+    if (!SeedActionCoreCase(bus, variant, action, &input))
+        return false;
+
+    /* Same slot as SeedActionCoreCase. */
+    actor = bus->wram[(uint16_t)(axis_base + 8u +
+        ((action + variant * 3u) % 24u))];
+    if (outcome == 0u && actor != 0)
+        leader = (uint8_t)(actor - 1u);
+    else if (outcome == 1u)
+        leader = (uint8_t)(actor + 1u);
+    else
+        leader = actor;
+
+    input.data_bank = 0x7eu;
+    input.program_bank = 0x83u;
+    input.index_is_8_bit = 0;
+    input.x = (uint16_t)(0x1500u | ((case_index * 3u) & 0xffu));
+    input.y = (uint16_t)(TEST_SCRIPT + variant * 3u);
+
+    if (!SnesVerifyBusPoke(bus, 0x7e0000u | axis_base, leader) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | (uint16_t)(input.y + 1u), next_opcode))
+        return false;
+
+    return CompareKnownPrimaryBoundary(
+        bus, reference, initial, &input,
+        handler_pc, 0x83c85cu, PrimaryHandler(bus, next_opcode),
+        handler_pc, LUFIA2_ACTOR_PRIMARY_SCRIPT_REDISPATCHED,
+        next_opcode, case_index, x_axis ? "CC41" : "CC63");
+}
+
 int interp816_opcode_hook(uint32_t address) {
     (void)address;
     return 0;
@@ -1294,6 +1603,16 @@ int main(int argc, char **argv) {
     unsigned map_value_passed = 0;
     unsigned fixed_action_handler_passed = 0;
     unsigned operand_action_handler_passed = 0;
+    unsigned install_script_passed = 0;
+    unsigned timer_store_passed = 0;
+    unsigned flag_set_passed = 0;
+    unsigned flag_clear_passed = 0;
+    unsigned map_flag_passed = 0;
+    unsigned leader_radius_passed = 0;
+    unsigned leader_equal_x_passed = 0;
+    unsigned leader_equal_y_passed = 0;
+    unsigned leader_step_x_passed = 0;
+    unsigned leader_step_y_passed = 0;
     unsigned failed = 0;
     unsigned case_index = 0;
     bool bus_initialized = false;
@@ -1544,6 +1863,69 @@ int main(int argc, char **argv) {
             ++failed;
     }
 
+#define RUN_VALUE_CASES(counter, call)                                   \
+    case_index = 0;                                                      \
+    for (unsigned value = 0; value < 256 && failed < 20; ++value) {      \
+        for (unsigned variant = 0;                                       \
+             variant < KNOWN_HANDLER_VARIANTS && failed < 20;            \
+             ++variant, ++case_index) {                                  \
+            if (call)                                                    \
+                ++counter;                                               \
+            else                                                         \
+                ++failed;                                                \
+        }                                                                \
+    }
+
+    RUN_VALUE_CASES(install_script_passed,
+        RunInstallScriptHandlerCase(&bus, reference, initial, variant,
+            (uint8_t)value, case_index))
+    RUN_VALUE_CASES(timer_store_passed,
+        RunTimerStoreHandlerCase(&bus, reference, initial, variant,
+            (uint8_t)value, case_index))
+    RUN_VALUE_CASES(flag_set_passed,
+        RunFlagBitHandlerCase(&bus, reference, initial, variant,
+            (uint8_t)value, 0x83c8fcu, case_index, "C8FC"))
+    RUN_VALUE_CASES(flag_clear_passed,
+        RunFlagBitHandlerCase(&bus, reference, initial, variant,
+            (uint8_t)value, 0x83c90au, case_index, "C90A"))
+    RUN_VALUE_CASES(map_flag_passed,
+        RunMapFlagHandlerCase(&bus, reference, initial, variant,
+            (uint8_t)value, case_index))
+    RUN_VALUE_CASES(leader_equal_x_passed,
+        RunLeaderEqualHandlerCase(&bus, reference, initial, variant,
+            (uint8_t)value, 0x83cc1bu, 0x06bau, case_index, "CC1B"))
+    RUN_VALUE_CASES(leader_equal_y_passed,
+        RunLeaderEqualHandlerCase(&bus, reference, initial, variant,
+            (uint8_t)value, 0x83cc2eu, 0x06e2u, case_index, "CC2E"))
+#undef RUN_VALUE_CASES
+
+    for (case_index = 0;
+         case_index < LEADER_RADIUS_CASES && failed < 20; ++case_index) {
+        if (RunLeaderRadiusHandlerCase(
+                &bus, reference, initial, case_index))
+            ++leader_radius_passed;
+        else
+            ++failed;
+    }
+
+    for (case_index = 0;
+         case_index < LEADER_STEP_CASES && failed < 20; ++case_index) {
+        if (RunLeaderStepHandlerCase(
+                &bus, reference, initial, case_index, true))
+            ++leader_step_x_passed;
+        else
+            ++failed;
+    }
+
+    for (case_index = 0;
+         case_index < LEADER_STEP_CASES && failed < 20; ++case_index) {
+        if (RunLeaderStepHandlerCase(
+                &bus, reference, initial, case_index, false))
+            ++leader_step_y_passed;
+        else
+            ++failed;
+    }
+
     printf("$83:C83C primary dispatch cases passed:   %u / %u\n",
         primary_passed, 256u * PRIMARY_CASES_PER_OPCODE);
     printf("$83:D59A secondary dispatch cases passed: %u / %u\n",
@@ -1576,6 +1958,26 @@ int main(int argc, char **argv) {
         fixed_action_handler_passed, FIXED_ACTION_HANDLER_CASES);
     printf("$83:C877 operand-action cases passed:      %u / %u\n",
         operand_action_handler_passed, OPERAND_ACTION_HANDLER_CASES);
+    printf("$83:C891 install-script cases passed:      %u / %u\n",
+        install_script_passed, 256u * KNOWN_HANDLER_VARIANTS);
+    printf("$83:C8EE timer-store cases passed:         %u / %u\n",
+        timer_store_passed, 256u * KNOWN_HANDLER_VARIANTS);
+    printf("$83:C8FC flag-set cases passed:            %u / %u\n",
+        flag_set_passed, 256u * KNOWN_HANDLER_VARIANTS);
+    printf("$83:C90A flag-clear cases passed:          %u / %u\n",
+        flag_clear_passed, 256u * KNOWN_HANDLER_VARIANTS);
+    printf("$83:CBB7 map-flag cases passed:            %u / %u\n",
+        map_flag_passed, 256u * KNOWN_HANDLER_VARIANTS);
+    printf("$83:CBE1 leader-radius cases passed:       %u / %u\n",
+        leader_radius_passed, LEADER_RADIUS_CASES);
+    printf("$83:CC1B leader-X-equal cases passed:      %u / %u\n",
+        leader_equal_x_passed, 256u * KNOWN_HANDLER_VARIANTS);
+    printf("$83:CC2E leader-Y-equal cases passed:      %u / %u\n",
+        leader_equal_y_passed, 256u * KNOWN_HANDLER_VARIANTS);
+    printf("$83:CC41 leader-X-step cases passed:       %u / %u\n",
+        leader_step_x_passed, LEADER_STEP_CASES);
+    printf("$83:CC63 leader-Y-step cases passed:       %u / %u\n",
+        leader_step_y_passed, LEADER_STEP_CASES);
     printf("failures: %u\n", failed);
     printf(failed
         ? "RESULT: FAIL - actor dispatch mismatch found\n"
