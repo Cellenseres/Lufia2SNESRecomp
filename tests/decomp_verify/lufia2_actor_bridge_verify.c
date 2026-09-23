@@ -914,12 +914,28 @@ static void SeedE03E(CpuState *cpu) {
         0x83u, 0x83u, 0x83u, 0x83u, 0x83u, 0x00u, 0x80u, 0x7eu};
     const uint16_t dp = dps[Random32() & 7u];
 
+    static const uint8_t ops[] = {
+        0x41, 0x43, 0x4f, 0xf6, 0xf6, 0xf2, 0xf2, 0x1a, 0x1a, 0x80,
+        0xf6, 0xf2, 0x1a, 0x00, 0x33, 0x9a};
+
     RandomFill(g_bus.wram);
+    for (uint16_t i = 0x1800u; i < 0x1f00u; ++i)
+        g_bus.wram[i] = (Random32() % 100u) < 85u
+            ? ops[Random32() % sizeof(ops)] : (uint8_t)Random32();
     for (unsigned slot = 0; slot < 32u; ++slot) {
+        const uint16_t record = (uint16_t)(slot * 3u);
+
         if (Random32() & 1u)
             g_bus.wram[0x064au + slot] &= 0x7fu;
-        g_bus.wram[0x1dfaeu + slot] = (Random32() % 64u)
+        g_bus.wram[0x1dfaeu + slot] = (Random32() & 3u)
             ? (uint8_t)(2u + Random32() % 200u) : 1u;
+        Poke16(g_bus.wram, 0x1deeeu + record,
+            (uint16_t)(0x1800u + (Random32() & 0x3ffu)));
+        g_bus.wram[0x1def0u + record] = (Random32() & 3u) ? 0x7eu : 0x00u;
+        Poke16(g_bus.wram, 0x1dfceu + record,
+            (uint16_t)(0x1800u + (Random32() & 0x3ffu)));
+        g_bus.wram[0x1dfd0u + record] = 0x7eu;
+        g_bus.wram[0x1e08eu + slot] = (uint8_t)(Random32() % 4u);
         if (Random32() & 1u)
             g_bus.wram[0x1e386u + slot] =
                 (uint8_t)((Random32() & 0xf0u) | 1u);

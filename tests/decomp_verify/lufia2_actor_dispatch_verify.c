@@ -3164,6 +3164,7 @@ enum { OBJECT_SLOTS_CASES = 16384 };
 typedef struct ObjectSlotsStats {
     unsigned returned;
     unsigned boundary;
+    unsigned dispatches;
 } ObjectSlotsStats;
 
 static uint64_t g_object_rng = UINT64_C(0xbb67ae8584caa73b);
@@ -3186,6 +3187,7 @@ static bool RunObjectSlotsCase(
     static const uint8_t banks[8] = {
         0x83u, 0x83u, 0x83u, 0x83u, 0x83u, 0x00u, 0x80u, 0x7eu};
     const uint16_t dp = dps[ObjectRandom() & 7u];
+    unsigned visits = 0;
     Lufia2ActorFrontendCpu input;
     Lufia2ActorFrontendCpu native;
     NativeMemory native_context = {bus};
@@ -3200,12 +3202,27 @@ static bool RunObjectSlotsCase(
         const uint32_t word = ObjectRandom();
         memcpy(bus->wram + i, &word, 4);
     }
+    static const uint8_t ops[] = {
+        0x41, 0x43, 0x4f, 0xf6, 0xf6, 0xf2, 0xf2, 0x1a, 0x1a, 0x80,
+        0xf6, 0xf2, 0x1a, 0x00, 0x33, 0x9a};
+    for (uint16_t i = 0x1800u; i < 0x1f00u; ++i)
+        bus->wram[i] = (ObjectRandom() % 100u) < 85u
+            ? ops[ObjectRandom() % sizeof(ops)] : (uint8_t)ObjectRandom();
     for (unsigned slot = 0; slot < 32u; ++slot) {
+        const uint16_t record = (uint16_t)(slot * 3u);
+
         if (ObjectRandom() & 1u)
             bus->wram[0x064au + slot] &= 0x7fu;
-        /* Script wait rarely expires. */
-        bus->wram[0x1dfaeu + slot] = (ObjectRandom() % 64u)
+        /* Script waits expire in about a quarter of the slots. */
+        bus->wram[0x1dfaeu + slot] = (ObjectRandom() & 3u)
             ? (uint8_t)(2u + ObjectRandom() % 200u) : 1u;
+        Poke16(bus, 0x7fdeeeu + record,
+            (uint16_t)(0x1800u + (ObjectRandom() & 0x3ffu)));
+        bus->wram[0x1def0u + record] = (ObjectRandom() & 3u) ? 0x7eu : 0x00u;
+        Poke16(bus, 0x7fdfceu + record,
+            (uint16_t)(0x1800u + (ObjectRandom() & 0x3ffu)));
+        bus->wram[0x1dfd0u + record] = 0x7eu;
+        bus->wram[0x1e08eu + slot] = (uint8_t)(ObjectRandom() % 4u);
         if (ObjectRandom() & 1u)
             bus->wram[0x1e386u + slot] =
                 (uint8_t)((ObjectRandom() & 0xf0u) | 1u);
@@ -3252,14 +3269,17 @@ static bool RunObjectSlotsCase(
     memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
 
     InitInterp(reference, 0x83e03eu, &input);
-    while (instructions < 400000u) {
+    while (instructions < 4000000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
         if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
                 ? pc == 0x838084u
-                : pc == result.pc && reference->sp == native.stack) {
+                : visits == result.dispatches && pc == result.pc &&
+                      reference->sp == native.stack) {
             stopped = true;
             break;
         }
+        if (pc == 0x83e10fu)
+            ++visits;
         interp816_runOpcode(reference);
         ++instructions;
     }
@@ -3290,6 +3310,7 @@ static bool RunObjectSlotsCase(
         return false;
     }
     free(native_wram);
+    stats->dispatches += result.dispatches;
     if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
         ++stats->returned;
     else
@@ -3524,7 +3545,7 @@ int main(int argc, char **argv) {
     unsigned field_trigger_passed = 0;
     FieldTriggerStats field_trigger;
     unsigned object_slots_passed = 0;
-    ObjectSlotsStats object_slots = {0, 0};
+    ObjectSlotsStats object_slots = {0, 0, 0};
     unsigned movement_step_passed = 0;
     unsigned map_offset_passed = 0;
     unsigned map_value_passed = 0;
@@ -4051,9 +4072,9 @@ int main(int argc, char **argv) {
         field_trigger.boundary[2], field_trigger.boundary[3],
         field_trigger.boundary[4], field_trigger.boundary[5]);
     printf("$83:E03E whole-function cases passed:      %u / %u "
-        "(RTS E0FB %u, LLE E0C0 %u)\n",
+        "(RTS E0FB %u, LLE boundary %u, object VM dispatches %u)\n",
         object_slots_passed, OBJECT_SLOTS_CASES, object_slots.returned,
-        object_slots.boundary);
+        object_slots.boundary, object_slots.dispatches);
     printf("$83:FB12 movement-step cases passed:       %u / %u\n",
         movement_step_passed, MOVEMENT_HELPER_CASES);
     printf("$83:F9D4 map-offset cases passed:          %u / %u\n",
