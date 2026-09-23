@@ -3159,6 +3159,144 @@ static bool RunFieldTriggerCase(
     return true;
 }
 
+enum { OBJECT_SLOTS_CASES = 16384 };
+
+typedef struct ObjectSlotsStats {
+    unsigned returned;
+    unsigned boundary;
+} ObjectSlotsStats;
+
+static uint64_t g_object_rng = UINT64_C(0xbb67ae8584caa73b);
+
+static uint32_t ObjectRandom(void) {
+    g_object_rng ^= g_object_rng << 13;
+    g_object_rng ^= g_object_rng >> 7;
+    g_object_rng ^= g_object_rng << 17;
+    return (uint32_t)(g_object_rng >> 32);
+}
+
+/* Whole $83:E03E from the field-loop JSR against the ROM. */
+static bool RunObjectSlotsCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index,
+    ObjectSlotsStats *stats) {
+    static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
+    static const uint8_t banks[8] = {
+        0x83u, 0x83u, 0x83u, 0x83u, 0x83u, 0x00u, 0x80u, 0x7eu};
+    const uint16_t dp = dps[ObjectRandom() & 7u];
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    Lufia2ActorPrimaryUpdateResult result;
+    uint8_t *native_wram;
+    unsigned instructions = 0;
+    bool stopped = false;
+
+    for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
+        const uint32_t word = ObjectRandom();
+        memcpy(bus->wram + i, &word, 4);
+    }
+    for (unsigned slot = 0; slot < 32u; ++slot) {
+        if (ObjectRandom() & 1u)
+            bus->wram[0x064au + slot] &= 0x7fu;
+        /* Script wait rarely expires. */
+        bus->wram[0x1dfaeu + slot] = (ObjectRandom() % 64u)
+            ? (uint8_t)(2u + ObjectRandom() % 200u) : 1u;
+        if (ObjectRandom() & 1u)
+            bus->wram[0x1e386u + slot] =
+                (uint8_t)((ObjectRandom() & 0xf0u) | 1u);
+        if (ObjectRandom() & 1u)
+            bus->wram[0x1daecu + slot] = 0x1fu;
+        bus->wram[0x1e23eu + slot] &= 0x0fu;
+    }
+    if (ObjectRandom() & 3u)
+        bus->wram[0x09a7u] |= 0x01u;
+    /* JSR $E03E at $83:8081. */
+    bus->wram[0x1ff1u] = 0x83u;
+    bus->wram[0x1ff2u] = 0x80u;
+
+    memset(&input, 0, sizeof(input));
+    input.accumulator = (uint16_t)ObjectRandom();
+    input.x = (uint16_t)ObjectRandom();
+    input.y = (uint16_t)ObjectRandom();
+    input.stack = 0x1ff0u;
+    input.direct_page = dp;
+    input.data_bank = banks[ObjectRandom() & 7u];
+    input.program_bank = 0x83u;
+    input.carry = ObjectRandom() & 1u;
+    input.zero = ObjectRandom() & 1u;
+    input.negative = ObjectRandom() & 1u;
+    input.overflow = ObjectRandom() & 1u;
+    input.irq_disable = ObjectRandom() & 1u;
+    input.accumulator_is_8_bit = 1;
+    input.index_is_8_bit = (ObjectRandom() & 7u) ? 1u : 0u;
+    if (input.index_is_8_bit) {
+        input.x &= 0x00ffu;
+        input.y &= 0x00ffu;
+    }
+
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    result = Lufia2ObjectSlotsUpdate(&memory, &native);
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+        native.stack = (uint16_t)(native.stack + 2u);   /* RTS */
+
+    native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    if (!native_wram)
+        return false;
+    memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+
+    InitInterp(reference, 0x83e03eu, &input);
+    while (instructions < 400000u) {
+        const uint32_t pc = SnesVerifyPc24(reference);
+        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+                ? pc == 0x838084u
+                : pc == result.pc && reference->sp == native.stack) {
+            stopped = true;
+            break;
+        }
+        interp816_runOpcode(reference);
+        ++instructions;
+    }
+
+    if (!stopped || !SameState(&native, reference) ||
+        memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        size_t diff = 0;
+        while (diff < SNES_VERIFY_WRAM_SIZE &&
+               native_wram[diff] == bus->wram[diff])
+            ++diff;
+        fprintf(stderr,
+            "FAIL E03E case %u: flow=%u pc=%06X/%06X insns=%u "
+            "A=%04X/%04X X=%04X/%04X Y=%04X/%04X S=%04X/%04X "
+            "DB=%02X/%02X Xf=%u/%u C=%u/%u Z=%u/%u N=%u/%u V=%u/%u "
+            "wram@%05X %02X/%02X\n",
+            case_index, (unsigned)result.flow, result.pc,
+            SnesVerifyPc24(reference), instructions,
+            native.accumulator, reference->a, native.x, reference->x,
+            native.y, reference->y, native.stack, reference->sp,
+            native.data_bank, reference->db,
+            native.index_is_8_bit, reference->xf,
+            native.carry, reference->c, native.zero, reference->z,
+            native.negative, reference->n, native.overflow, reference->v,
+            (unsigned)diff,
+            diff < SNES_VERIFY_WRAM_SIZE ? native_wram[diff] : 0,
+            diff < SNES_VERIFY_WRAM_SIZE ? bus->wram[diff] : 0);
+        free(native_wram);
+        return false;
+    }
+    free(native_wram);
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+        ++stats->returned;
+    else
+        ++stats->boundary;
+    return true;
+}
+
 enum { SECONDARY_UPDATE_CASES = 16384 };
 
 /* Whole $83:D508 against the ROM, random machine and scripts. */
@@ -3385,6 +3523,8 @@ int main(int argc, char **argv) {
     ActorSlotsStats actor_slots = {0, 0, 0};
     unsigned field_trigger_passed = 0;
     FieldTriggerStats field_trigger;
+    unsigned object_slots_passed = 0;
+    ObjectSlotsStats object_slots = {0, 0};
     unsigned movement_step_passed = 0;
     unsigned map_offset_passed = 0;
     unsigned map_value_passed = 0;
@@ -3632,6 +3772,12 @@ int main(int argc, char **argv) {
     for (unsigned i = 0; i < FIELD_TRIGGER_CASES && failed < 20; ++i) {
         if (RunFieldTriggerCase(&bus, reference, initial, i, &field_trigger))
             ++field_trigger_passed;
+        else
+            ++failed;
+    }
+    for (unsigned i = 0; i < OBJECT_SLOTS_CASES && failed < 20; ++i) {
+        if (RunObjectSlotsCase(&bus, reference, initial, i, &object_slots))
+            ++object_slots_passed;
         else
             ++failed;
     }
@@ -3904,6 +4050,10 @@ int main(int argc, char **argv) {
         field_trigger.boundary[0], field_trigger.boundary[1],
         field_trigger.boundary[2], field_trigger.boundary[3],
         field_trigger.boundary[4], field_trigger.boundary[5]);
+    printf("$83:E03E whole-function cases passed:      %u / %u "
+        "(RTS E0FB %u, LLE E0C0 %u)\n",
+        object_slots_passed, OBJECT_SLOTS_CASES, object_slots.returned,
+        object_slots.boundary);
     printf("$83:FB12 movement-step cases passed:       %u / %u\n",
         movement_step_passed, MOVEMENT_HELPER_CASES);
     printf("$83:F9D4 map-offset cases passed:          %u / %u\n",
