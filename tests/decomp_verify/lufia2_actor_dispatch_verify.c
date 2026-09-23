@@ -2370,6 +2370,144 @@ static bool RunPrimaryUpdateCase(
     return true;
 }
 
+enum { ACTION_CORE_X8_CASES = 8192 };
+
+typedef struct ActionCoreX8Stats {
+    unsigned returned;
+    unsigned installed;
+    unsigned boundary;
+} ActionCoreX8Stats;
+
+static uint64_t g_x8_rng = UINT64_C(0x5851f42d4c957f2d);
+
+static uint32_t X8Random(void) {
+    g_x8_rng ^= g_x8_rng << 13;
+    g_x8_rng ^= g_x8_rng >> 7;
+    g_x8_rng ^= g_x8_rng << 17;
+    return (uint32_t)(g_x8_rng >> 32);
+}
+
+/* D350 as C1B4 calls it: X8, JSL from $83:C237. */
+static bool RunActionCoreX8Case(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index,
+    ActionCoreX8Stats *stats) {
+    static const uint8_t banks[4] = {0x83u, 0x83u, 0x00u, 0x7eu};
+    static const uint32_t limits[4] = {
+        0x1e61eu, 0x1e66eu, 0x1e5f6u, 0x1e646u};
+    const uint16_t dp = (case_index & 7u) == 7u ? 0x0020u : 0x0000u;
+    const uint8_t slot =
+        (X8Random() & 3u) ? 0u : (uint8_t)(X8Random() % 40u);
+    const uint8_t direction = (uint8_t)(X8Random() & 3u);
+    const uint8_t action = (X8Random() & 3u)
+        ? direction : (uint8_t)(direction + 0x18u);
+    const uint8_t coordinate = (uint8_t)(X8Random() % 12u);
+    const uint32_t site = 0x83c23bu;
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    Lufia2ActorPrimaryActionFlow flow;
+    uint8_t *native_wram;
+    unsigned instructions = 0;
+    bool stopped = false;
+
+    for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
+        const uint32_t word = X8Random();
+        memcpy(bus->wram + i, &word, 4);
+    }
+    Poke16(bus, dp + 0x00a7u, slot);
+    if (X8Random() & 3u)
+        bus->wram[0x0622u + slot] &= (uint8_t)~0x28u;
+    /* Tile near the per-actor range limit. */
+    bus->wram[(direction < 2u ? 0x06e2u : 0x06bau) + slot] =
+        (X8Random() & 7u) ? coordinate : 0u;
+    bus->wram[limits[direction] + slot] =
+        (uint8_t)(coordinate + (X8Random() % 5u) - 2u);
+    /* JSL $83:D350 at $83:C237. */
+    bus->wram[0x1fe1u] = 0x3au;
+    bus->wram[0x1fe2u] = 0xc2u;
+    bus->wram[0x1fe3u] = 0x83u;
+
+    memset(&input, 0, sizeof(input));
+    input.accumulator = (uint16_t)((X8Random() << 8) | action);
+    input.x = (uint16_t)(X8Random() & 0xffu);
+    input.y = (uint16_t)(X8Random() & 0xffu);
+    input.stack = 0x1fe0u;
+    input.direct_page = dp;
+    input.data_bank = banks[X8Random() & 3u];
+    input.program_bank = 0x83u;
+    input.carry = X8Random() & 1u;
+    input.zero = action == 0u;
+    input.negative = 0;
+    input.overflow = X8Random() & 1u;
+    input.irq_disable = X8Random() & 1u;
+    input.accumulator_is_8_bit = 1;
+    input.index_is_8_bit = 1;
+
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    flow = Lufia2ActorPrimaryActionCore(&memory, &native);
+    if (flow == LUFIA2_ACTOR_PRIMARY_ACTION_RETURN_D3AE)
+        native.stack = (uint16_t)(native.stack + 3u);   /* RTL */
+
+    native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    if (!native_wram)
+        return false;
+    memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+
+    InitInterp(reference, 0x83d350u, &input);
+    while (instructions < 4096u) {
+        const uint32_t pc = SnesVerifyPc24(reference);
+        if (flow == LUFIA2_ACTOR_PRIMARY_ACTION_RETURN_D3AE
+                ? pc == site
+                : pc == native.resume_pc && reference->sp == native.stack) {
+            stopped = true;
+            break;
+        }
+        interp816_runOpcode(reference);
+        ++instructions;
+    }
+
+    /* The only X8 handoff is $83:D38D. */
+    if (flow != LUFIA2_ACTOR_PRIMARY_ACTION_RETURN_D3AE &&
+        native.resume_pc != 0x83d38du)
+        stopped = false;
+    if (!stopped || !SameState(&native, reference) ||
+        memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        size_t diff = 0;
+        while (diff < SNES_VERIFY_WRAM_SIZE &&
+               native_wram[diff] == bus->wram[diff])
+            ++diff;
+        fprintf(stderr,
+            "FAIL D350 X8 case %u: action=%02X flow=%u pc=%06X/%06X "
+            "insns=%u A=%04X/%04X X=%04X/%04X Y=%04X/%04X "
+            "S=%04X/%04X DB=%02X/%02X C=%u/%u wram@%05X\n",
+            case_index, action, (unsigned)flow, native.resume_pc,
+            SnesVerifyPc24(reference), instructions,
+            native.accumulator, reference->a, native.x, reference->x,
+            native.y, reference->y, native.stack, reference->sp,
+            native.data_bank, reference->db, native.carry, reference->c,
+            (unsigned)diff);
+        free(native_wram);
+        return false;
+    }
+    free(native_wram);
+
+    if (flow != LUFIA2_ACTOR_PRIMARY_ACTION_RETURN_D3AE)
+        ++stats->boundary;
+    else if ((initial[0x0622u + slot] & 0x80u) !=
+             (bus->wram[0x0622u + slot] & 0x80u))
+        ++stats->installed;
+    else
+        ++stats->returned;
+    return true;
+}
+
 enum { SECONDARY_UPDATE_CASES = 16384 };
 
 /* Whole $83:D508 against the ROM, random machine and scripts. */
@@ -2588,6 +2726,8 @@ int main(int argc, char **argv) {
     unsigned coordinate_y_passed = 0;
     unsigned d14d_passed = 0;
     unsigned action_core_passed = 0;
+    unsigned action_core_x8_passed = 0;
+    ActionCoreX8Stats action_core_x8 = {0, 0, 0};
     unsigned movement_step_passed = 0;
     unsigned map_offset_passed = 0;
     unsigned map_value_passed = 0;
@@ -2810,6 +2950,12 @@ int main(int argc, char **argv) {
             else
                 ++failed;
         }
+    }
+    for (unsigned i = 0; i < ACTION_CORE_X8_CASES && failed < 20; ++i) {
+        if (RunActionCoreX8Case(&bus, reference, initial, i, &action_core_x8))
+            ++action_core_x8_passed;
+        else
+            ++failed;
     }
 
 
@@ -3047,6 +3193,11 @@ int main(int argc, char **argv) {
         d14d_passed, 256u * KNOWN_HANDLER_VARIANTS);
     printf("$83:D350 action-core cases passed:         %u / %u\n",
         action_core_passed, 256u * ACTION_CORE_VARIANTS);
+    printf("$83:D350 X8 (C1B4) cases passed:           %u / %u "
+        "(return %u, install %u, LLE boundary %u)\n",
+        action_core_x8_passed, ACTION_CORE_X8_CASES,
+        action_core_x8.returned, action_core_x8.installed,
+        action_core_x8.boundary);
     printf("$83:FB12 movement-step cases passed:       %u / %u\n",
         movement_step_passed, MOVEMENT_HELPER_CASES);
     printf("$83:F9D4 map-offset cases passed:          %u / %u\n",
