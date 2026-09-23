@@ -19,6 +19,8 @@ enum {
     KNOWN_HANDLER_VARIANTS = 4,
     ACTION_CORE_VARIANTS = 16,
     MOVEMENT_HELPER_CASES = 1024,
+    FIXED_ACTION_HANDLER_CASES = 128,
+    OPERAND_ACTION_HANDLER_CASES = 1024,
 };
 
 typedef struct NativeMemory {
@@ -673,13 +675,9 @@ static bool RunD14DCase(
     const uint8_t indirect_index =
         (uint8_t)(0x40u + (value & 0x1fu));
     const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
-    const bool needs_child = variant == 3u;
-    const uint32_t stop_pc =
-        needs_child ? 0x83d166u : 0x83c8d2u;
+    const uint32_t stop_pc = 0x83c8d2u;
     const Lufia2ActorPrimaryScriptStepFlow flow =
-        needs_child
-            ? LUFIA2_ACTOR_PRIMARY_SCRIPT_CONTINUE_D166
-            : LUFIA2_ACTOR_PRIMARY_SCRIPT_CONTINUE_C8D2;
+        LUFIA2_ACTOR_PRIMARY_SCRIPT_CONTINUE_C8D2;
 
     if (!SeedKnownPrimaryHandler(
             bus, variant,
@@ -706,6 +704,17 @@ static bool RunD14DCase(
             bus, 0x7e09a1u + indirect_index,
             variant == 2u ? 0x80u : 0x01u))
         return false;
+
+    if (variant == 3u) {
+        /*
+         * Force D350 through its complete secondary-script install path.
+         * This keeps D14D's child case deterministic while still verifying
+         * the real JSL/RTL stack boundary and D16A..D173 post-call tail.
+         */
+        if (!SnesVerifyBusPoke(bus, 0x7e0622u + slot, 0x08u) ||
+            !SnesVerifyBusPoke(bus, 0x7fe4deu, 0x5au))
+            return false;
+    }
 
     return CompareKnownPrimaryBoundary(
         bus, reference, initial, &input,
@@ -1187,6 +1196,76 @@ static bool RunMapValueCase(
     return true;
 }
 
+
+static bool RunFixedActionHandlerCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index) {
+    static const uint32_t handlers[8] = {
+        0x83c867u, 0x83c86bu, 0x83c86fu, 0x83c873u,
+        0x83c87cu, 0x83c880u, 0x83c884u, 0x83c888u,
+    };
+    static const uint8_t actions[8] = {
+        0x00u, 0x01u, 0x02u, 0x03u,
+        0x81u, 0x82u, 0x83u, 0x84u,
+    };
+    const unsigned handler_index =
+        case_index / ACTION_CORE_VARIANTS;
+    const unsigned variant =
+        case_index % ACTION_CORE_VARIANTS;
+    const uint32_t handler_pc = handlers[handler_index];
+    const uint8_t action = actions[handler_index];
+    Lufia2ActorFrontendCpu input;
+    const uint32_t stop_pc = 0x83c8d2u;
+
+    if (!SeedActionCoreCase(bus, variant, action, &input))
+        return false;
+
+    input.data_bank = 0x7eu;
+    input.program_bank = 0x83u;
+    input.index_is_8_bit = 0;
+    input.x = (uint16_t)(0x1200u | ((variant * 3u + action) & 0xffu));
+    input.y = (uint16_t)(TEST_SCRIPT + (variant * 3u));
+
+    return CompareKnownPrimaryBoundary(
+        bus, reference, initial, &input,
+        handler_pc, 0, stop_pc, handler_pc,
+        LUFIA2_ACTOR_PRIMARY_SCRIPT_CONTINUE_C8D2,
+        0, case_index, "C867-action");
+}
+
+static bool RunOperandActionHandlerCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index) {
+    const uint8_t action = (uint8_t)(case_index >> 2);
+    const unsigned variant = case_index & 3u;
+    Lufia2ActorFrontendCpu input;
+    const uint32_t stop_pc = 0x83c8d2u;
+
+    if (!SeedActionCoreCase(bus, variant, action, &input))
+        return false;
+
+    input.data_bank = 0x7eu;
+    input.program_bank = 0x83u;
+    input.index_is_8_bit = 0;
+    input.x = (uint16_t)(0x1400u | ((case_index * 5u) & 0xffu));
+    input.y = TEST_SCRIPT;
+
+    if (!SnesVerifyBusPoke(
+            bus, 0x7e0000u | (uint16_t)(TEST_SCRIPT + 1u),
+            action))
+        return false;
+
+    return CompareKnownPrimaryBoundary(
+        bus, reference, initial, &input,
+        0x83c877u, 0, stop_pc, 0x83c877u,
+        LUFIA2_ACTOR_PRIMARY_SCRIPT_CONTINUE_C8D2,
+        0, case_index, "C877-action");
+}
+
 int interp816_opcode_hook(uint32_t address) {
     (void)address;
     return 0;
@@ -1213,6 +1292,8 @@ int main(int argc, char **argv) {
     unsigned movement_step_passed = 0;
     unsigned map_offset_passed = 0;
     unsigned map_value_passed = 0;
+    unsigned fixed_action_handler_passed = 0;
+    unsigned operand_action_handler_passed = 0;
     unsigned failed = 0;
     unsigned case_index = 0;
     bool bus_initialized = false;
@@ -1440,6 +1521,29 @@ int main(int argc, char **argv) {
             ++failed;
     }
 
+
+    case_index = 0;
+    for (unsigned i = 0;
+         i < FIXED_ACTION_HANDLER_CASES && failed < 20;
+         ++i, ++case_index) {
+        if (RunFixedActionHandlerCase(
+                &bus, reference, initial, i))
+            ++fixed_action_handler_passed;
+        else
+            ++failed;
+    }
+
+    case_index = 0;
+    for (unsigned i = 0;
+         i < OPERAND_ACTION_HANDLER_CASES && failed < 20;
+         ++i, ++case_index) {
+        if (RunOperandActionHandlerCase(
+                &bus, reference, initial, i))
+            ++operand_action_handler_passed;
+        else
+            ++failed;
+    }
+
     printf("$83:C83C primary dispatch cases passed:   %u / %u\n",
         primary_passed, 256u * PRIMARY_CASES_PER_OPCODE);
     printf("$83:D59A secondary dispatch cases passed: %u / %u\n",
@@ -1468,6 +1572,10 @@ int main(int argc, char **argv) {
         map_offset_passed, MOVEMENT_HELPER_CASES);
     printf("$83:FB71 map-value cases passed:           %u / %u\n",
         map_value_passed, MOVEMENT_HELPER_CASES);
+    printf("primary fixed-action handler cases:       %u / %u\n",
+        fixed_action_handler_passed, FIXED_ACTION_HANDLER_CASES);
+    printf("$83:C877 operand-action cases passed:      %u / %u\n",
+        operand_action_handler_passed, OPERAND_ACTION_HANDLER_CASES);
     printf("failures: %u\n", failed);
     printf(failed
         ? "RESULT: FAIL - actor dispatch mismatch found\n"
