@@ -72,6 +72,12 @@ function(lufia2_prepare_decomp)
         message(FATAL_ERROR "Lufia2Decomp did not define Lufia2::Decomp")
     endif()
 
+    # Re-run the manifest when metadata or bindings change.
+    set_property(DIRECTORY "${CMAKE_SOURCE_DIR}" APPEND PROPERTY
+        CMAKE_CONFIGURE_DEPENDS
+            "${_root}/metadata/functions.toml"
+            "${CMAKE_SOURCE_DIR}/recomp/decomp_bindings.toml")
+
     set(_args)
     if(LUFIA2_DECOMP_REFERENCE_ONLY)
         list(APPEND _args --reference-only)

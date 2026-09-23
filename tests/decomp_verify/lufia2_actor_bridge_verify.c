@@ -7,17 +7,20 @@
 #include "cpu_state.h"
 #include "interp816.h"
 #include "snes_function_verify.h"
+#include "lufia2/actor_frontend.h"
 
 extern RecompReturn Lufia2DecompBridge_D350(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_F9D4(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_FB12(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_FB71(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_C7F8(CpuState *cpu);
 
 enum {
     LUFIA2_ROM_SIZE = 0x280000,
     RETURN_WORD = 0x7ffe,
     CASES_PER_MODE = 2048,
     UNSUPPORTED_CASES = 512,
+    C7F8_CASES = 8192,
     STUB_SENTINEL = RECOMP_RETURN_LLE_UNWIND_BASE,
 };
 
@@ -412,6 +415,213 @@ static bool RunFb12OutOfRangeCase(Interp816 *ref, unsigned index) {
     return true;
 }
 
+static uint8_t FrontRead(void *context, uint32_t address) {
+    (void)context;
+    return SnesVerifyBusRead(&g_bus, address);
+}
+
+static void FrontWrite(void *context, uint32_t address, uint8_t value) {
+    (void)context;
+    SnesVerifyBusWrite(&g_bus, address, value);
+}
+
+typedef struct C7F8Stats {
+    unsigned host_return;
+    unsigned dispatch_return;
+    unsigned lle_boundary;
+    unsigned lle_entry;
+} C7F8Stats;
+
+/* Random actor, script and machine around the BB93 JSR. */
+static void SeedC7F8(CpuState *cpu) {
+    static const uint16_t dps[4] = {0x0000u, 0x0020u, 0x0000u, 0x0400u};
+    static const uint8_t banks[4] = {0x00u, 0x7eu, 0x80u, 0x83u};
+    static const uint8_t chain[] = {
+        0x0c, 0x0d, 0x0e, 0x1a, 0x21, 0x23, 0x24, 0x25, 0x26, 0x27,
+        0x2a, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x39,
+        0x3a, 0x3d, 0x40, 0x42};
+    const uint16_t dp = dps[Random32() & 3u];
+    const uint8_t slot = (uint8_t)(Random32() % 40u);
+    const uint16_t record = (uint16_t)(slot * 3u);
+    const bool chained = Random32() & 1u;
+
+    RandomFill(g_bus.wram);
+    for (uint16_t i = 0x1800u; i < 0x1f00u; ++i) {
+        const unsigned roll = Random32() % 100u;
+        if (chained)
+            g_bus.wram[i] = roll < 95u ? chain[Random32() % sizeof(chain)]
+                                       : (uint8_t)(Random32() % 0x50u);
+        else
+            g_bus.wram[i] = roll < 85u ? (uint8_t)(Random32() % 0x50u)
+                                       : (uint8_t)Random32();
+    }
+    Poke16(g_bus.wram, dp + 0xa7u, slot);
+    Poke16(g_bus.wram, dp + 0xa9u, (uint16_t)(slot * 2u));
+    Poke16(g_bus.wram, dp + 0xabu, record);
+    Poke16(g_bus.wram, 0x1e506u + record,
+        (uint16_t)(0x1800u + (Random32() & 0x3ffu)));
+    g_bus.wram[0x1e508u + record] = (Random32() & 3u) ? 0x7eu : 0x00u;
+    if ((Random32() & 7u) != 0)
+        g_bus.wram[0x0622u + slot] &= 0x7fu;
+    if (Random32() & 3u)
+        g_bus.wram[0x1291u + slot] &= 0xf8u;
+    g_bus.wram[0x1e3c6u + slot] = (uint8_t)(Random32() % 3u);
+    Poke16(g_bus.wram, 0x1724u, (uint16_t)(Random32() & 0x3fu));
+    g_bus.wram[0x1ff1u] = (uint8_t)RETURN_WORD;
+    g_bus.wram[0x1ff2u] = (uint8_t)(RETURN_WORD >> 8);
+
+    memset(cpu, 0, sizeof(*cpu));
+    cpu->A = (uint16_t)Random32();
+    cpu->X = (uint16_t)Random32();
+    cpu->Y = (uint16_t)Random32();
+    cpu->S = 0x1ff0u;
+    cpu->D = dp;
+    cpu->DB = banks[Random32() & 3u];
+    cpu->PB = 0x83;
+    cpu->m_flag = 1;
+    cpu->x_flag = (Random32() & 3u) ? 1u : 0u;
+    cpu->_flag_C = Random32() & 1u;
+    cpu->_flag_Z = Random32() & 1u;
+    cpu->_flag_V = Random32() & 1u;
+    cpu->_flag_N = Random32() & 1u;
+    cpu->_flag_I = Random32() & 1u;
+    cpu->ram = g_bus.wram;
+    if (cpu->x_flag) {
+        cpu->X &= 0x00ffu;
+        cpu->Y &= 0x00ffu;
+    }
+    cpu_mirrors_to_p(cpu);
+}
+
+static bool RunC7F8Case(
+    Interp816 *ref, unsigned index, unsigned hrv_mode, C7F8Stats *stats) {
+    const uint32_t sentinel = 0x830000u | (uint16_t)(RETURN_WORD + 1u);
+    const Lufia2ActorFrontendMemory front = {FrontRead, FrontWrite, NULL};
+    CpuState native;
+    CpuState input;
+    Lufia2ActorFrontendCpu probe;
+    Lufia2ActorPrimaryUpdateResult expected;
+    RecompReturn ret;
+    unsigned instructions = 0;
+    unsigned dispatches = 0;
+    uint32_t last_pc = 0;
+    bool stopped = false;
+
+    SeedC7F8(&native);
+    native.host_return_valid = hrv_mode == 0 ? 2u : hrv_mode == 1 ? 0u : 3u;
+    input = native;
+    memcpy(g_seed, g_bus.wram, SNES_VERIFY_WRAM_SIZE);
+
+    memset(&probe, 0, sizeof(probe));
+    probe.accumulator = input.A;
+    probe.x = input.X;
+    probe.y = input.Y;
+    probe.stack = input.S;
+    probe.direct_page = input.D;
+    probe.data_bank = input.DB;
+    probe.program_bank = input.PB;
+    probe.carry = input._flag_C;
+    probe.zero = input._flag_Z;
+    probe.negative = input._flag_N;
+    probe.overflow = input._flag_V;
+    probe.irq_disable = input._flag_I;
+    probe.accumulator_is_8_bit = 1;
+    probe.index_is_8_bit = input.x_flag;
+    expected = Lufia2ActorPrimaryUpdate(&front, &probe);
+    memcpy(g_bus.wram, g_seed, SNES_VERIFY_WRAM_SIZE);
+
+    memset(&g_stub, 0, sizeof(g_stub));
+    ret = Lufia2DecompBridge_C7F8(&native);
+    memcpy(g_native, g_bus.wram, SNES_VERIFY_WRAM_SIZE);
+
+    memcpy(g_bus.wram, g_seed, SNES_VERIFY_WRAM_SIZE);
+    InitReference(ref, &input, 0x83c7f8u);
+    while (instructions < 4000000u) {
+        const uint32_t pc = SnesVerifyPc24(ref);
+        if (expected.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+            if (pc == sentinel) {
+                stopped = true;
+                break;
+            }
+        } else if (dispatches == expected.dispatches &&
+                   pc == expected.pc && ref->sp == native.S) {
+            stopped = true;
+            break;
+        }
+        if (pc == 0x83c864u)
+            ++dispatches;
+        last_pc = pc;
+        interp816_runOpcode(ref);
+        ++instructions;
+    }
+
+    if (!stopped || !SameState(&native, ref) ||
+        memcmp(g_native, g_bus.wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        Report("C7F8", "state", index, &native, ref, ret, stopped ? 0 : -1,
+            "state/memory");
+        return false;
+    }
+    if (expected.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_BOUNDARY) {
+        if (ret != (RecompReturn)STUB_SENTINEL || g_stub.count != 1 ||
+            g_stub.kind != STUB_TAIL || g_stub.target != expected.pc ||
+            g_stub.entry_s != input.S ||
+            g_stub.hrv != input.host_return_valid) {
+            Report("C7F8", "boundary", index, &native, ref, ret, 0, "tail");
+            return false;
+        }
+        ++stats->lle_boundary;
+    } else if (hrv_mode == 0) {
+        if (ret != RECOMP_RETURN_NORMAL || g_stub.count != 0) {
+            Report("C7F8", "paired", index, &native, ref, ret, 0, "return");
+            return false;
+        }
+        ++stats->host_return;
+    } else {
+        if (ret != (RecompReturn)STUB_SENTINEL || g_stub.count != 1 ||
+            g_stub.kind != STUB_DISPATCH || g_stub.target != sentinel ||
+            g_stub.site != last_pc ||
+            g_stub.restore_s != (uint16_t)(input.S + 2u)) {
+            Report("C7F8", "dispatched", index, &native, ref, ret, 0,
+                "dispatch");
+            return false;
+        }
+        ++stats->dispatch_return;
+    }
+    return true;
+}
+
+static bool RunC7F8UnsupportedCase(unsigned index, C7F8Stats *stats) {
+    CpuState native;
+    CpuState input;
+    RecompReturn ret;
+
+    SeedC7F8(&native);
+    switch (index % 3u) {
+    case 0: native.m_flag = 0; break;
+    case 1: native._flag_D = 1; break;
+    default: native.emulation = 1; break;
+    }
+    cpu_mirrors_to_p(&native);
+    native.host_return_valid = (uint8_t)((index & 1u) ? 2u : 0u);
+    input = native;
+    memcpy(g_seed, g_bus.wram, SNES_VERIFY_WRAM_SIZE);
+
+    memset(&g_stub, 0, sizeof(g_stub));
+    ret = Lufia2DecompBridge_C7F8(&native);
+    native.open_bus = input.open_bus;
+    if (ret != (RecompReturn)STUB_SENTINEL || g_stub.count != 1 ||
+        g_stub.kind != STUB_TAIL || g_stub.target != 0x83c7f8u ||
+        g_stub.site != 0x83c7f8u || g_stub.entry_s != input.S ||
+        g_stub.hrv != input.host_return_valid ||
+        memcmp(&native, &input, sizeof(native)) != 0 ||
+        memcmp(g_seed, g_bus.wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        fprintf(stderr, "FAIL C7F8 unsupported case %u\n", index);
+        return false;
+    }
+    ++stats->lle_entry;
+    return true;
+}
+
 int main(int argc, char **argv) {
     const char *report_path = NULL;
     FILE *report = NULL;
@@ -421,6 +631,8 @@ int main(int argc, char **argv) {
     unsigned passed[4][3] = {{0}};
     unsigned unsupported[4] = {0};
     unsigned fb12_oob = 0;
+    unsigned c7f8_passed = 0;
+    C7F8Stats c7f8_stats = {0, 0, 0, 0};
     unsigned failed = 0;
     bool bus_ready = false;
 
@@ -477,6 +689,19 @@ int main(int argc, char **argv) {
             ++failed;
     }
 
+    for (unsigned i = 0; i < C7F8_CASES && failed < 20; ++i) {
+        if (RunC7F8Case(ref, i, i % 3u, &c7f8_stats))
+            ++c7f8_passed;
+        else
+            ++failed;
+    }
+    for (unsigned i = 0; i < UNSUPPORTED_CASES && failed < 20; ++i) {
+        if (RunC7F8UnsupportedCase(i, &c7f8_stats))
+            ++c7f8_passed;
+        else
+            ++failed;
+    }
+
     if (report_path)
         report = fopen(report_path, "wb");
     for (int pass = 0; pass < 2; ++pass) {
@@ -495,6 +720,12 @@ int main(int argc, char **argv) {
                 unsupported[t], UNSUPPORTED_CASES);
         fprintf(out, "$83:FB12 out-of-range tail %u/%u\n",
             fb12_oob, UNSUPPORTED_CASES);
+        fprintf(out,
+            "$83:C7F8 %u/%u (host return %u, dispatch return %u, "
+            "LLE boundary %u, LLE entry %u)\n",
+            c7f8_passed, C7F8_CASES + UNSUPPORTED_CASES,
+            c7f8_stats.host_return, c7f8_stats.dispatch_return,
+            c7f8_stats.lle_boundary, c7f8_stats.lle_entry);
         fprintf(out, "failures: %u\n", failed);
         fprintf(out, failed
             ? "RESULT: FAIL - actor bridge mismatch found\n"

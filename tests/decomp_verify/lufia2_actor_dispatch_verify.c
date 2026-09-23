@@ -1757,6 +1757,7 @@ static bool RunRandomTimerHandlerCase(
 typedef struct GenericHandlerStats {
     unsigned redispatched;
     unsigned committed;
+    unsigned boundaries;
 } GenericHandlerStats;
 
 static uint8_t g_generic_seed[SNES_VERIFY_WRAM_SIZE];
@@ -1822,9 +1823,15 @@ static bool RunGenericHandlerCase(
 
     if (low_script) {
         input.data_bank = ((case_index >> 8) & 1u) ? 0x00u : 0x7eu;
+        /* Garbage facings and directions: exact LLE boundaries. */
+        if ((case_index & 7u) == 7u) {
+            bus->wram[0x0692u] = (uint8_t)(case_index * 0x61u + 1u);
+            bus->wram[0x0692u + slot] = (uint8_t)(case_index * 0x2du + 1u);
+        }
         /* D03F reads it as a direction 0/2/4/6. */
         bus->wram[(uint16_t)(script + 1u)] =
-            ((case_index & 0x80u) && handler_pc != 0x83d03fu)
+            ((case_index & 0x80u) &&
+             (handler_pc != 0x83d03fu || (case_index & 7u) == 7u))
             ? (uint8_t)(bus->wram[(uint16_t)(script + 1u)] & 0xfeu)
             : (uint8_t)(((case_index >> 5) & 3u) * 2u);
         bus->wram[(uint16_t)(script + 2u)] =
@@ -1967,9 +1974,47 @@ static bool RunGenericHandlerCase(
             LUFIA2_ACTOR_PRIMARY_SCRIPT_CONTINUE_C8D2,
             0, case_index, name);
     }
-    fprintf(stderr, "FAIL %s case %u: unexpected flow=%u at %06X\n",
-        name, case_index, (unsigned)result.flow, result.handler_pc);
-    return false;
+    /* Boundary: ROM must reach resume_pc with the same state. */
+    {
+        Lufia2ActorFrontendCpu boundary = input;
+        uint8_t *boundary_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+        unsigned instructions = 0;
+        bool reached = false;
+
+        if (!boundary_wram)
+            return false;
+        memcpy(bus->wram, g_generic_seed, SNES_VERIFY_WRAM_SIZE);
+        memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+        (void)Lufia2ActorPrimaryScriptExecuteKnownHandler(
+            &memory, &boundary, handler_pc);
+        memcpy(boundary_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+        memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+        InitInterp(reference, handler_pc, &input);
+        while (instructions < 4000000u) {
+            if (SnesVerifyPc24(reference) == result.handler_pc &&
+                reference->sp == boundary.stack) {
+                reached = true;
+                break;
+            }
+            interp816_runOpcode(reference);
+            ++instructions;
+        }
+        if (!reached || boundary.resume_pc != result.handler_pc ||
+            !SameState(&boundary, reference) ||
+            memcmp(boundary_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+            fprintf(stderr,
+                "FAIL %s case %u: boundary %06X reached=%d "
+                "A=%04X/%04X X=%04X/%04X S=%04X/%04X\n",
+                name, case_index, result.handler_pc, reached ? 1 : 0,
+                boundary.accumulator, reference->a,
+                boundary.x, reference->x, boundary.stack, reference->sp);
+            free(boundary_wram);
+            return false;
+        }
+        free(boundary_wram);
+        ++stats->boundaries;
+        return true;
+    }
 }
 
 typedef struct WholeFunction {
@@ -2086,6 +2131,245 @@ static bool RunWholeFunctionCase(
     return true;
 }
 
+enum { RESUME_EXACT_CASES = 2048 };
+
+/* D350 with DP >= $0100 and FB12 with a bad index. */
+static bool RunResumeExactCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index,
+    bool fb12) {
+    static const uint16_t dps[3] = {0x0400u, 0x0a00u, 0x0100u};
+    const uint16_t dp = dps[WholeRandom() % 3u];
+    const uint8_t slot = (uint8_t)(WholeRandom() % 40u);
+    const uint32_t entry = fb12 ? 0x83fb12u : 0x83d350u;
+    const uint32_t resume = fb12 ? 0x83fb17u : 0x83d370u;
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    uint8_t *native_wram;
+    unsigned instructions = 0;
+    bool unknown;
+    int stop;
+
+    for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
+        const uint32_t word = WholeRandom();
+        memcpy(bus->wram + i, &word, 4);
+    }
+    Poke16(bus, dp + 0x00a7u, slot);
+    bus->wram[0x0622u + slot] &= (uint8_t)~0x28u;
+
+    memset(&input, 0, sizeof(input));
+    input.accumulator = (uint16_t)WholeRandom();
+    if (fb12) {
+        uint8_t direction;
+        do {
+            direction = (uint8_t)WholeRandom();
+        } while (!(direction & 1u) && direction < 8u);
+        input.accumulator =
+            (uint16_t)((input.accumulator & 0xff00u) | direction);
+    } else {
+        input.accumulator =
+            (uint16_t)((input.accumulator & 0xff00u) | (WholeRandom() & 3u));
+    }
+    input.x = (uint16_t)WholeRandom();
+    input.y = (uint16_t)WholeRandom();
+    input.stack = 0x1ff0u;
+    input.direct_page = fb12 ? (uint16_t)(WholeRandom() & 0x00e0u) : dp;
+    input.data_bank = 0x7eu;
+    input.program_bank = 0x83u;
+    input.carry = WholeRandom() & 1u;
+    input.accumulator_is_8_bit = 1;
+    input.index_is_8_bit = fb12 ? (uint8_t)(WholeRandom() & 1u) : 0u;
+    if (input.index_is_8_bit) {
+        input.x &= 0x00ffu;
+        input.y &= 0x00ffu;
+    }
+
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    unknown = fb12
+        ? Lufia2ActorMovementStep(&memory, &native) == 0
+        : Lufia2ActorPrimaryActionCore(&memory, &native) ==
+              LUFIA2_ACTOR_PRIMARY_ACTION_UNKNOWN_D370_TARGET;
+
+    native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    if (!native_wram)
+        return false;
+    memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+
+    InitInterp(reference, entry, &input);
+    stop = SnesVerifyRunUntil(reference, &resume, 1, 256, &instructions);
+
+    if (!unknown || native.resume_pc != resume || stop != 0 ||
+        !SameState(&native, reference) ||
+        memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        fprintf(stderr,
+            "FAIL resume %s case %u: unknown=%d resume=%06X stop=%d "
+            "A=%04X/%04X X=%04X/%04X S=%04X/%04X\n",
+            fb12 ? "FB17" : "D370", case_index, unknown ? 1 : 0,
+            native.resume_pc, stop, native.accumulator, reference->a,
+            native.x, reference->x, native.stack, reference->sp);
+        free(native_wram);
+        return false;
+    }
+    free(native_wram);
+    return true;
+}
+
+typedef struct PrimaryUpdateStats {
+    unsigned returned_c83b;
+    unsigned returned_c8d3;
+    unsigned boundary_handler;
+    unsigned boundary_internal;
+    unsigned dispatches;
+} PrimaryUpdateStats;
+
+enum { PRIMARY_UPDATE_CASES = 16384 };
+
+/* Whole $83:C7F8 against the ROM, random machine and scripts. */
+static bool RunPrimaryUpdateCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index,
+    PrimaryUpdateStats *stats) {
+    static const uint16_t dps[4] = {0x0000u, 0x0020u, 0x0000u, 0x0400u};
+    static const uint8_t banks[4] = {0x00u, 0x7eu, 0x80u, 0x83u};
+    const uint16_t dp = dps[WholeRandom() & 3u];
+    const uint8_t slot = (uint8_t)(WholeRandom() % 40u);
+    const uint16_t record = (uint16_t)(slot * 3u);
+    const uint16_t script = (uint16_t)(0x1800u + (WholeRandom() & 0x3ffu));
+    const uint32_t exits[2] = {0x83c83bu, 0x83c8d3u};
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    Lufia2ActorPrimaryUpdateResult result;
+    uint8_t *native_wram;
+    unsigned instructions = 0;
+    unsigned dispatches = 0;
+    bool stopped = false;
+
+    for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
+        const uint32_t word = WholeRandom();
+        memcpy(bus->wram + i, &word, 4);
+    }
+    /* Half the scripts favour opcodes that redispatch. */
+    for (uint16_t i = 0x1800u; i < 0x1f00u; ++i) {
+        static const uint8_t chain[] = {
+            0x0c, 0x0d, 0x0e, 0x1a, 0x21, 0x23, 0x24, 0x25, 0x26, 0x27,
+            0x2a, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x39,
+            0x3a, 0x3d, 0x40, 0x42};
+        const unsigned roll = WholeRandom() % 100u;
+        if (case_index & 1u)
+            bus->wram[i] = roll < 95u
+                ? chain[WholeRandom() % sizeof(chain)]
+                : (uint8_t)(WholeRandom() % 0x50u);
+        else
+            bus->wram[i] = roll < 85u
+                ? (uint8_t)(WholeRandom() % 0x50u) : (uint8_t)WholeRandom();
+    }
+    Poke16(bus, dp + 0x00a7u, slot);
+    Poke16(bus, dp + 0x00a9u, (uint16_t)(slot * 2u));
+    Poke16(bus, dp + 0x00abu, record);
+    Poke16(bus, 0x7fe506u + record, script);
+    bus->wram[0x1e508u + record] = (WholeRandom() & 3u) ? 0x7eu : 0x00u;
+    if ((WholeRandom() & 7u) != 0)
+        bus->wram[0x0622u + slot] &= 0x7fu;
+    if (WholeRandom() & 3u)
+        bus->wram[0x1291u + slot] &= 0xf8u;
+    bus->wram[0x1e3c6u + slot] = (uint8_t)(WholeRandom() % 3u);
+    Poke16(bus, 0x1724u, (uint16_t)(WholeRandom() & 0x3fu));
+
+    memset(&input, 0, sizeof(input));
+    input.accumulator = (uint16_t)WholeRandom();
+    input.x = (uint16_t)WholeRandom();
+    input.y = (uint16_t)WholeRandom();
+    input.stack = 0x1ff0u;
+    input.direct_page = dp;
+    input.data_bank = banks[WholeRandom() & 3u];
+    input.program_bank = 0x83u;
+    input.carry = WholeRandom() & 1u;
+    input.zero = WholeRandom() & 1u;
+    input.negative = WholeRandom() & 1u;
+    input.overflow = WholeRandom() & 1u;
+    input.irq_disable = WholeRandom() & 1u;
+    input.accumulator_is_8_bit = 1;
+    input.index_is_8_bit = (WholeRandom() & 3u) ? 1u : 0u;
+    if (input.index_is_8_bit) {
+        input.x &= 0x00ffu;
+        input.y &= 0x00ffu;
+    }
+
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    result = Lufia2ActorPrimaryUpdate(&memory, &native);
+
+    native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    if (!native_wram)
+        return false;
+    memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+
+    InitInterp(reference, 0x83c7f8u, &input);
+    while (instructions < 4000000u) {
+        const uint32_t pc = SnesVerifyPc24(reference);
+        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+            if (pc == exits[0] || pc == exits[1]) {
+                stopped = pc == result.pc;
+                break;
+            }
+        } else if (dispatches == result.dispatches && pc == result.pc &&
+                   reference->sp == native.stack) {
+            stopped = true;
+            break;
+        }
+        if (pc == 0x83c864u)
+            ++dispatches;
+        interp816_runOpcode(reference);
+        ++instructions;
+    }
+
+    if (!stopped || !SameState(&native, reference) ||
+        memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        size_t diff = 0;
+        while (diff < SNES_VERIFY_WRAM_SIZE &&
+               native_wram[diff] == bus->wram[diff])
+            ++diff;
+        fprintf(stderr,
+            "FAIL C7F8 case %u: flow=%u pc=%06X/%06X disp=%u/%u "
+            "insns=%u A=%04X/%04X X=%04X/%04X Y=%04X/%04X "
+            "S=%04X/%04X DB=%02X/%02X M=%u/%u Xf=%u/%u wram@%05X\n",
+            case_index, (unsigned)result.flow, result.pc,
+            SnesVerifyPc24(reference), result.dispatches, dispatches,
+            instructions, native.accumulator, reference->a,
+            native.x, reference->x, native.y, reference->y,
+            native.stack, reference->sp, native.data_bank, reference->db,
+            native.accumulator_is_8_bit, reference->mf,
+            native.index_is_8_bit, reference->xf, (unsigned)diff);
+        free(native_wram);
+        return false;
+    }
+    free(native_wram);
+
+    stats->dispatches += result.dispatches;
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+        if (result.pc == exits[0])
+            ++stats->returned_c83b;
+        else
+            ++stats->returned_c8d3;
+    } else {
+        ++stats->boundary_handler;
+    }
+    return true;
+}
+
 static const struct {
     uint32_t pc;
     const char *name;
@@ -2163,6 +2447,9 @@ int main(int argc, char **argv) {
     unsigned random_timer_scaled_passed = 0;
     unsigned random_byte_passed = 0;
     unsigned whole_passed[WHOLE_FUNCTION_COUNT] = {0};
+    unsigned primary_update_passed = 0;
+    unsigned resume_passed[2] = {0, 0};
+    PrimaryUpdateStats primary_update_stats;
     unsigned generic_passed[GENERIC_HANDLER_COUNT] = {0};
     GenericHandlerStats generic_stats[GENERIC_HANDLER_COUNT];
     unsigned failed = 0;
@@ -2170,6 +2457,7 @@ int main(int argc, char **argv) {
     bool bus_initialized = false;
 
     memset(generic_stats, 0, sizeof(generic_stats));
+    memset(&primary_update_stats, 0, sizeof(primary_update_stats));
 
     if (argc < 2) {
         fprintf(stderr, "usage: %s <lufia2.sfc>\n", argv[0]);
@@ -2514,6 +2802,27 @@ int main(int argc, char **argv) {
             ++failed;
     }
 
+    for (unsigned k = 0; k < 2u && failed < 20; ++k) {
+        for (case_index = 0;
+             case_index < RESUME_EXACT_CASES && failed < 20; ++case_index) {
+            if (RunResumeExactCase(
+                    &bus, reference, initial, case_index, k == 1u))
+                ++resume_passed[k];
+            else
+                ++failed;
+        }
+    }
+
+    for (case_index = 0;
+         case_index < PRIMARY_UPDATE_CASES && failed < 20; ++case_index) {
+        if (RunPrimaryUpdateCase(
+                &bus, reference, initial, case_index,
+                &primary_update_stats))
+            ++primary_update_passed;
+        else
+            ++failed;
+    }
+
     for (size_t f = 0; f < WHOLE_FUNCTION_COUNT && failed < 20; ++f) {
         for (case_index = 0;
              case_index < WHOLE_FUNCTION_CASES && failed < 20;
@@ -2602,16 +2911,28 @@ int main(int argc, char **argv) {
         random_timer_scaled_passed, RANDOM_TIMER_CASES);
     printf("$80:82C7 random-byte cases passed:         %u / %u\n",
         random_byte_passed, RANDOM_SCALE_CASES);
+    printf("$83:D370 resume-exact cases passed:        %u / %u\n",
+        resume_passed[0], RESUME_EXACT_CASES);
+    printf("$83:FB17 resume-exact cases passed:        %u / %u\n",
+        resume_passed[1], RESUME_EXACT_CASES);
+    printf("$83:C7F8 whole-function cases passed:      %u / %u"
+           " (RTS C83B %u, RTS C8D3 %u, LLE boundary %u, dispatches %u)\n",
+        primary_update_passed, PRIMARY_UPDATE_CASES,
+        primary_update_stats.returned_c83b,
+        primary_update_stats.returned_c8d3,
+        primary_update_passed - primary_update_stats.returned_c83b -
+            primary_update_stats.returned_c8d3,
+        primary_update_stats.dispatches);
     for (size_t f = 0; f < WHOLE_FUNCTION_COUNT; ++f)
         printf("$%s whole-function cases passed:      %u / %u\n",
             kWholeFunctions[f].name, whole_passed[f],
             WHOLE_FUNCTION_CASES);
     for (size_t h = 0; h < GENERIC_HANDLER_COUNT; ++h)
         printf("$83:%s seeded cases passed:             %u / %u"
-               " (redispatch %u, commit %u)\n",
+               " (redispatch %u, commit %u, boundary %u)\n",
             kGenericHandlers[h].name, generic_passed[h],
             GENERIC_HANDLER_CASES, generic_stats[h].redispatched,
-            generic_stats[h].committed);
+            generic_stats[h].committed, generic_stats[h].boundaries);
     printf("failures: %u\n", failed);
     printf(failed
         ? "RESULT: FAIL - actor dispatch mismatch found\n"
