@@ -2370,6 +2370,163 @@ static bool RunPrimaryUpdateCase(
     return true;
 }
 
+enum { SECONDARY_UPDATE_CASES = 16384 };
+
+/* Whole $83:D508 against the ROM, random machine and scripts. */
+static bool RunSecondaryUpdateCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index,
+    PrimaryUpdateStats *stats) {
+    static const uint16_t dps[4] = {0x0000u, 0x0020u, 0x0000u, 0x0400u};
+    static const uint8_t banks[4] = {0x00u, 0x7eu, 0x80u, 0x83u};
+    static const uint8_t known[] = {
+        0xf0, 0xf0, 0xf0, 0xf0, 0xfa, 0xfb, 0xfc, 0xd5, 0xd6, 0xd7,
+        0x00, 0x43};
+    const uint16_t dp = dps[WholeRandom() & 3u];
+    const uint8_t slot = (uint8_t)(WholeRandom() % 40u);
+    const uint16_t record = (uint16_t)(slot * 3u);
+    const uint16_t script = (uint16_t)(0x1800u + (WholeRandom() & 0x3ffu));
+    const uint32_t exits[2] = {0x83d599u, 0x83d60eu};
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    Lufia2ActorPrimaryUpdateResult result;
+    uint8_t *native_wram;
+    unsigned instructions = 0;
+    unsigned dispatches = 0;
+    bool stopped = false;
+
+    for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
+        const uint32_t word = WholeRandom();
+        memcpy(bus->wram + i, &word, 4);
+    }
+    for (uint16_t i = 0x1800u; i < 0x1f00u; ++i)
+        bus->wram[i] = (WholeRandom() % 100u) < 80u
+            ? known[WholeRandom() % sizeof(known)] : (uint8_t)WholeRandom();
+    /* Sparse collision map, walk state near real values. */
+    for (unsigned i = 0; i < 0x5000u; ++i)
+        if (WholeRandom() & 3u)
+            bus->wram[0x4000u + i] = 0;
+    bus->wram[0x05b9u] = (uint8_t)(0x20u + (WholeRandom() & 0x10u));
+    Poke16(bus, 0x05aau, 0);
+    Poke16(bus, 0x7fd008u, 0);
+    Poke16(bus, dp + 0x00a7u, slot);
+    Poke16(bus, dp + 0x00a9u, (uint16_t)(slot * 2u));
+    Poke16(bus, dp + 0x00abu, record);
+    Poke16(bus, 0x7fe3eeu + record, script);
+    bus->wram[0x1e3f0u + record] = (WholeRandom() & 3u) ? 0x7eu : 0x00u;
+    if (WholeRandom() & 3u)
+        bus->wram[0x0622u + slot] |= 0x80u;
+    if (WholeRandom() & 1u)
+        bus->wram[0x0622u + slot] &= (uint8_t)~0x0au;
+    if (WholeRandom() & 1u)
+        bus->wram[0x0692u + slot] = (uint8_t)((WholeRandom() & 3u) * 2u);
+    if (WholeRandom() & 1u)
+        bus->wram[0x1e48eu + slot] = (uint8_t)(WholeRandom() & 0x0fu);
+    bus->wram[0x1e4deu + slot] = (uint8_t)(1u << (WholeRandom() & 3u));
+    if ((WholeRandom() & 3u) == 0) {
+        bus->wram[0x070au + slot] = 3;
+        bus->wram[0x09a6u] &= 0xfeu;
+    }
+    if (WholeRandom() & 1u)
+        bus->wram[0x1e4b6u + slot] = (uint8_t)(WholeRandom() & 0x0fu);
+    if (WholeRandom() & 1u)
+        bus->wram[0x1e216u + slot] = (uint8_t)(1u + (WholeRandom() & 1u));
+    if (WholeRandom() & 1u)
+        bus->wram[0x1dc8cu + slot * 2u] = 0;
+
+    memset(&input, 0, sizeof(input));
+    input.accumulator = (uint16_t)WholeRandom();
+    input.x = (uint16_t)WholeRandom();
+    input.y = (uint16_t)WholeRandom();
+    input.stack = 0x1ff0u;
+    input.direct_page = dp;
+    input.data_bank = banks[WholeRandom() & 3u];
+    input.program_bank = 0x83u;
+    input.carry = WholeRandom() & 1u;
+    input.zero = WholeRandom() & 1u;
+    input.negative = WholeRandom() & 1u;
+    input.overflow = WholeRandom() & 1u;
+    input.irq_disable = WholeRandom() & 1u;
+    input.accumulator_is_8_bit = 1;
+    input.index_is_8_bit = (WholeRandom() & 3u) ? 1u : 0u;
+    if (input.index_is_8_bit) {
+        input.x &= 0x00ffu;
+        input.y &= 0x00ffu;
+    }
+
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    result = Lufia2ActorSecondaryUpdate(&memory, &native);
+
+    native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    if (!native_wram)
+        return false;
+    memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+
+    InitInterp(reference, 0x83d508u, &input);
+    while (instructions < 4000000u) {
+        const uint32_t pc = SnesVerifyPc24(reference);
+        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+            if (pc == exits[0] || pc == exits[1]) {
+                stopped = pc == result.pc;
+                break;
+            }
+        } else if (dispatches == result.dispatches && pc == result.pc &&
+                   reference->sp == native.stack) {
+            stopped = true;
+            break;
+        }
+        if (pc == 0x83d5d1u)
+            ++dispatches;
+        interp816_runOpcode(reference);
+        ++instructions;
+    }
+
+    if (!stopped || !SameState(&native, reference) ||
+        memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        size_t diff = 0;
+        while (diff < SNES_VERIFY_WRAM_SIZE &&
+               native_wram[diff] == bus->wram[diff])
+            ++diff;
+        fprintf(stderr,
+            "FAIL D508 case %u: flow=%u pc=%06X/%06X disp=%u/%u "
+            "insns=%u A=%04X/%04X X=%04X/%04X Y=%04X/%04X "
+            "S=%04X/%04X DB=%02X/%02X M=%u/%u Xf=%u/%u C=%u/%u "
+            "V=%u/%u wram@%05X %02X/%02X\n",
+            case_index, (unsigned)result.flow, result.pc,
+            SnesVerifyPc24(reference), result.dispatches, dispatches,
+            instructions, native.accumulator, reference->a,
+            native.x, reference->x, native.y, reference->y,
+            native.stack, reference->sp, native.data_bank, reference->db,
+            native.accumulator_is_8_bit, reference->mf,
+            native.index_is_8_bit, reference->xf,
+            native.carry, reference->c, native.overflow, reference->v,
+            (unsigned)diff,
+            diff < SNES_VERIFY_WRAM_SIZE ? native_wram[diff] : 0,
+            diff < SNES_VERIFY_WRAM_SIZE ? bus->wram[diff] : 0);
+        free(native_wram);
+        return false;
+    }
+    free(native_wram);
+
+    stats->dispatches += result.dispatches;
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+        if (result.pc == exits[0])
+            ++stats->returned_c83b;
+        else
+            ++stats->returned_c8d3;
+    } else {
+        ++stats->boundary_handler;
+    }
+    return true;
+}
+
 static const struct {
     uint32_t pc;
     const char *name;
@@ -2448,6 +2605,8 @@ int main(int argc, char **argv) {
     unsigned random_byte_passed = 0;
     unsigned whole_passed[WHOLE_FUNCTION_COUNT] = {0};
     unsigned primary_update_passed = 0;
+    unsigned secondary_update_passed = 0;
+    PrimaryUpdateStats secondary_update_stats;
     unsigned resume_passed[2] = {0, 0};
     PrimaryUpdateStats primary_update_stats;
     unsigned generic_passed[GENERIC_HANDLER_COUNT] = {0};
@@ -2458,6 +2617,7 @@ int main(int argc, char **argv) {
 
     memset(generic_stats, 0, sizeof(generic_stats));
     memset(&primary_update_stats, 0, sizeof(primary_update_stats));
+    memset(&secondary_update_stats, 0, sizeof(secondary_update_stats));
 
     if (argc < 2) {
         fprintf(stderr, "usage: %s <lufia2.sfc>\n", argv[0]);
@@ -2802,6 +2962,16 @@ int main(int argc, char **argv) {
             ++failed;
     }
 
+    for (case_index = 0;
+         case_index < SECONDARY_UPDATE_CASES && failed < 20; ++case_index) {
+        if (RunSecondaryUpdateCase(
+                &bus, reference, initial, case_index,
+                &secondary_update_stats))
+            ++secondary_update_passed;
+        else
+            ++failed;
+    }
+
     for (unsigned k = 0; k < 2u && failed < 20; ++k) {
         for (case_index = 0;
              case_index < RESUME_EXACT_CASES && failed < 20; ++case_index) {
@@ -2911,6 +3081,13 @@ int main(int argc, char **argv) {
         random_timer_scaled_passed, RANDOM_TIMER_CASES);
     printf("$80:82C7 random-byte cases passed:         %u / %u\n",
         random_byte_passed, RANDOM_SCALE_CASES);
+    printf("$83:D508 whole-function cases passed:      %u / %u"
+           " (RTS D599 %u, RTS D60E %u, LLE boundary %u, dispatches %u)\n",
+        secondary_update_passed, SECONDARY_UPDATE_CASES,
+        secondary_update_stats.returned_c83b,
+        secondary_update_stats.returned_c8d3,
+        secondary_update_stats.boundary_handler,
+        secondary_update_stats.dispatches);
     printf("$83:D370 resume-exact cases passed:        %u / %u\n",
         resume_passed[0], RESUME_EXACT_CASES);
     printf("$83:FB17 resume-exact cases passed:        %u / %u\n",
