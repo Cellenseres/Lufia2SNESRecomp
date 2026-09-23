@@ -195,3 +195,23 @@ RecompReturn Lufia2DecompBridge_FB71(CpuState *cpu) {
     ActorBridgeStore(cpu, &state);
     return ActorBridgeReturn(cpu, &frame, 3, 0x83fb8au);
 }
+
+RecompReturn Lufia2DecompBridge_C7F8(CpuState *cpu) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2ActorFrontendMemory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu};
+    Lufia2ActorFrontendCpu state;
+    Lufia2ActorPrimaryUpdateResult result;
+
+    if (!ActorBridgeSupported(cpu, 1, 0))
+        return ActorBridgeFallback(cpu, &frame, 0x83c7f8u);
+    ActorBridgeLoad(cpu, &state);
+    result = Lufia2ActorPrimaryUpdate(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_BOUNDARY) {
+        /* Exact ROM state at result.pc; LLE finishes the RTS. */
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    }
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
