@@ -1773,6 +1773,7 @@ static bool RunGenericHandlerCase(
     uint32_t handler_pc,
     unsigned case_index,
     const char *name,
+    bool low_script,
     GenericHandlerStats *stats) {
     static const int8_t deltas[8] = {0, 1, -1, 2, -2, 5, -9, 0x40};
     const unsigned variant = case_index & 15u;
@@ -1780,7 +1781,9 @@ static bool RunGenericHandlerCase(
     const uint16_t slot =
         (uint16_t)(8u + ((action + variant * 3u) % 24u));
     const uint16_t dp = (variant & 2u) ? 0x0020u : 0;
-    const uint16_t script = (uint16_t)(TEST_SCRIPT + (case_index & 7u));
+    /* Low scripts also run with DB=$00, so $42xx is MMIO. */
+    const uint16_t script = (uint16_t)(
+        (low_script ? 0x1800u : TEST_SCRIPT) + (case_index & 7u));
     Lufia2ActorFrontendCpu input;
     Lufia2ActorFrontendCpu native;
     NativeMemory native_context = {bus};
@@ -1817,6 +1820,23 @@ static bool RunGenericHandlerCase(
             (uint8_t)((case_index * 0x3du) ^ (i * 0x47u));
     SeedRandomTable(bus, case_index * 3u, (uint8_t)(case_index % 0x3au));
 
+    if (low_script) {
+        input.data_bank = ((case_index >> 8) & 1u) ? 0x00u : 0x7eu;
+        if (!(case_index & 0x80u))
+            bus->wram[(uint16_t)(script + 1u)] =
+                (uint8_t)((case_index >> 5) & 3u);
+        bus->wram[(uint16_t)(script + 2u)] =
+            (uint8_t)((case_index >> 2) % 7u);
+        bus->wram[0x0692u] = (uint8_t)(((case_index >> 4) & 3u) * 2u);
+        bus->wram[0x1291u + slot] = (uint8_t)(case_index * 0x59u);
+        bus->wram[0x09a1u] = (uint8_t)(case_index * 0x21u);
+        bus->wram[0x10000u + 0xe57eu + slot] =
+            (uint8_t)(case_index * 0x13u);
+        for (unsigned i = 0; i < 0x100u; ++i)
+            bus->wram[0x10000u + 0xe5a6u + i] =
+                (uint8_t)((i * 0x1du) ^ case_index);
+    }
+
     memcpy(g_generic_seed, bus->wram, SNES_VERIFY_WRAM_SIZE);
     native = input;
     result = Lufia2ActorPrimaryScriptExecuteKnownHandler(
@@ -1847,11 +1867,20 @@ static bool RunGenericHandlerCase(
 static const struct {
     uint32_t pc;
     const char *name;
+    bool low_script;
 } kGenericHandlers[] = {
-    {0x83d320u, "D320"}, {0x83d340u, "D340"}, {0x83d125u, "D125"},
-    {0x83d132u, "D132"}, {0x83ccf0u, "CCF0"}, {0x83cd0du, "CD0D"},
-    {0x83cd2eu, "CD2E"}, {0x83cd32u, "CD32"}, {0x83cd4fu, "CD4F"},
-    {0x83cd92u, "CD92"}, {0x83ce73u, "CE73"}, {0x83cab9u, "CAB9"},
+    {0x83d320u, "D320", false}, {0x83d340u, "D340", false},
+    {0x83d125u, "D125", false}, {0x83d132u, "D132", false},
+    {0x83ccf0u, "CCF0", false}, {0x83cd0du, "CD0D", false},
+    {0x83cd2eu, "CD2E", false}, {0x83cd32u, "CD32", false},
+    {0x83cd4fu, "CD4F", false}, {0x83cd92u, "CD92", false},
+    {0x83ce73u, "CE73", false}, {0x83cab9u, "CAB9", false},
+    {0x83d176u, "D176", true}, {0x83d188u, "D188", true},
+    {0x83d196u, "D196", true}, {0x83d1c1u, "D1C1", true},
+    {0x83d1d0u, "D1D0", true}, {0x83d1e6u, "D1E6", true},
+    {0x83d210u, "D210", true}, {0x83d293u, "D293", true},
+    {0x83d2e6u, "D2E6", true}, {0x83d2f6u, "D2F6", true},
+    {0x83d30bu, "D30B", true},
 };
 enum {
     GENERIC_HANDLER_COUNT =
@@ -2258,7 +2287,8 @@ int main(int argc, char **argv) {
             if (RunGenericHandlerCase(
                     &bus, reference, initial,
                     kGenericHandlers[h].pc, case_index,
-                    kGenericHandlers[h].name, &generic_stats[h]))
+                    kGenericHandlers[h].name,
+                    kGenericHandlers[h].low_script, &generic_stats[h]))
                 ++generic_passed[h];
             else
                 ++failed;
