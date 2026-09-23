@@ -18,6 +18,14 @@ static int32_t WramOffset(uint32_t address) {
     return -1;
 }
 
+/* CPU registers mirror into every system bank. */
+static bool IsCpuRegister(uint32_t address, uint16_t reg) {
+    const uint8_t bank = (uint8_t)(address >> 16);
+
+    return (uint16_t)address == reg &&
+           (bank <= 0x3f || (bank >= 0x80 && bank <= 0xbf));
+}
+
 static bool LoRomOffset(
     const SnesVerifyBus *bus, uint32_t address, size_t *offset_out) {
     const uint8_t bank = (uint8_t)(address >> 16);
@@ -122,9 +130,9 @@ uint8_t SnesVerifyBusRead(void *opaque, uint32_t address) {
     size_t rom_offset;
     uint8_t value = 0xffu;
 
-    if ((address & 0xffffffu) == 0x004216u)
+    if (IsCpuRegister(address, 0x4216u))
         value = (uint8_t)bus->multiply_result;
-    else if ((address & 0xffffffu) == 0x004217u)
+    else if (IsCpuRegister(address, 0x4217u))
         value = (uint8_t)(bus->multiply_result >> 8);
     else if (wram_offset >= 0)
         value = bus->wram[wram_offset];
@@ -139,9 +147,9 @@ void SnesVerifyBusWrite(void *opaque, uint32_t address, uint8_t value) {
     SnesVerifyBus *bus = (SnesVerifyBus *)opaque;
     const int32_t wram_offset = WramOffset(address);
 
-    if ((address & 0xffffffu) == 0x004202u) {
+    if (IsCpuRegister(address, 0x4202u)) {
         bus->multiply_a = value;
-    } else if ((address & 0xffffffu) == 0x004203u) {
+    } else if (IsCpuRegister(address, 0x4203u)) {
         bus->multiply_b = value;
         bus->multiply_result =
             (uint16_t)((uint16_t)bus->multiply_a * value);

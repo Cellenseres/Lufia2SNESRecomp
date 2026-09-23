@@ -23,6 +23,8 @@ enum {
     OPERAND_ACTION_HANDLER_CASES = 1024,
     LEADER_RADIUS_CASES = 4096,
     LEADER_STEP_CASES = ACTION_CORE_VARIANTS * 3 * 16,
+    RANDOM_SCALE_CASES = 4096,
+    RANDOM_TIMER_CASES = 1024,
 };
 
 typedef struct NativeMemory {
@@ -103,9 +105,9 @@ static void InitInterp(
     cpu->c = input->carry != 0;
     cpu->z = input->zero != 0;
     cpu->n = input->negative != 0;
-    cpu->v = false;
-    cpu->d = false;
-    cpu->i = false;
+    cpu->v = input->overflow != 0;
+    cpu->d = input->decimal != 0;
+    cpu->i = input->irq_disable != 0;
     cpu->mf = input->accumulator_is_8_bit != 0;
     cpu->xf = input->index_is_8_bit != 0;
     cpu->e = false;
@@ -128,6 +130,9 @@ static bool SameState(
            native->carry == (uint8_t)reference->c &&
            native->zero == (uint8_t)reference->z &&
            native->negative == (uint8_t)reference->n &&
+           native->overflow == (uint8_t)reference->v &&
+           native->decimal == (uint8_t)reference->d &&
+           native->irq_disable == (uint8_t)reference->i &&
            native->accumulator_is_8_bit == (uint8_t)reference->mf &&
            native->index_is_8_bit == (uint8_t)reference->xf;
 }
@@ -430,7 +435,7 @@ static bool CompareKnownPrimaryBoundary(
     if (redispatch_pc != 0) {
         unsigned to_redispatch = 0;
         stop = SnesVerifyRunUntil(
-            reference, &redispatch_pc, 1, 128, &to_redispatch);
+            reference, &redispatch_pc, 1, 1024, &to_redispatch);
         instructions += to_redispatch;
         if (stop != 0) {
             fprintf(stderr,
@@ -444,7 +449,7 @@ static bool CompareKnownPrimaryBoundary(
     {
         unsigned to_target = 0;
         stop = SnesVerifyRunUntil(
-            reference, &stop_pc, 1, 128, &to_target);
+            reference, &stop_pc, 1, 1024, &to_target);
         instructions += to_target;
     }
 
@@ -454,7 +459,7 @@ static bool CompareKnownPrimaryBoundary(
         fprintf(stderr,
             "FAIL %s case %u: stop=%d A=%04X/%04X "
             "X=%04X/%04X Y=%04X/%04X S=%04X/%04X "
-            "DB=%02X/%02X M=%u/%u Xf=%u/%u\n",
+            "DB=%02X/%02X M=%u/%u Xf=%u/%u V=%u/%u\n",
             name, case_index, stop,
             native.accumulator, reference->a,
             native.x, reference->x,
@@ -462,7 +467,8 @@ static bool CompareKnownPrimaryBoundary(
             native.stack, reference->sp,
             native.data_bank, reference->db,
             native.accumulator_is_8_bit, reference->mf,
-            native.index_is_8_bit, reference->xf);
+            native.index_is_8_bit, reference->xf,
+            native.overflow, reference->v);
         free(native_wram);
         return false;
     }
@@ -1575,6 +1581,170 @@ static bool RunLeaderStepHandlerCase(
         next_opcode, case_index, x_axis ? "CC41" : "CC63");
 }
 
+enum {
+    RANDOM_TABLE = 0x0521,
+    RANDOM_INDEX = 0x0559,
+    RANDOM_TABLE_SIZE = 0x37,
+};
+
+static void SeedRandomTable(
+    SnesVerifyBus *bus, unsigned seed, uint8_t index) {
+    for (unsigned i = 0; i < RANDOM_TABLE_SIZE; ++i)
+        bus->wram[RANDOM_TABLE + i] =
+            (uint8_t)((seed * 0x9du) ^ (i * 0x3bu) ^ (seed >> 3));
+    bus->wram[RANDOM_INDEX] = index;
+}
+
+/* Independent model of $80:8299 and $80:832D. */
+static uint16_t ExpectedRandomScale(
+    const uint8_t *wram, uint16_t accumulator) {
+    uint8_t table[RANDOM_TABLE_SIZE];
+    uint8_t index = (uint8_t)(wram[RANDOM_INDEX] + 1u);
+
+    memcpy(table, wram + RANDOM_TABLE, sizeof(table));
+    if (index >= RANDOM_TABLE_SIZE) {
+        for (unsigned i = 0; i < 24u; ++i)
+            table[i] ^= table[i + 31u];
+        for (unsigned i = 24u; i < RANDOM_TABLE_SIZE; ++i)
+            table[i] ^= table[i - 24u];
+        index = 0;
+    }
+    return (uint16_t)(((unsigned)(uint8_t)accumulator * table[index]) >> 8);
+}
+
+static bool RunRandomScaleCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index) {
+    static const uint8_t banks[4] = {0x7eu, 0x83u, 0x00u, 0x80u};
+    const uint32_t stop_pc = 0x8082c6u;
+    const uint8_t index_seed = (uint8_t)(case_index & 0x3fu);
+    const uint8_t index = index_seed == 0x3fu ? 0xffu : index_seed;
+    const unsigned flags = (case_index >> 8) & 0x0fu;
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    uint16_t expected;
+    uint8_t *native_wram;
+    unsigned instructions = 0;
+    int stop;
+
+    memset(bus->wram, 0, SNES_VERIFY_WRAM_SIZE);
+    memset(&input, 0, sizeof(input));
+    input.accumulator = (uint16_t)(case_index * 0x9e37u + 0x1234u);
+    input.x = (uint16_t)(0x5a00u | ((case_index * 7u) & 0xffu));
+    input.y = (uint16_t)(0xa500u | ((case_index * 13u) & 0xffu));
+    input.stack = TEST_STACK;
+    input.direct_page = (case_index & 0x10u) ? 0x0020u : 0;
+    input.data_bank = banks[(case_index >> 4) & 3u];
+    input.program_bank = 0x80u;
+    input.carry = flags & 1u;
+    input.overflow = (flags >> 1) & 1u;
+    input.decimal = (flags >> 2) & 1u;
+    input.irq_disable = (flags >> 3) & 1u;
+    input.zero = (case_index >> 5) & 1u;
+    input.negative = (case_index >> 3) & 1u;
+    input.accumulator_is_8_bit = (case_index >> 6) & 1u;
+    input.index_is_8_bit = (case_index >> 7) & 1u;
+    if (input.index_is_8_bit) {
+        input.x &= 0x00ffu;
+        input.y &= 0x00ffu;
+    }
+    SeedRandomTable(bus, case_index, index);
+    expected = ExpectedRandomScale(bus->wram, input.accumulator);
+
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    Lufia2RandomScale(&memory, &native);
+    if (native.accumulator != expected) {
+        fprintf(stderr,
+            "FAIL 8299 case %u: result=%04X expected=%04X\n",
+            case_index, native.accumulator, expected);
+        return false;
+    }
+
+    native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    if (!native_wram)
+        return false;
+    memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+
+    InitInterp(reference, 0x808299u, &input);
+    stop = SnesVerifyRunUntil(
+        reference, &stop_pc, 1, 1024, &instructions);
+
+    if (stop != 0 ||
+        !SameState(&native, reference) ||
+        memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        fprintf(stderr,
+            "FAIL 8299 case %u: stop=%d insns=%u "
+            "A=%04X/%04X X=%04X/%04X Y=%04X/%04X "
+            "S=%04X/%04X DB=%02X/%02X M=%u/%u Xf=%u/%u "
+            "N=%u/%u Z=%u/%u C=%u/%u V=%u/%u\n",
+            case_index, stop, instructions,
+            native.accumulator, reference->a,
+            native.x, reference->x,
+            native.y, reference->y,
+            native.stack, reference->sp,
+            native.data_bank, reference->db,
+            native.accumulator_is_8_bit, reference->mf,
+            native.index_is_8_bit, reference->xf,
+            native.negative, reference->n,
+            native.zero, reference->z,
+            native.carry, reference->c,
+            native.overflow, reference->v);
+        free(native_wram);
+        return false;
+    }
+
+    free(native_wram);
+    return true;
+}
+
+static bool RunRandomTimerHandlerCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index,
+    bool scaled) {
+    const unsigned variant = case_index & 3u;
+    const uint8_t range = (uint8_t)(case_index * 0x1du + 0x40u);
+    const uint8_t base = (uint8_t)((case_index >> 2) * 0x0bu);
+    const uint8_t index = (uint8_t)((case_index >> 2) % 0x3au);
+    const uint16_t slot = (uint16_t)(8u + (case_index % 24u));
+    const uint16_t record = (uint16_t)((case_index % 40u) * 3u);
+    const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
+    const uint16_t script = (uint16_t)(TEST_SCRIPT + variant);
+    const uint32_t handler_pc = scaled ? 0x83c8d4u : 0x83c8afu;
+    Lufia2ActorFrontendCpu input;
+
+    if (!SeedKnownPrimaryHandler(bus, variant, script, &input) ||
+        !Poke16(bus, dp + 0x00a7u, slot) ||
+        !Poke16(bus, dp + 0x00abu, record) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | (uint16_t)(script + 1u),
+            scaled ? base : range) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7e0000u | (uint16_t)(script + 2u),
+            scaled ? range : base) ||
+        !SnesVerifyBusPoke(
+            bus, 0x7fe3c6u + slot, (uint8_t)~case_index))
+        return false;
+
+    SeedRandomTable(bus, case_index ^ 0x5au, index);
+    input.overflow = (case_index >> 3) & 1u;
+    input.irq_disable = (case_index >> 4) & 1u;
+
+    return CompareKnownPrimaryBoundary(
+        bus, reference, initial, &input,
+        handler_pc, 0, 0x83c8d2u, handler_pc,
+        LUFIA2_ACTOR_PRIMARY_SCRIPT_CONTINUE_C8D2,
+        0, case_index, scaled ? "C8D4" : "C8AF");
+}
+
 int interp816_opcode_hook(uint32_t address) {
     (void)address;
     return 0;
@@ -1613,6 +1783,9 @@ int main(int argc, char **argv) {
     unsigned leader_equal_y_passed = 0;
     unsigned leader_step_x_passed = 0;
     unsigned leader_step_y_passed = 0;
+    unsigned random_scale_passed = 0;
+    unsigned random_timer_passed = 0;
+    unsigned random_timer_scaled_passed = 0;
     unsigned failed = 0;
     unsigned case_index = 0;
     bool bus_initialized = false;
@@ -1926,6 +2099,32 @@ int main(int argc, char **argv) {
             ++failed;
     }
 
+    for (case_index = 0;
+         case_index < RANDOM_SCALE_CASES && failed < 20; ++case_index) {
+        if (RunRandomScaleCase(&bus, reference, initial, case_index))
+            ++random_scale_passed;
+        else
+            ++failed;
+    }
+
+    for (case_index = 0;
+         case_index < RANDOM_TIMER_CASES && failed < 20; ++case_index) {
+        if (RunRandomTimerHandlerCase(
+                &bus, reference, initial, case_index, false))
+            ++random_timer_passed;
+        else
+            ++failed;
+    }
+
+    for (case_index = 0;
+         case_index < RANDOM_TIMER_CASES && failed < 20; ++case_index) {
+        if (RunRandomTimerHandlerCase(
+                &bus, reference, initial, case_index, true))
+            ++random_timer_scaled_passed;
+        else
+            ++failed;
+    }
+
     printf("$83:C83C primary dispatch cases passed:   %u / %u\n",
         primary_passed, 256u * PRIMARY_CASES_PER_OPCODE);
     printf("$83:D59A secondary dispatch cases passed: %u / %u\n",
@@ -1978,6 +2177,12 @@ int main(int argc, char **argv) {
         leader_step_x_passed, LEADER_STEP_CASES);
     printf("$83:CC63 leader-Y-step cases passed:       %u / %u\n",
         leader_step_y_passed, LEADER_STEP_CASES);
+    printf("$80:8299 random-scale cases passed:        %u / %u\n",
+        random_scale_passed, RANDOM_SCALE_CASES);
+    printf("$83:C8AF random-timer cases passed:        %u / %u\n",
+        random_timer_passed, RANDOM_TIMER_CASES);
+    printf("$83:C8D4 random-timer x8 cases passed:     %u / %u\n",
+        random_timer_scaled_passed, RANDOM_TIMER_CASES);
     printf("failures: %u\n", failed);
     printf(failed
         ? "RESULT: FAIL - actor dispatch mismatch found\n"
