@@ -25,6 +25,7 @@ enum {
     LEADER_STEP_CASES = ACTION_CORE_VARIANTS * 3 * 16,
     RANDOM_SCALE_CASES = 4096,
     RANDOM_TIMER_CASES = 1024,
+    GENERIC_HANDLER_CASES = 1024,
 };
 
 typedef struct NativeMemory {
@@ -1595,9 +1596,9 @@ static void SeedRandomTable(
     bus->wram[RANDOM_INDEX] = index;
 }
 
-/* Independent model of $80:8299 and $80:832D. */
-static uint16_t ExpectedRandomScale(
-    const uint8_t *wram, uint16_t accumulator) {
+/* Independent model of $80:8299/$80:82C7 and $80:832D. */
+static uint16_t ExpectedRandom(
+    const uint8_t *wram, uint16_t accumulator, bool byte_only) {
     uint8_t table[RANDOM_TABLE_SIZE];
     uint8_t index = (uint8_t)(wram[RANDOM_INDEX] + 1u);
 
@@ -1609,16 +1610,20 @@ static uint16_t ExpectedRandomScale(
             table[i] ^= table[i - 24u];
         index = 0;
     }
+    if (byte_only)
+        return (uint16_t)((accumulator & 0xff00u) | table[index]);
     return (uint16_t)(((unsigned)(uint8_t)accumulator * table[index]) >> 8);
 }
 
-static bool RunRandomScaleCase(
+static bool RunRandomCase(
     SnesVerifyBus *bus,
     Interp816 *reference,
     uint8_t *initial,
-    unsigned case_index) {
+    unsigned case_index,
+    bool byte_only) {
     static const uint8_t banks[4] = {0x7eu, 0x83u, 0x00u, 0x80u};
-    const uint32_t stop_pc = 0x8082c6u;
+    const uint32_t stop_pc = byte_only ? 0x8082e6u : 0x8082c6u;
+    const char *name = byte_only ? "82C7" : "8299";
     const uint8_t index_seed = (uint8_t)(case_index & 0x3fu);
     const uint8_t index = index_seed == 0x3fu ? 0xffu : index_seed;
     const unsigned flags = (case_index >> 8) & 0x0fu;
@@ -1654,15 +1659,18 @@ static bool RunRandomScaleCase(
         input.y &= 0x00ffu;
     }
     SeedRandomTable(bus, case_index, index);
-    expected = ExpectedRandomScale(bus->wram, input.accumulator);
+    expected = ExpectedRandom(bus->wram, input.accumulator, byte_only);
 
     memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
     native = input;
-    Lufia2RandomScale(&memory, &native);
+    if (byte_only)
+        Lufia2RandomByte(&memory, &native);
+    else
+        Lufia2RandomScale(&memory, &native);
     if (native.accumulator != expected) {
         fprintf(stderr,
-            "FAIL 8299 case %u: result=%04X expected=%04X\n",
-            case_index, native.accumulator, expected);
+            "FAIL %s case %u: result=%04X expected=%04X\n",
+            name, case_index, native.accumulator, expected);
         return false;
     }
 
@@ -1672,7 +1680,7 @@ static bool RunRandomScaleCase(
     memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
     memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
 
-    InitInterp(reference, 0x808299u, &input);
+    InitInterp(reference, byte_only ? 0x8082c7u : 0x808299u, &input);
     stop = SnesVerifyRunUntil(
         reference, &stop_pc, 1, 1024, &instructions);
 
@@ -1680,11 +1688,11 @@ static bool RunRandomScaleCase(
         !SameState(&native, reference) ||
         memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
         fprintf(stderr,
-            "FAIL 8299 case %u: stop=%d insns=%u "
+            "FAIL %s case %u: stop=%d insns=%u "
             "A=%04X/%04X X=%04X/%04X Y=%04X/%04X "
             "S=%04X/%04X DB=%02X/%02X M=%u/%u Xf=%u/%u "
             "N=%u/%u Z=%u/%u C=%u/%u V=%u/%u\n",
-            case_index, stop, instructions,
+            name, case_index, stop, instructions,
             native.accumulator, reference->a,
             native.x, reference->x,
             native.y, reference->y,
@@ -1745,6 +1753,111 @@ static bool RunRandomTimerHandlerCase(
         0, case_index, scaled ? "C8D4" : "C8AF");
 }
 
+
+typedef struct GenericHandlerStats {
+    unsigned redispatched;
+    unsigned committed;
+} GenericHandlerStats;
+
+static uint8_t g_generic_seed[SNES_VERIFY_WRAM_SIZE];
+
+/*
+ * Broad seeded state for handlers built from leader, facing, $47, RNG
+ * and D350 pieces. The native flow picks the reference stop PC; state
+ * and WRAM must then match exactly.
+ */
+static bool RunGenericHandlerCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    uint32_t handler_pc,
+    unsigned case_index,
+    const char *name,
+    GenericHandlerStats *stats) {
+    static const int8_t deltas[8] = {0, 1, -1, 2, -2, 5, -9, 0x40};
+    const unsigned variant = case_index & 15u;
+    const uint8_t action = (uint8_t)((case_index >> 4) & 3u);
+    const uint16_t slot =
+        (uint16_t)(8u + ((action + variant * 3u) % 24u));
+    const uint16_t dp = (variant & 2u) ? 0x0020u : 0;
+    const uint16_t script = (uint16_t)(TEST_SCRIPT + (case_index & 7u));
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    Lufia2ActorPrimaryScriptStepResult result;
+    uint8_t actor_x;
+    uint8_t actor_y;
+
+    if (!SeedActionCoreCase(bus, variant, action, &input))
+        return false;
+
+    input.data_bank = 0x7eu;
+    input.program_bank = 0x83u;
+    input.index_is_8_bit = 0;
+    input.x = (uint16_t)(0x1600u | (case_index & 0xffu));
+    input.y = script;
+    input.overflow = (case_index >> 9) & 1u;
+
+    actor_x = bus->wram[0x06bau + slot];
+    actor_y = bus->wram[0x06e2u + slot];
+    bus->wram[0x06bau] =
+        (uint8_t)(actor_x + deltas[(case_index >> 6) & 7u]);
+    bus->wram[0x06e2u] =
+        (uint8_t)(actor_y + deltas[(case_index >> 3) & 7u]);
+    bus->wram[0x0692u + slot] = (uint8_t)(((case_index >> 7) & 3u) * 2u);
+    bus->wram[dp + 0x47u] = (uint8_t)(case_index * 0x35u);
+    bus->wram[0x10000u + 0xe5a6u + slot] =
+        (uint8_t)(actor_x + deltas[(case_index >> 2) & 7u]);
+    bus->wram[0x10000u + 0xe5ceu + slot] =
+        (uint8_t)(actor_y + deltas[(case_index >> 5) & 7u]);
+    for (unsigned i = 1; i < 8u; ++i)
+        bus->wram[(uint16_t)(script + i)] =
+            (uint8_t)((case_index * 0x3du) ^ (i * 0x47u));
+    SeedRandomTable(bus, case_index * 3u, (uint8_t)(case_index % 0x3au));
+
+    memcpy(g_generic_seed, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    result = Lufia2ActorPrimaryScriptExecuteKnownHandler(
+        &memory, &native, handler_pc);
+    memcpy(bus->wram, g_generic_seed, SNES_VERIFY_WRAM_SIZE);
+
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_SCRIPT_REDISPATCHED) {
+        ++stats->redispatched;
+        return CompareKnownPrimaryBoundary(
+            bus, reference, initial, &input,
+            handler_pc, 0x83c85cu, result.handler_pc, handler_pc,
+            LUFIA2_ACTOR_PRIMARY_SCRIPT_REDISPATCHED,
+            result.opcode, case_index, name);
+    }
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_SCRIPT_CONTINUE_C8D2) {
+        ++stats->committed;
+        return CompareKnownPrimaryBoundary(
+            bus, reference, initial, &input,
+            handler_pc, 0, 0x83c8d2u, handler_pc,
+            LUFIA2_ACTOR_PRIMARY_SCRIPT_CONTINUE_C8D2,
+            0, case_index, name);
+    }
+    fprintf(stderr, "FAIL %s case %u: unexpected flow=%u at %06X\n",
+        name, case_index, (unsigned)result.flow, result.handler_pc);
+    return false;
+}
+
+static const struct {
+    uint32_t pc;
+    const char *name;
+} kGenericHandlers[] = {
+    {0x83d320u, "D320"}, {0x83d340u, "D340"}, {0x83d125u, "D125"},
+    {0x83d132u, "D132"}, {0x83ccf0u, "CCF0"}, {0x83cd0du, "CD0D"},
+    {0x83cd2eu, "CD2E"}, {0x83cd32u, "CD32"}, {0x83cd4fu, "CD4F"},
+    {0x83cd92u, "CD92"}, {0x83ce73u, "CE73"}, {0x83cab9u, "CAB9"},
+};
+enum {
+    GENERIC_HANDLER_COUNT =
+        sizeof(kGenericHandlers) / sizeof(kGenericHandlers[0]),
+};
+
 int interp816_opcode_hook(uint32_t address) {
     (void)address;
     return 0;
@@ -1786,9 +1899,14 @@ int main(int argc, char **argv) {
     unsigned random_scale_passed = 0;
     unsigned random_timer_passed = 0;
     unsigned random_timer_scaled_passed = 0;
+    unsigned random_byte_passed = 0;
+    unsigned generic_passed[GENERIC_HANDLER_COUNT] = {0};
+    GenericHandlerStats generic_stats[GENERIC_HANDLER_COUNT];
     unsigned failed = 0;
     unsigned case_index = 0;
     bool bus_initialized = false;
+
+    memset(generic_stats, 0, sizeof(generic_stats));
 
     if (argc < 2) {
         fprintf(stderr, "usage: %s <lufia2.sfc>\n", argv[0]);
@@ -2101,7 +2219,7 @@ int main(int argc, char **argv) {
 
     for (case_index = 0;
          case_index < RANDOM_SCALE_CASES && failed < 20; ++case_index) {
-        if (RunRandomScaleCase(&bus, reference, initial, case_index))
+        if (RunRandomCase(&bus, reference, initial, case_index, false))
             ++random_scale_passed;
         else
             ++failed;
@@ -2123,6 +2241,28 @@ int main(int argc, char **argv) {
             ++random_timer_scaled_passed;
         else
             ++failed;
+    }
+
+    for (case_index = 0;
+         case_index < RANDOM_SCALE_CASES && failed < 20; ++case_index) {
+        if (RunRandomCase(&bus, reference, initial, case_index, true))
+            ++random_byte_passed;
+        else
+            ++failed;
+    }
+
+    for (size_t h = 0; h < GENERIC_HANDLER_COUNT && failed < 20; ++h) {
+        for (case_index = 0;
+             case_index < GENERIC_HANDLER_CASES && failed < 20;
+             ++case_index) {
+            if (RunGenericHandlerCase(
+                    &bus, reference, initial,
+                    kGenericHandlers[h].pc, case_index,
+                    kGenericHandlers[h].name, &generic_stats[h]))
+                ++generic_passed[h];
+            else
+                ++failed;
+        }
     }
 
     printf("$83:C83C primary dispatch cases passed:   %u / %u\n",
@@ -2183,6 +2323,14 @@ int main(int argc, char **argv) {
         random_timer_passed, RANDOM_TIMER_CASES);
     printf("$83:C8D4 random-timer x8 cases passed:     %u / %u\n",
         random_timer_scaled_passed, RANDOM_TIMER_CASES);
+    printf("$80:82C7 random-byte cases passed:         %u / %u\n",
+        random_byte_passed, RANDOM_SCALE_CASES);
+    for (size_t h = 0; h < GENERIC_HANDLER_COUNT; ++h)
+        printf("$83:%s seeded cases passed:             %u / %u"
+               " (redispatch %u, commit %u)\n",
+            kGenericHandlers[h].name, generic_passed[h],
+            GENERIC_HANDLER_CASES, generic_stats[h].redispatched,
+            generic_stats[h].committed);
     printf("failures: %u\n", failed);
     printf(failed
         ? "RESULT: FAIL - actor dispatch mismatch found\n"
