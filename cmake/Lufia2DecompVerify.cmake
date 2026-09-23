@@ -59,9 +59,24 @@ function(lufia2_add_decomp_verifier)
     target_link_libraries(Lufia2ActorDispatchVerify PRIVATE Lufia2::Decomp)
     target_compile_features(Lufia2ActorDispatchVerify PRIVATE c_std_11)
 
+    add_executable(Lufia2ActorBridgeVerify EXCLUDE_FROM_ALL
+        "${CMAKE_SOURCE_DIR}/tests/decomp_verify/snes_function_verify.c"
+        "${CMAKE_SOURCE_DIR}/tests/decomp_verify/lufia2_actor_bridge_verify.c"
+        "${CMAKE_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+        "${VERIFY_SNESRECOMP_ROOT}/runner/src/snes/interp816.c")
+
+    target_include_directories(Lufia2ActorBridgeVerify PRIVATE
+        "${CMAKE_SOURCE_DIR}/tests/decomp_verify"
+        "${VERIFY_SNESRECOMP_ROOT}/runner/src"
+        "${VERIFY_SNESRECOMP_ROOT}/runner/src/snes")
+    target_link_libraries(Lufia2ActorBridgeVerify PRIVATE Lufia2::Decomp)
+    target_compile_features(Lufia2ActorBridgeVerify PRIVATE c_std_11)
+
     set(_report "${CMAKE_BINARY_DIR}/generated/DECOMP_VERIFY_REPORT.txt")
     set(_bridge_report
         "${CMAKE_BINARY_DIR}/generated/DECOMP_BRIDGE_VERIFY_REPORT.txt")
+    set(_actor_bridge_report
+        "${CMAKE_BINARY_DIR}/generated/DECOMP_ACTOR_BRIDGE_VERIFY_REPORT.txt")
     add_custom_target(decomp-verify
         COMMAND "${CMAKE_COMMAND}" -E make_directory
             "${CMAKE_BINARY_DIR}/generated"
@@ -73,8 +88,11 @@ function(lufia2_add_decomp_verifier)
             --report "${_bridge_report}"
         COMMAND "$<TARGET_FILE:Lufia2ActorDispatchVerify>"
             "${VERIFY_ROM}"
+        COMMAND "$<TARGET_FILE:Lufia2ActorBridgeVerify>"
+            "${VERIFY_ROM}"
+            --report "${_actor_bridge_report}"
         DEPENDS Lufia2DecompVerify Lufia2DecompBridgeVerify
-            Lufia2ActorDispatchVerify
+            Lufia2ActorDispatchVerify Lufia2ActorBridgeVerify
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
         COMMENT "Comparing native decomp semantics against original ROM code"
         VERBATIM)
@@ -82,5 +100,6 @@ function(lufia2_add_decomp_verifier)
     set_property(TARGET Lufia2DecompVerify PROPERTY FOLDER "Development")
     set_property(TARGET Lufia2DecompBridgeVerify PROPERTY FOLDER "Development")
     set_property(TARGET Lufia2ActorDispatchVerify PROPERTY FOLDER "Development")
+    set_property(TARGET Lufia2ActorBridgeVerify PROPERTY FOLDER "Development")
     set_property(TARGET decomp-verify PROPERTY FOLDER "Development")
 endfunction()

@@ -1,0 +1,513 @@
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+#include "cpu_state.h"
+#include "interp816.h"
+#include "snes_function_verify.h"
+
+extern RecompReturn Lufia2DecompBridge_D350(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_F9D4(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_FB12(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_FB71(CpuState *cpu);
+
+enum {
+    LUFIA2_ROM_SIZE = 0x280000,
+    RETURN_WORD = 0x7ffe,
+    CASES_PER_MODE = 2048,
+    UNSUPPORTED_CASES = 512,
+    STUB_SENTINEL = RECOMP_RETURN_LLE_UNWIND_BASE,
+};
+
+typedef enum StubKind {
+    STUB_NONE = 0,
+    STUB_DISPATCH,
+    STUB_REWRITTEN,
+    STUB_TAIL,
+} StubKind;
+
+typedef struct StubCall {
+    StubKind kind;
+    unsigned count;
+    uint32_t target;
+    uint32_t site;
+    uint16_t restore_s;
+    uint16_t entry_s;
+    uint8_t hrv;
+} StubCall;
+
+typedef struct BridgeTarget {
+    const char *name;
+    RecompReturn (*bridge)(CpuState *);
+    uint32_t entry;
+    uint8_t frame;
+    bool allow_x8;
+    bool dp_page0;
+} BridgeTarget;
+
+static const BridgeTarget kTargets[] = {
+    {"D350", Lufia2DecompBridge_D350, 0x83d350u, 3, false, true},
+    {"F9D4", Lufia2DecompBridge_F9D4, 0x83f9d4u, 2, false, false},
+    {"FB12", Lufia2DecompBridge_FB12, 0x83fb12u, 3, true, false},
+    {"FB71", Lufia2DecompBridge_FB71, 0x83fb71u, 3, false, false},
+};
+
+static SnesVerifyBus g_bus;
+static StubCall g_stub;
+static uint8_t g_seed[SNES_VERIFY_WRAM_SIZE];
+static uint8_t g_native[SNES_VERIFY_WRAM_SIZE];
+static uint64_t s_rng = UINT64_C(0x9e3779b97f4a7c15);
+
+static uint32_t Random32(void) {
+    s_rng ^= s_rng << 13;
+    s_rng ^= s_rng >> 7;
+    s_rng ^= s_rng << 17;
+    return (uint32_t)(s_rng >> 32);
+}
+
+uint8 cpu_read8(CpuState *cpu, uint8 bank, uint16 address) {
+    const uint8 value =
+        SnesVerifyBusRead(&g_bus, ((uint32_t)bank << 16) | address);
+    cpu->open_bus = value;
+    return value;
+}
+
+void cpu_write8(CpuState *cpu, uint8 bank, uint16 address, uint8 value) {
+    SnesVerifyBusWrite(&g_bus, ((uint32_t)bank << 16) | address, value);
+    cpu->open_bus = value;
+}
+
+int cpu_dispatch_has_entry(CpuState *cpu, uint32 pc24) {
+    (void)cpu;
+    (void)pc24;
+    return 0;
+}
+
+static RecompReturn RecordStub(
+    StubKind kind, uint32_t target, uint32_t site,
+    uint16_t restore_s, uint16_t entry_s, uint8_t hrv) {
+    ++g_stub.count;
+    g_stub.kind = kind;
+    g_stub.target = target & 0xffffffu;
+    g_stub.site = site & 0xffffffu;
+    g_stub.restore_s = restore_s;
+    g_stub.entry_s = entry_s;
+    g_stub.hrv = hrv;
+    return (RecompReturn)STUB_SENTINEL;
+}
+
+RecompReturn cpu_dispatch_pc_from(
+    CpuState *cpu, uint32 pc24, uint16 miss_restore_s, uint32 source_pc24) {
+    (void)cpu;
+    return RecordStub(
+        STUB_DISPATCH, pc24, source_pc24, miss_restore_s, 0, 0);
+}
+
+RecompReturn interp_tier_dispatch_rewritten_return(
+    CpuState *cpu, uint32 target_pc24, uint32 site_pc24) {
+    (void)cpu;
+    return RecordStub(STUB_REWRITTEN, target_pc24, site_pc24, 0, 0, 0);
+}
+
+RecompReturn interp_tier_dispatch_tail(
+    CpuState *cpu, uint32 target_pc24, uint32 site_pc24,
+    uint16 entry_s, uint8 hrv) {
+    (void)cpu;
+    return RecordStub(
+        STUB_TAIL, target_pc24, site_pc24, 0, entry_s, hrv);
+}
+
+int interp816_opcode_hook(uint32_t address) {
+    (void)address;
+    return 0;
+}
+
+static void RandomFill(uint8_t *ram) {
+    for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
+        const uint32_t word = Random32();
+        memcpy(ram + i, &word, 4);
+    }
+}
+
+static void Poke16(uint8_t *ram, uint32_t offset, uint16_t value) {
+    ram[offset] = (uint8_t)value;
+    ram[offset + 1] = (uint8_t)(value >> 8);
+}
+
+/* Random machine plus a sane actor slot and return frame. */
+static void SeedCase(
+    const BridgeTarget *target, CpuState *cpu, uint8_t return_bank) {
+    static const uint16_t dps[4] = {0x0000u, 0x0020u, 0x0400u, 0x0a00u};
+    static const uint16_t page0_dps[4] = {0x0000u, 0x0020u, 0x0080u, 0x00c0u};
+    static const uint16_t stacks[3] = {0x1ff0u, 0x1d80u, 0x13f0u};
+    static const uint8_t banks[6] = {0x00u, 0x7eu, 0x7fu, 0x80u, 0x83u, 0x91u};
+    const uint16_t dp = target->dp_page0 ? page0_dps[Random32() & 3u]
+                                         : dps[Random32() & 3u];
+    const uint16_t s = stacks[Random32() % 3u];
+    const uint8_t slot = (uint8_t)(Random32() % 40u);
+
+    RandomFill(g_bus.wram);
+    Poke16(g_bus.wram, dp + 0xa7u, slot);
+    Poke16(g_bus.wram, dp + 0xabu,
+        (Random32() & 1u) ? (uint16_t)(slot * 3u)
+                          : (uint16_t)(Random32() & 0xffu));
+    if (Random32() & 1u)
+        g_bus.wram[0x0622u + slot] &= (uint8_t)~0x28u;
+    Poke16(g_bus.wram, 0x05aau, (uint16_t)(Random32() & 0x3eu));
+    g_bus.wram[s + 1u] = (uint8_t)RETURN_WORD;
+    g_bus.wram[s + 2u] = (uint8_t)(RETURN_WORD >> 8);
+    if (target->frame == 3)
+        g_bus.wram[s + 3u] = return_bank;
+
+    memset(cpu, 0, sizeof(*cpu));
+    cpu->A = (uint16_t)Random32();
+    cpu->X = (uint16_t)Random32();
+    cpu->Y = (uint16_t)Random32();
+    cpu->S = s;
+    cpu->D = dp;
+    cpu->DB = banks[Random32() % 6u];
+    cpu->PB = 0x83;
+    cpu->m_flag = 1;
+    cpu->x_flag = target->allow_x8 ? (uint8_t)(Random32() & 1u) : 0;
+    cpu->emulation = 0;
+    cpu->_flag_C = Random32() & 1u;
+    cpu->_flag_Z = Random32() & 1u;
+    cpu->_flag_V = Random32() & 1u;
+    cpu->_flag_N = Random32() & 1u;
+    cpu->_flag_I = Random32() & 1u;
+    cpu->_flag_D = 0;
+    cpu->ram = g_bus.wram;
+    if (cpu->x_flag) {
+        cpu->X &= 0x00ffu;
+        cpu->Y &= 0x00ffu;
+    }
+    cpu_mirrors_to_p(cpu);
+}
+
+static void InitReference(
+    Interp816 *ref, const CpuState *input, uint32_t pc24) {
+    ref->a = input->A;
+    ref->x = input->X;
+    ref->y = input->Y;
+    ref->sp = input->S;
+    ref->pc = (uint16_t)pc24;
+    ref->dp = input->D;
+    ref->k = (uint8_t)(pc24 >> 16);
+    ref->db = input->DB;
+    ref->c = input->_flag_C != 0;
+    ref->z = input->_flag_Z != 0;
+    ref->v = input->_flag_V != 0;
+    ref->n = input->_flag_N != 0;
+    ref->i = input->_flag_I != 0;
+    ref->d = input->_flag_D != 0;
+    ref->mf = input->m_flag != 0;
+    ref->xf = input->x_flag != 0;
+    ref->e = false;
+    ref->irqWanted = false;
+    ref->nmiWanted = false;
+    ref->waiting = false;
+    ref->stopped = false;
+    interp816_set_brk_hook_enabled(ref, false);
+}
+
+static uint8_t PackP(const Interp816 *ref) {
+    return (uint8_t)((ref->n ? 0x80u : 0) | (ref->v ? 0x40u : 0) |
+                     (ref->mf ? 0x20u : 0) | (ref->xf ? 0x10u : 0) |
+                     (ref->d ? 0x08u : 0) | (ref->i ? 0x04u : 0) |
+                     (ref->z ? 0x02u : 0) | (ref->c ? 0x01u : 0));
+}
+
+/* PB is excluded: generated RTL leaves it to the caller. */
+static bool SameState(const CpuState *native, const Interp816 *ref) {
+    return native->A == ref->a && native->X == ref->x &&
+           native->Y == ref->y && native->S == ref->sp &&
+           native->D == ref->dp && native->DB == ref->db &&
+           native->m_flag == (uint8_t)ref->mf &&
+           native->x_flag == (uint8_t)ref->xf &&
+           native->_flag_C == (uint8_t)ref->c &&
+           native->_flag_Z == (uint8_t)ref->z &&
+           native->_flag_V == (uint8_t)ref->v &&
+           native->_flag_N == (uint8_t)ref->n &&
+           native->_flag_I == (uint8_t)ref->i &&
+           native->_flag_D == (uint8_t)ref->d &&
+           native->P == PackP(ref) && native->emulation == 0;
+}
+
+static void Report(
+    const char *name, const char *mode, unsigned index,
+    const CpuState *native, const Interp816 *ref, RecompReturn ret,
+    int stop, const char *why) {
+    fprintf(stderr,
+        "FAIL %s %s case %u: %s ret=%d stop=%d stub=%u/%u "
+        "target=%06X site=%06X restore=%04X "
+        "A=%04X/%04X X=%04X/%04X Y=%04X/%04X S=%04X/%04X DB=%02X/%02X "
+        "P=%02X/%02X\n",
+        name, mode, index, why, (int)ret, stop, (unsigned)g_stub.kind,
+        g_stub.count, g_stub.target, g_stub.site, g_stub.restore_s,
+        native->A, ref->a, native->X, ref->x, native->Y, ref->y,
+        native->S, ref->sp, native->DB, ref->db, native->P, PackP(ref));
+}
+
+static uint32_t Fb12RtlSite(uint8_t direction) {
+    static const uint32_t sites[4] = {
+        0x83fb24u, 0x83fb27u, 0x83fb2au, 0x83fb2du};
+    return sites[(direction >> 1) & 3u];
+}
+
+/* hrv: frame size, 0 or the wrong size. */
+static bool RunBoundaryCase(
+    Interp816 *ref, const BridgeTarget *target, unsigned index,
+    unsigned hrv_mode) {
+    static const uint8_t return_banks[3] = {0x80u, 0x83u, 0x85u};
+    const uint8_t return_bank = return_banks[Random32() % 3u];
+    const uint32_t sentinel = ((uint32_t)(
+        target->frame == 3 ? return_bank : 0x83u) << 16) |
+        (uint16_t)(RETURN_WORD + 1u);
+    const char *mode = hrv_mode == 0 ? "paired" :
+                       hrv_mode == 1 ? "dispatched" : "mismatched";
+    CpuState native;
+    CpuState input;
+    RecompReturn ret;
+    unsigned instructions = 0;
+    uint32_t site;
+    int stop;
+
+    SeedCase(target, &native, return_bank);
+    if (!strcmp(target->name, "FB12")) {
+        native.A = (uint16_t)((native.A & 0xff00u) | ((Random32() & 3u) * 2u));
+    }
+    native.host_return_valid = hrv_mode == 0 ? target->frame :
+        hrv_mode == 1 ? 0 : (uint8_t)(5u - target->frame);
+    input = native;
+    memcpy(g_seed, g_bus.wram, SNES_VERIFY_WRAM_SIZE);
+
+    memset(&g_stub, 0, sizeof(g_stub));
+    ret = target->bridge(&native);
+    memcpy(g_native, g_bus.wram, SNES_VERIFY_WRAM_SIZE);
+
+    memcpy(g_bus.wram, g_seed, SNES_VERIFY_WRAM_SIZE);
+    InitReference(ref, &input, target->entry);
+    stop = SnesVerifyRunUntil(ref, &sentinel, 1, 4096, &instructions);
+
+    site = !strcmp(target->name, "FB12")
+        ? Fb12RtlSite((uint8_t)input.A)
+        : target->entry == 0x83d350u ? 0x83d3aeu
+        : target->entry == 0x83f9d4u ? 0x83f9edu : 0x83fb8au;
+
+    if (stop != 0 || !SameState(&native, ref) ||
+        memcmp(g_native, g_bus.wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        Report(target->name, mode, index, &native, ref, ret, stop,
+            "state/memory");
+        return false;
+    }
+    if (hrv_mode == 0) {
+        if (ret != RECOMP_RETURN_NORMAL || g_stub.count != 0 ||
+            native.PB != input.PB) {
+            Report(target->name, mode, index, &native, ref, ret, stop,
+                "host return");
+            return false;
+        }
+    } else if (ret != (RecompReturn)STUB_SENTINEL || g_stub.count != 1 ||
+               g_stub.kind != STUB_DISPATCH || g_stub.target != sentinel ||
+               g_stub.site != site ||
+               g_stub.restore_s != (uint16_t)(input.S + target->frame)) {
+        Report(target->name, mode, index, &native, ref, ret, stop,
+            "dispatch");
+        return false;
+    }
+    return true;
+}
+
+/* M0, X8, D=1 and emulation must reach LLE untouched. */
+static bool RunUnsupportedCase(
+    const BridgeTarget *target, unsigned index, unsigned kind) {
+    CpuState native;
+    CpuState input;
+    RecompReturn ret;
+
+    SeedCase(target, &native, 0x83u);
+    switch (kind) {
+    case 0: native.m_flag = 0; break;
+    case 1: native._flag_D = 1; break;
+    case 2: native.emulation = 1; break;
+    case 4: native.D = (uint16_t)(native.D | 0x0400u); break;
+    default:
+        native.x_flag = 1;
+        native.X &= 0x00ffu;
+        native.Y &= 0x00ffu;
+        break;
+    }
+    cpu_mirrors_to_p(&native);
+    native.host_return_valid = (uint8_t)((index & 1u) ? target->frame : 0);
+    input = native;
+    memcpy(g_seed, g_bus.wram, SNES_VERIFY_WRAM_SIZE);
+
+    memset(&g_stub, 0, sizeof(g_stub));
+    ret = target->bridge(&native);
+    /* The paired-frame peek updates open bus, like generated prologues. */
+    native.open_bus = input.open_bus;
+
+    if (ret != (RecompReturn)STUB_SENTINEL || g_stub.count != 1 ||
+        g_stub.kind != STUB_TAIL || g_stub.target != target->entry ||
+        g_stub.site != target->entry || g_stub.entry_s != input.S ||
+        g_stub.hrv != input.host_return_valid ||
+        memcmp(&native, &input, sizeof(native)) != 0 ||
+        memcmp(g_seed, g_bus.wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        fprintf(stderr,
+            "FAIL %s unsupported case %u kind %u: ret=%d stub=%u/%u "
+            "target=%06X site=%06X\n",
+            target->name, index, kind, (int)ret, (unsigned)g_stub.kind,
+            g_stub.count, g_stub.target, g_stub.site);
+        return false;
+    }
+    return true;
+}
+
+/* FB12 with an odd or out-of-range index. */
+static bool RunFb12OutOfRangeCase(Interp816 *ref, unsigned index) {
+    const BridgeTarget *target = &kTargets[2];
+    CpuState native;
+    CpuState input;
+    RecompReturn ret;
+    unsigned instructions = 0;
+    uint16_t pointer;
+    uint32_t jump;
+    uint8_t direction;
+    int stop;
+
+    SeedCase(target, &native, 0x83u);
+    do {
+        direction = (uint8_t)Random32();
+    } while (!(direction & 1u) && direction < 8u);
+    native.A = (uint16_t)((native.A & 0xff00u) | direction);
+    native.host_return_valid = (uint8_t)((index & 1u) ? 3u : 0u);
+    input = native;
+    memcpy(g_seed, g_bus.wram, SNES_VERIFY_WRAM_SIZE);
+    pointer = (uint16_t)(
+        SnesVerifyBusRead(&g_bus, 0x830000u | (uint16_t)(0xfb1au + direction)) |
+        (SnesVerifyBusRead(
+             &g_bus, 0x830000u | (uint16_t)(0xfb1bu + direction)) << 8));
+    jump = 0x830000u | pointer;
+
+    memset(&g_stub, 0, sizeof(g_stub));
+    ret = target->bridge(&native);
+    memcpy(g_native, g_bus.wram, SNES_VERIFY_WRAM_SIZE);
+
+    memcpy(g_bus.wram, g_seed, SNES_VERIFY_WRAM_SIZE);
+    InitReference(ref, &input, target->entry);
+    stop = SnesVerifyRunUntil(ref, &jump, 1, 64, &instructions);
+
+    if (stop != 0 || !SameState(&native, ref) ||
+        memcmp(g_native, g_bus.wram, SNES_VERIFY_WRAM_SIZE) != 0 ||
+        ret != (RecompReturn)STUB_SENTINEL || g_stub.count != 1 ||
+        g_stub.kind != STUB_TAIL || g_stub.target != jump ||
+        g_stub.site != 0x83fb17u || g_stub.entry_s != input.S ||
+        g_stub.hrv != input.host_return_valid) {
+        Report(target->name, "out-of-range", index, &native, ref, ret,
+            stop, "tail");
+        return false;
+    }
+    return true;
+}
+
+int main(int argc, char **argv) {
+    const char *report_path = NULL;
+    FILE *report = NULL;
+    uint8_t *rom = NULL;
+    size_t rom_size = 0;
+    Interp816 *ref = NULL;
+    unsigned passed[4][3] = {{0}};
+    unsigned unsupported[4] = {0};
+    unsigned fb12_oob = 0;
+    unsigned failed = 0;
+    bool bus_ready = false;
+
+    if (argc < 2) {
+        fprintf(stderr, "usage: %s <lufia2.sfc> [--report path]\n", argv[0]);
+        return 2;
+    }
+    for (int i = 2; i < argc; ++i) {
+        if (!strcmp(argv[i], "--report") && i + 1 < argc)
+            report_path = argv[++i];
+        else {
+            fprintf(stderr, "unknown argument: %s\n", argv[i]);
+            return 2;
+        }
+    }
+
+    if (!SnesVerifyLoadFile(argv[1], &rom, &rom_size) ||
+        rom_size != LUFIA2_ROM_SIZE ||
+        !SnesVerifyBusInit(&g_bus, rom, rom_size)) {
+        fprintf(stderr, "ERROR: reference ROM/bus initialization failed\n");
+        failed = 1;
+        goto done;
+    }
+    bus_ready = true;
+    ref = interp816_init(&g_bus, SnesVerifyBusRead, SnesVerifyBusWrite);
+    if (!ref) {
+        fprintf(stderr, "ERROR: interp816 initialization failed\n");
+        failed = 1;
+        goto done;
+    }
+
+    for (unsigned t = 0; t < 4u && failed < 20; ++t) {
+        for (unsigned mode = 0; mode < 3u && failed < 20; ++mode) {
+            for (unsigned i = 0; i < CASES_PER_MODE && failed < 20; ++i) {
+                if (RunBoundaryCase(ref, &kTargets[t], i, mode))
+                    ++passed[t][mode];
+                else
+                    ++failed;
+            }
+        }
+        for (unsigned i = 0; i < UNSUPPORTED_CASES && failed < 20; ++i) {
+            const unsigned kinds = kTargets[t].allow_x8 ? 3u :
+                                   kTargets[t].dp_page0 ? 5u : 4u;
+            if (RunUnsupportedCase(&kTargets[t], i, i % kinds))
+                ++unsupported[t];
+            else
+                ++failed;
+        }
+    }
+    for (unsigned i = 0; i < UNSUPPORTED_CASES && failed < 20; ++i) {
+        if (RunFb12OutOfRangeCase(ref, i))
+            ++fb12_oob;
+        else
+            ++failed;
+    }
+
+    if (report_path)
+        report = fopen(report_path, "wb");
+    for (int pass = 0; pass < 2; ++pass) {
+        FILE *out = pass ? report : stdout;
+        if (!out)
+            continue;
+        fprintf(out, "Lufia II actor bridge verifier\n");
+        fprintf(out, "==============================\n\n");
+        for (unsigned t = 0; t < 4u; ++t)
+            fprintf(out,
+                "$83:%s paired %u/%u dispatched %u/%u mismatched %u/%u "
+                "LLE-entry %u/%u\n",
+                kTargets[t].name,
+                passed[t][0], CASES_PER_MODE, passed[t][1], CASES_PER_MODE,
+                passed[t][2], CASES_PER_MODE,
+                unsupported[t], UNSUPPORTED_CASES);
+        fprintf(out, "$83:FB12 out-of-range tail %u/%u\n",
+            fb12_oob, UNSUPPORTED_CASES);
+        fprintf(out, "failures: %u\n", failed);
+        fprintf(out, failed
+            ? "RESULT: FAIL - actor bridge mismatch found\n"
+            : "RESULT: PASS - actor bridges matched original call boundaries\n");
+    }
+
+done:
+    if (report)
+        fclose(report);
+    if (ref)
+        interp816_free(ref);
+    if (bus_ready)
+        SnesVerifyBusDestroy(&g_bus);
+    free(rom);
+    return failed ? 1 : 0;
+}
