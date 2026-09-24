@@ -322,6 +322,10 @@ RecompReturn Lufia2DecompBridge_ECDB(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x85ecdbu, Lufia2BattleVramQueueSlot, 3);
 }
 
+RecompReturn Lufia2DecompBridge_99BF(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x8699bfu, Lufia2WorldMapStreamEdges, 2);
+}
+
 RecompReturn Lufia2DecompBridge_8A2F(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x858a2fu, Lufia2BattleSprites, 3);
 }

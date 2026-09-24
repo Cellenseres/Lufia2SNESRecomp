@@ -4688,6 +4688,132 @@ static bool RunVramSlotCase(
     return true;
 }
 
+enum { WORLD_MAP_EDGE_CASES = 16384 };
+
+typedef struct WorldMapEdgeStats {
+    unsigned returned;
+    unsigned boundary;
+    unsigned columns;
+    unsigned rows;
+} WorldMapEdgeStats;
+
+/* Whole $86:99BF from the JSR at $86:9285. */
+static bool RunWorldMapEdgeCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index,
+    WorldMapEdgeStats *stats) {
+    static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
+    static const uint8_t banks[4] = {0x86u, 0x86u, 0x7eu, 0x00u};
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    Lufia2ActorPrimaryUpdateResult result;
+    uint8_t *native_wram;
+    unsigned instructions = 0;
+    bool stopped = false;
+
+    for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
+        const uint32_t word = NmiRandom();
+        memcpy(bus->wram + i, &word, 4);
+    }
+    /* Camera usually still or one step away. */
+    if (NmiRandom() & 1u)
+        bus->wram[0x11f6u] = bus->wram[0x11f2u];
+    else if (NmiRandom() & 1u)
+        bus->wram[0x11f6u] = (uint8_t)(bus->wram[0x11f2u] +
+            ((NmiRandom() & 1u) ? 1u : 0xffu));
+    if (NmiRandom() & 1u)
+        bus->wram[0x11f7u] = bus->wram[0x11f4u];
+    else if (NmiRandom() & 1u)
+        bus->wram[0x11f7u] = (uint8_t)(bus->wram[0x11f4u] +
+            ((NmiRandom() & 1u) ? 1u : 0xffu));
+    if (bus->wram[0x11f2u] != bus->wram[0x11f6u])
+        ++stats->columns;
+    if (bus->wram[0x11f4u] != bus->wram[0x11f7u])
+        ++stats->rows;
+    bus->wram[0x1ff1u] = 0x87u;
+    bus->wram[0x1ff2u] = 0x92u;
+
+    memset(&input, 0, sizeof(input));
+    input.accumulator = (uint16_t)NmiRandom();
+    input.x = (uint16_t)NmiRandom();
+    input.y = (uint16_t)NmiRandom();
+    input.stack = 0x1ff0u;
+    input.direct_page = dps[NmiRandom() & 7u];
+    input.data_bank = banks[NmiRandom() & 3u];
+    input.program_bank = 0x86u;
+    input.carry = NmiRandom() & 1u;
+    input.zero = NmiRandom() & 1u;
+    input.negative = NmiRandom() & 1u;
+    input.overflow = NmiRandom() & 1u;
+    input.irq_disable = NmiRandom() & 1u;
+    input.accumulator_is_8_bit = (NmiRandom() & 15u) ? 1u : 0u;
+    input.index_is_8_bit = (NmiRandom() & 15u) ? 0u : 1u;
+    if (input.index_is_8_bit) {
+        input.x &= 0x00ffu;
+        input.y &= 0x00ffu;
+    }
+
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    SnesVerifyBusResetMmio(bus);
+    result = Lufia2WorldMapStreamEdges(&memory, &native);
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+        native.stack = (uint16_t)(native.stack + 2u);   /* RTS */
+    native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    if (!native_wram)
+        return false;
+    memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+
+    InitInterp(reference, 0x8699bfu, &input);
+    while (instructions < 400000u) {
+        const uint32_t pc = SnesVerifyPc24(reference);
+        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+                ? pc == 0x869288u
+                : pc == result.pc && reference->sp == native.stack) {
+            stopped = true;
+            break;
+        }
+        interp816_runOpcode(reference);
+        ++instructions;
+    }
+    if (!stopped || bus->mmio_count || !SameState(&native, reference) ||
+        memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        size_t diff = 0;
+        while (diff < SNES_VERIFY_WRAM_SIZE &&
+               native_wram[diff] == bus->wram[diff])
+            ++diff;
+        fprintf(stderr,
+            "FAIL 99BF case %u: flow=%u stop=%d mmio=%u insns=%u "
+            "A=%04X/%04X X=%04X/%04X Y=%04X/%04X S=%04X/%04X DB=%02X/%02X "
+            "M=%u/%u C=%u/%u Z=%u/%u N=%u/%u V=%u/%u wram@%05X %02X/%02X\n",
+            case_index, (unsigned)result.flow, stopped ? 1 : 0,
+            (unsigned)bus->mmio_count, instructions,
+            native.accumulator, reference->a, native.x, reference->x,
+            native.y, reference->y, native.stack, reference->sp,
+            native.data_bank, reference->db,
+            native.accumulator_is_8_bit, reference->mf,
+            native.carry, reference->c, native.zero, reference->z,
+            native.negative, reference->n, native.overflow, reference->v,
+            (unsigned)diff,
+            diff < SNES_VERIFY_WRAM_SIZE ? native_wram[diff] : 0,
+            diff < SNES_VERIFY_WRAM_SIZE ? bus->wram[diff] : 0);
+        free(native_wram);
+        return false;
+    }
+    free(native_wram);
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+        ++stats->returned;
+    else
+        ++stats->boundary;
+    return true;
+}
+
 enum { BATTLE_FRAME_CASES = 16384 };
 
 typedef struct BattleFrameStats {
@@ -5116,6 +5242,8 @@ int main(int argc, char **argv) {
     BattleFrameStats battle_sprites = {0, 0, 0, 0, 0, 0};
     BattleFrameStats battle_upkeep = {0, 0, 0, 0, 0, 0};
     unsigned battle_sprites_passed = 0;
+    WorldMapEdgeStats world_edges = {0, 0, 0, 0};
+    unsigned world_edges_passed = 0;
     unsigned vram_slot_passed = 0;
     unsigned vram_slot_full = 0;
     WorldMapNmiStats world_nmi = {0, 0, 0, 0};
@@ -5434,6 +5562,12 @@ int main(int argc, char **argv) {
     for (unsigned i = 0; i < VRAM_SLOT_CASES && failed < 20; ++i) {
         if (RunVramSlotCase(&bus, reference, initial, i, &vram_slot_full))
             ++vram_slot_passed;
+        else
+            ++failed;
+    }
+    for (unsigned i = 0; i < WORLD_MAP_EDGE_CASES && failed < 20; ++i) {
+        if (RunWorldMapEdgeCase(&bus, reference, initial, i, &world_edges))
+            ++world_edges_passed;
         else
             ++failed;
     }
@@ -5762,6 +5896,10 @@ int main(int argc, char **argv) {
     printf("$85:ECDB whole-function cases passed:      %u / %u "
         "(queue full or X=1, LLE %u)\n",
         vram_slot_passed, VRAM_SLOT_CASES, vram_slot_full);
+    printf("$86:99BF whole-function cases passed:      %u / %u "
+        "(RTS %u, LLE %u, columns %u, rows %u)\n",
+        world_edges_passed, WORLD_MAP_EDGE_CASES, world_edges.returned,
+        world_edges.boundary, world_edges.columns, world_edges.rows);
     printf("$83:A21A whole-function cases passed:      %u / %u "
         "(RTL %u, LLE %u, sprites %u)\n",
         field_sprites_passed, FIELD_SPRITES_CASES, field_sprites.returned,
