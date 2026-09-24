@@ -2789,6 +2789,8 @@ typedef struct BusRegisters {
     uint8_t multiply_a;
     uint8_t multiply_b;
     uint16_t multiply_result;
+    uint16_t divide_a;
+    uint16_t divide_result;
     uint8_t m7_latch;
     uint16_t m7_a;
     uint8_t m7_b;
@@ -2799,6 +2801,8 @@ static BusRegisters SaveBusRegisters(const SnesVerifyBus *bus) {
     saved.multiply_a = bus->multiply_a;
     saved.multiply_b = bus->multiply_b;
     saved.multiply_result = bus->multiply_result;
+    saved.divide_a = bus->divide_a;
+    saved.divide_result = bus->divide_result;
     saved.m7_latch = bus->m7_latch;
     saved.m7_a = bus->m7_a;
     saved.m7_b = bus->m7_b;
@@ -2810,6 +2814,8 @@ static void RestoreBusRegisters(
     bus->multiply_a = saved->multiply_a;
     bus->multiply_b = saved->multiply_b;
     bus->multiply_result = saved->multiply_result;
+    bus->divide_a = saved->divide_a;
+    bus->divide_result = saved->divide_result;
     bus->m7_latch = saved->m7_latch;
     bus->m7_a = saved->m7_a;
     bus->m7_b = saved->m7_b;
@@ -3473,11 +3479,11 @@ enum { FIELD_SCROLL_CASES = 16384 };
 
 typedef struct FieldScrollStats {
     unsigned returned;
-    unsigned boundary[6];
+    unsigned boundary[2];
+    unsigned mmio_writes;
 } FieldScrollStats;
 
-static const uint32_t kScrollBoundaries[6] = {
-    0x8ebd77u, 0x8ebdd7u, 0x8ebdf5u, 0x8ebdfbu, 0x8ebe2au, 0x8ebe47u};
+static const uint32_t kScrollBoundaries[2] = {0x8ebd77u, 0x8ebdd7u};
 
 /* Camera layers: modes 0-4, some disabled or unknown. */
 static void SeedFieldScroll(SnesVerifyBus *bus) {
@@ -3489,10 +3495,16 @@ static void SeedFieldScroll(SnesVerifyBus *bus) {
         memcpy(bus->wram + i, &word, 4);
     }
     for (unsigned layer = 0; layer < 6u; layer += 2u) {
-        const uint16_t x = (uint16_t)((NmiRandom() & 0x07f0u) |
-            ((NmiRandom() & 3u) ? (1u + NmiRandom() % 15u) : 0u));
-        const uint16_t y = (uint16_t)((NmiRandom() & 0x07f0u) |
-            ((NmiRandom() & 3u) ? (1u + NmiRandom() % 15u) : 0u));
+        const uint16_t x = (NmiRandom() & 7u)
+            ? (uint16_t)((NmiRandom() & 0x07f0u) |
+                  ((NmiRandom() & 3u) ? (1u + NmiRandom() % 15u) : 0u))
+            : (NmiRandom() & 1u) ? (uint16_t)(0xeff0u | (NmiRandom() & 0x0fu))
+            : (uint16_t)NmiRandom();
+        const uint16_t y = (NmiRandom() & 7u)
+            ? (uint16_t)((NmiRandom() & 0x07f0u) |
+                  ((NmiRandom() & 3u) ? (1u + NmiRandom() % 15u) : 0u))
+            : (NmiRandom() & 1u) ? (uint16_t)(0xeff0u | (NmiRandom() & 0x0fu))
+            : (uint16_t)NmiRandom();
 
         bus->wram[0x1d020u + layer] = modes[NmiRandom() & 15u];
         Poke16(bus, 0x121eu + layer, x);
@@ -3508,10 +3520,11 @@ static void SeedFieldScroll(SnesVerifyBus *bus) {
         }
         Poke16(bus, 0x7fd0deu + layer, (uint16_t)(NmiRandom() % 9u));
         Poke16(bus, 0x7fd0e6u + layer, (uint16_t)(NmiRandom() % 9u));
-        bus->wram[0x1d010u + layer] = (uint8_t)(NmiRandom() & 0x7fu);
-        bus->wram[0x1d011u + layer] = 0;
-        bus->wram[0x1d018u + layer] = (uint8_t)(NmiRandom() & 0x7fu);
-        bus->wram[0x1d019u + layer] = 0;
+        /* Map size in cells; $0100 divides by zero. */
+        Poke16(bus, 0x7fd010u + layer, (NmiRandom() & 7u)
+            ? (uint16_t)(NmiRandom() & 0x7fu) : 0x0100u);
+        Poke16(bus, 0x7fd018u + layer, (NmiRandom() & 7u)
+            ? (uint16_t)(NmiRandom() & 0x7fu) : 0x0100u);
         if (NmiRandom() & 1u) {
             Poke16(bus, 0x05a4u, x);
             Poke16(bus, 0x05a6u, y);
@@ -3546,10 +3559,14 @@ static bool RunFieldScrollCase(
     Lufia2ActorFrontendMemory memory = {
         NativeRead, NativeWrite, &native_context};
     Lufia2ActorPrimaryUpdateResult result;
+    BusRegisters registers;
+    SnesVerifyBusEvent *native_mmio;
+    size_t native_count;
     uint8_t *native_wram;
     unsigned instructions = 0;
     unsigned visits = 0;
     bool stopped = false;
+    bool same_mmio;
 
     SeedFieldScroll(bus);
     memset(&input, 0, sizeof(input));
@@ -3573,17 +3590,28 @@ static bool RunFieldScrollCase(
     }
 
     memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    registers = SaveBusRegisters(bus);
     native = input;
+    SnesVerifyBusResetMmio(bus);
     result = Lufia2FieldScrollUpdate(&memory, &native);
     if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
         native.stack = (uint16_t)(native.stack + 3u);   /* RTL */
         native.program_bank = 0x83u;
     }
+    native_count = bus->mmio_count;
+    native_mmio = (SnesVerifyBusEvent *)malloc(
+        sizeof(SnesVerifyBusEvent) * (native_count ? native_count : 1u));
     native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
-    if (!native_wram)
+    if (!native_mmio || !native_wram) {
+        free(native_mmio);
+        free(native_wram);
         return false;
+    }
+    memcpy(native_mmio, bus->mmio, sizeof(SnesVerifyBusEvent) * native_count);
     memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
     memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+    RestoreBusRegisters(bus, &registers);
+    SnesVerifyBusResetMmio(bus);
 
     InitInterp(reference, 0x8ebd77u, &input);
     while (instructions < 400000u) {
@@ -3600,20 +3628,25 @@ static bool RunFieldScrollCase(
         interp816_runOpcode(reference);
         ++instructions;
     }
+    same_mmio = native_count == bus->mmio_count && !bus->mmio_overflow &&
+        memcmp(native_mmio, bus->mmio,
+            sizeof(SnesVerifyBusEvent) * native_count) == 0;
 
-    if (!stopped || !SameState(&native, reference) ||
+    if (!stopped || !same_mmio || !SameState(&native, reference) ||
         memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
         size_t diff = 0;
         while (diff < SNES_VERIFY_WRAM_SIZE &&
                native_wram[diff] == bus->wram[diff])
             ++diff;
         fprintf(stderr,
-            "FAIL BD77 case %u: flow=%u pc=%06X/%06X insns=%u "
+            "FAIL BD77 case %u: flow=%u pc=%06X/%06X mmio=%u/%u "
+            "same=%d insns=%u "
             "A=%04X/%04X X=%04X/%04X Y=%04X/%04X S=%04X/%04X "
             "M=%u/%u Xf=%u/%u C=%u/%u Z=%u/%u N=%u/%u V=%u/%u "
             "wram@%05X %02X/%02X\n",
             case_index, (unsigned)result.flow, result.pc,
-            SnesVerifyPc24(reference), instructions,
+            SnesVerifyPc24(reference), (unsigned)native_count,
+            (unsigned)bus->mmio_count, same_mmio ? 1 : 0, instructions,
             native.accumulator, reference->a, native.x, reference->x,
             native.y, reference->y, native.stack, reference->sp,
             native.accumulator_is_8_bit, reference->mf,
@@ -3623,14 +3656,17 @@ static bool RunFieldScrollCase(
             (unsigned)diff,
             diff < SNES_VERIFY_WRAM_SIZE ? native_wram[diff] : 0,
             diff < SNES_VERIFY_WRAM_SIZE ? bus->wram[diff] : 0);
+        free(native_mmio);
         free(native_wram);
         return false;
     }
+    free(native_mmio);
     free(native_wram);
+    stats->mmio_writes += (unsigned)native_count;
     if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
         ++stats->returned;
     } else {
-        for (unsigned i = 0; i < 6u; ++i)
+        for (unsigned i = 0; i < 2u; ++i)
             if (result.pc == kScrollBoundaries[i])
                 ++stats->boundary[i];
     }
@@ -4421,12 +4457,10 @@ int main(int argc, char **argv) {
         field_nmi_passed, FIELD_NMI_CASES, field_nmi.returned,
         field_nmi.mmio_writes);
     printf("$8E:BD77 whole-function cases passed:      %u / %u "
-        "(RTL %u, LLE BD77 %u, BDD7 %u, BDF5 %u, BDFB %u, BE2A %u, "
-        "BE47 %u)\n",
+        "(RTL %u, LLE BD77 %u, BDD7 %u, MMIO writes compared %u)\n",
         field_scroll_passed, FIELD_SCROLL_CASES, field_scroll.returned,
         field_scroll.boundary[0], field_scroll.boundary[1],
-        field_scroll.boundary[2], field_scroll.boundary[3],
-        field_scroll.boundary[4], field_scroll.boundary[5]);
+        field_scroll.mmio_writes);
     printf("$83:FB12 movement-step cases passed:       %u / %u\n",
         movement_step_passed, MOVEMENT_HELPER_CASES);
     printf("$83:F9D4 map-offset cases passed:          %u / %u\n",

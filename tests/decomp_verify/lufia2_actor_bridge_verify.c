@@ -1037,10 +1037,16 @@ static void SeedBD77(CpuState *cpu) {
 
     RandomFill(g_bus.wram);
     for (unsigned layer = 0; layer < 6u; layer += 2u) {
-        const uint16_t x = (uint16_t)((Random32() & 0x07f0u) |
-            ((Random32() & 3u) ? (1u + Random32() % 15u) : 0u));
-        const uint16_t y = (uint16_t)((Random32() & 0x07f0u) |
-            ((Random32() & 3u) ? (1u + Random32() % 15u) : 0u));
+        const uint16_t x = (Random32() & 7u)
+            ? (uint16_t)((Random32() & 0x07f0u) |
+                  ((Random32() & 3u) ? (1u + Random32() % 15u) : 0u))
+            : (Random32() & 1u) ? (uint16_t)(0xeff0u | (Random32() & 0x0fu))
+            : (uint16_t)Random32();
+        const uint16_t y = (Random32() & 7u)
+            ? (uint16_t)((Random32() & 0x07f0u) |
+                  ((Random32() & 3u) ? (1u + Random32() % 15u) : 0u))
+            : (Random32() & 1u) ? (uint16_t)(0xeff0u | (Random32() & 0x0fu))
+            : (uint16_t)Random32();
 
         g_bus.wram[0x1d020u + layer] = modes[Random32() & 15u];
         Poke16(g_bus.wram, 0x121eu + layer, x);
@@ -1051,6 +1057,11 @@ static void SeedBD77(CpuState *cpu) {
         }
         Poke16(g_bus.wram, 0x1d0deu + layer, (uint16_t)(Random32() % 9u));
         Poke16(g_bus.wram, 0x1d0e6u + layer, (uint16_t)(Random32() % 9u));
+        /* Map size in cells; $0100 divides by zero. */
+        Poke16(g_bus.wram, 0x1d010u + layer, (Random32() & 7u)
+            ? (uint16_t)(Random32() & 0x7fu) : 0x0100u);
+        Poke16(g_bus.wram, 0x1d018u + layer, (Random32() & 7u)
+            ? (uint16_t)(Random32() & 0x7fu) : 0x0100u);
         if (Random32() & 1u) {
             Poke16(g_bus.wram, 0x05a4u, x);
             Poke16(g_bus.wram, 0x05a6u, y);
@@ -1125,6 +1136,8 @@ typedef struct BusRegisters {
     uint8_t multiply_a;
     uint8_t multiply_b;
     uint16_t multiply_result;
+    uint16_t divide_a;
+    uint16_t divide_result;
     uint8_t m7_latch;
     uint16_t m7_a;
     uint8_t m7_b;
@@ -1135,6 +1148,8 @@ static BusRegisters SaveRegisters(void) {
     saved.multiply_a = g_bus.multiply_a;
     saved.multiply_b = g_bus.multiply_b;
     saved.multiply_result = g_bus.multiply_result;
+    saved.divide_a = g_bus.divide_a;
+    saved.divide_result = g_bus.divide_result;
     saved.m7_latch = g_bus.m7_latch;
     saved.m7_a = g_bus.m7_a;
     saved.m7_b = g_bus.m7_b;
@@ -1145,6 +1160,8 @@ static void RestoreRegisters(const BusRegisters *saved) {
     g_bus.multiply_a = saved->multiply_a;
     g_bus.multiply_b = saved->multiply_b;
     g_bus.multiply_result = saved->multiply_result;
+    g_bus.divide_a = saved->divide_a;
+    g_bus.divide_result = saved->divide_result;
     g_bus.m7_latch = saved->m7_latch;
     g_bus.m7_a = saved->m7_a;
     g_bus.m7_b = saved->m7_b;

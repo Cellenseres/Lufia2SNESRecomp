@@ -144,7 +144,11 @@ uint8_t SnesVerifyBusRead(void *opaque, uint32_t address) {
     size_t rom_offset;
     uint8_t value = 0xffu;
 
-    if (IsCpuRegister(address, 0x4216u))
+    if (IsCpuRegister(address, 0x4214u))
+        value = (uint8_t)bus->divide_result;
+    else if (IsCpuRegister(address, 0x4215u))
+        value = (uint8_t)(bus->divide_result >> 8);
+    else if (IsCpuRegister(address, 0x4216u))
         value = (uint8_t)bus->multiply_result;
     else if (IsCpuRegister(address, 0x2134u) ||
              IsCpuRegister(address, 0x2135u) ||
@@ -172,6 +176,19 @@ void SnesVerifyBusWrite(void *opaque, uint32_t address, uint8_t value) {
         bus->multiply_b = value;
         bus->multiply_result =
             (uint16_t)((uint16_t)bus->multiply_a * value);
+    } else if (IsCpuRegister(address, 0x4204u)) {
+        bus->divide_a = (uint16_t)((bus->divide_a & 0xff00u) | value);
+    } else if (IsCpuRegister(address, 0x4205u)) {
+        bus->divide_a = (uint16_t)((bus->divide_a & 0x00ffu) | (value << 8));
+    } else if (IsCpuRegister(address, 0x4206u)) {
+        /* Same as the runtime core: instant. */
+        if (value == 0) {
+            bus->divide_result = 0xffffu;
+            bus->multiply_result = bus->divide_a;
+        } else {
+            bus->divide_result = (uint16_t)(bus->divide_a / value);
+            bus->multiply_result = (uint16_t)(bus->divide_a % value);
+        }
     } else if (IsCpuRegister(address, 0x211bu)) {
         bus->m7_a = (uint16_t)((value << 8) | bus->m7_latch);
         bus->m7_latch = value;
