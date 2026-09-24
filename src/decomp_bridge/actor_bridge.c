@@ -378,6 +378,10 @@ RecompReturn Lufia2DecompBridge_86C1(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x8086c1u, Lufia2ScreenFade, 2);
 }
 
+RecompReturn Lufia2DecompBridge_9EDD(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x869eddu, Lufia2WorldMapRegionSearch, 2);
+}
+
 RecompReturn Lufia2DecompBridge_8A2F(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x858a2fu, Lufia2BattleSprites, 3);
 }

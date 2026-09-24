@@ -4927,12 +4927,29 @@ static void SeedScreenFade(uint8_t *wram, uint16_t dp) {
         wram[0x0581u] |= 0x80u;
 }
 
+/* Region 0 is the world map; these cells sit inside its entries. */
+static void SeedWorldRegion(uint8_t *wram, uint16_t dp) {
+    static const uint8_t cells[8][2] = {
+        {36, 151}, {59, 188}, {37, 149}, {44, 224},
+        {47, 197}, {49, 194}, {40, 176}, {39, 174}};
+
+    wram[0x09ebu] = (uint8_t)((NmiRandom() % 16u) * 2u);
+    wram[0x09ecu] = 0;
+    if (NmiRandom() & 1u) {
+        const unsigned cell = NmiRandom() & 7u;
+
+        wram[0x09ebu] = 0;
+        wram[(uint16_t)(dp + 0x58u)] = cells[cell][0];
+        wram[(uint16_t)(dp + 0x5au)] = cells[cell][1];
+    }
+}
+
 static void SeedTitleState(uint8_t *wram, uint16_t dp) {
     wram[dp + 0x30u] = (NmiRandom() & 15u) ? (uint8_t)(NmiRandom() % 9u)
                                       : (uint8_t)NmiRandom();
 }
 
-static const SmallTarget kSmallTargets[13] = {
+static const SmallTarget kSmallTargets[14] = {
     {"83A0", 0x8383a0u, Lufia2FieldMenuRequest, 2, 0x838079u,
      SeedMenuRequest},
     {"867B", 0x83867bu, Lufia2FieldTakeButtons, 2, 0x8380b2u,
@@ -4959,6 +4976,8 @@ static const SmallTarget kSmallTargets[13] = {
      SeedFieldRects},
     {"86C1", 0x8086c1u, Lufia2ScreenFade, 2, 0x808663u,
      SeedScreenFade},
+    {"9EDD", 0x869eddu, Lufia2WorldMapRegionSearch, 2, 0x869e67u,
+     SeedWorldRegion},
 };
 
 /* Whole small routine from its real call site. */
@@ -5504,8 +5523,8 @@ int main(int argc, char **argv) {
     BattleFrameStats battle_sprites = {0, 0, 0, 0, 0, 0};
     BattleFrameStats battle_upkeep = {0, 0, 0, 0, 0, 0};
     unsigned battle_sprites_passed = 0;
-    SmallStats small_stats[13];
-    unsigned small_passed[13] = {0};
+    SmallStats small_stats[14];
+    unsigned small_passed[14] = {0};
     WorldMapEdgeStats world_edges = {0, 0, 0, 0};
     unsigned world_edges_passed = 0;
     unsigned vram_slot_passed = 0;
@@ -5836,7 +5855,7 @@ int main(int argc, char **argv) {
             ++failed;
     }
     memset(small_stats, 0, sizeof(small_stats));
-    for (unsigned t = 0; t < 13u; ++t)
+    for (unsigned t = 0; t < 14u; ++t)
         for (unsigned i = 0; i < SMALL_CASES && failed < 20; ++i) {
             if (RunSmallCase(&bus, reference, initial, i,
                     &kSmallTargets[t], &small_stats[t]))
@@ -6173,7 +6192,7 @@ int main(int argc, char **argv) {
         "(RTS %u, LLE %u, columns %u, rows %u)\n",
         world_edges_passed, WORLD_MAP_EDGE_CASES, world_edges.returned,
         world_edges.boundary, world_edges.columns, world_edges.rows);
-    for (unsigned t = 0; t < 13u; ++t)
+    for (unsigned t = 0; t < 14u; ++t)
         printf("$%02X:%s whole-function cases passed:      %u / %u "
             "(return %u, LLE %u)\n",
             (unsigned)(kSmallTargets[t].entry >> 16), kSmallTargets[t].name,
