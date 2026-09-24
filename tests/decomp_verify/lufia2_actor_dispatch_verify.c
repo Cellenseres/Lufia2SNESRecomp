@@ -4886,12 +4886,47 @@ static void SeedMenuBlink(uint8_t *wram, uint16_t dp) {
         wram[0x1554u] = 0x1fu;
 }
 
+/* Four $7E:F000 rectangle lists around ($8F, $91). */
+static void SeedFieldRects(uint8_t *wram, uint16_t dp) {
+    static const uint16_t heads[4] = {0x0002u, 0x000au, 0x000cu, 0x0006u};
+    static const uint8_t strides[4] = {0x0fu, 0x05u, 0x05u, 0x09u};
+    const uint8_t px = wram[(uint16_t)(dp + 0x8fu)];
+    const uint8_t py = wram[(uint16_t)(dp + 0x91u)];
+
+    for (unsigned list = 0; list < 4u; ++list) {
+        const uint16_t base = (uint16_t)(0x0100u + 0x0200u * list);
+        const unsigned count = NmiRandom() % 5u;
+        uint16_t at = base;
+
+        wram[0xf000u + heads[list]] = (uint8_t)base;
+        wram[0xf001u + heads[list]] = (uint8_t)(base >> 8);
+        for (unsigned i = 0; i < count; ++i) {
+            const uint8_t x0 = (uint8_t)(px - (NmiRandom() & 7u));
+            const uint8_t y0 = (uint8_t)(py - (NmiRandom() & 7u));
+
+            wram[0xf000u + at] = (uint8_t)(NmiRandom() % 0xffu);
+            wram[0xf001u + at] = (NmiRandom() & 3u) ? x0 : (uint8_t)NmiRandom();
+            wram[0xf002u + at] = (NmiRandom() & 3u) ? y0 : (uint8_t)NmiRandom();
+            wram[0xf003u + at] = (uint8_t)(px + (NmiRandom() & 7u));
+            wram[0xf004u + at] = (uint8_t)(py + (NmiRandom() & 7u));
+            if (NmiRandom() & 3u)
+                wram[0xf004u + at] = (uint8_t)(py + 1u);
+            at = (uint16_t)(at + strides[list]);
+        }
+        wram[0xf000u + at] = 0xffu;
+    }
+    /* Current stair id, often the first entry's. */
+    if (NmiRandom() & 1u)
+        wram[0x1d0bfu] = (uint8_t)((NmiRandom() & 0x80u) |
+            (wram[0xf100u] & 0x7fu));
+}
+
 static void SeedTitleState(uint8_t *wram, uint16_t dp) {
     wram[dp + 0x30u] = (NmiRandom() & 15u) ? (uint8_t)(NmiRandom() % 9u)
                                       : (uint8_t)NmiRandom();
 }
 
-static const SmallTarget kSmallTargets[9] = {
+static const SmallTarget kSmallTargets[12] = {
     {"83A0", 0x8383a0u, Lufia2FieldMenuRequest, 2, 0x838079u,
      SeedMenuRequest},
     {"867B", 0x83867bu, Lufia2FieldTakeButtons, 2, 0x8380b2u,
@@ -4910,6 +4945,12 @@ static const SmallTarget kSmallTargets[9] = {
      SeedMenuWindow},
     {"C627", 0x82c627u, Lufia2MenuCursorBlink, 2, 0x828b3bu,
      SeedMenuBlink},
+    {"B66E", 0x83b66eu, Lufia2FieldStairRects, 2, 0x838267u,
+     SeedFieldRects},
+    {"B711", 0x83b711u, Lufia2FieldEventRects, 2, 0x83827cu,
+     SeedFieldRects},
+    {"B747", 0x83b747u, Lufia2FieldAreaRects, 2, 0x83826au,
+     SeedFieldRects},
 };
 
 /* Whole small routine from its real call site. */
@@ -5455,8 +5496,8 @@ int main(int argc, char **argv) {
     BattleFrameStats battle_sprites = {0, 0, 0, 0, 0, 0};
     BattleFrameStats battle_upkeep = {0, 0, 0, 0, 0, 0};
     unsigned battle_sprites_passed = 0;
-    SmallStats small_stats[9];
-    unsigned small_passed[9] = {0};
+    SmallStats small_stats[12];
+    unsigned small_passed[12] = {0};
     WorldMapEdgeStats world_edges = {0, 0, 0, 0};
     unsigned world_edges_passed = 0;
     unsigned vram_slot_passed = 0;
@@ -5787,7 +5828,7 @@ int main(int argc, char **argv) {
             ++failed;
     }
     memset(small_stats, 0, sizeof(small_stats));
-    for (unsigned t = 0; t < 9u; ++t)
+    for (unsigned t = 0; t < 12u; ++t)
         for (unsigned i = 0; i < SMALL_CASES && failed < 20; ++i) {
             if (RunSmallCase(&bus, reference, initial, i,
                     &kSmallTargets[t], &small_stats[t]))
@@ -6124,7 +6165,7 @@ int main(int argc, char **argv) {
         "(RTS %u, LLE %u, columns %u, rows %u)\n",
         world_edges_passed, WORLD_MAP_EDGE_CASES, world_edges.returned,
         world_edges.boundary, world_edges.columns, world_edges.rows);
-    for (unsigned t = 0; t < 9u; ++t)
+    for (unsigned t = 0; t < 12u; ++t)
         printf("$%02X:%s whole-function cases passed:      %u / %u "
             "(return %u, LLE %u)\n",
             (unsigned)(kSmallTargets[t].entry >> 16), kSmallTargets[t].name,
