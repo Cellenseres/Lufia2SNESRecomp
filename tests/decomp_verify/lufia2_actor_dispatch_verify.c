@@ -4888,14 +4888,17 @@ static void SeedFieldReload(uint8_t *wram, uint16_t dp) {
 
 /* Battle script of known opcodes, forward jumps, then an end. */
 static void SeedBattleScript(uint8_t *wram, uint16_t dp) {
-    static const uint8_t ops[44] = {
+    static const uint8_t ops[52] = {
         0x03u, 0x05u, 0x06u, 0x07u, 0x0au, 0x0bu, 0x0cu, 0x0du,
         0x0eu, 0x16u, 0x17u, 0x18u, 0x19u, 0x1au, 0x1bu, 0x1cu,
         0x1fu, 0x20u, 0x42u, 0x43u, 0x0cu, 0x06u, 0x0fu, 0x21u,
         0x04u, 0x08u, 0x09u, 0x23u, 0x24u, 0x25u, 0x26u, 0x27u,
         0x28u, 0x29u, 0x2au, 0x2bu, 0x2eu, 0x2fu, 0x30u, 0x35u,
-        0x36u, 0x3eu, 0x41u, 0x56u};
+        0x36u, 0x3eu, 0x41u, 0x56u, 0x10u, 0x11u, 0x12u, 0x22u,
+        0x37u, 0x3cu, 0x4du, 0x13u};
     static const uint8_t sizes[0x57] = {
+        [0x10] = 5, [0x11] = 3, [0x12] = 5, [0x13] = 3, [0x22] = 6,
+        [0x37] = 1, [0x3c] = 1, [0x4d] = 1,
         [0x03] = 3, [0x04] = 3, [0x05] = 4, [0x06] = 6, [0x07] = 6,
         [0x08] = 6, [0x09] = 6, [0x0a] = 6, [0x0b] = 6, [0x0c] = 4,
         [0x0d] = 5, [0x0e] = 5, [0x0f] = 5, [0x16] = 5, [0x17] = 5,
@@ -4911,7 +4914,7 @@ static void SeedBattleScript(uint8_t *wram, uint16_t dp) {
     for (unsigned i = 0; i < 128u; ++i)
         wram[base + i] = (uint8_t)NmiRandom();
     for (;;) {
-        const uint8_t op = ops[NmiRandom() % 44u];
+        const uint8_t op = ops[NmiRandom() % 52u];
         const unsigned size = sizes[op];
 
         if (at + size > 120u)
@@ -4949,6 +4952,8 @@ static void SeedBattleScript(uint8_t *wram, uint16_t dp) {
     wram[0x0a44u] = 0x7eu;
     for (unsigned i = 0x0a64u; i < 0x0c00u; i += 2u)
         wram[i + 1u] &= 0x07u;
+    if (NmiRandom() & 1u)
+        wram[0x1f462u] = wram[0x1f463u] = 0;
 }
 
 /* Intro state mostly valid, timers at the edges. */
