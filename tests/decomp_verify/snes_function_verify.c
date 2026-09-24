@@ -189,6 +189,17 @@ void SnesVerifyBusWrite(void *opaque, uint32_t address, uint8_t value) {
             bus->divide_result = (uint16_t)(bus->divide_a / value);
             bus->multiply_result = (uint16_t)(bus->divide_a % value);
         }
+    } else if (IsCpuRegister(address, 0x2180u)) {
+        bus->wram[bus->wm_address] = value;
+        bus->wm_address = (bus->wm_address + 1u) & 0x1ffffu;
+    } else if (IsCpuRegister(address, 0x2181u)) {
+        bus->wm_address = (bus->wm_address & 0x1ff00u) | value;
+    } else if (IsCpuRegister(address, 0x2182u)) {
+        bus->wm_address =
+            (bus->wm_address & 0x100ffu) | ((uint32_t)value << 8);
+    } else if (IsCpuRegister(address, 0x2183u)) {
+        bus->wm_address =
+            (bus->wm_address & 0x0ffffu) | ((uint32_t)(value & 1u) << 16);
     } else if (IsCpuRegister(address, 0x211bu)) {
         bus->m7_a = (uint16_t)((value << 8) | bus->m7_latch);
         bus->m7_latch = value;

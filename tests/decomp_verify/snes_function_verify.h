@@ -40,6 +40,8 @@ typedef struct SnesVerifyBus {
     uint8_t m7_latch;
     uint16_t m7_a;
     uint8_t m7_b;
+    /* WMADD, 17-bit. */
+    uint32_t wm_address;
     /* Writes outside WRAM, in order. */
     SnesVerifyBusEvent mmio[SNES_VERIFY_MAX_MMIO];
     size_t mmio_count;
