@@ -1153,6 +1153,23 @@ static void Seed9CB8(CpuState *cpu) {
         g_bus.wram[0x0622u + actor] &= (Random32() & 1u) ? 0x77u : 0xffu;
         if (Random32() & 1u)
             g_bus.wram[0x099cu] &= 0xfeu;
+        {
+            static const uint8_t ops[8] = {
+                0x33u, 0x33u, 0x37u, 0x3cu, 0x00u, 0x42u, 0x68u, 0x37u};
+            const uint16_t back = (uint16_t)(0x8000u + (Random32() & 0x7ff0u));
+
+            if (Random32() & 1u)
+                g_bus.wram[text] = ops[Random32() & 7u];
+            if (Random32() & 1u)
+                g_bus.wram[(uint16_t)(text + 1u)] = (uint8_t)(Random32() & 0x0fu);
+            g_bus.wram[0x1254u] = (Random32() & 1u) ? 0x7eu : 0x00u;
+            g_bus.wram[0x1252u] = (uint8_t)back;
+            g_bus.wram[0x1253u] = (uint8_t)(back >> 8);
+            g_bus.wram[back] = ops[Random32() & 7u];
+            if (Random32() & 1u)
+                for (unsigned i = 0; i < 5u; ++i)
+                    g_bus.wram[0x0622u + i] &= 0xf7u;
+        }
     }
 }
 
