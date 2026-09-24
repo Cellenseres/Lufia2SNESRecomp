@@ -3673,6 +3673,133 @@ static bool RunFieldScrollCase(
     return true;
 }
 
+enum { FIELD_CHILD_CASES = 16384 };
+
+typedef struct FieldChildStats {
+    unsigned returned;
+    unsigned boundary;
+} FieldChildStats;
+
+typedef Lufia2ActorPrimaryUpdateResult (*FieldChildFunction)(
+    const Lufia2ActorFrontendMemory *memory, Lufia2ActorFrontendCpu *cpu);
+
+/* Idle gates mostly open; animation slots mostly off. */
+static void SeedFieldChild(SnesVerifyBus *bus, uint16_t return_word) {
+    static const uint16_t gates[6] = {
+        0x09a8u, 0x0622u, 0x05b7u, 0x05b5u, 0x17aau, 0x099bu};
+    static const uint8_t masks[6] = {0x08u, 0x88u, 0x07u, 0xa2u, 0xffu, 0x80u};
+
+    for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
+        const uint32_t word = NmiRandom();
+        memcpy(bus->wram + i, &word, 4);
+    }
+    for (unsigned i = 0; i < 6u; ++i)
+        if (NmiRandom() & 7u)
+            bus->wram[gates[i]] &= (uint8_t)~masks[i];
+    for (unsigned i = 0; i < 8u; ++i)
+        if (NmiRandom() & 7u)
+            bus->wram[0x1d057u + i] &= 0x7fu;
+    bus->wram[0x1ff1u] = (uint8_t)return_word;
+    bus->wram[0x1ff2u] = (uint8_t)(return_word >> 8);
+}
+
+/* Whole field-loop child from its JSR in $83:8000. */
+static bool RunFieldChildCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index,
+    uint32_t entry,
+    uint16_t return_word,
+    FieldChildFunction function,
+    FieldChildStats *stats) {
+    static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
+    static const uint8_t banks[4] = {0x83u, 0x83u, 0x80u, 0x00u};
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    Lufia2ActorPrimaryUpdateResult result;
+    uint8_t *native_wram;
+    unsigned instructions = 0;
+    bool stopped = false;
+
+    SeedFieldChild(bus, return_word);
+    memset(&input, 0, sizeof(input));
+    input.accumulator = (uint16_t)NmiRandom();
+    input.x = (uint16_t)NmiRandom();
+    input.y = (uint16_t)NmiRandom();
+    input.stack = 0x1ff0u;
+    input.direct_page = dps[NmiRandom() & 7u];
+    input.data_bank = banks[NmiRandom() & 3u];
+    input.program_bank = 0x83u;
+    input.carry = NmiRandom() & 1u;
+    input.zero = NmiRandom() & 1u;
+    input.negative = NmiRandom() & 1u;
+    input.overflow = NmiRandom() & 1u;
+    input.irq_disable = NmiRandom() & 1u;
+    input.accumulator_is_8_bit = 1u;
+    input.index_is_8_bit = (NmiRandom() & 7u) ? 1u : 0u;
+    if (input.index_is_8_bit) {
+        input.x &= 0x00ffu;
+        input.y &= 0x00ffu;
+    }
+
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    result = function(&memory, &native);
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+        native.stack = (uint16_t)(native.stack + 2u);   /* RTS */
+    native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    if (!native_wram)
+        return false;
+    memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+
+    InitInterp(reference, entry, &input);
+    while (instructions < 400000u) {
+        const uint32_t pc = SnesVerifyPc24(reference);
+        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+                ? pc == (0x830000u | (uint16_t)(return_word + 1u))
+                : pc == result.pc && reference->sp == native.stack) {
+            stopped = true;
+            break;
+        }
+        interp816_runOpcode(reference);
+        ++instructions;
+    }
+
+    if (!stopped || !SameState(&native, reference) ||
+        memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        size_t diff = 0;
+        while (diff < SNES_VERIFY_WRAM_SIZE &&
+               native_wram[diff] == bus->wram[diff])
+            ++diff;
+        fprintf(stderr,
+            "FAIL %06X case %u: flow=%u pc=%06X/%06X insns=%u "
+            "A=%04X/%04X X=%04X/%04X Y=%04X/%04X S=%04X/%04X "
+            "Xf=%u/%u C=%u/%u Z=%u/%u N=%u/%u wram@%05X %02X/%02X\n",
+            entry, case_index, (unsigned)result.flow, result.pc,
+            SnesVerifyPc24(reference), instructions,
+            native.accumulator, reference->a, native.x, reference->x,
+            native.y, reference->y, native.stack, reference->sp,
+            native.index_is_8_bit, reference->xf,
+            native.carry, reference->c, native.zero, reference->z,
+            native.negative, reference->n, (unsigned)diff,
+            diff < SNES_VERIFY_WRAM_SIZE ? native_wram[diff] : 0,
+            diff < SNES_VERIFY_WRAM_SIZE ? bus->wram[diff] : 0);
+        free(native_wram);
+        return false;
+    }
+    free(native_wram);
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+        ++stats->returned;
+    else
+        ++stats->boundary;
+    return true;
+}
+
 enum { SECONDARY_UPDATE_CASES = 16384 };
 
 /* Whole $83:D508 against the ROM, random machine and scripts. */
@@ -3905,6 +4032,10 @@ int main(int argc, char **argv) {
     FieldNmiStats field_nmi = {0, 0};
     unsigned field_scroll_passed = 0;
     FieldScrollStats field_scroll;
+    unsigned field_idle_passed = 0;
+    FieldChildStats field_idle = {0, 0};
+    unsigned field_ticks_passed = 0;
+    FieldChildStats field_ticks = {0, 0};
     unsigned movement_step_passed = 0;
     unsigned map_offset_passed = 0;
     unsigned map_value_passed = 0;
@@ -4171,6 +4302,18 @@ int main(int argc, char **argv) {
     for (unsigned i = 0; i < FIELD_SCROLL_CASES && failed < 20; ++i) {
         if (RunFieldScrollCase(&bus, reference, initial, i, &field_scroll))
             ++field_scroll_passed;
+        else
+            ++failed;
+    }
+    for (unsigned i = 0; i < FIELD_CHILD_CASES && failed < 20; ++i) {
+        if (RunFieldChildCase(&bus, reference, initial, i, 0x8380cdu,
+                0x80bdu, Lufia2FieldIdleTest, &field_idle))
+            ++field_idle_passed;
+        else
+            ++failed;
+        if (RunFieldChildCase(&bus, reference, initial, i, 0x838682u,
+                0x807cu, Lufia2FieldAnimationTicks, &field_ticks))
+            ++field_ticks_passed;
         else
             ++failed;
     }
@@ -4456,6 +4599,14 @@ int main(int argc, char **argv) {
         "(RTL %u, MMIO writes compared %u)\n",
         field_nmi_passed, FIELD_NMI_CASES, field_nmi.returned,
         field_nmi.mmio_writes);
+    printf("$83:80CD whole-function cases passed:      %u / %u "
+        "(RTS %u, LLE entry %u)\n",
+        field_idle_passed, FIELD_CHILD_CASES, field_idle.returned,
+        field_idle.boundary);
+    printf("$83:8682 whole-function cases passed:      %u / %u "
+        "(RTS %u, LLE 86D6/86DB %u)\n",
+        field_ticks_passed, FIELD_CHILD_CASES, field_ticks.returned,
+        field_ticks.boundary);
     printf("$8E:BD77 whole-function cases passed:      %u / %u "
         "(RTL %u, LLE BD77 %u, BDD7 %u, MMIO writes compared %u)\n",
         field_scroll_passed, FIELD_SCROLL_CASES, field_scroll.returned,

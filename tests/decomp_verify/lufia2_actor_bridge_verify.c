@@ -21,6 +21,8 @@ extern RecompReturn Lufia2DecompBridge_81C6(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_E03E(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_9FA9(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_BD77(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_80CD(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_8682(CpuState *cpu);
 
 enum {
     LUFIA2_ROM_SIZE = 0x280000,
@@ -1027,6 +1029,48 @@ static void Seed9FA9(CpuState *cpu) {
     cpu_mirrors_to_p(cpu);
 }
 
+/* Field-loop children: open idle gates, sparse slots. */
+static void SeedFieldChild(CpuState *cpu) {
+    static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
+    static const uint8_t banks[4] = {0x83u, 0x83u, 0x80u, 0x00u};
+    static const uint16_t gates[6] = {
+        0x09a8u, 0x0622u, 0x05b7u, 0x05b5u, 0x17aau, 0x099bu};
+    static const uint8_t masks[6] = {0x08u, 0x88u, 0x07u, 0xa2u, 0xffu, 0x80u};
+    const uint16_t dp = dps[Random32() & 7u];
+
+    RandomFill(g_bus.wram);
+    for (unsigned i = 0; i < 6u; ++i)
+        if (Random32() & 7u)
+            g_bus.wram[gates[i]] &= (uint8_t)~masks[i];
+    for (unsigned i = 0; i < 8u; ++i)
+        if (Random32() & 7u)
+            g_bus.wram[0x1d057u + i] &= 0x7fu;
+    g_bus.wram[0x1ff1u] = (uint8_t)RETURN_WORD;
+    g_bus.wram[0x1ff2u] = (uint8_t)(RETURN_WORD >> 8);
+
+    memset(cpu, 0, sizeof(*cpu));
+    cpu->A = (uint16_t)Random32();
+    cpu->X = (uint16_t)Random32();
+    cpu->Y = (uint16_t)Random32();
+    cpu->S = 0x1ff0u;
+    cpu->D = dp;
+    cpu->DB = banks[Random32() & 3u];
+    cpu->PB = 0x83;
+    cpu->m_flag = 1;
+    cpu->x_flag = (Random32() & 7u) ? 1u : 0u;
+    cpu->_flag_C = Random32() & 1u;
+    cpu->_flag_Z = Random32() & 1u;
+    cpu->_flag_V = Random32() & 1u;
+    cpu->_flag_N = Random32() & 1u;
+    cpu->_flag_I = Random32() & 1u;
+    cpu->ram = g_bus.wram;
+    if (cpu->x_flag) {
+        cpu->X &= 0x00ffu;
+        cpu->Y &= 0x00ffu;
+    }
+    cpu_mirrors_to_p(cpu);
+}
+
 /* Camera layers for the field loop's JSL $8E:BD77. */
 static void SeedBD77(CpuState *cpu) {
     static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
@@ -1112,7 +1156,7 @@ typedef struct WholeTarget {
     unsigned limit;
 } WholeTarget;
 
-static const WholeTarget kWholeTargets[8] = {
+static const WholeTarget kWholeTargets[10] = {
     {"C7F8", 0x83c7f8u, 0x83c864u, SeedC7F8, Lufia2ActorPrimaryUpdate,
      Lufia2DecompBridge_C7F8, 2, 4000000u},
     {"D508", 0x83d508u, 0x83d5d1u, SeedD508, Lufia2ActorSecondaryUpdate,
@@ -1129,6 +1173,10 @@ static const WholeTarget kWholeTargets[8] = {
      Lufia2DecompBridge_9FA9, 3, 4000000u},
     {"BD77", 0x8ebd77u, 0x8ebdd7u, SeedBD77, Lufia2FieldScrollUpdate,
      Lufia2DecompBridge_BD77, 3, 4000000u},
+    {"80CD", 0x8380cdu, 0u, SeedFieldChild, Lufia2FieldIdleTest,
+     Lufia2DecompBridge_80CD, 2, 4000000u},
+    {"8682", 0x838682u, 0u, SeedFieldChild, Lufia2FieldAnimationTicks,
+     Lufia2DecompBridge_8682, 2, 4000000u},
 };
 
 /* Multiplier latches carry across runs. */
@@ -1330,8 +1378,8 @@ int main(int argc, char **argv) {
     unsigned passed[4][3] = {{0}};
     unsigned unsupported[4] = {0};
     unsigned fb12_oob = 0;
-    unsigned whole_passed[8] = {0, 0, 0, 0, 0, 0, 0, 0};
-    WholeStats whole_stats[8];
+    unsigned whole_passed[10] = {0};
+    WholeStats whole_stats[10];
     unsigned failed = 0;
     bool bus_ready = false;
 
@@ -1390,7 +1438,7 @@ int main(int argc, char **argv) {
     }
 
     memset(whole_stats, 0, sizeof(whole_stats));
-    for (unsigned t = 0; t < 8u && failed < 20; ++t) {
+    for (unsigned t = 0; t < 10u && failed < 20; ++t) {
         const WholeTarget *target = &kWholeTargets[t];
 
         const unsigned cases = t == 3u ? WHOLE_CASES / 4u : WHOLE_CASES;
@@ -1427,7 +1475,7 @@ int main(int argc, char **argv) {
                 unsupported[t], UNSUPPORTED_CASES);
         fprintf(out, "$83:FB12 out-of-range tail %u/%u\n",
             fb12_oob, UNSUPPORTED_CASES);
-        for (unsigned t = 0; t < 8u; ++t)
+        for (unsigned t = 0; t < 10u; ++t)
             fprintf(out,
                 "$%02X:%s %u/%u (host return %u, dispatch return %u, "
                 "LLE boundary %u, LLE entry %u, child never returned %u)\n",
