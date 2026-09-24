@@ -1137,6 +1137,20 @@ static void Seed9CB8(CpuState *cpu) {
     g_bus.wram[0x09b9u] = 0x7eu;
     Poke16(g_bus.wram, 0x09b7u, 0x3000u);
     g_bus.wram[0x3000u] = (uint8_t)(0x20u + Random32() % 0x60u);
+    if (Random32() & 1u) {
+        const uint16_t text = (uint16_t)(0x8000u + (Random32() & 0x7ff0u));
+        const uint8_t actor = (uint8_t)(Random32() & 0x3fu);
+
+        g_bus.wram[0x099bu] &= 0xfeu;
+        Poke16(g_bus.wram, 0x09b7u, text);
+        g_bus.wram[text] = 0x33u;
+        g_bus.wram[(uint16_t)(text + 3u)] =
+            (Random32() & 1u) ? 0x33u : (uint8_t)Random32();
+        g_bus.wram[0x1269u] = (Random32() & 3u) ? actor : (uint8_t)Random32();
+        g_bus.wram[0x0622u + actor] &= (Random32() & 1u) ? 0x77u : 0xffu;
+        if (Random32() & 1u)
+            g_bus.wram[0x099cu] &= 0xfeu;
+    }
 }
 
 /* Battle timers mostly on handler 1, queues mostly idle. */
@@ -1524,6 +1538,7 @@ static bool RunWholeCase(
     RecompReturn ret;
     unsigned instructions = 0;
     unsigned dispatches = 0;
+    unsigned visits = 0;
     uint32_t last_pc = 0;
     BusRegisters registers;
     bool stopped = false;
@@ -1585,8 +1600,10 @@ static bool RunWholeCase(
                 stopped = true;
                 break;
             }
-        } else if (dispatches == expected.dispatches &&
-                   pc == expected.pc && ref->sp == native.S) {
+        } else if (pc == expected.pc && ref->sp == native.S &&
+                   (target->dispatch_pc
+                        ? dispatches == expected.dispatches
+                        : visits++ == expected.dispatches)) {
             stopped = true;
             break;
         }

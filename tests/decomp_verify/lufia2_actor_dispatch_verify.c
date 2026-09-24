@@ -3960,6 +3960,27 @@ static bool RunFieldColourCase(
     return true;
 }
 
+/* Script mode: actor waits ($33), window closes. */
+static void SeedTextScript(uint8_t *wram) {
+    const uint16_t text = (NmiRandom() & 3u)
+        ? (uint16_t)(0x8000u + (NmiRandom() & 0x7ff0u))
+        : (uint16_t)(0x2000u + (NmiRandom() & 0x3fffu));
+    const uint8_t actor = (uint8_t)(NmiRandom() & 0x3fu);
+
+    wram[0x099bu] &= 0xfeu;
+    wram[0x09b9u] = 0x7eu;
+    wram[0x09b7u] = (uint8_t)text;
+    wram[0x09b8u] = (uint8_t)(text >> 8);
+    if (NmiRandom() & 7u)
+        wram[text] = 0x33u;
+    wram[(uint16_t)(text + 3u)] =
+        (NmiRandom() & 1u) ? 0x33u : (uint8_t)NmiRandom();
+    wram[0x1269u] = (NmiRandom() & 3u) ? actor : (uint8_t)NmiRandom();
+    wram[0x0622u + actor] &= (NmiRandom() & 1u) ? 0x77u : 0xffu;
+    if (NmiRandom() & 1u)
+        wram[0x099cu] &= 0xfeu;
+}
+
 /* Effects mostly idle; timer and text gates mixed. */
 static void SeedFieldTick(SnesVerifyBus *bus) {
     for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
@@ -3974,6 +3995,8 @@ static void SeedFieldTick(SnesVerifyBus *bus) {
         ? 0xffu : (uint8_t)(1u + NmiRandom() % 3u);
     if (NmiRandom() & 3u)
         bus->wram[0x099bu] &= 0x75u;
+    if (NmiRandom() & 1u)
+        SeedTextScript(bus->wram);
     bus->wram[0x09b2u] = (uint8_t)(0x20u + (NmiRandom() & 0x3fu));
     bus->wram[0x109b2u] = (uint8_t)(0x20u + (NmiRandom() & 0x3fu));
     /* JSL $80:9C72 at $83:8073. */
@@ -4000,6 +4023,7 @@ static bool RunFieldTickCase(
     Lufia2ActorPrimaryUpdateResult result;
     uint8_t *native_wram;
     unsigned instructions = 0;
+    unsigned visits = 0;
     bool stopped = false;
 
     SeedFieldTick(bus);
@@ -4041,7 +4065,8 @@ static bool RunFieldTickCase(
         const uint32_t pc = SnesVerifyPc24(reference);
         if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
                 ? pc == 0x838077u
-                : pc == result.pc && reference->sp == native.stack) {
+                : pc == result.pc && reference->sp == native.stack &&
+                  visits++ == result.dispatches) {
             stopped = true;
             break;
         }
@@ -4965,6 +4990,8 @@ static void SeedTextStep(uint8_t *wram, uint16_t dp) {
             wram[(uint16_t)(text + i)] = (NmiRandom() & 7u)
                 ? (uint8_t)(0x20u + NmiRandom() % 0x60u) : (uint8_t)NmiRandom();
     }
+    if (NmiRandom() & 1u)
+        SeedTextScript(wram);
     wram[0x09b2u] = (uint8_t)(0x20u + (NmiRandom() & 0x3fu));
     wram[0x109b2u] = (uint8_t)(0x20u + (NmiRandom() & 0x3fu));
 }
