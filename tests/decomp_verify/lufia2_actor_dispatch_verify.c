@@ -3980,18 +3980,19 @@ static void SeedTextScript(uint8_t *wram) {
     if (NmiRandom() & 1u)
         wram[0x099cu] &= 0xfeu;
     {
-        static const uint8_t ops[8] = {
-            0x33u, 0x33u, 0x37u, 0x3cu, 0x00u, 0x42u, 0x68u, 0x37u};
+        static const uint8_t ops[16] = {
+            0x33u, 0x03u, 0x37u, 0x3cu, 0x00u, 0x42u, 0x68u, 0x05u,
+            0x06u, 0x0fu, 0x15u, 0x1au, 0x1bu, 0x1cu, 0x1du, 0x37u};
         const uint16_t back = (uint16_t)(0x8000u + (NmiRandom() & 0x7ff0u));
 
         if (NmiRandom() & 1u)
-            wram[text] = ops[NmiRandom() & 7u];
+            wram[text] = ops[NmiRandom() & 15u];
         if (NmiRandom() & 1u)
             wram[(uint16_t)(text + 1u)] = (uint8_t)(NmiRandom() & 0x0fu);
         wram[0x1254u] = (NmiRandom() & 1u) ? 0x7eu : 0x00u;
         wram[0x1252u] = (uint8_t)back;
         wram[0x1253u] = (uint8_t)(back >> 8);
-        wram[back] = ops[NmiRandom() & 7u];
+        wram[back] = ops[NmiRandom() & 15u];
         if (NmiRandom() & 1u)
             for (unsigned i = 0; i < 5u; ++i)
                 wram[0x0622u + i] &= 0xf7u;
