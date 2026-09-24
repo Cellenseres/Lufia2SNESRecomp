@@ -79,3 +79,7 @@ bridge = "Lufia2DecompBridge_ECF0"
 [[binding]]
 address = "86:CEF6"
 bridge = "Lufia2DecompBridge_CEF6"
+
+[[binding]]
+address = "85:ECDB"
+bridge = "Lufia2DecompBridge_ECDB"
