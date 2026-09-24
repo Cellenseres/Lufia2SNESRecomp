@@ -4888,33 +4888,51 @@ static void SeedFieldReload(uint8_t *wram, uint16_t dp) {
 
 /* Battle script of known opcodes, forward jumps, then an end. */
 static void SeedBattleScript(uint8_t *wram, uint16_t dp) {
-    static const uint8_t ops[24] = {
+    static const uint8_t ops[44] = {
         0x03u, 0x05u, 0x06u, 0x07u, 0x0au, 0x0bu, 0x0cu, 0x0du,
         0x0eu, 0x16u, 0x17u, 0x18u, 0x19u, 0x1au, 0x1bu, 0x1cu,
-        0x1fu, 0x20u, 0x42u, 0x43u, 0x0cu, 0x06u, 0x0fu, 0x21u};
-    static const uint8_t sizes[0x44] = {
-        [0x03] = 3, [0x05] = 4, [0x06] = 6, [0x07] = 6, [0x0a] = 6,
-        [0x0b] = 6, [0x0c] = 4, [0x0d] = 5, [0x0e] = 5, [0x0f] = 5,
-        [0x16] = 5, [0x17] = 5, [0x18] = 5, [0x19] = 3, [0x1a] = 3,
-        [0x1b] = 3, [0x1c] = 2, [0x1f] = 3, [0x20] = 3, [0x21] = 5,
-        [0x42] = 3, [0x43] = 1};
+        0x1fu, 0x20u, 0x42u, 0x43u, 0x0cu, 0x06u, 0x0fu, 0x21u,
+        0x04u, 0x08u, 0x09u, 0x23u, 0x24u, 0x25u, 0x26u, 0x27u,
+        0x28u, 0x29u, 0x2au, 0x2bu, 0x2eu, 0x2fu, 0x30u, 0x35u,
+        0x36u, 0x3eu, 0x41u, 0x56u};
+    static const uint8_t sizes[0x57] = {
+        [0x03] = 3, [0x04] = 3, [0x05] = 4, [0x06] = 6, [0x07] = 6,
+        [0x08] = 6, [0x09] = 6, [0x0a] = 6, [0x0b] = 6, [0x0c] = 4,
+        [0x0d] = 5, [0x0e] = 5, [0x0f] = 5, [0x16] = 5, [0x17] = 5,
+        [0x18] = 5, [0x19] = 3, [0x1a] = 3, [0x1b] = 3, [0x1c] = 2,
+        [0x1f] = 3, [0x20] = 3, [0x21] = 6, [0x23] = 3, [0x24] = 5,
+        [0x25] = 3, [0x26] = 3, [0x27] = 3, [0x28] = 1, [0x29] = 1,
+        [0x2a] = 1, [0x2b] = 3, [0x2e] = 1, [0x2f] = 2, [0x30] = 2,
+        [0x35] = 2, [0x36] = 2, [0x3e] = 2, [0x41] = 1, [0x42] = 3,
+        [0x43] = 1, [0x56] = 3};
     const uint16_t base = (uint16_t)(0x2000u + (NmiRandom() & 0x1ff0u));
     unsigned at = 0;
 
     for (unsigned i = 0; i < 128u; ++i)
         wram[base + i] = (uint8_t)NmiRandom();
     for (;;) {
-        const uint8_t op = ops[NmiRandom() % 24u];
+        const uint8_t op = ops[NmiRandom() % 44u];
         const unsigned size = sizes[op];
 
         if (at + size > 120u)
             break;
         wram[base + at] = op;
-        if ((op >= 0x06u && op <= 0x0bu) || op == 0x05u || op == 0x03u) {
+        if (op >= 0x03u && op <= 0x0bu) {
             const uint16_t jump = (NmiRandom() & 7u) ? 120u : (uint16_t)(NmiRandom() % 120u);
 
             wram[base + at + size - 2u] = (uint8_t)jump;
             wram[base + at + size - 1u] = (uint8_t)(jump >> 8);
+        }
+        if (op >= 0x06u && op <= 0x0bu && (NmiRandom() & 1u)) {
+            const uint8_t n = (uint8_t)(NmiRandom() & 0x7fu);
+            const uint16_t value = (uint16_t)(NmiRandom() & 0x7fffu);
+            const uint16_t near = (uint16_t)(value + NmiRandom() % 3u - 1u);
+
+            wram[base + at + 1u] = n;
+            wram[base + at + 2u] = (uint8_t)value;
+            wram[base + at + 3u] = (uint8_t)(value >> 8);
+            wram[0x1f40eu + 2u * n] = (uint8_t)near;
+            wram[0x1f40fu + 2u * n] = (uint8_t)(near >> 8);
         }
         if (op == 0x42u)
             wram[base + at + 2u] = 0;
