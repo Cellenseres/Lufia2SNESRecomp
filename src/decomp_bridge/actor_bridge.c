@@ -314,6 +314,14 @@ RecompReturn Lufia2DecompBridge_8DC5(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x858dc5u, Lufia2BattleNmiUploads, 3);
 }
 
+RecompReturn Lufia2DecompBridge_8A2F(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x858a2fu, Lufia2BattleSprites, 3);
+}
+
+RecompReturn Lufia2DecompBridge_ECF0(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x85ecf0u, Lufia2BattleFrameUpkeep, 3);
+}
+
 RecompReturn Lufia2DecompBridge_C1B4(CpuState *cpu) {
     return ActorBridgeWhole(
         cpu, 0x83c1b4u, Lufia2PlayerSlotStandardUpdate, 2);
