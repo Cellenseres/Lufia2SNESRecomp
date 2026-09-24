@@ -358,6 +358,10 @@ RecompReturn Lufia2DecompBridge_92A4(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x8092a4u, Lufia2IntroNmi, 3);
 }
 
+RecompReturn Lufia2DecompBridge_B452(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x85b452u, Lufia2BattleScript, 3);
+}
+
 RecompReturn Lufia2DecompBridge_8B4B(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x828b4bu, Lufia2MenuButtons, 3);
 }

@@ -37,6 +37,7 @@ extern RecompReturn Lufia2DecompBridge_85DC(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_939C(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_81A9(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_92A4(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_B452(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8B4B(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_9313(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_C627(CpuState *cpu);
@@ -1310,6 +1311,60 @@ static void SeedMenuNmiBridge(CpuState *cpu) {
             g_bus.wram[0x1567u] = 0;
 }
 
+/* Battle script of known opcodes, forward jumps, then an end. */
+static void SeedBattleScriptWram(uint16_t dp) {
+    static const uint8_t ops[24] = {
+        0x03u, 0x05u, 0x06u, 0x07u, 0x0au, 0x0bu, 0x0cu, 0x0du,
+        0x0eu, 0x16u, 0x17u, 0x18u, 0x19u, 0x1au, 0x1bu, 0x1cu,
+        0x1fu, 0x20u, 0x42u, 0x43u, 0x0cu, 0x06u, 0x0fu, 0x21u};
+    static const uint8_t sizes[0x44] = {
+        [0x03] = 3, [0x05] = 4, [0x06] = 6, [0x07] = 6, [0x0a] = 6,
+        [0x0b] = 6, [0x0c] = 4, [0x0d] = 5, [0x0e] = 5, [0x0f] = 5,
+        [0x16] = 5, [0x17] = 5, [0x18] = 5, [0x19] = 3, [0x1a] = 3,
+        [0x1b] = 3, [0x1c] = 2, [0x1f] = 3, [0x20] = 3, [0x21] = 5,
+        [0x42] = 3, [0x43] = 1};
+    const uint16_t base = (uint16_t)(0x2000u + (Random32() & 0x1ff0u));
+    unsigned at = 0;
+
+    for (unsigned i = 0; i < 128u; ++i)
+        g_bus.wram[base + i] = (uint8_t)Random32();
+    for (;;) {
+        const uint8_t op = ops[Random32() % 24u];
+        const unsigned size = sizes[op];
+
+        if (at + size > 120u)
+            break;
+        g_bus.wram[base + at] = op;
+        if ((op >= 0x06u && op <= 0x0bu) || op == 0x05u || op == 0x03u) {
+            const uint16_t jump = (Random32() & 7u) ? 120u : (uint16_t)(Random32() % 120u);
+
+            g_bus.wram[base + at + size - 2u] = (uint8_t)jump;
+            g_bus.wram[base + at + size - 1u] = (uint8_t)(jump >> 8);
+        }
+        if (op == 0x42u)
+            g_bus.wram[base + at + 2u] = 0;
+        at += size;
+    }
+    while (at < 120u)
+        g_bus.wram[base + at++] = 0x00u;
+    g_bus.wram[base + 120u] = (Random32() & 1u) ? 0x00u : 0x4fu;
+    g_bus.wram[(uint16_t)(dp + 0xbbu)] = (uint8_t)base;
+    g_bus.wram[(uint16_t)(dp + 0xbcu)] = (uint8_t)(base >> 8);
+    g_bus.wram[(uint16_t)(dp + 0xbdu)] = 0x7eu;
+    g_bus.wram[0x0a42u] = (uint8_t)base;
+    g_bus.wram[0x0a43u] = (uint8_t)(base >> 8);
+    g_bus.wram[0x0a44u] = 0x7eu;
+    for (unsigned i = 0x0a64u; i < 0x0c00u; i += 2u)
+        g_bus.wram[i + 1u] &= 0x07u;
+}
+
+static void SeedBattleScriptBridge(CpuState *cpu) {
+    SeedFieldChild(cpu);
+    SeedBattleScriptWram(cpu->D);
+    g_bus.wram[0x1ff3u] = 0x83u;
+    cpu->PB = 0x85;
+}
+
 static void SeedIntroNmiBridge(CpuState *cpu) {
     const uint16_t dp = cpu->D;
     static const uint8_t timers[8] = {
@@ -1483,7 +1538,7 @@ typedef struct WholeTarget {
     unsigned limit;
 } WholeTarget;
 
-static const WholeTarget kWholeTargets[35] = {
+static const WholeTarget kWholeTargets[36] = {
     {"C7F8", 0x83c7f8u, 0x83c864u, SeedC7F8, Lufia2ActorPrimaryUpdate,
      Lufia2DecompBridge_C7F8, 2, 4000000u},
     {"D508", 0x83d508u, 0x83d5d1u, SeedD508, Lufia2ActorSecondaryUpdate,
@@ -1532,6 +1587,8 @@ static const WholeTarget kWholeTargets[35] = {
      Lufia2DecompBridge_81A9, 3, 4000000u},
     {"92A4", 0x8092a4u, 0u, SeedIntroBridge, Lufia2IntroNmi,
      Lufia2DecompBridge_92A4, 3, 4000000u},
+    {"B452", 0x85b452u, 0u, SeedBattleScriptBridge, Lufia2BattleScript,
+     Lufia2DecompBridge_B452, 3, 4000000u},
     {"8B4B", 0x828b4bu, 0u, SeedMenu, Lufia2MenuButtons,
      Lufia2DecompBridge_8B4B, 3, 4000000u},
     {"9313", 0x829313u, 0u, SeedMenu, Lufia2MenuWindowRequest,

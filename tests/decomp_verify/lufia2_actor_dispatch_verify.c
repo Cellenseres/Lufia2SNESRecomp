@@ -4886,6 +4886,53 @@ static void SeedFieldReload(uint8_t *wram, uint16_t dp) {
     (void)dp;
 }
 
+/* Battle script of known opcodes, forward jumps, then an end. */
+static void SeedBattleScript(uint8_t *wram, uint16_t dp) {
+    static const uint8_t ops[24] = {
+        0x03u, 0x05u, 0x06u, 0x07u, 0x0au, 0x0bu, 0x0cu, 0x0du,
+        0x0eu, 0x16u, 0x17u, 0x18u, 0x19u, 0x1au, 0x1bu, 0x1cu,
+        0x1fu, 0x20u, 0x42u, 0x43u, 0x0cu, 0x06u, 0x0fu, 0x21u};
+    static const uint8_t sizes[0x44] = {
+        [0x03] = 3, [0x05] = 4, [0x06] = 6, [0x07] = 6, [0x0a] = 6,
+        [0x0b] = 6, [0x0c] = 4, [0x0d] = 5, [0x0e] = 5, [0x0f] = 5,
+        [0x16] = 5, [0x17] = 5, [0x18] = 5, [0x19] = 3, [0x1a] = 3,
+        [0x1b] = 3, [0x1c] = 2, [0x1f] = 3, [0x20] = 3, [0x21] = 5,
+        [0x42] = 3, [0x43] = 1};
+    const uint16_t base = (uint16_t)(0x2000u + (NmiRandom() & 0x1ff0u));
+    unsigned at = 0;
+
+    for (unsigned i = 0; i < 128u; ++i)
+        wram[base + i] = (uint8_t)NmiRandom();
+    for (;;) {
+        const uint8_t op = ops[NmiRandom() % 24u];
+        const unsigned size = sizes[op];
+
+        if (at + size > 120u)
+            break;
+        wram[base + at] = op;
+        if ((op >= 0x06u && op <= 0x0bu) || op == 0x05u || op == 0x03u) {
+            const uint16_t jump = (NmiRandom() & 7u) ? 120u : (uint16_t)(NmiRandom() % 120u);
+
+            wram[base + at + size - 2u] = (uint8_t)jump;
+            wram[base + at + size - 1u] = (uint8_t)(jump >> 8);
+        }
+        if (op == 0x42u)
+            wram[base + at + 2u] = 0;
+        at += size;
+    }
+    while (at < 120u)
+        wram[base + at++] = 0x00u;
+    wram[base + 120u] = (NmiRandom() & 1u) ? 0x00u : 0x4fu;
+    wram[(uint16_t)(dp + 0xbbu)] = (uint8_t)base;
+    wram[(uint16_t)(dp + 0xbcu)] = (uint8_t)(base >> 8);
+    wram[(uint16_t)(dp + 0xbdu)] = 0x7eu;
+    wram[0x0a42u] = (uint8_t)base;
+    wram[0x0a43u] = (uint8_t)(base >> 8);
+    wram[0x0a44u] = 0x7eu;
+    for (unsigned i = 0x0a64u; i < 0x0c00u; i += 2u)
+        wram[i + 1u] &= 0x07u;
+}
+
 /* Intro state mostly valid, timers at the edges. */
 static void SeedIntroNmi(uint8_t *wram, uint16_t dp) {
     static const uint8_t timers[8] = {
@@ -5087,6 +5134,8 @@ static const SmallTarget kSmallTargets[] = {
      SeedNmiTables},
     {"92A4", 0x8092a4u, Lufia2IntroNmi, 3, 0x000069u,
      SeedIntroNmi},
+    {"B452", 0x85b452u, Lufia2BattleScript, 3, 0x81faecu,
+     SeedBattleScript},
 };
 
 enum { SMALL_TARGETS = sizeof(kSmallTargets) / sizeof(kSmallTargets[0]) };
@@ -5162,7 +5211,7 @@ static bool RunSmallCase(
     memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
 
     InitInterp(reference, target->entry, &input);
-    while (instructions < 10000u) {
+    while (instructions < 2000000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
         if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
                 ? pc == exit
