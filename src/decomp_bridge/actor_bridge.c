@@ -338,6 +338,14 @@ RecompReturn Lufia2DecompBridge_8103(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x838103u, Lufia2FieldStatusRequests, 2);
 }
 
+RecompReturn Lufia2DecompBridge_E746(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x82e746u, Lufia2TitleStateDispatch, 3);
+}
+
+RecompReturn Lufia2DecompBridge_85DC(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x8385dcu, Lufia2FieldReloadSetup, 3);
+}
+
 RecompReturn Lufia2DecompBridge_8A2F(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x858a2fu, Lufia2BattleSprites, 3);
 }
