@@ -14,7 +14,7 @@ extern "C" {
 enum {
     SNES_VERIFY_WRAM_SIZE = 0x20000,
     SNES_VERIFY_MAX_BUS_EVENTS = 512,
-    SNES_VERIFY_MAX_MMIO = 4096,
+    SNES_VERIFY_MAX_MMIO = 16384,
 };
 
 typedef struct SnesVerifyBusEvent {

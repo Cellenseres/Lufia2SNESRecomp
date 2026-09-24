@@ -4415,6 +4415,186 @@ static bool RunFieldSpritesCase(
     return true;
 }
 
+enum { WORLD_MAP_NMI_CASES = 16384 };
+
+typedef struct WorldMapNmiStats {
+    unsigned returned;
+    unsigned tiles;
+    unsigned cycles;
+    unsigned mmio_writes;
+} WorldMapNmiStats;
+
+/* Small upload records and palette cycles, flags mixed. */
+static void SeedWorldMapNmi(uint8_t *wram, uint32_t (*random)(void)) {
+    static const uint16_t flags[9] = {
+        0x11d9u, 0x1710u, 0x1711u, 0x11deu, 0x11dau, 0x11ddu, 0x11dfu,
+        0x11e1u, 0x11d8u};
+
+    for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
+        const uint32_t word = random();
+        memcpy(wram + i, &word, 4);
+    }
+    for (unsigned i = 0; i < 9u; ++i)
+        if (random() & 1u)
+            wram[flags[i]] = 0;
+    if (random() & 1u) {
+        wram[0x1702u] = 0;
+        wram[0x1703u] = 0;
+    }
+    wram[0x1365u] = (random() & 7u) ? (uint8_t)(1u + (random() & 3u)) : 0;
+    for (unsigned i = 0; i < 4u; ++i) {
+        const uint16_t record = (uint16_t)(0x0200u + (random() & 0x0dffu));
+
+        wram[0x1367u + 2u * i] = (uint8_t)record;
+        wram[0x1368u + 2u * i] = (uint8_t)(record >> 8);
+        if (!(random() & 7u)) {
+            wram[0x13a7u + 2u * i] = 0;
+            wram[0x13a8u + 2u * i] = 0;
+        }
+        wram[record] = (uint8_t)((random() & 0x80u) | (random() % 3u));
+        wram[(uint16_t)(record + 1u)] = (uint8_t)(random() & 0x3fu);
+        wram[(uint16_t)(record + 2u)] = (uint8_t)(1u + (random() & 3u));
+    }
+    wram[0x16e7u] = (random() & 3u) ? (uint8_t)(random() & 3u) : 0;
+    for (unsigned i = 0; i < 3u; ++i) {
+        const uint16_t base = (uint16_t)(0x16e8u + 5u * i);
+        const uint8_t length = (uint8_t)(1u + (random() & 15u));
+
+        wram[base + 1u] = length;
+        wram[base + 3u] = (uint8_t)(random() % (length + 1u));
+        wram[base + 2u] = (uint8_t)(random() & 3u);
+    }
+}
+
+/* Whole $86:CEF6 from the $00:0067 JSL; MMIO order compared. */
+static bool RunWorldMapNmiCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index,
+    WorldMapNmiStats *stats) {
+    static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
+    static const uint8_t banks[4] = {0x80u, 0x86u, 0x00u, 0x7eu};
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    Lufia2ActorPrimaryUpdateResult result;
+    SnesVerifyBusEvent *native_mmio;
+    size_t native_count;
+    uint8_t *native_wram;
+    BusRegisters registers;
+    unsigned instructions = 0;
+    bool stopped = false;
+    bool same_mmio;
+
+    SeedWorldMapNmi(bus->wram, NmiRandom);
+    if (bus->wram[0x11d9u] && bus->wram[0x1365u])
+        ++stats->tiles;
+    if (bus->wram[0x16e7u])
+        ++stats->cycles;
+    /* JSL $86:CEF6 at $00:0067. */
+    bus->wram[0x1ff1u] = 0x69u;
+    bus->wram[0x1ff2u] = 0x00u;
+    bus->wram[0x1ff3u] = 0x00u;
+
+    memset(&input, 0, sizeof(input));
+    input.accumulator = (uint16_t)NmiRandom();
+    input.x = (uint16_t)NmiRandom();
+    input.y = (uint16_t)NmiRandom();
+    input.stack = 0x1ff0u;
+    input.direct_page = dps[NmiRandom() & 7u];
+    input.data_bank = banks[NmiRandom() & 3u];
+    input.program_bank = 0x86u;
+    input.carry = NmiRandom() & 1u;
+    input.zero = NmiRandom() & 1u;
+    input.negative = NmiRandom() & 1u;
+    input.overflow = NmiRandom() & 1u;
+    input.irq_disable = NmiRandom() & 1u;
+    input.accumulator_is_8_bit = (NmiRandom() & 3u) ? 1u : 0u;
+    input.index_is_8_bit = (NmiRandom() & 3u) ? 1u : 0u;
+    if (input.index_is_8_bit) {
+        input.x &= 0x00ffu;
+        input.y &= 0x00ffu;
+    }
+
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    registers = SaveBusRegisters(bus);
+    native = input;
+    SnesVerifyBusResetMmio(bus);
+    result = Lufia2WorldMapNmiUploads(&memory, &native);
+    native.stack = (uint16_t)(native.stack + 3u);       /* RTL */
+    native.program_bank = 0x00u;
+    native_count = bus->mmio_count;
+    native_mmio = (SnesVerifyBusEvent *)malloc(
+        sizeof(SnesVerifyBusEvent) * (native_count ? native_count : 1u));
+    native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    if (!native_mmio || !native_wram) {
+        free(native_mmio);
+        free(native_wram);
+        return false;
+    }
+    memcpy(native_mmio, bus->mmio, sizeof(SnesVerifyBusEvent) * native_count);
+    memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+    RestoreBusRegisters(bus, &registers);
+
+    SnesVerifyBusResetMmio(bus);
+    InitInterp(reference, 0x86cef6u, &input);
+    while (instructions < 400000u) {
+        if (SnesVerifyPc24(reference) == 0x00006au) {
+            stopped = true;
+            break;
+        }
+        interp816_runOpcode(reference);
+        ++instructions;
+    }
+    same_mmio = native_count == bus->mmio_count && !bus->mmio_overflow &&
+        memcmp(native_mmio, bus->mmio,
+            sizeof(SnesVerifyBusEvent) * native_count) == 0;
+
+    if (result.flow != LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED || !stopped ||
+        !same_mmio || !SameState(&native, reference) ||
+        memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        size_t diff = 0;
+        size_t event = 0;
+        while (diff < SNES_VERIFY_WRAM_SIZE &&
+               native_wram[diff] == bus->wram[diff])
+            ++diff;
+        while (event < native_count && event < bus->mmio_count &&
+               native_mmio[event].address == bus->mmio[event].address &&
+               native_mmio[event].value == bus->mmio[event].value)
+            ++event;
+        fprintf(stderr,
+            "FAIL CEF6 case %u: stop=%d mmio=%u/%u first diff %u "
+            "(%06X=%02X / %06X=%02X) insns=%u "
+            "A=%04X/%04X X=%04X/%04X Y=%04X/%04X S=%04X/%04X "
+            "M=%u/%u Xf=%u/%u C=%u/%u Z=%u/%u N=%u/%u wram@%05X\n",
+            case_index, stopped ? 1 : 0, (unsigned)native_count,
+            (unsigned)bus->mmio_count, (unsigned)event,
+            event < native_count ? native_mmio[event].address : 0u,
+            event < native_count ? native_mmio[event].value : 0u,
+            event < bus->mmio_count ? bus->mmio[event].address : 0u,
+            event < bus->mmio_count ? bus->mmio[event].value : 0u,
+            instructions,
+            native.accumulator, reference->a, native.x, reference->x,
+            native.y, reference->y, native.stack, reference->sp,
+            native.accumulator_is_8_bit, reference->mf,
+            native.index_is_8_bit, reference->xf,
+            native.carry, reference->c, native.zero, reference->z,
+            native.negative, reference->n, (unsigned)diff);
+        free(native_mmio);
+        free(native_wram);
+        return false;
+    }
+    free(native_mmio);
+    free(native_wram);
+    ++stats->returned;
+    stats->mmio_writes += (unsigned)native_count;
+    return true;
+}
+
 enum { BATTLE_FRAME_CASES = 16384 };
 
 typedef struct BattleFrameStats {
@@ -4843,6 +5023,8 @@ int main(int argc, char **argv) {
     BattleFrameStats battle_sprites = {0, 0, 0, 0, 0, 0};
     BattleFrameStats battle_upkeep = {0, 0, 0, 0, 0, 0};
     unsigned battle_sprites_passed = 0;
+    WorldMapNmiStats world_nmi = {0, 0, 0, 0};
+    unsigned world_nmi_passed = 0;
     FieldSpritesStats field_sprites = {0, 0, 0};
     unsigned field_sprites_passed = 0;
     unsigned battle_upkeep_passed = 0;
@@ -5145,6 +5327,12 @@ int main(int argc, char **argv) {
     for (unsigned i = 0; i < BATTLE_NMI_CASES && failed < 20; ++i) {
         if (RunBattleNmiCase(&bus, reference, initial, i, &battle_nmi))
             ++battle_nmi_passed;
+        else
+            ++failed;
+    }
+    for (unsigned i = 0; i < WORLD_MAP_NMI_CASES && failed < 20; ++i) {
+        if (RunWorldMapNmiCase(&bus, reference, initial, i, &world_nmi))
+            ++world_nmi_passed;
         else
             ++failed;
     }
@@ -5466,6 +5654,10 @@ int main(int argc, char **argv) {
         "(RTL %u, LLE %u)\n",
         field_tick_passed, FIELD_CHILD_CASES, field_tick.returned,
         field_tick.boundary);
+    printf("$86:CEF6 whole-function cases passed:      %u / %u "
+        "(tile uploads %u, palette cycles %u, MMIO writes compared %u)\n",
+        world_nmi_passed, WORLD_MAP_NMI_CASES, world_nmi.tiles,
+        world_nmi.cycles, world_nmi.mmio_writes);
     printf("$83:A21A whole-function cases passed:      %u / %u "
         "(RTL %u, LLE %u, sprites %u)\n",
         field_sprites_passed, FIELD_SPRITES_CASES, field_sprites.returned,
