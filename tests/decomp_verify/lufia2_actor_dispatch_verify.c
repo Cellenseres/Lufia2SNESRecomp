@@ -4004,9 +4004,9 @@ static void SeedFieldTick(SnesVerifyBus *bus) {
         const uint32_t word = NmiRandom();
         memcpy(bus->wram + i, &word, 4);
     }
-    if (NmiRandom() & 7u)
+    if (NmiRandom() & 1u)
         bus->wram[0x1261u] &= 0x48u;
-    if (NmiRandom() & 7u)
+    if (NmiRandom() & 3u)
         bus->wram[0x1262u] &= 0xfeu;
     bus->wram[0x1d0c1u] = (NmiRandom() & 1u)
         ? 0xffu : (uint8_t)(1u + NmiRandom() % 3u);
@@ -4043,6 +4043,8 @@ static bool RunFieldTickCase(
         NativeRead, NativeWrite, &native_context};
     Lufia2ActorPrimaryUpdateResult result;
     uint8_t *native_wram;
+    SnesVerifyBusEvent native_mmio[64];
+    size_t native_count;
     unsigned instructions = 0;
     unsigned visits = 0;
     bool stopped = false;
@@ -4070,11 +4072,15 @@ static bool RunFieldTickCase(
 
     memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
     native = input;
+    SnesVerifyBusResetMmio(bus);
     result = Lufia2FieldEventTick(&memory, &native);
     if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
         native.stack = (uint16_t)(native.stack + 3u);   /* RTL */
         native.program_bank = 0x83u;
     }
+    native_count = bus->mmio_count < 64u ? bus->mmio_count : 64u;
+    memcpy(native_mmio, bus->mmio, sizeof(SnesVerifyBusEvent) * native_count);
+    SnesVerifyBusResetMmio(bus);
     native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
     if (!native_wram)
         return false;
@@ -4095,6 +4101,10 @@ static bool RunFieldTickCase(
         ++instructions;
     }
 
+    if (native_count != bus->mmio_count || bus->mmio_overflow ||
+        memcmp(native_mmio, bus->mmio,
+            sizeof(SnesVerifyBusEvent) * native_count) != 0)
+        stopped = false;
     if (!stopped || !SameState(&native, reference) ||
         memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
         size_t diff = 0;

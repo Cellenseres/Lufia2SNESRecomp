@@ -1117,9 +1117,9 @@ static void SeedAEB5(CpuState *cpu) {
 /* Idle effects for the field loop's JSL $80:9C72. */
 static void Seed9C72(CpuState *cpu) {
     SeedFieldChild(cpu);
-    if (Random32() & 7u)
+    if (Random32() & 1u)
         g_bus.wram[0x1261u] &= 0x48u;
-    if (Random32() & 7u)
+    if (Random32() & 3u)
         g_bus.wram[0x1262u] &= 0xfeu;
     g_bus.wram[0x1d0c1u] = (Random32() & 1u)
         ? 0xffu : (uint8_t)(1u + Random32() % 3u);
