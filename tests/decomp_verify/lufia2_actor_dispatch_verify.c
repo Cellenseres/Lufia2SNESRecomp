@@ -3957,6 +3957,123 @@ static bool RunFieldColourCase(
     return true;
 }
 
+/* Effects mostly idle; timer and text gates mixed. */
+static void SeedFieldTick(SnesVerifyBus *bus) {
+    for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
+        const uint32_t word = NmiRandom();
+        memcpy(bus->wram + i, &word, 4);
+    }
+    if (NmiRandom() & 7u)
+        bus->wram[0x1261u] &= 0x48u;
+    if (NmiRandom() & 7u)
+        bus->wram[0x1262u] &= 0xfeu;
+    bus->wram[0x1d0c1u] = (NmiRandom() & 1u)
+        ? 0xffu : (uint8_t)(1u + NmiRandom() % 3u);
+    if (NmiRandom() & 3u)
+        bus->wram[0x099bu] &= 0x75u;
+    /* JSL $80:9C72 at $83:8073. */
+    bus->wram[0x1ff1u] = 0x76u;
+    bus->wram[0x1ff2u] = 0x80u;
+    bus->wram[0x1ff3u] = 0x83u;
+}
+
+/* Whole $80:9C72 from the field loop's JSL. */
+static bool RunFieldTickCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index,
+    FieldChildStats *stats) {
+    const uint32_t entry = 0x809c72u;
+    static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
+    static const uint8_t banks[4] = {0x83u, 0x83u, 0x80u, 0x00u};
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    Lufia2ActorPrimaryUpdateResult result;
+    uint8_t *native_wram;
+    unsigned instructions = 0;
+    bool stopped = false;
+
+    SeedFieldTick(bus);
+    memset(&input, 0, sizeof(input));
+    input.accumulator = (uint16_t)NmiRandom();
+    input.x = (uint16_t)NmiRandom();
+    input.y = (uint16_t)NmiRandom();
+    input.stack = 0x1ff0u;
+    input.direct_page = dps[NmiRandom() & 7u];
+    input.data_bank = banks[NmiRandom() & 3u];
+    input.program_bank = 0x80u;
+    input.carry = NmiRandom() & 1u;
+    input.zero = NmiRandom() & 1u;
+    input.negative = NmiRandom() & 1u;
+    input.overflow = NmiRandom() & 1u;
+    input.irq_disable = NmiRandom() & 1u;
+    input.accumulator_is_8_bit = 1u;
+    input.index_is_8_bit = (NmiRandom() & 7u) ? 1u : 0u;
+    if (input.index_is_8_bit) {
+        input.x &= 0x00ffu;
+        input.y &= 0x00ffu;
+    }
+
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    result = Lufia2FieldEventTick(&memory, &native);
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+        native.stack = (uint16_t)(native.stack + 3u);   /* RTL */
+        native.program_bank = 0x83u;
+    }
+    native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    if (!native_wram)
+        return false;
+    memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+
+    InitInterp(reference, entry, &input);
+    while (instructions < 400000u) {
+        const uint32_t pc = SnesVerifyPc24(reference);
+        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+                ? pc == 0x838077u
+                : pc == result.pc && reference->sp == native.stack) {
+            stopped = true;
+            break;
+        }
+        interp816_runOpcode(reference);
+        ++instructions;
+    }
+
+    if (!stopped || !SameState(&native, reference) ||
+        memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        size_t diff = 0;
+        while (diff < SNES_VERIFY_WRAM_SIZE &&
+               native_wram[diff] == bus->wram[diff])
+            ++diff;
+        fprintf(stderr,
+            "FAIL %06X case %u: flow=%u pc=%06X/%06X insns=%u "
+            "A=%04X/%04X X=%04X/%04X Y=%04X/%04X S=%04X/%04X "
+            "Xf=%u/%u C=%u/%u Z=%u/%u N=%u/%u wram@%05X %02X/%02X\n",
+            entry, case_index, (unsigned)result.flow, result.pc,
+            SnesVerifyPc24(reference), instructions,
+            native.accumulator, reference->a, native.x, reference->x,
+            native.y, reference->y, native.stack, reference->sp,
+            native.index_is_8_bit, reference->xf,
+            native.carry, reference->c, native.zero, reference->z,
+            native.negative, reference->n, (unsigned)diff,
+            diff < SNES_VERIFY_WRAM_SIZE ? native_wram[diff] : 0,
+            diff < SNES_VERIFY_WRAM_SIZE ? bus->wram[diff] : 0);
+        free(native_wram);
+        return false;
+    }
+    free(native_wram);
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+        ++stats->returned;
+    else
+        ++stats->boundary;
+    return true;
+}
+
 enum { SECONDARY_UPDATE_CASES = 16384 };
 
 /* Whole $83:D508 against the ROM, random machine and scripts. */
@@ -4194,6 +4311,8 @@ int main(int argc, char **argv) {
     unsigned field_ticks_passed = 0;
     FieldChildStats field_ticks = {0, 0};
     unsigned field_colour_passed = 0;
+    unsigned field_tick_passed = 0;
+    FieldChildStats field_tick = {0, 0};
     FieldColourStats field_colour = {0, 0, 0};
     unsigned movement_step_passed = 0;
     unsigned map_offset_passed = 0;
@@ -4479,6 +4598,12 @@ int main(int argc, char **argv) {
     for (unsigned i = 0; i < FIELD_COLOUR_CASES && failed < 20; ++i) {
         if (RunFieldColourCase(&bus, reference, initial, i, &field_colour))
             ++field_colour_passed;
+        else
+            ++failed;
+    }
+    for (unsigned i = 0; i < FIELD_CHILD_CASES && failed < 20; ++i) {
+        if (RunFieldTickCase(&bus, reference, initial, i, &field_tick))
+            ++field_tick_passed;
         else
             ++failed;
     }
@@ -4776,6 +4901,10 @@ int main(int argc, char **argv) {
         "(RTS %u, LLE %u, MMIO writes compared %u)\n",
         field_colour_passed, FIELD_COLOUR_CASES, field_colour.returned,
         field_colour.boundary, field_colour.mmio_writes);
+    printf("$80:9C72 whole-function cases passed:      %u / %u "
+        "(RTL %u, LLE %u)\n",
+        field_tick_passed, FIELD_CHILD_CASES, field_tick.returned,
+        field_tick.boundary);
     printf("$8E:BD77 whole-function cases passed:      %u / %u "
         "(RTL %u, LLE BD77 %u, BDD7 %u, MMIO writes compared %u)\n",
         field_scroll_passed, FIELD_SCROLL_CASES, field_scroll.returned,
