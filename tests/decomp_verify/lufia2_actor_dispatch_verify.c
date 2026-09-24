@@ -3469,6 +3469,174 @@ static bool RunFieldNmiCase(
     return true;
 }
 
+enum { FIELD_SCROLL_CASES = 16384 };
+
+typedef struct FieldScrollStats {
+    unsigned returned;
+    unsigned boundary[6];
+} FieldScrollStats;
+
+static const uint32_t kScrollBoundaries[6] = {
+    0x8ebd77u, 0x8ebdd7u, 0x8ebdf5u, 0x8ebdfbu, 0x8ebe2au, 0x8ebe47u};
+
+/* Camera layers: modes 0-4, some disabled or unknown. */
+static void SeedFieldScroll(SnesVerifyBus *bus) {
+    static const uint8_t modes[16] = {
+        0, 0, 0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 0x80u, 0x85u, 0x05u};
+
+    for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
+        const uint32_t word = NmiRandom();
+        memcpy(bus->wram + i, &word, 4);
+    }
+    for (unsigned layer = 0; layer < 6u; layer += 2u) {
+        const uint16_t x = (uint16_t)((NmiRandom() & 0x07f0u) |
+            ((NmiRandom() & 3u) ? (1u + NmiRandom() % 15u) : 0u));
+        const uint16_t y = (uint16_t)((NmiRandom() & 0x07f0u) |
+            ((NmiRandom() & 3u) ? (1u + NmiRandom() % 15u) : 0u));
+
+        bus->wram[0x1d020u + layer] = modes[NmiRandom() & 15u];
+        Poke16(bus, 0x121eu + layer, x);
+        Poke16(bus, 0x1226u + layer, y);
+        if (NmiRandom() & 1u) {
+            Poke16(bus, 0x7fd0ceu + layer, x);
+            Poke16(bus, 0x7fd0d6u + layer, y);
+        } else {
+            Poke16(bus, 0x7fd0ceu + layer,
+                (uint16_t)(x + NmiRandom() % 64u - 32u));
+            Poke16(bus, 0x7fd0d6u + layer,
+                (uint16_t)(y + NmiRandom() % 64u - 32u));
+        }
+        Poke16(bus, 0x7fd0deu + layer, (uint16_t)(NmiRandom() % 9u));
+        Poke16(bus, 0x7fd0e6u + layer, (uint16_t)(NmiRandom() % 9u));
+        bus->wram[0x1d010u + layer] = (uint8_t)(NmiRandom() & 0x7fu);
+        bus->wram[0x1d011u + layer] = 0;
+        bus->wram[0x1d018u + layer] = (uint8_t)(NmiRandom() & 0x7fu);
+        bus->wram[0x1d019u + layer] = 0;
+        if (NmiRandom() & 1u) {
+            Poke16(bus, 0x05a4u, x);
+            Poke16(bus, 0x05a6u, y);
+            Poke16(bus, 0x7fd08bu, x);
+            Poke16(bus, 0x7fd08du, y);
+        }
+    }
+    if (NmiRandom() & 1u)
+        bus->wram[0x1261u] &= 0xf7u;
+    if (NmiRandom() & 1u)
+        Poke16(bus, 0x05a8u, 0);
+    else
+        Poke16(bus, 0x05a8u, (uint16_t)(NmiRandom() % 9u));
+    /* JSL $8E:BD77 at $83:8084. */
+    bus->wram[0x1ff1u] = 0x87u;
+    bus->wram[0x1ff2u] = 0x80u;
+    bus->wram[0x1ff3u] = 0x83u;
+}
+
+/* Whole $8E:BD77 from the field loop's JSL. */
+static bool RunFieldScrollCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index,
+    FieldScrollStats *stats) {
+    static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
+    static const uint8_t banks[4] = {0x83u, 0x83u, 0x80u, 0x7eu};
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    Lufia2ActorPrimaryUpdateResult result;
+    uint8_t *native_wram;
+    unsigned instructions = 0;
+    unsigned visits = 0;
+    bool stopped = false;
+
+    SeedFieldScroll(bus);
+    memset(&input, 0, sizeof(input));
+    input.accumulator = (uint16_t)NmiRandom();
+    input.x = (uint16_t)NmiRandom();
+    input.y = (uint16_t)NmiRandom();
+    input.stack = 0x1ff0u;
+    input.direct_page = dps[NmiRandom() & 7u];
+    input.data_bank = banks[NmiRandom() & 3u];
+    input.program_bank = 0x8eu;
+    input.carry = NmiRandom() & 1u;
+    input.zero = NmiRandom() & 1u;
+    input.negative = NmiRandom() & 1u;
+    input.overflow = NmiRandom() & 1u;
+    input.irq_disable = NmiRandom() & 1u;
+    input.accumulator_is_8_bit = 1u;
+    input.index_is_8_bit = (NmiRandom() & 15u) ? 1u : 0u;
+    if (input.index_is_8_bit) {
+        input.x &= 0x00ffu;
+        input.y &= 0x00ffu;
+    }
+
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    result = Lufia2FieldScrollUpdate(&memory, &native);
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+        native.stack = (uint16_t)(native.stack + 3u);   /* RTL */
+        native.program_bank = 0x83u;
+    }
+    native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    if (!native_wram)
+        return false;
+    memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+
+    InitInterp(reference, 0x8ebd77u, &input);
+    while (instructions < 400000u) {
+        const uint32_t pc = SnesVerifyPc24(reference);
+        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+                ? pc == 0x838088u
+                : visits == result.dispatches && pc == result.pc &&
+                      reference->sp == native.stack) {
+            stopped = true;
+            break;
+        }
+        if (pc == 0x8ebdd7u)
+            ++visits;
+        interp816_runOpcode(reference);
+        ++instructions;
+    }
+
+    if (!stopped || !SameState(&native, reference) ||
+        memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        size_t diff = 0;
+        while (diff < SNES_VERIFY_WRAM_SIZE &&
+               native_wram[diff] == bus->wram[diff])
+            ++diff;
+        fprintf(stderr,
+            "FAIL BD77 case %u: flow=%u pc=%06X/%06X insns=%u "
+            "A=%04X/%04X X=%04X/%04X Y=%04X/%04X S=%04X/%04X "
+            "M=%u/%u Xf=%u/%u C=%u/%u Z=%u/%u N=%u/%u V=%u/%u "
+            "wram@%05X %02X/%02X\n",
+            case_index, (unsigned)result.flow, result.pc,
+            SnesVerifyPc24(reference), instructions,
+            native.accumulator, reference->a, native.x, reference->x,
+            native.y, reference->y, native.stack, reference->sp,
+            native.accumulator_is_8_bit, reference->mf,
+            native.index_is_8_bit, reference->xf,
+            native.carry, reference->c, native.zero, reference->z,
+            native.negative, reference->n, native.overflow, reference->v,
+            (unsigned)diff,
+            diff < SNES_VERIFY_WRAM_SIZE ? native_wram[diff] : 0,
+            diff < SNES_VERIFY_WRAM_SIZE ? bus->wram[diff] : 0);
+        free(native_wram);
+        return false;
+    }
+    free(native_wram);
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+        ++stats->returned;
+    } else {
+        for (unsigned i = 0; i < 6u; ++i)
+            if (result.pc == kScrollBoundaries[i])
+                ++stats->boundary[i];
+    }
+    return true;
+}
+
 enum { SECONDARY_UPDATE_CASES = 16384 };
 
 /* Whole $83:D508 against the ROM, random machine and scripts. */
@@ -3699,6 +3867,8 @@ int main(int argc, char **argv) {
     ObjectSlotsStats object_slots = {0, 0, 0};
     unsigned field_nmi_passed = 0;
     FieldNmiStats field_nmi = {0, 0};
+    unsigned field_scroll_passed = 0;
+    FieldScrollStats field_scroll;
     unsigned movement_step_passed = 0;
     unsigned map_offset_passed = 0;
     unsigned map_value_passed = 0;
@@ -3960,6 +4130,18 @@ int main(int argc, char **argv) {
             ++field_nmi_passed;
         else
             ++failed;
+    }
+    memset(&field_scroll, 0, sizeof(field_scroll));
+    for (unsigned i = 0; i < FIELD_SCROLL_CASES && failed < 20; ++i) {
+        if (RunFieldScrollCase(&bus, reference, initial, i, &field_scroll))
+            ++field_scroll_passed;
+        else
+            ++failed;
+    }
+    if (field_scroll.returned < FIELD_SCROLL_CASES / 8u) {
+        fprintf(stderr, "FAIL BD77 too few returned cases: %u\n",
+            field_scroll.returned);
+        ++failed;
     }
     if (actor_slots.returned < ACTOR_SLOTS_CASES / 2u) {
         fprintf(stderr, "FAIL BB93 too few terminated cases: %u\n",
@@ -4238,6 +4420,13 @@ int main(int argc, char **argv) {
         "(RTL %u, MMIO writes compared %u)\n",
         field_nmi_passed, FIELD_NMI_CASES, field_nmi.returned,
         field_nmi.mmio_writes);
+    printf("$8E:BD77 whole-function cases passed:      %u / %u "
+        "(RTL %u, LLE BD77 %u, BDD7 %u, BDF5 %u, BDFB %u, BE2A %u, "
+        "BE47 %u)\n",
+        field_scroll_passed, FIELD_SCROLL_CASES, field_scroll.returned,
+        field_scroll.boundary[0], field_scroll.boundary[1],
+        field_scroll.boundary[2], field_scroll.boundary[3],
+        field_scroll.boundary[4], field_scroll.boundary[5]);
     printf("$83:FB12 movement-step cases passed:       %u / %u\n",
         movement_step_passed, MOVEMENT_HELPER_CASES);
     printf("$83:F9D4 map-offset cases passed:          %u / %u\n",
