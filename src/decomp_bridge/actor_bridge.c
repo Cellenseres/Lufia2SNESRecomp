@@ -302,6 +302,10 @@ RecompReturn Lufia2DecompBridge_8682(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x838682u, Lufia2FieldAnimationTicks, 2);
 }
 
+RecompReturn Lufia2DecompBridge_AEB5(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x83aeb5u, Lufia2FieldColourEffects, 2);
+}
+
 RecompReturn Lufia2DecompBridge_C1B4(CpuState *cpu) {
     return ActorBridgeWhole(
         cpu, 0x83c1b4u, Lufia2PlayerSlotStandardUpdate, 2);
