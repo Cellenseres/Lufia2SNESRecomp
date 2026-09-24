@@ -318,6 +318,10 @@ RecompReturn Lufia2DecompBridge_CEF6(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x86cef6u, Lufia2WorldMapNmiUploads, 3);
 }
 
+RecompReturn Lufia2DecompBridge_ECDB(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x85ecdbu, Lufia2BattleVramQueueSlot, 3);
+}
+
 RecompReturn Lufia2DecompBridge_8A2F(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x858a2fu, Lufia2BattleSprites, 3);
 }
