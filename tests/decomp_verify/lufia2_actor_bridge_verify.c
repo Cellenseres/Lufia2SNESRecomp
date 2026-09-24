@@ -36,6 +36,7 @@ extern RecompReturn Lufia2DecompBridge_E746(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_85DC(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_939C(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_81A9(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_92A4(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8B4B(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_9313(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_C627(CpuState *cpu);
@@ -1309,6 +1310,24 @@ static void SeedMenuNmiBridge(CpuState *cpu) {
             g_bus.wram[0x1567u] = 0;
 }
 
+static void SeedIntroNmiBridge(CpuState *cpu) {
+    const uint16_t dp = cpu->D;
+    static const uint8_t timers[8] = {
+        0x00u, 0x01u, 0x1fu, 0x20u, 0x77u, 0x78u, 0x80u, 0xffu};
+
+    g_bus.wram[(uint16_t)(dp + 0x50u)] = (Random32() & 7u)
+        ? (uint8_t)(Random32() % 7u) : (uint8_t)Random32();
+    if (Random32() & 1u)
+        g_bus.wram[(uint16_t)(dp + 0x4eu)] = timers[Random32() & 7u];
+}
+
+static void SeedIntroBridge(CpuState *cpu) {
+    SeedFieldChild(cpu);
+    SeedIntroNmiBridge(cpu);
+    g_bus.wram[0x1ff3u] = 0x83u;
+    cpu->PB = 0x80;
+}
+
 static void SeedSelectNmiBridge(CpuState *cpu) {
     SeedFieldChild(cpu);
     SeedNmiTables(cpu->D);
@@ -1464,7 +1483,7 @@ typedef struct WholeTarget {
     unsigned limit;
 } WholeTarget;
 
-static const WholeTarget kWholeTargets[34] = {
+static const WholeTarget kWholeTargets[35] = {
     {"C7F8", 0x83c7f8u, 0x83c864u, SeedC7F8, Lufia2ActorPrimaryUpdate,
      Lufia2DecompBridge_C7F8, 2, 4000000u},
     {"D508", 0x83d508u, 0x83d5d1u, SeedD508, Lufia2ActorSecondaryUpdate,
@@ -1511,6 +1530,8 @@ static const WholeTarget kWholeTargets[34] = {
      Lufia2DecompBridge_939C, 3, 4000000u},
     {"81A9", 0x8681a9u, 0u, SeedSelectNmiBridge, Lufia2SelectScreenNmi,
      Lufia2DecompBridge_81A9, 3, 4000000u},
+    {"92A4", 0x8092a4u, 0u, SeedIntroBridge, Lufia2IntroNmi,
+     Lufia2DecompBridge_92A4, 3, 4000000u},
     {"8B4B", 0x828b4bu, 0u, SeedMenu, Lufia2MenuButtons,
      Lufia2DecompBridge_8B4B, 3, 4000000u},
     {"9313", 0x829313u, 0u, SeedMenu, Lufia2MenuWindowRequest,

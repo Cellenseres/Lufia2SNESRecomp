@@ -4886,6 +4886,17 @@ static void SeedFieldReload(uint8_t *wram, uint16_t dp) {
     (void)dp;
 }
 
+/* Intro state mostly valid, timers at the edges. */
+static void SeedIntroNmi(uint8_t *wram, uint16_t dp) {
+    static const uint8_t timers[8] = {
+        0x00u, 0x01u, 0x1fu, 0x20u, 0x77u, 0x78u, 0x80u, 0xffu};
+
+    wram[(uint16_t)(dp + 0x50u)] = (NmiRandom() & 7u)
+        ? (uint8_t)(NmiRandom() % 7u) : (uint8_t)NmiRandom();
+    if (NmiRandom() & 1u)
+        wram[(uint16_t)(dp + 0x4eu)] = timers[NmiRandom() & 7u];
+}
+
 /* HDMA tables, window rows and upload flags in range. */
 static void SeedNmiTables(uint8_t *wram, uint16_t dp) {
     const uint16_t source = (uint16_t)(0x2000u + (NmiRandom() & 0x0ff0u));
@@ -5041,7 +5052,7 @@ static void SeedTitleState(uint8_t *wram, uint16_t dp) {
                                       : (uint8_t)NmiRandom();
 }
 
-static const SmallTarget kSmallTargets[16] = {
+static const SmallTarget kSmallTargets[] = {
     {"83A0", 0x8383a0u, Lufia2FieldMenuRequest, 2, 0x838079u,
      SeedMenuRequest},
     {"867B", 0x83867bu, Lufia2FieldTakeButtons, 2, 0x8380b2u,
@@ -5074,6 +5085,8 @@ static const SmallTarget kSmallTargets[16] = {
      SeedTextStep},
     {"81A9", 0x8681a9u, Lufia2SelectScreenNmi, 3, 0x000069u,
      SeedNmiTables},
+    {"92A4", 0x8092a4u, Lufia2IntroNmi, 3, 0x000069u,
+     SeedIntroNmi},
 };
 
 enum { SMALL_TARGETS = sizeof(kSmallTargets) / sizeof(kSmallTargets[0]) };
