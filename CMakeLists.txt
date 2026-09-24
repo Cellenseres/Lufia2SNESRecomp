@@ -124,9 +124,13 @@ endif()
 
 # Pinned so a build is reproducible. Follow upstream for one configure with
 # -DLUFIA2_SNESRECOMP_REVISION=<sha> or -DLUFIA2_RECOMP_UI_REVISION=<sha>.
+# Fork until the HLE boundary fix lands upstream.
+if(NOT DEFINED LUFIA2_SNESRECOMP_REPOSITORY)
+    set(LUFIA2_SNESRECOMP_REPOSITORY "Cellenseres/snesrecomp")
+endif()
 if(NOT DEFINED LUFIA2_SNESRECOMP_REVISION)
     set(LUFIA2_SNESRECOMP_REVISION
-        "15d7783c06fb509d9e8f157437dc13459028071a")
+        "f57204394d5a4f5619ea2714aac982c5d86e5027")
 endif()
 if(NOT DEFINED LUFIA2_RECOMP_UI_REVISION)
     set(LUFIA2_RECOMP_UI_REVISION
@@ -208,7 +212,7 @@ else()
     set(SNESRECOMP_ROOT
         "${_deps_root}/snesrecomp-${LUFIA2_SNESRECOMP_REVISION}")
     lufia2_download_source(
-        "https://github.com/RetroPortingToolKit/snesrecomp/archive/${LUFIA2_SNESRECOMP_REVISION}.tar.gz"
+        "https://github.com/${LUFIA2_SNESRECOMP_REPOSITORY}/archive/${LUFIA2_SNESRECOMP_REVISION}.tar.gz"
         "snesrecomp-${LUFIA2_SNESRECOMP_REVISION}.tar.gz"
         "snesrecomp-${LUFIA2_SNESRECOMP_REVISION}"
         "${SNESRECOMP_ROOT}"
