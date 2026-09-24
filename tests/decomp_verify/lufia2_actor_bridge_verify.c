@@ -1125,6 +1125,10 @@ static void Seed9C72(CpuState *cpu) {
         ? 0xffu : (uint8_t)(1u + Random32() % 3u);
     if (Random32() & 3u)
         g_bus.wram[0x099bu] &= 0x75u;
+    if (Random32() & 1u)
+        g_bus.wram[0x1265u] = 0;
+    g_bus.wram[0x1266u] =
+        (uint8_t)(g_bus.wram[0x1265u] - 1u - (Random32() & 1u));
     g_bus.wram[0x09b2u] = (uint8_t)(0x20u + (Random32() & 0x3fu));
     g_bus.wram[0x109b2u] = (uint8_t)(0x20u + (Random32() & 0x3fu));
     g_bus.wram[0x1ff3u] = 0x83u;

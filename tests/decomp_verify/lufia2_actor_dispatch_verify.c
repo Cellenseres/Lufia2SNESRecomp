@@ -4013,6 +4013,10 @@ static void SeedFieldTick(SnesVerifyBus *bus) {
     if (NmiRandom() & 3u)
         bus->wram[0x099bu] &= 0x75u;
     if (NmiRandom() & 1u)
+        bus->wram[0x1265u] = 0;
+    bus->wram[0x1266u] =
+        (uint8_t)(bus->wram[0x1265u] - 1u - (NmiRandom() & 1u));
+    if (NmiRandom() & 1u)
         SeedTextScript(bus->wram);
     bus->wram[0x09b2u] = (uint8_t)(0x20u + (NmiRandom() & 0x3fu));
     bus->wram[0x109b2u] = (uint8_t)(0x20u + (NmiRandom() & 0x3fu));
