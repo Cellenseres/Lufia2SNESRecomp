@@ -4854,12 +4854,17 @@ static void SeedStatusRequests(uint8_t *wram, uint16_t dp) {
         wram[0x05b7u] &= (uint8_t)(0xf8u | NmiRandom());
 }
 
+static void SeedFieldReload(uint8_t *wram, uint16_t dp) {
+    (void)wram;
+    (void)dp;
+}
+
 static void SeedTitleState(uint8_t *wram, uint16_t dp) {
     wram[dp + 0x30u] = (NmiRandom() & 15u) ? (uint8_t)(NmiRandom() % 9u)
                                       : (uint8_t)NmiRandom();
 }
 
-static const SmallTarget kSmallTargets[4] = {
+static const SmallTarget kSmallTargets[5] = {
     {"83A0", 0x8383a0u, Lufia2FieldMenuRequest, 2, 0x838079u,
      SeedMenuRequest},
     {"867B", 0x83867bu, Lufia2FieldTakeButtons, 2, 0x8380b2u,
@@ -4868,6 +4873,8 @@ static const SmallTarget kSmallTargets[4] = {
      SeedStatusRequests},
     {"E746", 0x82e746u, Lufia2TitleStateDispatch, 3, 0x8ec2f3u,
      SeedTitleState},
+    {"85DC", 0x8385dcu, Lufia2FieldReloadSetup, 3, 0x8ec30fu,
+     SeedFieldReload},
 };
 
 /* Whole small routine from its real call site. */
@@ -4887,10 +4894,13 @@ static bool RunSmallCase(
     Lufia2ActorFrontendMemory memory = {
         NativeRead, NativeWrite, &native_context};
     Lufia2ActorPrimaryUpdateResult result;
+    SnesVerifyBusEvent native_mmio[64];
+    size_t native_count;
     uint8_t *native_wram;
     unsigned instructions = 0;
     unsigned visits = 0;
     bool stopped = false;
+    bool same_mmio;
 
     for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
         const uint32_t word = NmiRandom();
@@ -4928,6 +4938,9 @@ static bool RunSmallCase(
         native.stack = (uint16_t)(native.stack + target->frame);
         native.program_bank = (uint8_t)(exit >> 16);
     }
+    native_count = bus->mmio_count < 64u ? bus->mmio_count : 64u;
+    memcpy(native_mmio, bus->mmio, sizeof(SnesVerifyBusEvent) * native_count);
+    SnesVerifyBusResetMmio(bus);
     native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
     if (!native_wram)
         return false;
@@ -4947,7 +4960,10 @@ static bool RunSmallCase(
         interp816_runOpcode(reference);
         ++instructions;
     }
-    if (!stopped || bus->mmio_count || !SameState(&native, reference) ||
+    same_mmio = native_count == bus->mmio_count && !bus->mmio_overflow &&
+        memcmp(native_mmio, bus->mmio,
+            sizeof(SnesVerifyBusEvent) * native_count) == 0;
+    if (!stopped || !same_mmio || !SameState(&native, reference) ||
         memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
         size_t diff = 0;
         while (diff < SNES_VERIFY_WRAM_SIZE &&
@@ -5404,8 +5420,8 @@ int main(int argc, char **argv) {
     BattleFrameStats battle_sprites = {0, 0, 0, 0, 0, 0};
     BattleFrameStats battle_upkeep = {0, 0, 0, 0, 0, 0};
     unsigned battle_sprites_passed = 0;
-    SmallStats small_stats[4];
-    unsigned small_passed[4] = {0};
+    SmallStats small_stats[5];
+    unsigned small_passed[5] = {0};
     WorldMapEdgeStats world_edges = {0, 0, 0, 0};
     unsigned world_edges_passed = 0;
     unsigned vram_slot_passed = 0;
@@ -5736,7 +5752,7 @@ int main(int argc, char **argv) {
             ++failed;
     }
     memset(small_stats, 0, sizeof(small_stats));
-    for (unsigned t = 0; t < 4u; ++t)
+    for (unsigned t = 0; t < 5u; ++t)
         for (unsigned i = 0; i < SMALL_CASES && failed < 20; ++i) {
             if (RunSmallCase(&bus, reference, initial, i,
                     &kSmallTargets[t], &small_stats[t]))
@@ -6073,7 +6089,7 @@ int main(int argc, char **argv) {
         "(RTS %u, LLE %u, columns %u, rows %u)\n",
         world_edges_passed, WORLD_MAP_EDGE_CASES, world_edges.returned,
         world_edges.boundary, world_edges.columns, world_edges.rows);
-    for (unsigned t = 0; t < 4u; ++t)
+    for (unsigned t = 0; t < 5u; ++t)
         printf("$%02X:%s whole-function cases passed:      %u / %u "
             "(return %u, LLE %u)\n",
             (unsigned)(kSmallTargets[t].entry >> 16), kSmallTargets[t].name,
