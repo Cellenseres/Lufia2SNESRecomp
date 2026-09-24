@@ -14,6 +14,7 @@ extern "C" {
 enum {
     SNES_VERIFY_WRAM_SIZE = 0x20000,
     SNES_VERIFY_MAX_BUS_EVENTS = 512,
+    SNES_VERIFY_MAX_MMIO = 4096,
 };
 
 typedef struct SnesVerifyBusEvent {
@@ -36,6 +37,10 @@ typedef struct SnesVerifyBus {
     uint8_t m7_latch;
     uint16_t m7_a;
     uint8_t m7_b;
+    /* Writes outside WRAM, in order. */
+    SnesVerifyBusEvent mmio[SNES_VERIFY_MAX_MMIO];
+    size_t mmio_count;
+    bool mmio_overflow;
 } SnesVerifyBus;
 
 bool SnesVerifyLoadFile(
@@ -44,6 +49,7 @@ bool SnesVerifyBusInit(
     SnesVerifyBus *bus, const uint8_t *rom, size_t rom_size);
 void SnesVerifyBusDestroy(SnesVerifyBus *bus);
 void SnesVerifyBusResetTrace(SnesVerifyBus *bus);
+void SnesVerifyBusResetMmio(SnesVerifyBus *bus);
 
 uint8_t SnesVerifyBusRead(void *opaque, uint32_t address);
 void SnesVerifyBusWrite(void *opaque, uint32_t address, uint8_t value);

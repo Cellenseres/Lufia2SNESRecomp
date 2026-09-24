@@ -19,6 +19,7 @@ extern RecompReturn Lufia2DecompBridge_C1B4(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_BB93(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_81C6(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_E03E(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_9FA9(CpuState *cpu);
 
 enum {
     LUFIA2_ROM_SIZE = 0x280000,
@@ -974,6 +975,55 @@ static void SeedE03E(CpuState *cpu) {
     cpu_mirrors_to_p(cpu);
 }
 
+/* Field NMI queues around the $00:0067 JSL. */
+static void Seed9FA9(CpuState *cpu) {
+    static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
+    const uint16_t dp = dps[Random32() & 7u];
+
+    RandomFill(g_bus.wram);
+    for (unsigned i = 0; i < 8u; ++i) {
+        if (Random32() & 3u)
+            Poke16(g_bus.wram, 0x1246u + 2u * i, 0);
+        if (Random32() & 3u)
+            Poke16(g_bus.wram, 0x1236u + 2u * i, 0);
+        if (Random32() & 3u)
+            Poke16(g_bus.wram, 0x05c2u + 2u * i, 0);
+    }
+    if (Random32() & 1u) {
+        const uint8_t count = (uint8_t)(2u * (1u + Random32() % 4u));
+        g_bus.wram[0x1d4f8u] = count;
+        for (unsigned i = 2; i <= count; i += 2)
+            g_bus.wram[0x1d538u + i] = (uint8_t)(1u + Random32() % 3u);
+    } else {
+        g_bus.wram[0x1d4f8u] = 0;
+    }
+    g_bus.wram[0x1ff1u] = (uint8_t)RETURN_WORD;
+    g_bus.wram[0x1ff2u] = (uint8_t)(RETURN_WORD >> 8);
+    g_bus.wram[0x1ff3u] = 0x83u;
+
+    memset(cpu, 0, sizeof(*cpu));
+    cpu->A = (uint16_t)Random32();
+    cpu->X = (uint16_t)Random32();
+    cpu->Y = (uint16_t)Random32();
+    cpu->S = 0x1ff0u;
+    cpu->D = dp;
+    cpu->DB = (Random32() & 1u) ? 0x80u : 0x00u;
+    cpu->PB = 0x83;
+    cpu->m_flag = 1;
+    cpu->x_flag = (Random32() & 3u) ? 1u : 0u;
+    cpu->_flag_C = Random32() & 1u;
+    cpu->_flag_Z = Random32() & 1u;
+    cpu->_flag_V = Random32() & 1u;
+    cpu->_flag_N = Random32() & 1u;
+    cpu->_flag_I = Random32() & 1u;
+    cpu->ram = g_bus.wram;
+    if (cpu->x_flag) {
+        cpu->X &= 0x00ffu;
+        cpu->Y &= 0x00ffu;
+    }
+    cpu_mirrors_to_p(cpu);
+}
+
 typedef Lufia2ActorPrimaryUpdateResult (*WholeDecomp)(
     const Lufia2ActorFrontendMemory *memory, Lufia2ActorFrontendCpu *cpu);
 
@@ -988,7 +1038,7 @@ typedef struct WholeTarget {
     unsigned limit;
 } WholeTarget;
 
-static const WholeTarget kWholeTargets[6] = {
+static const WholeTarget kWholeTargets[7] = {
     {"C7F8", 0x83c7f8u, 0x83c864u, SeedC7F8, Lufia2ActorPrimaryUpdate,
      Lufia2DecompBridge_C7F8, 2, 4000000u},
     {"D508", 0x83d508u, 0x83d5d1u, SeedD508, Lufia2ActorSecondaryUpdate,
@@ -1001,6 +1051,8 @@ static const WholeTarget kWholeTargets[6] = {
      Lufia2DecompBridge_81C6, 2, 4000000u},
     {"E03E", 0x83e03eu, 0x83e10fu, SeedE03E, Lufia2ObjectSlotsUpdate,
      Lufia2DecompBridge_E03E, 2, 4000000u},
+    {"9FA9", 0x839fa9u, 0u, Seed9FA9, Lufia2FieldNmiUploads,
+     Lufia2DecompBridge_9FA9, 3, 4000000u},
 };
 
 /* Multiplier latches carry across runs. */
@@ -1196,8 +1248,8 @@ int main(int argc, char **argv) {
     unsigned passed[4][3] = {{0}};
     unsigned unsupported[4] = {0};
     unsigned fb12_oob = 0;
-    unsigned whole_passed[6] = {0, 0, 0, 0, 0, 0};
-    WholeStats whole_stats[6];
+    unsigned whole_passed[7] = {0, 0, 0, 0, 0, 0, 0};
+    WholeStats whole_stats[7];
     unsigned failed = 0;
     bool bus_ready = false;
 
@@ -1256,7 +1308,7 @@ int main(int argc, char **argv) {
     }
 
     memset(whole_stats, 0, sizeof(whole_stats));
-    for (unsigned t = 0; t < 6u && failed < 20; ++t) {
+    for (unsigned t = 0; t < 7u && failed < 20; ++t) {
         const WholeTarget *target = &kWholeTargets[t];
 
         const unsigned cases = t == 3u ? WHOLE_CASES / 4u : WHOLE_CASES;
@@ -1293,7 +1345,7 @@ int main(int argc, char **argv) {
                 unsupported[t], UNSUPPORTED_CASES);
         fprintf(out, "$83:FB12 out-of-range tail %u/%u\n",
             fb12_oob, UNSUPPORTED_CASES);
-        for (unsigned t = 0; t < 6u; ++t)
+        for (unsigned t = 0; t < 7u; ++t)
             fprintf(out,
                 "$83:%s %u/%u (host return %u, dispatch return %u, "
                 "LLE boundary %u, LLE entry %u, child never returned %u)\n",

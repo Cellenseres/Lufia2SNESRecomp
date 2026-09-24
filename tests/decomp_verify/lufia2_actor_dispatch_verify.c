@@ -3321,6 +3321,152 @@ static bool RunObjectSlotsCase(
     return true;
 }
 
+enum { FIELD_NMI_CASES = 8192 };
+
+typedef struct FieldNmiStats {
+    unsigned returned;
+    unsigned mmio_writes;
+} FieldNmiStats;
+
+static uint64_t g_nmi_rng = UINT64_C(0x3c6ef372fe94f82a);
+
+static uint32_t NmiRandom(void) {
+    g_nmi_rng ^= g_nmi_rng << 13;
+    g_nmi_rng ^= g_nmi_rng >> 7;
+    g_nmi_rng ^= g_nmi_rng << 17;
+    return (uint32_t)(g_nmi_rng >> 32);
+}
+
+/* Whole $83:9FA9 from the $00:0067 JSL; MMIO order compared. */
+static bool RunFieldNmiCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index,
+    FieldNmiStats *stats) {
+    static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
+    static const uint8_t banks[4] = {0x80u, 0x80u, 0x00u, 0x7eu};
+    const uint16_t dp = dps[NmiRandom() & 7u];
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    SnesVerifyBusEvent *native_mmio;
+    size_t native_count;
+    uint8_t *native_wram;
+    unsigned instructions = 0;
+    bool stopped = false;
+    bool same_mmio;
+
+    for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
+        const uint32_t word = NmiRandom();
+        memcpy(bus->wram + i, &word, 4);
+    }
+    /* Upload queues: mostly empty, a few entries. */
+    for (unsigned i = 0; i < 8u; ++i) {
+        if (NmiRandom() & 3u)
+            Poke16(bus, 0x1236u + 2u * i + 0x10u, 0);
+        if (NmiRandom() & 3u)
+            Poke16(bus, 0x1236u + 2u * i, 0);
+        if (NmiRandom() & 3u)
+            Poke16(bus, 0x05c2u + 2u * i, 0);
+    }
+    if (NmiRandom() & 1u) {
+        const uint8_t count = (uint8_t)(2u * (1u + NmiRandom() % 4u));
+        bus->wram[0x1d4f8u] = count;
+        for (unsigned i = 2; i <= count; i += 2)
+            bus->wram[0x1d538u + i] = (uint8_t)(1u + NmiRandom() % 3u);
+    } else {
+        bus->wram[0x1d4f8u] = 0;
+    }
+    /* JSL $83:9FA9 at $00:0067. */
+    bus->wram[0x1ff1u] = 0x69u;
+    bus->wram[0x1ff2u] = 0x00u;
+    bus->wram[0x1ff3u] = 0x00u;
+
+    memset(&input, 0, sizeof(input));
+    input.accumulator = (uint16_t)NmiRandom();
+    input.x = (uint16_t)NmiRandom();
+    input.y = (uint16_t)NmiRandom();
+    input.stack = 0x1ff0u;
+    input.direct_page = dp;
+    input.data_bank = banks[NmiRandom() & 3u];
+    input.program_bank = 0x83u;
+    input.carry = NmiRandom() & 1u;
+    input.zero = NmiRandom() & 1u;
+    input.negative = NmiRandom() & 1u;
+    input.overflow = NmiRandom() & 1u;
+    input.irq_disable = NmiRandom() & 1u;
+    input.accumulator_is_8_bit = (NmiRandom() & 3u) ? 1u : 0u;
+    input.index_is_8_bit = (NmiRandom() & 3u) ? 1u : 0u;
+    if (input.index_is_8_bit) {
+        input.x &= 0x00ffu;
+        input.y &= 0x00ffu;
+    }
+
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    SnesVerifyBusResetMmio(bus);
+    (void)Lufia2FieldNmiUploads(&memory, &native);
+    native.stack = (uint16_t)(native.stack + 3u);       /* RTL */
+    native.program_bank = 0x00u;
+    native_count = bus->mmio_count;
+    native_mmio = (SnesVerifyBusEvent *)malloc(
+        sizeof(SnesVerifyBusEvent) * (native_count ? native_count : 1u));
+    native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    if (!native_mmio || !native_wram) {
+        free(native_mmio);
+        free(native_wram);
+        return false;
+    }
+    memcpy(native_mmio, bus->mmio, sizeof(SnesVerifyBusEvent) * native_count);
+    memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+
+    SnesVerifyBusResetMmio(bus);
+    InitInterp(reference, 0x839fa9u, &input);
+    while (instructions < 400000u) {
+        if (SnesVerifyPc24(reference) == 0x00006au) {
+            stopped = true;
+            break;
+        }
+        interp816_runOpcode(reference);
+        ++instructions;
+    }
+    same_mmio = native_count == bus->mmio_count && !bus->mmio_overflow &&
+        memcmp(native_mmio, bus->mmio,
+            sizeof(SnesVerifyBusEvent) * native_count) == 0;
+
+    if (!stopped || !same_mmio || !SameState(&native, reference) ||
+        memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        size_t diff = 0;
+        while (diff < SNES_VERIFY_WRAM_SIZE &&
+               native_wram[diff] == bus->wram[diff])
+            ++diff;
+        fprintf(stderr,
+            "FAIL 9FA9 case %u: stop=%d mmio=%u/%u same=%d insns=%u "
+            "A=%04X/%04X X=%04X/%04X Y=%04X/%04X S=%04X/%04X "
+            "M=%u/%u Xf=%u/%u C=%u/%u Z=%u/%u N=%u/%u wram@%05X\n",
+            case_index, stopped ? 1 : 0, (unsigned)native_count,
+            (unsigned)bus->mmio_count, same_mmio ? 1 : 0, instructions,
+            native.accumulator, reference->a, native.x, reference->x,
+            native.y, reference->y, native.stack, reference->sp,
+            native.accumulator_is_8_bit, reference->mf,
+            native.index_is_8_bit, reference->xf,
+            native.carry, reference->c, native.zero, reference->z,
+            native.negative, reference->n, (unsigned)diff);
+        free(native_mmio);
+        free(native_wram);
+        return false;
+    }
+    free(native_mmio);
+    free(native_wram);
+    ++stats->returned;
+    stats->mmio_writes += (unsigned)native_count;
+    return true;
+}
+
 enum { SECONDARY_UPDATE_CASES = 16384 };
 
 /* Whole $83:D508 against the ROM, random machine and scripts. */
@@ -3549,6 +3695,8 @@ int main(int argc, char **argv) {
     FieldTriggerStats field_trigger;
     unsigned object_slots_passed = 0;
     ObjectSlotsStats object_slots = {0, 0, 0};
+    unsigned field_nmi_passed = 0;
+    FieldNmiStats field_nmi = {0, 0};
     unsigned movement_step_passed = 0;
     unsigned map_offset_passed = 0;
     unsigned map_value_passed = 0;
@@ -3802,6 +3950,12 @@ int main(int argc, char **argv) {
     for (unsigned i = 0; i < OBJECT_SLOTS_CASES && failed < 20; ++i) {
         if (RunObjectSlotsCase(&bus, reference, initial, i, &object_slots))
             ++object_slots_passed;
+        else
+            ++failed;
+    }
+    for (unsigned i = 0; i < FIELD_NMI_CASES && failed < 20; ++i) {
+        if (RunFieldNmiCase(&bus, reference, initial, i, &field_nmi))
+            ++field_nmi_passed;
         else
             ++failed;
     }
@@ -4078,6 +4232,10 @@ int main(int argc, char **argv) {
         "(RTS E0FB %u, LLE boundary %u, object VM dispatches %u)\n",
         object_slots_passed, OBJECT_SLOTS_CASES, object_slots.returned,
         object_slots.boundary, object_slots.dispatches);
+    printf("$83:9FA9 whole-function cases passed:      %u / %u "
+        "(RTL %u, MMIO writes compared %u)\n",
+        field_nmi_passed, FIELD_NMI_CASES, field_nmi.returned,
+        field_nmi.mmio_writes);
     printf("$83:FB12 movement-step cases passed:       %u / %u\n",
         movement_step_passed, MOVEMENT_HELPER_CASES);
     printf("$83:F9D4 map-offset cases passed:          %u / %u\n",

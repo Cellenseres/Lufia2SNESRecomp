@@ -131,6 +131,13 @@ static uint32_t Mode7Product(const SnesVerifyBus *bus) {
     return (uint32_t)product & 0x00ffffffu;
 }
 
+void SnesVerifyBusResetMmio(SnesVerifyBus *bus) {
+    if (!bus)
+        return;
+    bus->mmio_count = 0;
+    bus->mmio_overflow = false;
+}
+
 uint8_t SnesVerifyBusRead(void *opaque, uint32_t address) {
     SnesVerifyBus *bus = (SnesVerifyBus *)opaque;
     const int32_t wram_offset = WramOffset(address);
@@ -173,6 +180,16 @@ void SnesVerifyBusWrite(void *opaque, uint32_t address, uint8_t value) {
         bus->m7_latch = value;
     } else if (wram_offset >= 0) {
         bus->wram[wram_offset] = value;
+    }
+    if (wram_offset < 0) {
+        if (bus->mmio_count < SNES_VERIFY_MAX_MMIO) {
+            SnesVerifyBusEvent *event = &bus->mmio[bus->mmio_count++];
+            event->address = address & 0xffffffu;
+            event->value = value;
+            event->write = 1u;
+        } else {
+            bus->mmio_overflow = true;
+        }
     }
     Trace(bus, address, value, true);
 }

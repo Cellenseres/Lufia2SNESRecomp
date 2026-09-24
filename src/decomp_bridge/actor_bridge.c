@@ -201,7 +201,8 @@ typedef Lufia2ActorPrimaryUpdateResult (*ActorWholeFunction)(
 
 /* Whole JSR routine with exact LLE boundaries. */
 static RecompReturn ActorBridgeWhole(
-    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction run) {
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction run,
+    uint8_t frame_size) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2ActorFrontendMemory memory = {
         ActorBridgeRead, ActorBridgeWrite, cpu};
@@ -218,15 +219,15 @@ static RecompReturn ActorBridgeWhole(
         return interp_tier_dispatch_tail(
             cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
     }
-    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+    return ActorBridgeReturn(cpu, &frame, frame_size, result.pc);
 }
 
 RecompReturn Lufia2DecompBridge_C7F8(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x83c7f8u, Lufia2ActorPrimaryUpdate);
+    return ActorBridgeWhole(cpu, 0x83c7f8u, Lufia2ActorPrimaryUpdate, 2);
 }
 
 RecompReturn Lufia2DecompBridge_D508(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x83d508u, Lufia2ActorSecondaryUpdate);
+    return ActorBridgeWhole(cpu, 0x83d508u, Lufia2ActorSecondaryUpdate, 2);
 }
 
 typedef struct ActorSlotsCall {
@@ -278,14 +279,18 @@ RecompReturn Lufia2DecompBridge_BB93(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_81C6(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x8381c6u, Lufia2FieldTriggerUpdate);
+    return ActorBridgeWhole(cpu, 0x8381c6u, Lufia2FieldTriggerUpdate, 2);
 }
 
 RecompReturn Lufia2DecompBridge_E03E(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x83e03eu, Lufia2ObjectSlotsUpdate);
+    return ActorBridgeWhole(cpu, 0x83e03eu, Lufia2ObjectSlotsUpdate, 2);
+}
+
+RecompReturn Lufia2DecompBridge_9FA9(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x839fa9u, Lufia2FieldNmiUploads, 3);
 }
 
 RecompReturn Lufia2DecompBridge_C1B4(CpuState *cpu) {
     return ActorBridgeWhole(
-        cpu, 0x83c1b4u, Lufia2PlayerSlotStandardUpdate);
+        cpu, 0x83c1b4u, Lufia2PlayerSlotStandardUpdate, 2);
 }
