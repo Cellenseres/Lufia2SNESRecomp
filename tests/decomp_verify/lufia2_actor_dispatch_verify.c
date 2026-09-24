@@ -4595,6 +4595,99 @@ static bool RunWorldMapNmiCase(
     return true;
 }
 
+enum { VRAM_SLOT_CASES = 16384 };
+
+/* Whole $85:ECDB from the JSL at $85:9633. */
+static bool RunVramSlotCase(
+    SnesVerifyBus *bus,
+    Interp816 *reference,
+    uint8_t *initial,
+    unsigned case_index,
+    unsigned *boundaries) {
+    static const uint8_t banks[4] = {0x85u, 0x85u, 0x00u, 0x7eu};
+    Lufia2ActorFrontendCpu input;
+    Lufia2ActorFrontendCpu native;
+    NativeMemory native_context = {bus};
+    Lufia2ActorFrontendMemory memory = {
+        NativeRead, NativeWrite, &native_context};
+    Lufia2ActorPrimaryUpdateResult result;
+    uint8_t *native_wram;
+    unsigned instructions = 0;
+    bool stopped = false;
+
+    for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
+        const uint32_t word = NmiRandom();
+        memcpy(bus->wram + i, &word, 4);
+    }
+    for (unsigned slot = 0; slot < 16u; ++slot)
+        if (!(NmiRandom() % 12u))
+            Poke16(bus, 0x1a8fu + 6u * slot, 0);
+    bus->wram[0x1ff1u] = 0x36u;
+    bus->wram[0x1ff2u] = 0x96u;
+    bus->wram[0x1ff3u] = 0x85u;
+
+    memset(&input, 0, sizeof(input));
+    input.accumulator = (uint16_t)NmiRandom();
+    input.x = (uint16_t)NmiRandom();
+    input.y = (uint16_t)NmiRandom();
+    input.stack = 0x1ff0u;
+    input.direct_page = (NmiRandom() & 3u) ? 0 : 0x0400u;
+    input.data_bank = banks[NmiRandom() & 3u];
+    input.program_bank = 0x85u;
+    input.carry = NmiRandom() & 1u;
+    input.zero = NmiRandom() & 1u;
+    input.negative = NmiRandom() & 1u;
+    input.overflow = NmiRandom() & 1u;
+    input.irq_disable = NmiRandom() & 1u;
+    input.accumulator_is_8_bit = NmiRandom() & 1u;
+    input.index_is_8_bit = (NmiRandom() & 7u) ? 0u : 1u;
+    if (input.index_is_8_bit) {
+        input.x &= 0x00ffu;
+        input.y &= 0x00ffu;
+    }
+
+    memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    native = input;
+    result = Lufia2BattleVramQueueSlot(&memory, &native);
+    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+        native.stack = (uint16_t)(native.stack + 3u);   /* RTL */
+        native.program_bank = 0x85u;
+    }
+    native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
+    if (!native_wram)
+        return false;
+    memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+
+    InitInterp(reference, 0x85ecdbu, &input);
+    while (instructions < 10000u) {
+        const uint32_t pc = SnesVerifyPc24(reference);
+        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+                ? pc == 0x859637u
+                : pc == result.pc && reference->sp == native.stack) {
+            stopped = true;
+            break;
+        }
+        interp816_runOpcode(reference);
+        ++instructions;
+    }
+    if (!stopped || !SameState(&native, reference) ||
+        memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
+        fprintf(stderr,
+            "FAIL ECDB case %u: flow=%u pc=%06X stop=%d "
+            "X=%04X/%04X Y=%04X/%04X Z=%u/%u N=%u/%u\n",
+            case_index, (unsigned)result.flow, result.pc, stopped ? 1 : 0,
+            native.x, reference->x, native.y, reference->y,
+            native.zero, reference->z, native.negative, reference->n);
+        free(native_wram);
+        return false;
+    }
+    free(native_wram);
+    if (result.flow != LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+        ++*boundaries;
+    return true;
+}
+
 enum { BATTLE_FRAME_CASES = 16384 };
 
 typedef struct BattleFrameStats {
@@ -5023,6 +5116,8 @@ int main(int argc, char **argv) {
     BattleFrameStats battle_sprites = {0, 0, 0, 0, 0, 0};
     BattleFrameStats battle_upkeep = {0, 0, 0, 0, 0, 0};
     unsigned battle_sprites_passed = 0;
+    unsigned vram_slot_passed = 0;
+    unsigned vram_slot_full = 0;
     WorldMapNmiStats world_nmi = {0, 0, 0, 0};
     unsigned world_nmi_passed = 0;
     FieldSpritesStats field_sprites = {0, 0, 0};
@@ -5333,6 +5428,12 @@ int main(int argc, char **argv) {
     for (unsigned i = 0; i < WORLD_MAP_NMI_CASES && failed < 20; ++i) {
         if (RunWorldMapNmiCase(&bus, reference, initial, i, &world_nmi))
             ++world_nmi_passed;
+        else
+            ++failed;
+    }
+    for (unsigned i = 0; i < VRAM_SLOT_CASES && failed < 20; ++i) {
+        if (RunVramSlotCase(&bus, reference, initial, i, &vram_slot_full))
+            ++vram_slot_passed;
         else
             ++failed;
     }
@@ -5658,6 +5759,9 @@ int main(int argc, char **argv) {
         "(tile uploads %u, palette cycles %u, MMIO writes compared %u)\n",
         world_nmi_passed, WORLD_MAP_NMI_CASES, world_nmi.tiles,
         world_nmi.cycles, world_nmi.mmio_writes);
+    printf("$85:ECDB whole-function cases passed:      %u / %u "
+        "(queue full or X=1, LLE %u)\n",
+        vram_slot_passed, VRAM_SLOT_CASES, vram_slot_full);
     printf("$83:A21A whole-function cases passed:      %u / %u "
         "(RTL %u, LLE %u, sprites %u)\n",
         field_sprites_passed, FIELD_SPRITES_CASES, field_sprites.returned,
