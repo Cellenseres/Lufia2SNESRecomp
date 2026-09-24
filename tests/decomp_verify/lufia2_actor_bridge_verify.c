@@ -29,6 +29,9 @@ extern RecompReturn Lufia2DecompBridge_8DC5(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_CEF6(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_ECDB(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_99BF(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_83A0(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_867B(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_8103(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8A2F(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_ECF0(CpuState *cpu);
 
@@ -1309,7 +1312,7 @@ typedef struct WholeTarget {
     unsigned limit;
 } WholeTarget;
 
-static const WholeTarget kWholeTargets[18] = {
+static const WholeTarget kWholeTargets[21] = {
     {"C7F8", 0x83c7f8u, 0x83c864u, SeedC7F8, Lufia2ActorPrimaryUpdate,
      Lufia2DecompBridge_C7F8, 2, 4000000u},
     {"D508", 0x83d508u, 0x83d5d1u, SeedD508, Lufia2ActorSecondaryUpdate,
@@ -1342,6 +1345,12 @@ static const WholeTarget kWholeTargets[18] = {
      Lufia2DecompBridge_ECDB, 3, 4000000u},
     {"99BF", 0x8699bfu, 0u, Seed99BF, Lufia2WorldMapStreamEdges,
      Lufia2DecompBridge_99BF, 2, 4000000u},
+    {"83A0", 0x8383a0u, 0u, SeedFieldChild, Lufia2FieldMenuRequest,
+     Lufia2DecompBridge_83A0, 2, 4000000u},
+    {"867B", 0x83867bu, 0u, SeedFieldChild, Lufia2FieldTakeButtons,
+     Lufia2DecompBridge_867B, 2, 4000000u},
+    {"8103", 0x838103u, 0u, SeedFieldChild, Lufia2FieldStatusRequests,
+     Lufia2DecompBridge_8103, 2, 4000000u},
     {"8A2F", 0x858a2fu, 0u, SeedBattleFrame, Lufia2BattleSprites,
      Lufia2DecompBridge_8A2F, 3, 4000000u},
     {"ECF0", 0x85ecf0u, 0u, SeedBattleFrame, Lufia2BattleFrameUpkeep,
@@ -1553,8 +1562,8 @@ int main(int argc, char **argv) {
     unsigned passed[4][3] = {{0}};
     unsigned unsupported[4] = {0};
     unsigned fb12_oob = 0;
-    unsigned whole_passed[18] = {0};
-    WholeStats whole_stats[18];
+    unsigned whole_passed[21] = {0};
+    WholeStats whole_stats[21];
     unsigned failed = 0;
     bool bus_ready = false;
 
@@ -1613,7 +1622,7 @@ int main(int argc, char **argv) {
     }
 
     memset(whole_stats, 0, sizeof(whole_stats));
-    for (unsigned t = 0; t < 18u && failed < 20; ++t) {
+    for (unsigned t = 0; t < 21u && failed < 20; ++t) {
         const WholeTarget *target = &kWholeTargets[t];
 
         const unsigned cases = t == 3u ? WHOLE_CASES / 4u : WHOLE_CASES;
@@ -1650,7 +1659,7 @@ int main(int argc, char **argv) {
                 unsupported[t], UNSUPPORTED_CASES);
         fprintf(out, "$83:FB12 out-of-range tail %u/%u\n",
             fb12_oob, UNSUPPORTED_CASES);
-        for (unsigned t = 0; t < 18u; ++t)
+        for (unsigned t = 0; t < 21u; ++t)
             fprintf(out,
                 "$%02X:%s %u/%u (host return %u, dispatch return %u, "
                 "LLE boundary %u, LLE entry %u, child never returned %u)\n",
