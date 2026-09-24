@@ -3974,6 +3974,8 @@ static void SeedFieldTick(SnesVerifyBus *bus) {
         ? 0xffu : (uint8_t)(1u + NmiRandom() % 3u);
     if (NmiRandom() & 3u)
         bus->wram[0x099bu] &= 0x75u;
+    bus->wram[0x09b2u] = (uint8_t)(0x20u + (NmiRandom() & 0x3fu));
+    bus->wram[0x109b2u] = (uint8_t)(0x20u + (NmiRandom() & 0x3fu));
     /* JSL $80:9C72 at $83:8073. */
     bus->wram[0x1ff1u] = 0x76u;
     bus->wram[0x1ff2u] = 0x80u;
@@ -4944,12 +4946,35 @@ static void SeedWorldRegion(uint8_t *wram, uint16_t dp) {
     }
 }
 
+/* Printable text in WRAM, glyph buffer off the stack page. */
+static void SeedTextStep(uint8_t *wram, uint16_t dp) {
+    const uint16_t text = (uint16_t)(0x2000u + (NmiRandom() & 0x3fffu));
+
+    (void)dp;
+    if (NmiRandom() & 3u)
+        wram[0x1d0ffu] = 0;
+    if (NmiRandom() & 3u)
+        wram[0x1259u] = 0;
+    if (NmiRandom() & 3u)
+        wram[0x099bu] |= 0x01u;
+    if (NmiRandom() & 1u) {
+        wram[0x09b9u] = 0x7eu;
+        wram[0x09b7u] = (uint8_t)text;
+        wram[0x09b8u] = (uint8_t)(text >> 8);
+        for (unsigned i = 0; i < 4u; ++i)
+            wram[(uint16_t)(text + i)] = (NmiRandom() & 7u)
+                ? (uint8_t)(0x20u + NmiRandom() % 0x60u) : (uint8_t)NmiRandom();
+    }
+    wram[0x09b2u] = (uint8_t)(0x20u + (NmiRandom() & 0x3fu));
+    wram[0x109b2u] = (uint8_t)(0x20u + (NmiRandom() & 0x3fu));
+}
+
 static void SeedTitleState(uint8_t *wram, uint16_t dp) {
     wram[dp + 0x30u] = (NmiRandom() & 15u) ? (uint8_t)(NmiRandom() % 9u)
                                       : (uint8_t)NmiRandom();
 }
 
-static const SmallTarget kSmallTargets[14] = {
+static const SmallTarget kSmallTargets[15] = {
     {"83A0", 0x8383a0u, Lufia2FieldMenuRequest, 2, 0x838079u,
      SeedMenuRequest},
     {"867B", 0x83867bu, Lufia2FieldTakeButtons, 2, 0x8380b2u,
@@ -4978,6 +5003,8 @@ static const SmallTarget kSmallTargets[14] = {
      SeedScreenFade},
     {"9EDD", 0x869eddu, Lufia2WorldMapRegionSearch, 2, 0x869e67u,
      SeedWorldRegion},
+    {"9CB8", 0x809cb8u, Lufia2TextEngineStep, 3, 0x83807bu,
+     SeedTextStep},
 };
 
 /* Whole small routine from its real call site. */
@@ -5523,8 +5550,8 @@ int main(int argc, char **argv) {
     BattleFrameStats battle_sprites = {0, 0, 0, 0, 0, 0};
     BattleFrameStats battle_upkeep = {0, 0, 0, 0, 0, 0};
     unsigned battle_sprites_passed = 0;
-    SmallStats small_stats[14];
-    unsigned small_passed[14] = {0};
+    SmallStats small_stats[15];
+    unsigned small_passed[15] = {0};
     WorldMapEdgeStats world_edges = {0, 0, 0, 0};
     unsigned world_edges_passed = 0;
     unsigned vram_slot_passed = 0;
@@ -5855,7 +5882,7 @@ int main(int argc, char **argv) {
             ++failed;
     }
     memset(small_stats, 0, sizeof(small_stats));
-    for (unsigned t = 0; t < 14u; ++t)
+    for (unsigned t = 0; t < 15u; ++t)
         for (unsigned i = 0; i < SMALL_CASES && failed < 20; ++i) {
             if (RunSmallCase(&bus, reference, initial, i,
                     &kSmallTargets[t], &small_stats[t]))
@@ -6192,7 +6219,7 @@ int main(int argc, char **argv) {
         "(RTS %u, LLE %u, columns %u, rows %u)\n",
         world_edges_passed, WORLD_MAP_EDGE_CASES, world_edges.returned,
         world_edges.boundary, world_edges.columns, world_edges.rows);
-    for (unsigned t = 0; t < 14u; ++t)
+    for (unsigned t = 0; t < 15u; ++t)
         printf("$%02X:%s whole-function cases passed:      %u / %u "
             "(return %u, LLE %u)\n",
             (unsigned)(kSmallTargets[t].entry >> 16), kSmallTargets[t].name,
