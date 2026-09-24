@@ -34,6 +34,10 @@ extern RecompReturn Lufia2DecompBridge_867B(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8103(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_E746(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_85DC(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_939C(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_8B4B(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_9313(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_C627(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8A2F(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_ECF0(CpuState *cpu);
 
@@ -1216,6 +1220,20 @@ static void Seed85DC(CpuState *cpu) {
     SeedJslX16(cpu, 0x83);
 }
 
+/* Menu routines in bank 82. */
+static void SeedMenu(CpuState *cpu) {
+    SeedJslX16(cpu, 0x82);
+}
+
+static void SeedMenuNmiBridge(CpuState *cpu) {
+    SeedFieldChild(cpu);
+    g_bus.wram[0x1ff3u] = 0x83u;
+    cpu->PB = 0x82;
+    if (Random32() & 1u)
+        g_bus.wram[0x1565u] = g_bus.wram[0x1566u] =
+            g_bus.wram[0x1567u] = 0;
+}
+
 /* Battle records, small party blocks, X=0 like the battle loop. */
 static void SeedBattleFrame(CpuState *cpu) {
     static const uint8_t layouts[8] = {1, 1, 1, 2, 2, 2, 0, 3};
@@ -1336,7 +1354,7 @@ typedef struct WholeTarget {
     unsigned limit;
 } WholeTarget;
 
-static const WholeTarget kWholeTargets[23] = {
+static const WholeTarget kWholeTargets[27] = {
     {"C7F8", 0x83c7f8u, 0x83c864u, SeedC7F8, Lufia2ActorPrimaryUpdate,
      Lufia2DecompBridge_C7F8, 2, 4000000u},
     {"D508", 0x83d508u, 0x83d5d1u, SeedD508, Lufia2ActorSecondaryUpdate,
@@ -1379,6 +1397,14 @@ static const WholeTarget kWholeTargets[23] = {
      Lufia2DecompBridge_E746, 3, 4000000u},
     {"85DC", 0x8385dcu, 0u, Seed85DC, Lufia2FieldReloadSetup,
      Lufia2DecompBridge_85DC, 3, 4000000u},
+    {"939C", 0x82939cu, 0u, SeedMenuNmiBridge, Lufia2MenuNmi,
+     Lufia2DecompBridge_939C, 3, 4000000u},
+    {"8B4B", 0x828b4bu, 0u, SeedMenu, Lufia2MenuButtons,
+     Lufia2DecompBridge_8B4B, 3, 4000000u},
+    {"9313", 0x829313u, 0u, SeedMenu, Lufia2MenuWindowRequest,
+     Lufia2DecompBridge_9313, 2, 4000000u},
+    {"C627", 0x82c627u, 0u, SeedMenu, Lufia2MenuCursorBlink,
+     Lufia2DecompBridge_C627, 2, 4000000u},
     {"8A2F", 0x858a2fu, 0u, SeedBattleFrame, Lufia2BattleSprites,
      Lufia2DecompBridge_8A2F, 3, 4000000u},
     {"ECF0", 0x85ecf0u, 0u, SeedBattleFrame, Lufia2BattleFrameUpkeep,
@@ -1590,8 +1616,8 @@ int main(int argc, char **argv) {
     unsigned passed[4][3] = {{0}};
     unsigned unsupported[4] = {0};
     unsigned fb12_oob = 0;
-    unsigned whole_passed[23] = {0};
-    WholeStats whole_stats[23];
+    unsigned whole_passed[27] = {0};
+    WholeStats whole_stats[27];
     unsigned failed = 0;
     bool bus_ready = false;
 
@@ -1650,7 +1676,7 @@ int main(int argc, char **argv) {
     }
 
     memset(whole_stats, 0, sizeof(whole_stats));
-    for (unsigned t = 0; t < 23u && failed < 20; ++t) {
+    for (unsigned t = 0; t < 27u && failed < 20; ++t) {
         const WholeTarget *target = &kWholeTargets[t];
 
         const unsigned cases = t == 3u ? WHOLE_CASES / 4u : WHOLE_CASES;
@@ -1687,7 +1713,7 @@ int main(int argc, char **argv) {
                 unsupported[t], UNSUPPORTED_CASES);
         fprintf(out, "$83:FB12 out-of-range tail %u/%u\n",
             fb12_oob, UNSUPPORTED_CASES);
-        for (unsigned t = 0; t < 23u; ++t)
+        for (unsigned t = 0; t < 27u; ++t)
             fprintf(out,
                 "$%02X:%s %u/%u (host return %u, dispatch return %u, "
                 "LLE boundary %u, LLE entry %u, child never returned %u)\n",
