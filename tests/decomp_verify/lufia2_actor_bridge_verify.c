@@ -25,6 +25,7 @@ extern RecompReturn Lufia2DecompBridge_80CD(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8682(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_AEB5(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_9C72(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_8DC5(CpuState *cpu);
 
 enum {
     LUFIA2_ROM_SIZE = 0x280000,
@@ -1105,6 +1106,27 @@ static void Seed9C72(CpuState *cpu) {
     cpu->PB = 0x80;
 }
 
+/* Battle timers mostly on handler 1, queues mostly idle. */
+static void Seed8DC5(CpuState *cpu) {
+    SeedFieldChild(cpu);
+    for (unsigned i = 0; i < 16u; ++i)
+        if (Random32() & 3u)
+            Poke16(g_bus.wram, 0x1a8fu + 6u * i, 0);
+    for (unsigned slot = 0; slot < 8u; ++slot) {
+        const uint16_t base = (uint16_t)(0x1b17u + 8u * slot);
+
+        if (Random32() & 1u)
+            g_bus.wram[base] = 0;
+        g_bus.wram[base + 1u] = (uint8_t)(1u + (Random32() & 1u));
+        g_bus.wram[base + 2u] = (Random32() & 7u)
+            ? 1u : (uint8_t)(Random32() & 0x0fu);
+    }
+    if (Random32() & 7u)
+        g_bus.wram[0x12e3u] |= 0x80u;
+    g_bus.wram[0x1ff3u] = 0x83u;
+    cpu->PB = 0x85;
+}
+
 /* Camera layers for the field loop's JSL $8E:BD77. */
 static void SeedBD77(CpuState *cpu) {
     static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
@@ -1190,7 +1212,7 @@ typedef struct WholeTarget {
     unsigned limit;
 } WholeTarget;
 
-static const WholeTarget kWholeTargets[12] = {
+static const WholeTarget kWholeTargets[13] = {
     {"C7F8", 0x83c7f8u, 0x83c864u, SeedC7F8, Lufia2ActorPrimaryUpdate,
      Lufia2DecompBridge_C7F8, 2, 4000000u},
     {"D508", 0x83d508u, 0x83d5d1u, SeedD508, Lufia2ActorSecondaryUpdate,
@@ -1215,6 +1237,8 @@ static const WholeTarget kWholeTargets[12] = {
      Lufia2DecompBridge_AEB5, 2, 4000000u},
     {"9C72", 0x809c72u, 0u, Seed9C72, Lufia2FieldEventTick,
      Lufia2DecompBridge_9C72, 3, 4000000u},
+    {"8DC5", 0x858dc5u, 0u, Seed8DC5, Lufia2BattleNmiUploads,
+     Lufia2DecompBridge_8DC5, 3, 4000000u},
 };
 
 /* Multiplier latches carry across runs. */
@@ -1416,8 +1440,8 @@ int main(int argc, char **argv) {
     unsigned passed[4][3] = {{0}};
     unsigned unsupported[4] = {0};
     unsigned fb12_oob = 0;
-    unsigned whole_passed[12] = {0};
-    WholeStats whole_stats[12];
+    unsigned whole_passed[13] = {0};
+    WholeStats whole_stats[13];
     unsigned failed = 0;
     bool bus_ready = false;
 
@@ -1476,7 +1500,7 @@ int main(int argc, char **argv) {
     }
 
     memset(whole_stats, 0, sizeof(whole_stats));
-    for (unsigned t = 0; t < 12u && failed < 20; ++t) {
+    for (unsigned t = 0; t < 13u && failed < 20; ++t) {
         const WholeTarget *target = &kWholeTargets[t];
 
         const unsigned cases = t == 3u ? WHOLE_CASES / 4u : WHOLE_CASES;
@@ -1513,7 +1537,7 @@ int main(int argc, char **argv) {
                 unsupported[t], UNSUPPORTED_CASES);
         fprintf(out, "$83:FB12 out-of-range tail %u/%u\n",
             fb12_oob, UNSUPPORTED_CASES);
-        for (unsigned t = 0; t < 12u; ++t)
+        for (unsigned t = 0; t < 13u; ++t)
             fprintf(out,
                 "$%02X:%s %u/%u (host return %u, dispatch return %u, "
                 "LLE boundary %u, LLE entry %u, child never returned %u)\n",
