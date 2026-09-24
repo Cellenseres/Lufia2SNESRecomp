@@ -11,7 +11,7 @@ function(lufia2_prepare_dma_host_fastforward sources_var core_root)
 
     file(SHA256 "${_original}" _hash)
     if(NOT _hash STREQUAL
-           "67437585090a03b63d567470c12ebf07aa156c43ad48afd488e17132ddd9b004")
+           "7ce7b20f91415a5f8d59730846d15fa31ed20f6e6931d5c5f74673074ef90f78")
         message(FATAL_ERROR
             "DMA host fast-forward requires the reviewed pinned snes.c; review the timing contract before updating core")
     endif()
