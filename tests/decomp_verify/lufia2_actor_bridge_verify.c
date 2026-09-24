@@ -35,6 +35,7 @@ extern RecompReturn Lufia2DecompBridge_8103(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_E746(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_85DC(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_939C(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_81A9(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8B4B(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_9313(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_C627(CpuState *cpu);
@@ -1258,13 +1259,61 @@ static void SeedMenu(CpuState *cpu) {
     SeedJslX16(cpu, 0x82);
 }
 
+/* HDMA tables, window rows and upload flags in range. */
+static void SeedNmiTables(uint16_t dp) {
+    const uint16_t source = (uint16_t)(0x2000u + (Random32() & 0x0ff0u));
+    const uint16_t target = (uint16_t)(0x4000u + (Random32() & 0x0ff0u));
+    const unsigned rows = Random32() & 7u;
+
+    g_bus.wram[(uint16_t)(dp + 0xf2u)] = (uint8_t)Random32();
+    g_bus.wram[(uint16_t)(dp + 0xf3u)] = (Random32() & 7u)
+        ? (uint8_t)((Random32() & 7u) << 4) : (uint8_t)Random32();
+    g_bus.wram[(uint16_t)(dp + 0xf4u)] = (uint8_t)source;
+    g_bus.wram[(uint16_t)(dp + 0xf5u)] = (uint8_t)(source >> 8);
+    g_bus.wram[(uint16_t)(dp + 0xf6u)] = 0x7eu;
+    g_bus.wram[(uint16_t)(dp + 0xf7u)] = (uint8_t)target;
+    g_bus.wram[(uint16_t)(dp + 0xf8u)] = (uint8_t)(target >> 8);
+    g_bus.wram[(uint16_t)(dp + 0xf9u)] = 0x7eu;
+    for (unsigned i = 0; i < rows; ++i)
+        g_bus.wram[source + 3u * i] |= 0x01u;
+    g_bus.wram[source + 3u * rows] = 0;
+    g_bus.wram[0x1530u] = (uint8_t)(1u + (Random32() & 7u));
+    g_bus.wram[0x1531u] = (Random32() & 15u) ? 0 : (uint8_t)(Random32() & 1u);
+    g_bus.wram[0x1539u] = (uint8_t)(Random32() & 7u);
+    g_bus.wram[0x153bu] = (uint8_t)(Random32() & 7u);
+    for (unsigned t = 0; t < 3u; ++t) {
+        const uint16_t table = (uint16_t)(0x80c0u + 0x100u * t);
+        const unsigned count = Random32() & 7u;
+
+        for (unsigned i = 0; i < count; ++i)
+            g_bus.wram[table + 3u * i] |= 0x01u;
+        g_bus.wram[table + 3u * count] = 0;
+    }
+    if (Random32() & 3u)
+        g_bus.wram[0x1565u] &= 0x07u;
+    if (Random32() & 3u)
+        g_bus.wram[0x1566u] = (uint8_t)(1u << (Random32() % 5u));
+    if (Random32() & 3u)
+        g_bus.wram[0x1568u] &= (uint8_t)~0x03u;
+}
+
 static void SeedMenuNmiBridge(CpuState *cpu) {
     SeedFieldChild(cpu);
+    SeedNmiTables(cpu->D);
+    if (!(Random32() & 3u))
+        memset(g_bus.wram + 0x11e8u, 0, 0x20u);
     g_bus.wram[0x1ff3u] = 0x83u;
     cpu->PB = 0x82;
     if (Random32() & 1u)
         g_bus.wram[0x1565u] = g_bus.wram[0x1566u] =
             g_bus.wram[0x1567u] = 0;
+}
+
+static void SeedSelectNmiBridge(CpuState *cpu) {
+    SeedFieldChild(cpu);
+    SeedNmiTables(cpu->D);
+    g_bus.wram[0x1ff3u] = 0x83u;
+    cpu->PB = 0x86;
 }
 
 /* Field rectangle checks, DB $7E like the caller. */
@@ -1415,7 +1464,7 @@ typedef struct WholeTarget {
     unsigned limit;
 } WholeTarget;
 
-static const WholeTarget kWholeTargets[33] = {
+static const WholeTarget kWholeTargets[34] = {
     {"C7F8", 0x83c7f8u, 0x83c864u, SeedC7F8, Lufia2ActorPrimaryUpdate,
      Lufia2DecompBridge_C7F8, 2, 4000000u},
     {"D508", 0x83d508u, 0x83d5d1u, SeedD508, Lufia2ActorSecondaryUpdate,
@@ -1460,6 +1509,8 @@ static const WholeTarget kWholeTargets[33] = {
      Lufia2DecompBridge_85DC, 3, 4000000u},
     {"939C", 0x82939cu, 0u, SeedMenuNmiBridge, Lufia2MenuNmi,
      Lufia2DecompBridge_939C, 3, 4000000u},
+    {"81A9", 0x8681a9u, 0u, SeedSelectNmiBridge, Lufia2SelectScreenNmi,
+     Lufia2DecompBridge_81A9, 3, 4000000u},
     {"8B4B", 0x828b4bu, 0u, SeedMenu, Lufia2MenuButtons,
      Lufia2DecompBridge_8B4B, 3, 4000000u},
     {"9313", 0x829313u, 0u, SeedMenu, Lufia2MenuWindowRequest,

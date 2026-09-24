@@ -4886,8 +4886,48 @@ static void SeedFieldReload(uint8_t *wram, uint16_t dp) {
     (void)dp;
 }
 
+/* HDMA tables, window rows and upload flags in range. */
+static void SeedNmiTables(uint8_t *wram, uint16_t dp) {
+    const uint16_t source = (uint16_t)(0x2000u + (NmiRandom() & 0x0ff0u));
+    const uint16_t target = (uint16_t)(0x4000u + (NmiRandom() & 0x0ff0u));
+    const unsigned rows = NmiRandom() & 7u;
+
+    wram[(uint16_t)(dp + 0xf2u)] = (uint8_t)NmiRandom();
+    wram[(uint16_t)(dp + 0xf3u)] = (NmiRandom() & 7u)
+        ? (uint8_t)((NmiRandom() & 7u) << 4) : (uint8_t)NmiRandom();
+    wram[(uint16_t)(dp + 0xf4u)] = (uint8_t)source;
+    wram[(uint16_t)(dp + 0xf5u)] = (uint8_t)(source >> 8);
+    wram[(uint16_t)(dp + 0xf6u)] = 0x7eu;
+    wram[(uint16_t)(dp + 0xf7u)] = (uint8_t)target;
+    wram[(uint16_t)(dp + 0xf8u)] = (uint8_t)(target >> 8);
+    wram[(uint16_t)(dp + 0xf9u)] = 0x7eu;
+    for (unsigned i = 0; i < rows; ++i)
+        wram[source + 3u * i] |= 0x01u;
+    wram[source + 3u * rows] = 0;
+    wram[0x1530u] = (uint8_t)(1u + (NmiRandom() & 7u));
+    wram[0x1531u] = (NmiRandom() & 15u) ? 0 : (uint8_t)(NmiRandom() & 1u);
+    wram[0x1539u] = (uint8_t)(NmiRandom() & 7u);
+    wram[0x153bu] = (uint8_t)(NmiRandom() & 7u);
+    for (unsigned t = 0; t < 3u; ++t) {
+        const uint16_t table = (uint16_t)(0x80c0u + 0x100u * t);
+        const unsigned count = NmiRandom() & 7u;
+
+        for (unsigned i = 0; i < count; ++i)
+            wram[table + 3u * i] |= 0x01u;
+        wram[table + 3u * count] = 0;
+    }
+    if (NmiRandom() & 3u)
+        wram[0x1565u] &= 0x07u;
+    if (NmiRandom() & 3u)
+        wram[0x1566u] = (uint8_t)(1u << (NmiRandom() % 5u));
+    if (NmiRandom() & 3u)
+        wram[0x1568u] &= (uint8_t)~0x03u;
+}
+
 static void SeedMenuNmi(uint8_t *wram, uint16_t dp) {
-    (void)dp;
+    SeedNmiTables(wram, dp);
+    if (!(NmiRandom() & 3u))
+        memset(wram + 0x11e8u, 0, 0x20u);
     if (NmiRandom() & 3u)
         wram[0x1565u] = 0;
     if (NmiRandom() & 3u)
@@ -5001,7 +5041,7 @@ static void SeedTitleState(uint8_t *wram, uint16_t dp) {
                                       : (uint8_t)NmiRandom();
 }
 
-static const SmallTarget kSmallTargets[15] = {
+static const SmallTarget kSmallTargets[16] = {
     {"83A0", 0x8383a0u, Lufia2FieldMenuRequest, 2, 0x838079u,
      SeedMenuRequest},
     {"867B", 0x83867bu, Lufia2FieldTakeButtons, 2, 0x8380b2u,
@@ -5032,7 +5072,11 @@ static const SmallTarget kSmallTargets[15] = {
      SeedWorldRegion},
     {"9CB8", 0x809cb8u, Lufia2TextEngineStep, 3, 0x83807bu,
      SeedTextStep},
+    {"81A9", 0x8681a9u, Lufia2SelectScreenNmi, 3, 0x000069u,
+     SeedNmiTables},
 };
+
+enum { SMALL_TARGETS = sizeof(kSmallTargets) / sizeof(kSmallTargets[0]) };
 
 /* Whole small routine from its real call site. */
 static bool RunSmallCase(
@@ -5577,8 +5621,8 @@ int main(int argc, char **argv) {
     BattleFrameStats battle_sprites = {0, 0, 0, 0, 0, 0};
     BattleFrameStats battle_upkeep = {0, 0, 0, 0, 0, 0};
     unsigned battle_sprites_passed = 0;
-    SmallStats small_stats[15];
-    unsigned small_passed[15] = {0};
+    SmallStats small_stats[SMALL_TARGETS];
+    unsigned small_passed[SMALL_TARGETS] = {0};
     WorldMapEdgeStats world_edges = {0, 0, 0, 0};
     unsigned world_edges_passed = 0;
     unsigned vram_slot_passed = 0;
@@ -5909,7 +5953,7 @@ int main(int argc, char **argv) {
             ++failed;
     }
     memset(small_stats, 0, sizeof(small_stats));
-    for (unsigned t = 0; t < 15u; ++t)
+    for (unsigned t = 0; t < SMALL_TARGETS; ++t)
         for (unsigned i = 0; i < SMALL_CASES && failed < 20; ++i) {
             if (RunSmallCase(&bus, reference, initial, i,
                     &kSmallTargets[t], &small_stats[t]))
@@ -6246,7 +6290,7 @@ int main(int argc, char **argv) {
         "(RTS %u, LLE %u, columns %u, rows %u)\n",
         world_edges_passed, WORLD_MAP_EDGE_CASES, world_edges.returned,
         world_edges.boundary, world_edges.columns, world_edges.rows);
-    for (unsigned t = 0; t < 15u; ++t)
+    for (unsigned t = 0; t < SMALL_TARGETS; ++t)
         printf("$%02X:%s whole-function cases passed:      %u / %u "
             "(return %u, LLE %u)\n",
             (unsigned)(kSmallTargets[t].entry >> 16), kSmallTargets[t].name,

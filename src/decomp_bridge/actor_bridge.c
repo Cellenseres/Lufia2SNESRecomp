@@ -350,6 +350,10 @@ RecompReturn Lufia2DecompBridge_939C(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x82939cu, Lufia2MenuNmi, 3);
 }
 
+RecompReturn Lufia2DecompBridge_81A9(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x8681a9u, Lufia2SelectScreenNmi, 3);
+}
+
 RecompReturn Lufia2DecompBridge_8B4B(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x828b4bu, Lufia2MenuButtons, 3);
 }
