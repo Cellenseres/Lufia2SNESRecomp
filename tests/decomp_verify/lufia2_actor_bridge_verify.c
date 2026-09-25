@@ -1598,7 +1598,7 @@ typedef struct WholeTarget {
     unsigned limit;
 } WholeTarget;
 
-static const WholeTarget kWholeTargets[36] = {
+static const WholeTarget kWholeTargets[] = {
     {"C7F8", 0x83c7f8u, 0x83c864u, SeedC7F8, Lufia2ActorPrimaryUpdate,
      Lufia2DecompBridge_C7F8, 2, 4000000u},
     {"D508", 0x83d508u, 0x83d5d1u, SeedD508, Lufia2ActorSecondaryUpdate,
@@ -1672,6 +1672,8 @@ static const WholeTarget kWholeTargets[36] = {
     {"ECF0", 0x85ecf0u, 0u, SeedBattleFrame, Lufia2BattleFrameUpkeep,
      Lufia2DecompBridge_ECF0, 3, 4000000u},
 };
+
+enum { WHOLE_TARGETS = sizeof(kWholeTargets) / sizeof(kWholeTargets[0]) };
 
 /* Multiplier latches carry across runs. */
 typedef struct BusRegisters {
@@ -1881,8 +1883,8 @@ int main(int argc, char **argv) {
     unsigned passed[4][3] = {{0}};
     unsigned unsupported[4] = {0};
     unsigned fb12_oob = 0;
-    unsigned whole_passed[33] = {0};
-    WholeStats whole_stats[33];
+    unsigned whole_passed[WHOLE_TARGETS] = {0};
+    WholeStats whole_stats[WHOLE_TARGETS];
     unsigned failed = 0;
     bool bus_ready = false;
 
@@ -1941,7 +1943,7 @@ int main(int argc, char **argv) {
     }
 
     memset(whole_stats, 0, sizeof(whole_stats));
-    for (unsigned t = 0; t < 33u && failed < 20; ++t) {
+    for (unsigned t = 0; t < WHOLE_TARGETS && failed < 20; ++t) {
         const WholeTarget *target = &kWholeTargets[t];
 
         const unsigned cases = t == 3u ? WHOLE_CASES / 4u : WHOLE_CASES;
@@ -1978,7 +1980,7 @@ int main(int argc, char **argv) {
                 unsupported[t], UNSUPPORTED_CASES);
         fprintf(out, "$83:FB12 out-of-range tail %u/%u\n",
             fb12_oob, UNSUPPORTED_CASES);
-        for (unsigned t = 0; t < 33u; ++t)
+        for (unsigned t = 0; t < WHOLE_TARGETS; ++t)
             fprintf(out,
                 "$%02X:%s %u/%u (host return %u, dispatch return %u, "
                 "LLE boundary %u, LLE entry %u, child never returned %u)\n",
