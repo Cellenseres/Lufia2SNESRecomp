@@ -310,6 +310,10 @@ RecompReturn Lufia2DecompBridge_9C72(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x809c72u, Lufia2FieldEventTick, 3);
 }
 
+RecompReturn Lufia2DecompBridge_CBAE(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x80cbaeu, Lufia2FieldEventTimerTick, 3);
+}
+
 RecompReturn Lufia2DecompBridge_8DC5(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x858dc5u, Lufia2BattleNmiUploads, 3);
 }
