@@ -5168,11 +5168,13 @@ static void SeedTextStep(uint8_t *wram, uint16_t dp) {
 
 /* Forward-only event scripts of the native opcodes, in WRAM. */
 static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
-    static const uint8_t kOps[31] = {
+    static const uint8_t kOps[41] = {
         0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
         0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u, 0x2fu,
         0x30u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u, 0x37u,
-        0x38u, 0x39u, 0x3au, 0x3bu, 0x3cu, 0x3du, 0x3eu, 0x3fu, 0x40u};
+        0x38u, 0x39u, 0x3au, 0x3bu, 0x3cu, 0x3du, 0x3eu, 0x3fu, 0x40u,
+        0x79u, 0x83u, 0x84u, 0x86u, 0x9du, 0x9eu, 0xa2u, 0xabu, 0xb5u,
+        0xb8u};
     uint8_t script[256];
     uint16_t starts[48];
     uint16_t words[96];
@@ -5202,7 +5204,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             continue;
         }
-        op = kOps[random() % 31u];
+        op = kOps[random() % 41u];
         script[len++] = op;
         switch (op) {
         case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
@@ -5218,6 +5220,23 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             break;
         case 0x0au: case 0x19u: case 0x1eu: case 0x2bu: case 0x57u:
+        case 0x86u: case 0xa2u: case 0xabu: case 0xb5u: case 0xb8u:
+            break;
+        case 0x79u:
+            script[len++] = (uint8_t)random();
+            break;
+        case 0x83u: case 0x84u:
+            /* Point $E0-$FF, then an offset. */
+            script[len++] = (random() & 7u) ? (uint8_t)(0xe0u + (random() & 0x1fu))
+                                            : (uint8_t)random();
+            script[len++] = (uint8_t)random();
+            break;
+        case 0x9du: case 0x9eu:
+            /* Variable, point value operand, point offset. */
+            script[len++] = (uint8_t)(random() & 0x3fu);
+            script[len++] = (random() & 7u) ? (uint8_t)(0xe0u + (random() & 0x1fu))
+                                            : (uint8_t)random();
+            script[len++] = (uint8_t)(random() & 0x1fu);
             break;
         default: {
             /* $2F-$40: variable, then a byte or a value operand. */
@@ -5237,7 +5256,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         }
         }
         if (op == 0x08u || op == 0x09u || op == 0x1bu || op == 0x1cu ||
-            op == 0x57u || (op >= 0x2fu && op <= 0x34u))
+            op == 0x57u || (op >= 0x2fu && op <= 0x34u) || op >= 0x79u)
             continue;
         for (unsigned w = op == 0x1eu ? 2u : 1u; w > 0u; --w) {
             owner[patches] = (uint8_t)(n - 1u);
