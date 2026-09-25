@@ -1296,7 +1296,7 @@ static void Seed85DC(CpuState *cpu) {
 
 /* Forward-only event scripts of the native opcodes, in WRAM. */
 static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
-    static const uint8_t kOps[95] = {
+    static const uint8_t kOps[104] = {
         0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
         0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u, 0x2fu,
         0x30u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u, 0x37u,
@@ -1309,7 +1309,8 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         0xb4u, 0xb6u, 0xb7u, 0xbdu, 0x82u,
         0x12u, 0x6du, 0x13u, 0x14u, 0x15u, 0x16u, 0x17u, 0x18u, 0x6eu,
         0x6fu, 0x72u, 0x73u, 0x74u, 0x75u, 0x76u, 0x77u, 0x04u, 0x05u,
-        0x70u};
+        0x70u, 0x23u, 0x6au, 0xaeu, 0x0fu, 0x6cu, 0xa7u, 0x9cu, 0x9fu,
+        0x5eu};
     uint8_t script[320];
     uint16_t starts[48];
     uint16_t words[96];
@@ -1343,7 +1344,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             continue;
         }
-        op = kOps[random() % 95u];
+        op = kOps[random() % 104u];
         script[len++] = op;
         switch (op) {
         case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
@@ -1408,6 +1409,20 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             break;
         }
         case 0xb6u: case 0xb7u:
+            break;
+        case 0x23u: case 0x6au: case 0xaeu:
+            script[len++] = (uint8_t)(random() & 0x1fu);  /* action */
+            break;
+        case 0x0fu: case 0x6cu: case 0xa7u:
+            script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x20u + (random() & 7u));
+            break;
+        case 0x9cu: case 0x5eu:
+            script[len++] = (uint8_t)(random() & 0x3fu);
+            script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x20u + (random() & 7u));
+            break;
+        case 0x9fu:
+            script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x20u + (random() & 7u));
+            script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x20u + (random() & 7u));
             break;
         case 0x75u: case 0x76u: case 0x77u:
             script[len++] = (random() & 1u) ? wram[0x1d0f4u] : (uint8_t)random();
@@ -1499,7 +1514,8 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             op == 0x5fu || op == 0x68u || op == 0x6bu || op == 0x58u ||
             op == 0x24u || op == 0x25u || op == 0x29u || op == 0xaau ||
             op == 0x13u || op == 0x15u || op == 0x17u || op == 0x72u || op == 0x75u ||
-            op == 0x05u ||
+            op == 0x05u || op == 0x23u || op == 0x6au || op == 0xaeu ||
+            op == 0xa7u || op == 0x9cu || op == 0x9fu || op == 0x5eu ||
             op == 0x55u || op == 0x69u || op == 0x85u ||
             (op >= 0x64u && op <= 0x67u))
             continue;
