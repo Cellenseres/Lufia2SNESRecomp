@@ -1296,7 +1296,7 @@ static void Seed85DC(CpuState *cpu) {
 
 /* Forward-only event scripts of the native opcodes, in WRAM. */
 static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
-    static const uint8_t kOps[104] = {
+    static const uint8_t kOps[109] = {
         0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
         0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u, 0x2fu,
         0x30u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u, 0x37u,
@@ -1310,7 +1310,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         0x12u, 0x6du, 0x13u, 0x14u, 0x15u, 0x16u, 0x17u, 0x18u, 0x6eu,
         0x6fu, 0x72u, 0x73u, 0x74u, 0x75u, 0x76u, 0x77u, 0x04u, 0x05u,
         0x70u, 0x23u, 0x6au, 0xaeu, 0x0fu, 0x6cu, 0xa7u, 0x9cu, 0x9fu,
-        0x5eu};
+        0x5eu, 0x41u, 0x46u, 0x4bu, 0x50u, 0x54u};
     uint8_t script[320];
     uint16_t starts[48];
     uint16_t words[96];
@@ -1344,7 +1344,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             continue;
         }
-        op = kOps[random() % 104u];
+        op = kOps[random() % 109u];
         script[len++] = op;
         switch (op) {
         case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
@@ -1419,6 +1419,11 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         case 0x9cu: case 0x5eu:
             script[len++] = (uint8_t)(random() & 0x3fu);
             script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x20u + (random() & 7u));
+            break;
+        case 0x41u: case 0x46u: case 0x4bu: case 0x50u: case 0x54u:
+            /* Point, then a byte for set/add/subtract. */
+            script[len++] = (uint8_t)(0xe0u + (random() & 0x1fu));
+            script[len++] = (uint8_t)random();
             break;
         case 0x9fu:
             script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x20u + (random() & 7u));
@@ -1515,6 +1520,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             op == 0x24u || op == 0x25u || op == 0x29u || op == 0xaau ||
             op == 0x13u || op == 0x15u || op == 0x17u || op == 0x72u || op == 0x75u ||
             op == 0x05u || op == 0x23u || op == 0x6au || op == 0xaeu ||
+            (op >= 0x41u && op <= 0x54u) ||
             op == 0xa7u || op == 0x9cu || op == 0x9fu || op == 0x5eu ||
             op == 0x55u || op == 0x69u || op == 0x85u ||
             (op >= 0x64u && op <= 0x67u))
@@ -1610,6 +1616,13 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         wram[0x1d6ccu + k] = (uint8_t)(random() & 3u);
         wram[0x1d6fcu + k] = (uint8_t)(0x10u + (random() & 3u));
     }
+    /* A script bank in WRAM reads quotient and remainder of the
+       DB-relative divider from WRAM. */
+    for (unsigned b = 0; b < 2u; ++b)
+        if (random() & 3u) {
+            wram[0x10000u * b + 0x4214u] = (uint8_t)(random() & 3u);
+            wram[0x10000u * b + 0x4216u] = (uint8_t)((random() & 0x80u) + random() % 5u);
+        }
     wram[0x1d194u] = (uint8_t)base;
     wram[0x1d195u] = (uint8_t)(base >> 8);
     wram[0x1d196u] = bank;
