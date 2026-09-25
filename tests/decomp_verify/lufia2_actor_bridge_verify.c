@@ -1296,9 +1296,11 @@ static void Seed85DC(CpuState *cpu) {
 
 /* Forward-only event scripts of the native opcodes, in WRAM. */
 static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
-    static const uint8_t kOps[13] = {
+    static const uint8_t kOps[31] = {
         0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
-        0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u};
+        0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u, 0x2fu,
+        0x30u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u, 0x37u,
+        0x38u, 0x39u, 0x3au, 0x3bu, 0x3cu, 0x3du, 0x3eu, 0x3fu, 0x40u};
     uint8_t script[256];
     uint16_t starts[48];
     uint16_t words[96];
@@ -1328,7 +1330,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             continue;
         }
-        op = kOps[random() % 13u];
+        op = kOps[random() % 31u];
         script[len++] = op;
         switch (op) {
         case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
@@ -1343,11 +1345,27 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             script[len++] = (uint8_t)random();
             break;
-        default:
+        case 0x0au: case 0x19u: case 0x1eu: case 0x2bu: case 0x57u:
+            break;
+        default: {
+            /* $2F-$40: variable, then a byte or a value operand. */
+            const unsigned roll = random() % 8u;
+
+            script[len++] = (random() & 3u)
+                ? (uint8_t)(random() & 0x3fu)
+                : (uint8_t)(0xfbu + random() % 5u);
+            if (op == 0x32u || op == 0x33u)
+                break;
+            script[len++] = roll < 2u ? (uint8_t)(0xa0u + (random() & 0x1fu))
+                : roll < 3u ? 0xfbu
+                : roll < 4u ? (uint8_t)(0xfcu + random() % 4u)
+                : roll < 5u ? (uint8_t)(0xc0u + (random() & 0x3fu))
+                            : (uint8_t)random();
             break;
         }
+        }
         if (op == 0x08u || op == 0x09u || op == 0x1bu || op == 0x1cu ||
-            op == 0x57u)
+            op == 0x57u || (op >= 0x2fu && op <= 0x34u))
             continue;
         for (unsigned w = op == 0x1eu ? 2u : 1u; w > 0u; --w) {
             owner[patches] = (uint8_t)(n - 1u);
