@@ -1,7 +1,7 @@
 #include <stdint.h>
 
 #include "cpu_state.h"
-#include "lufia2/actor_frontend.h"
+#include "lufia2/decomp.h"
 
 typedef struct ActorBridgeFrame {
     uint16_t entry_s;
@@ -55,7 +55,7 @@ static RecompReturn ActorBridgeFallback(
 }
 
 static void ActorBridgeLoad(
-    const CpuState *cpu, Lufia2ActorFrontendCpu *out) {
+    const CpuState *cpu, Lufia2CpuState *out) {
     out->accumulator = cpu->A;
     out->x = cpu->X;
     out->y = cpu->Y;
@@ -74,7 +74,7 @@ static void ActorBridgeLoad(
 }
 
 static void ActorBridgeStore(
-    CpuState *cpu, const Lufia2ActorFrontendCpu *in) {
+    CpuState *cpu, const Lufia2CpuState *in) {
     cpu->A = in->accumulator;
     cpu->X = in->x;
     cpu->Y = in->y;
@@ -129,9 +129,9 @@ static RecompReturn ActorBridgeReturn(
 
 RecompReturn Lufia2DecompBridge_D350(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2ActorFrontendMemory memory = {
+    const Lufia2Memory memory = {
         ActorBridgeRead, ActorBridgeWrite, cpu};
-    Lufia2ActorFrontendCpu state;
+    Lufia2CpuState state;
 
     /* TDC feeds DP high into the D370/D385 index. */
     if (!ActorBridgeSupported(cpu, 0, 1))
@@ -145,9 +145,9 @@ RecompReturn Lufia2DecompBridge_D350(CpuState *cpu) {
 
 RecompReturn Lufia2DecompBridge_F9D4(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2ActorFrontendMemory memory = {
+    const Lufia2Memory memory = {
         ActorBridgeRead, ActorBridgeWrite, cpu};
-    Lufia2ActorFrontendCpu state;
+    Lufia2CpuState state;
 
     if (!ActorBridgeSupported(cpu, 0, 0))
         return ActorBridgeFallback(cpu, &frame, 0x83f9d4u);
@@ -159,9 +159,9 @@ RecompReturn Lufia2DecompBridge_F9D4(CpuState *cpu) {
 
 RecompReturn Lufia2DecompBridge_FB12(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2ActorFrontendMemory memory = {
+    const Lufia2Memory memory = {
         ActorBridgeRead, ActorBridgeWrite, cpu};
-    Lufia2ActorFrontendCpu state;
+    Lufia2CpuState state;
     uint32_t rtl_pc24;
 
     if (!ActorBridgeSupported(cpu, 1, 0))
@@ -184,9 +184,9 @@ RecompReturn Lufia2DecompBridge_FB12(CpuState *cpu) {
 
 RecompReturn Lufia2DecompBridge_FB71(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2ActorFrontendMemory memory = {
+    const Lufia2Memory memory = {
         ActorBridgeRead, ActorBridgeWrite, cpu};
-    Lufia2ActorFrontendCpu state;
+    Lufia2CpuState state;
 
     if (!ActorBridgeSupported(cpu, 0, 0))
         return ActorBridgeFallback(cpu, &frame, 0x83fb71u);
@@ -196,25 +196,25 @@ RecompReturn Lufia2DecompBridge_FB71(CpuState *cpu) {
     return ActorBridgeReturn(cpu, &frame, 3, 0x83fb8au);
 }
 
-typedef Lufia2ActorPrimaryUpdateResult (*ActorWholeFunction)(
-    const Lufia2ActorFrontendMemory *memory, Lufia2ActorFrontendCpu *cpu);
+typedef Lufia2ExecutionResult (*ActorWholeFunction)(
+    const Lufia2Memory *memory, Lufia2CpuState *cpu);
 
 /* Whole JSR routine with exact LLE boundaries. */
 static RecompReturn ActorBridgeWhole(
     CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction run,
     uint8_t frame_size) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2ActorFrontendMemory memory = {
+    const Lufia2Memory memory = {
         ActorBridgeRead, ActorBridgeWrite, cpu};
-    Lufia2ActorFrontendCpu state;
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
 
     if (!ActorBridgeSupported(cpu, 1, 0))
         return ActorBridgeFallback(cpu, &frame, entry_pc24);
     ActorBridgeLoad(cpu, &state);
     result = run(&memory, &state);
     ActorBridgeStore(cpu, &state);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_BOUNDARY) {
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY) {
         /* Exact ROM state at result.pc; LLE finishes the RTS. */
         return interp_tier_dispatch_tail(
             cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
@@ -238,7 +238,7 @@ typedef struct ActorSlotsCall {
 /* BB93 child through the runtime dispatcher. */
 static uint8_t ActorBridgeSlotChild(
     void *context,
-    Lufia2ActorFrontendCpu *state,
+    Lufia2CpuState *state,
     uint32_t target,
     uint32_t site) {
     ActorSlotsCall *call = (ActorSlotsCall *)context;
@@ -256,11 +256,11 @@ static uint8_t ActorBridgeSlotChild(
 
 RecompReturn Lufia2DecompBridge_BB93(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2ActorFrontendMemory memory = {
+    const Lufia2Memory memory = {
         ActorBridgeRead, ActorBridgeWrite, cpu};
     ActorSlotsCall call;
-    Lufia2ActorFrontendCpu state;
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
 
     if (!ActorBridgeSupported(cpu, 1, 0))
         return ActorBridgeFallback(cpu, &frame, 0x83bb93u);
@@ -269,10 +269,10 @@ RecompReturn Lufia2DecompBridge_BB93(CpuState *cpu) {
     ActorBridgeLoad(cpu, &state);
     result = Lufia2UpdateActorSlots(
         &memory, &state, ActorBridgeSlotChild, &call);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_CHILD_UNWOUND)
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
         return (RecompReturn)((int)call.unwound - 1);
     ActorBridgeStore(cpu, &state);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_BOUNDARY)
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
         return interp_tier_dispatch_tail(
             cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
     return ActorBridgeReturn(cpu, &frame, 3, result.pc);
