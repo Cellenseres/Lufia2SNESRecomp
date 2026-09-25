@@ -1296,7 +1296,7 @@ static void Seed85DC(CpuState *cpu) {
 
 /* Forward-only event scripts of the native opcodes, in WRAM. */
 static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
-    static const uint8_t kOps[116] = {
+    static const uint8_t kOps[119] = {
         0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
         0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u, 0x2fu,
         0x30u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u, 0x37u,
@@ -1311,7 +1311,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         0x6fu, 0x72u, 0x73u, 0x74u, 0x75u, 0x76u, 0x77u, 0x04u, 0x05u,
         0x70u, 0x23u, 0x6au, 0xaeu, 0x0fu, 0x6cu, 0xa7u, 0x9cu, 0x9fu,
         0x5eu, 0x41u, 0x46u, 0x4bu, 0x50u, 0x54u, 0x26u, 0x27u,
-        0x02u, 0x03u, 0x28u, 0xa0u, 0xa1u};
+        0x02u, 0x03u, 0x28u, 0xa0u, 0xa1u, 0xbau, 0x1du, 0x63u};
     uint8_t script[320];
     uint16_t starts[48];
     uint16_t words[96];
@@ -1345,7 +1345,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             continue;
         }
-        op = kOps[random() % 116u];
+        op = kOps[random() % 119u];
         script[len++] = op;
         switch (op) {
         case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
@@ -1436,6 +1436,14 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
                             : (uint8_t)random();
             break;
         }
+        case 0xbau:
+            /* $F026 key, then a position operand. */
+            script[len++] = (random() & 7u) ? (uint8_t)(random() & 7u)
+                                            : (uint8_t)random();
+            script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x20u + (random() & 7u));
+            break;
+        case 0x1du: case 0x63u:
+            break;
         case 0x9fu:
             script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x20u + (random() & 7u));
             script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x20u + (random() & 7u));
@@ -1533,6 +1541,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             op == 0x05u || op == 0x23u || op == 0x6au || op == 0xaeu ||
             (op >= 0x41u && op <= 0x54u) ||
             op == 0x02u || op == 0x03u || op == 0x28u ||
+            op == 0xbau || op == 0x1du || op == 0x63u ||
             op == 0xa7u || op == 0x9cu || op == 0x9fu || op == 0x5eu ||
             op == 0x55u || op == 0x69u || op == 0x85u ||
             (op >= 0x64u && op <= 0x67u))
@@ -1567,6 +1576,21 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         }
         script[table + 12u] = 0xffu;
     }
+    /* Base + 0: event list, keys 0-3 to opcodes. */
+    {
+        const unsigned table = len;
+
+        script[0] = (uint8_t)table;
+        script[1] = (uint8_t)(table >> 8);
+        for (unsigned k = 0; k < 4u; ++k) {
+            const uint16_t target = starts[random() % n];
+
+            script[len++] = (uint8_t)k;
+            script[len++] = (uint8_t)target;
+            script[len++] = (uint8_t)(target >> 8);
+        }
+        script[len++] = 0xffu;
+    }
     /* Gotos jump to a later opcode, rarely anywhere. */
     for (unsigned p = 0; p < patches; ++p) {
         const unsigned later = owner[p] + 1u + random() % (n - owner[p]);
@@ -1588,12 +1612,13 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             wram[offset + at] = script[i];
     }
     /* Map actor list ($7E:F022, stride 3), entity list ($F024,
-       stride 5), $F016 (10), objects ($F002, 15) and object rows
-       ($F004, 10) with keys 0-7 and an $FF end, rarely random. */
-    for (unsigned l = 0; l < 5u; ++l) {
-        static const unsigned kStrides[5] = {3u, 5u, 10u, 15u, 10u};
-        static const uint16_t kHeads[5] = {
-            0xf022u, 0xf024u, 0xf016u, 0xf002u, 0xf004u};
+       stride 5), $F016 (10), objects ($F002, 15), object rows
+       ($F004, 10), $F026 (4) with keys 0-7 and an $FF end, rarely
+       random. */
+    for (unsigned l = 0; l < 6u; ++l) {
+        static const unsigned kStrides[6] = {3u, 5u, 10u, 15u, 10u, 4u};
+        static const uint16_t kHeads[6] = {
+            0xf022u, 0xf024u, 0xf016u, 0xf002u, 0xf004u, 0xf026u};
         const unsigned stride = kStrides[l];
         const uint16_t list = (uint16_t)(
             (l < 3u ? 0x0100u + l * 0x80u : 0x0100u * l) + (random() & 0x1fu));
@@ -1653,7 +1678,8 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
     }
     wram[0x1d194u] = (uint8_t)base;
     wram[0x1d195u] = (uint8_t)(base >> 8);
-    wram[0x1d196u] = bank;
+    /* Rarely no base script ($FF). */
+    wram[0x1d196u] = (random() % 16u) ? bank : 0xffu;
     if (random() & 1u)
         wram[0x11273u] = 0;
     for (unsigned t = 0; t < 8u; ++t) {
