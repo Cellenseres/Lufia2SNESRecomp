@@ -1296,7 +1296,7 @@ static void Seed85DC(CpuState *cpu) {
 
 /* Forward-only event scripts of the native opcodes, in WRAM. */
 static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
-    static const uint8_t kOps[71] = {
+    static const uint8_t kOps[76] = {
         0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
         0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u, 0x2fu,
         0x30u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u, 0x37u,
@@ -1305,7 +1305,8 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         0xb8u, 0x5fu, 0x68u, 0x6bu, 0x58u, 0x24u, 0x25u, 0x29u,
         0xa9u, 0xaau, 0x55u, 0x69u, 0x85u,
         0x64u, 0x65u, 0x66u, 0x67u, 0x7cu, 0x7du, 0x7eu, 0x7fu, 0x80u,
-        0x81u, 0xa3u, 0xa4u, 0xa5u, 0xa6u, 0xafu, 0xb0u, 0xb1u, 0xb2u};
+        0x81u, 0xa3u, 0xa4u, 0xa5u, 0xa6u, 0xafu, 0xb0u, 0xb1u, 0xb2u,
+        0xb4u, 0xb6u, 0xb7u, 0xbdu, 0x82u};
     uint8_t script[256];
     uint16_t starts[48];
     uint16_t words[96];
@@ -1335,7 +1336,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             continue;
         }
-        op = kOps[random() % 71u];
+        op = kOps[random() % 76u];
         script[len++] = op;
         switch (op) {
         case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
@@ -1399,6 +1400,21 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
                 script[len++] = (uint8_t)random();
             break;
         }
+        case 0xb6u: case 0xb7u:
+            break;
+        case 0xbdu:
+            script[len++] = (uint8_t)random();
+            break;
+        case 0xb4u:
+            /* dx, dy, speed. */
+            for (unsigned b = 0; b < 3u; ++b)
+                script[len++] = (uint8_t)random();
+            break;
+        case 0x82u:
+            /* Point, placed object (FF: none). */
+            script[len++] = (uint8_t)(0xe0u + (random() & 0x1fu));
+            script[len++] = (random() & 7u) ? (uint8_t)(random() % 0x30u) : 0xffu;
+            break;
         case 0x85u:
             script[len++] = (random() & 1u) ? (uint8_t)(0x20u + (random() & 7u))
                                             : (uint8_t)(0xe0u + (random() & 0x1fu));
