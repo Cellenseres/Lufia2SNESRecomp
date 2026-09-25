@@ -1296,14 +1296,16 @@ static void Seed85DC(CpuState *cpu) {
 
 /* Forward-only event scripts of the native opcodes, in WRAM. */
 static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
-    static const uint8_t kOps[53] = {
+    static const uint8_t kOps[71] = {
         0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
         0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u, 0x2fu,
         0x30u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u, 0x37u,
         0x38u, 0x39u, 0x3au, 0x3bu, 0x3cu, 0x3du, 0x3eu, 0x3fu, 0x40u,
         0x79u, 0x83u, 0x84u, 0x86u, 0x9du, 0x9eu, 0xa2u, 0xabu, 0xb5u,
         0xb8u, 0x5fu, 0x68u, 0x6bu, 0x58u, 0x24u, 0x25u, 0x29u,
-        0xa9u, 0xaau, 0x55u, 0x69u, 0x85u};
+        0xa9u, 0xaau, 0x55u, 0x69u, 0x85u,
+        0x64u, 0x65u, 0x66u, 0x67u, 0x7cu, 0x7du, 0x7eu, 0x7fu, 0x80u,
+        0x81u, 0xa3u, 0xa4u, 0xa5u, 0xa6u, 0xafu, 0xb0u, 0xb1u, 0xb2u};
     uint8_t script[256];
     uint16_t starts[48];
     uint16_t words[96];
@@ -1333,7 +1335,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             continue;
         }
-        op = kOps[random() % 53u];
+        op = kOps[random() % 71u];
         script[len++] = op;
         switch (op) {
         case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
@@ -1379,6 +1381,22 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
                 : (uint8_t)(0xe0u + (random() & 0x1fu));
             script[len++] = kind == 0u ? 0xfbu
                 : (uint8_t)(kArea[kind] + ((random() & 15u) ? (random() & (kind == 1u ? 0x1fu : 7u)) : (random() & 0x1fu)));
+            break;
+        }
+        case 0x64u: case 0x65u: case 0x66u: case 0x67u:
+        case 0x7cu: case 0x7du: case 0x7eu: case 0x7fu: case 0x80u:
+        case 0x81u: case 0xa3u: case 0xa4u: case 0xa5u: case 0xa6u:
+        case 0xafu: case 0xb0u: case 0xb1u: case 0xb2u: {
+            /* Target (mostly a point), object or actor, bytes. */
+            const unsigned tail = op >= 0xafu ? 1u
+                : (op <= 0x67u || op == 0x81u) ? 1u : 2u;
+
+            script[len++] = (random() & 3u) ? (uint8_t)(0xe0u + (random() & 0x1fu))
+                : (random() & 1u) ? 0xfbu : (uint8_t)(0x20u + (random() & 7u));
+            script[len++] = op >= 0xafu ? (uint8_t)(random() % 0x28u)
+                                        : (uint8_t)(random() & 7u);
+            for (unsigned b = 0; b < tail; ++b)
+                script[len++] = (uint8_t)random();
             break;
         }
         case 0x85u:
@@ -1439,7 +1457,8 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             (op >= 0x79u && op != 0xa9u) ||
             op == 0x5fu || op == 0x68u || op == 0x6bu || op == 0x58u ||
             op == 0x24u || op == 0x25u || op == 0x29u || op == 0xaau ||
-            op == 0x55u || op == 0x69u || op == 0x85u)
+            op == 0x55u || op == 0x69u || op == 0x85u ||
+            (op >= 0x64u && op <= 0x67u))
             continue;
         for (unsigned w = op == 0x1eu ? 2u : 1u; w > 0u; --w) {
             owner[patches] = (uint8_t)(n - 1u);
@@ -1471,14 +1490,16 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
     }
     /* Map actor list ($7E:F022, stride 3) and entity list ($F024,
        stride 5) with keys 0-7 and an $FF end, rarely left random. */
-    for (unsigned l = 0; l < 2u; ++l) {
-        const unsigned stride = l ? 5u : 3u;
+    for (unsigned l = 0; l < 3u; ++l) {
+        const unsigned stride = l == 2u ? 10u : l ? 5u : 3u;
         const uint16_t list = (uint16_t)(0x0100u + l * 0x80u + (random() & 0x1fu));
         const unsigned entries = random() % 8u;
         uint16_t at = (uint16_t)(0xf000u + list);
 
-        wram[0xf022u + 2u * l] = (uint8_t)list;
-        wram[0xf023u + 2u * l] = (uint8_t)(list >> 8);
+        const uint16_t head = l == 2u ? 0xf016u : (uint16_t)(0xf022u + 2u * l);
+
+        wram[head] = (uint8_t)list;
+        wram[head + 1u] = (uint8_t)(list >> 8);
         for (unsigned e = 0; e < entries; ++e, at = (uint16_t)(at + stride)) {
             wram[at] = (uint8_t)(random() & 7u);
             for (unsigned b = 1; b < stride; ++b)
