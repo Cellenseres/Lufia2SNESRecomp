@@ -7,7 +7,7 @@
 #include "cpu_state.h"
 #include "interp816.h"
 #include "snes_function_verify.h"
-#include "lufia2/actor_frontend.h"
+#include "lufia2/decomp.h"
 
 extern RecompReturn Lufia2DecompBridge_D350(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_F9D4(CpuState *cpu);
@@ -747,7 +747,7 @@ RecompReturn cpu_dispatch_call_pc(
 /* Verifier-side child for the portable BB93. */
 static uint8_t FrontSlotChild(
     void *context,
-    Lufia2ActorFrontendCpu *state,
+    Lufia2CpuState *state,
     uint32_t target,
     uint32_t site) {
     CpuState cpu;
@@ -792,9 +792,9 @@ static uint8_t FrontSlotChild(
 }
 
 /* Iterations before the BBA1 handoff, as counted at BBA5. */
-static Lufia2ActorPrimaryUpdateResult DecompBB93(
-    const Lufia2ActorFrontendMemory *memory, Lufia2ActorFrontendCpu *cpu) {
-    Lufia2ActorPrimaryUpdateResult result =
+static Lufia2ExecutionResult DecompBB93(
+    const Lufia2Memory *memory, Lufia2CpuState *cpu) {
+    Lufia2ExecutionResult result =
         Lufia2UpdateActorSlots(memory, cpu, FrontSlotChild, NULL);
     if (result.dispatches)
         --result.dispatches;
@@ -1584,8 +1584,8 @@ static void SeedBD77(CpuState *cpu) {
     cpu_mirrors_to_p(cpu);
 }
 
-typedef Lufia2ActorPrimaryUpdateResult (*WholeDecomp)(
-    const Lufia2ActorFrontendMemory *memory, Lufia2ActorFrontendCpu *cpu);
+typedef Lufia2ExecutionResult (*WholeDecomp)(
+    const Lufia2Memory *memory, Lufia2CpuState *cpu);
 
 typedef struct WholeTarget {
     const char *name;
@@ -1719,11 +1719,11 @@ static bool RunWholeCase(
     const uint32_t sentinel =
         (target->frame == 2 ? target->entry & 0xff0000u : 0x830000u) |
         (uint16_t)(RETURN_WORD + 1u);
-    const Lufia2ActorFrontendMemory front = {FrontRead, FrontWrite, NULL};
+    const Lufia2Memory front = {FrontRead, FrontWrite, NULL};
     CpuState native;
     CpuState input;
-    Lufia2ActorFrontendCpu probe;
-    Lufia2ActorPrimaryUpdateResult expected;
+    Lufia2CpuState probe;
+    Lufia2ExecutionResult expected;
     RecompReturn ret;
     unsigned instructions = 0;
     unsigned dispatches = 0;
@@ -1759,7 +1759,7 @@ static bool RunWholeCase(
     probe.index_is_8_bit = input.x_flag;
     expected = target->decomp(&front, &probe);
     memcpy(g_bus.wram, g_seed, SNES_VERIFY_WRAM_SIZE);
-    if (expected.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_CHILD_UNWOUND) {
+    if (expected.flow == LUFIA2_EXECUTION_CHILD_UNWOUND) {
         /* Child stub unwinds SKIP_2; the bridge passes SKIP_1 up. */
         RestoreRegisters(&registers);
         memset(&g_stub, 0, sizeof(g_stub));
@@ -1784,7 +1784,7 @@ static bool RunWholeCase(
     InitReference(ref, &input, target->entry);
     while (instructions < target->limit) {
         const uint32_t pc = SnesVerifyPc24(ref);
-        if (expected.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+        if (expected.flow == LUFIA2_EXECUTION_RETURNED) {
             if (pc == sentinel) {
                 stopped = true;
                 break;
@@ -1809,7 +1809,7 @@ static bool RunWholeCase(
             g_bad_site ? "child site" : "state/memory");
         return false;
     }
-    if (expected.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_BOUNDARY) {
+    if (expected.flow == LUFIA2_EXECUTION_BOUNDARY) {
         if (ret != (RecompReturn)STUB_SENTINEL || g_stub.count != 1 ||
             g_stub.kind != STUB_TAIL || g_stub.target != expected.pc ||
             g_stub.entry_s != input.S ||

@@ -5,7 +5,7 @@
 #include <string.h>
 
 #include "interp816.h"
-#include "lufia2/actor_frontend.h"
+#include "lufia2/decomp.h"
 #include "snes_function_verify.h"
 
 enum {
@@ -94,7 +94,7 @@ static bool Poke16(SnesVerifyBus *bus, uint32_t address, uint16_t value) {
 static void InitInterp(
     Interp816 *cpu,
     uint32_t pc,
-    const Lufia2ActorFrontendCpu *input) {
+    const Lufia2CpuState *input) {
     cpu->a = input->accumulator;
     cpu->x = input->x;
     cpu->y = input->y;
@@ -120,7 +120,7 @@ static void InitInterp(
 }
 
 static bool SameState(
-    const Lufia2ActorFrontendCpu *native, const Interp816 *reference) {
+    const Lufia2CpuState *native, const Interp816 *reference) {
     return native->accumulator == reference->a &&
            native->x == reference->x &&
            native->y == reference->y &&
@@ -142,7 +142,7 @@ static bool SeedPrimary(
     SnesVerifyBus *bus,
     unsigned variant,
     uint8_t opcode,
-    Lufia2ActorFrontendCpu *input) {
+    Lufia2CpuState *input) {
     const uint8_t slot =
         (uint8_t)((variant * 7u + opcode) % 40u);
     const uint16_t record = (uint16_t)(slot * 3u);
@@ -179,7 +179,7 @@ static bool SeedSecondary(
     SnesVerifyBus *bus,
     unsigned variant,
     uint8_t opcode,
-    Lufia2ActorFrontendCpu *input) {
+    Lufia2CpuState *input) {
     const uint8_t slot = (variant & 3u) == 0 ? 0u :
         (uint8_t)((variant * 5u + opcode) % 39u + 1u);
     const uint16_t record = (uint16_t)(slot * 3u);
@@ -222,10 +222,10 @@ static bool RunPrimaryCase(
     unsigned variant,
     uint8_t opcode,
     unsigned case_index) {
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
     Lufia2ActorScriptDispatchResult result;
     uint32_t target;
@@ -292,10 +292,10 @@ static bool RunSecondaryCase(
     unsigned variant,
     uint8_t opcode,
     unsigned case_index) {
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
     Lufia2ActorScriptDispatchResult result;
     uint32_t target;
@@ -362,7 +362,7 @@ static bool SeedKnownPrimaryHandler(
     SnesVerifyBus *bus,
     unsigned variant,
     uint16_t y,
-    Lufia2ActorFrontendCpu *input) {
+    Lufia2CpuState *input) {
     const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
 
     memset(bus->wram, 0, SNES_VERIFY_WRAM_SIZE);
@@ -389,7 +389,7 @@ static bool CompareKnownPrimaryBoundary(
     SnesVerifyBus *bus,
     Interp816 *reference,
     uint8_t *initial,
-    const Lufia2ActorFrontendCpu *input,
+    const Lufia2CpuState *input,
     uint32_t start_pc,
     uint32_t redispatch_pc,
     uint32_t stop_pc,
@@ -398,9 +398,9 @@ static bool CompareKnownPrimaryBoundary(
     uint8_t expected_opcode,
     unsigned case_index,
     const char *name) {
-    Lufia2ActorFrontendCpu native = *input;
+    Lufia2CpuState native = *input;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
     Lufia2ActorPrimaryScriptStepResult result;
     uint8_t *native_wram;
@@ -485,7 +485,7 @@ static bool RunCommitTailCase(
     unsigned variant,
     uint8_t value,
     unsigned case_index) {
-    Lufia2ActorFrontendCpu input;
+    Lufia2CpuState input;
     const uint16_t record =
         (uint16_t)(((variant * 0x31u + value) & 0xffu) * 2u);
     const uint16_t cursor =
@@ -510,7 +510,7 @@ static bool RunJumpHandlerCase(
     unsigned variant,
     uint8_t next_opcode,
     unsigned case_index) {
-    Lufia2ActorFrontendCpu input;
+    Lufia2CpuState input;
     const uint16_t next_cursor =
         (uint16_t)(0x5000u + ((unsigned)next_opcode << 3) + variant);
     const uint16_t operand =
@@ -547,7 +547,7 @@ static bool RunMaskHandlerCase(
     uint32_t handler_pc,
     unsigned case_index,
     const char *name) {
-    Lufia2ActorFrontendCpu input;
+    Lufia2CpuState input;
     const uint16_t slot =
         (uint16_t)(((unsigned)next_opcode + variant * 11u) % 40u);
     const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
@@ -580,7 +580,7 @@ static bool RunJumpTailAliasCase(
     unsigned variant,
     uint8_t next_opcode,
     unsigned case_index) {
-    Lufia2ActorFrontendCpu input;
+    Lufia2CpuState input;
     const uint16_t pointer =
         (uint16_t)(0x6200u |
             ((unsigned)next_opcode + variant * 17u));
@@ -615,7 +615,7 @@ static bool RunCoordinateHandlerCase(
     uint16_t coordinate_base,
     unsigned case_index,
     const char *name) {
-    Lufia2ActorFrontendCpu input;
+    Lufia2CpuState input;
     const uint16_t slot =
         (uint16_t)(8u +
             (((unsigned)next_opcode + variant * 7u) % 20u));
@@ -676,7 +676,7 @@ static bool RunD14DCase(
     unsigned variant,
     uint8_t value,
     unsigned case_index) {
-    Lufia2ActorFrontendCpu input;
+    Lufia2CpuState input;
     const uint16_t slot =
         (uint16_t)(8u + ((unsigned)value % 24u));
     const uint16_t record =
@@ -736,7 +736,7 @@ static bool SeedActionCoreCase(
     SnesVerifyBus *bus,
     unsigned variant,
     uint8_t action,
-    Lufia2ActorFrontendCpu *input) {
+    Lufia2CpuState *input) {
     static const uint8_t probe_values[4] = {0x00u, 0x01u, 0x07u, 0x02u};
     const uint16_t dp = (variant & 2u) ? 0x0020u : 0;
     const uint8_t slot =
@@ -880,10 +880,10 @@ static bool RunActionCoreCase(
     uint8_t action,
     unsigned case_index) {
     const uint32_t stop_pc = 0x83d3aeu;
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
     Lufia2ActorPrimaryActionFlow flow;
     uint8_t *native_wram;
@@ -943,7 +943,7 @@ static bool RunActionCoreCase(
 static bool SeedMapProbeCase(
     SnesVerifyBus *bus,
     unsigned case_index,
-    Lufia2ActorFrontendCpu *input,
+    Lufia2CpuState *input,
     uint8_t *value_out) {
     const uint16_t dp = (case_index & 1u) ? 0x0020u : 0;
     const uint8_t x_coordinate =
@@ -1014,10 +1014,10 @@ static bool RunMovementStepCase(
     static const uint8_t direction[4] = {0u, 2u, 4u, 6u};
     static const uint32_t stops[4] = {
         0x83fb24u, 0x83fb27u, 0x83fb2au, 0x83fb2du};
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
     uint8_t *native_wram;
     uint32_t target;
@@ -1094,10 +1094,10 @@ static bool RunMapOffsetCase(
     uint8_t *initial,
     unsigned case_index) {
     const uint32_t stop_pc = 0x83f9edu;
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
     uint8_t ignored;
     uint8_t *native_wram;
@@ -1149,10 +1149,10 @@ static bool RunMapValueCase(
     uint8_t *initial,
     unsigned case_index) {
     const uint32_t stop_pc = 0x83fb8au;
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
     uint8_t expected_value;
     uint8_t *native_wram;
@@ -1225,7 +1225,7 @@ static bool RunFixedActionHandlerCase(
         case_index % ACTION_CORE_VARIANTS;
     const uint32_t handler_pc = handlers[handler_index];
     const uint8_t action = actions[handler_index];
-    Lufia2ActorFrontendCpu input;
+    Lufia2CpuState input;
     const uint32_t stop_pc = 0x83c8d2u;
 
     if (!SeedActionCoreCase(bus, variant, action, &input))
@@ -1251,7 +1251,7 @@ static bool RunOperandActionHandlerCase(
     unsigned case_index) {
     const uint8_t action = (uint8_t)(case_index >> 2);
     const unsigned variant = case_index & 3u;
-    Lufia2ActorFrontendCpu input;
+    Lufia2CpuState input;
     const uint32_t stop_pc = 0x83c8d2u;
 
     if (!SeedActionCoreCase(bus, variant, action, &input))
@@ -1282,7 +1282,7 @@ static bool RunInstallScriptHandlerCase(
     unsigned variant,
     uint8_t operand,
     unsigned case_index) {
-    Lufia2ActorFrontendCpu input;
+    Lufia2CpuState input;
     const uint16_t slot = (uint16_t)(8u + ((unsigned)operand % 24u));
     const uint16_t record =
         (uint16_t)((((unsigned)operand + variant * 7u) % 40u) * 3u);
@@ -1314,7 +1314,7 @@ static bool RunTimerStoreHandlerCase(
     unsigned variant,
     uint8_t next_opcode,
     unsigned case_index) {
-    Lufia2ActorFrontendCpu input;
+    Lufia2CpuState input;
     const uint16_t slot =
         (uint16_t)(((unsigned)next_opcode + variant * 13u) % 40u);
     const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
@@ -1349,7 +1349,7 @@ static bool RunFlagBitHandlerCase(
     uint32_t handler_pc,
     unsigned case_index,
     const char *name) {
-    Lufia2ActorFrontendCpu input;
+    Lufia2CpuState input;
     const uint16_t slot =
         (uint16_t)(((unsigned)next_opcode + variant * 11u) % 40u);
     const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
@@ -1380,7 +1380,7 @@ static bool RunMapFlagHandlerCase(
     unsigned variant,
     uint8_t cell_flags,
     unsigned case_index) {
-    Lufia2ActorFrontendCpu input;
+    Lufia2CpuState input;
     const uint16_t slot =
         (uint16_t)(8u + (((unsigned)cell_flags + variant) % 24u));
     const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
@@ -1465,7 +1465,7 @@ static bool RunLeaderRadiusHandlerCase(
         LeaderAxisWithinRadius(actor_x, leader_x, radius) &&
         LeaderAxisWithinRadius(actor_y, leader_y, radius);
     const uint8_t next_opcode = within ? skip_opcode : jump_opcode;
-    Lufia2ActorFrontendCpu input;
+    Lufia2CpuState input;
 
     if (!SeedKnownPrimaryHandler(bus, variant, script, &input) ||
         !Poke16(bus, dp + 0x00a7u, slot) ||
@@ -1499,7 +1499,7 @@ static bool RunLeaderEqualHandlerCase(
     uint16_t coordinate_base,
     unsigned case_index,
     const char *name) {
-    Lufia2ActorFrontendCpu input;
+    Lufia2CpuState input;
     const uint16_t slot =
         (uint16_t)(8u + (((unsigned)next_opcode + variant * 7u) % 20u));
     const bool equal = (variant & 2u) == 0;
@@ -1547,7 +1547,7 @@ static bool RunLeaderStepHandlerCase(
     const uint16_t axis_base = x_axis ? 0x06bau : 0x06e2u;
     const uint32_t handler_pc = x_axis ? 0x83cc41u : 0x83cc63u;
     uint8_t action = outcome == 1u ? behind_action : ahead_action;
-    Lufia2ActorFrontendCpu input;
+    Lufia2CpuState input;
     uint8_t actor;
     uint8_t leader;
 
@@ -1627,10 +1627,10 @@ static bool RunRandomCase(
     const uint8_t index_seed = (uint8_t)(case_index & 0x3fu);
     const uint8_t index = index_seed == 0x3fu ? 0xffu : index_seed;
     const unsigned flags = (case_index >> 8) & 0x0fu;
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
     uint16_t expected;
     uint8_t *native_wram;
@@ -1727,7 +1727,7 @@ static bool RunRandomTimerHandlerCase(
     const uint16_t dp = (variant & 1u) ? 0x0020u : 0;
     const uint16_t script = (uint16_t)(TEST_SCRIPT + variant);
     const uint32_t handler_pc = scaled ? 0x83c8d4u : 0x83c8afu;
-    Lufia2ActorFrontendCpu input;
+    Lufia2CpuState input;
 
     if (!SeedKnownPrimaryHandler(bus, variant, script, &input) ||
         !Poke16(bus, dp + 0x00a7u, slot) ||
@@ -1785,10 +1785,10 @@ static bool RunGenericHandlerCase(
     /* Low scripts also run with DB=$00, so $42xx is MMIO. */
     const uint16_t script = (uint16_t)(
         (low_script ? 0x1800u : TEST_SCRIPT) + (case_index & 7u));
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
     Lufia2ActorPrimaryScriptStepResult result;
     uint8_t actor_x;
@@ -1976,7 +1976,7 @@ static bool RunGenericHandlerCase(
     }
     /* Boundary: ROM must reach resume_pc with the same state. */
     {
-        Lufia2ActorFrontendCpu boundary = input;
+        Lufia2CpuState boundary = input;
         uint8_t *boundary_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
         unsigned instructions = 0;
         bool reached = false;
@@ -2021,8 +2021,8 @@ typedef struct WholeFunction {
     const char *name;
     uint32_t entry;
     uint32_t exit;
-    void (*native)(const Lufia2ActorFrontendMemory *,
-                   Lufia2ActorFrontendCpu *);
+    void (*native)(const Lufia2Memory *,
+                   Lufia2CpuState *);
 } WholeFunction;
 
 static const WholeFunction kWholeFunctions[] = {
@@ -2063,10 +2063,10 @@ static bool RunWholeFunctionCase(
     static const uint8_t banks[5] = {0x00u, 0x7eu, 0x7fu, 0x80u, 0x83u};
     const uint16_t dp = dps[WholeRandom() % 5u];
     const uint8_t slot = (uint8_t)(WholeRandom() % 40u);
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
     uint8_t *native_wram;
     unsigned instructions = 0;
@@ -2145,10 +2145,10 @@ static bool RunResumeExactCase(
     const uint8_t slot = (uint8_t)(WholeRandom() % 40u);
     const uint32_t entry = fb12 ? 0x83fb12u : 0x83d350u;
     const uint32_t resume = fb12 ? 0x83fb17u : 0x83d370u;
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
     uint8_t *native_wram;
     unsigned instructions = 0;
@@ -2245,12 +2245,12 @@ static bool RunPrimaryUpdateCase(
     const uint16_t record = (uint16_t)(slot * 3u);
     const uint16_t script = (uint16_t)(0x1800u + (WholeRandom() & 0x3ffu));
     const uint32_t exits[2] = {0x83c83bu, 0x83c8d3u};
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     uint8_t *native_wram;
     unsigned instructions = 0;
     unsigned dispatches = 0;
@@ -2320,7 +2320,7 @@ static bool RunPrimaryUpdateCase(
     InitInterp(reference, 0x83c7f8u, &input);
     while (instructions < 4000000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
-        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+        if (result.flow == LUFIA2_EXECUTION_RETURNED) {
             if (pc == exits[0] || pc == exits[1]) {
                 stopped = pc == result.pc;
                 break;
@@ -2359,7 +2359,7 @@ static bool RunPrimaryUpdateCase(
     free(native_wram);
 
     stats->dispatches += result.dispatches;
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+    if (result.flow == LUFIA2_EXECUTION_RETURNED) {
         if (result.pc == exits[0])
             ++stats->returned_c83b;
         else
@@ -2405,10 +2405,10 @@ static bool RunActionCoreX8Case(
         ? direction : (uint8_t)(direction + 0x18u);
     const uint8_t coordinate = (uint8_t)(X8Random() % 12u);
     const uint32_t site = 0x83c23bu;
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
     Lufia2ActorPrimaryActionFlow flow;
     uint8_t *native_wram;
@@ -2568,12 +2568,12 @@ static bool RunPlayerStandardCase(
     const uint16_t dp = dps[PlayerRandom() & 7u];
     const uint8_t px = (uint8_t)(4u + PlayerRandom() % 8u);
     const uint8_t py = (uint8_t)(4u + PlayerRandom() % 8u);
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     uint8_t *native_wram;
     unsigned instructions = 0;
     bool stopped = false;
@@ -2649,7 +2649,7 @@ static bool RunPlayerStandardCase(
     memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
     native = input;
     result = Lufia2PlayerSlotStandardUpdate(&memory, &native);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         native.stack = (uint16_t)(native.stack + 2u);   /* RTS */
 
     native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
@@ -2661,7 +2661,7 @@ static bool RunPlayerStandardCase(
     InitInterp(reference, 0x83c1b4u, &input);
     while (instructions < 400000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
-        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+        if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == 0x83bc25u
                 : pc == result.pc && reference->sp == native.stack) {
             stopped = true;
@@ -2698,7 +2698,7 @@ static bool RunPlayerStandardCase(
     }
     free(native_wram);
 
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+    if (result.flow == LUFIA2_EXECUTION_RETURNED) {
         if (result.pc == 0x83c1e2u)
             ++stats->early;
         else
@@ -2728,7 +2728,7 @@ typedef struct SlotsChildContext {
 } SlotsChildContext;
 
 static void InterpToNative(
-    const Interp816 *reference, Lufia2ActorFrontendCpu *cpu) {
+    const Interp816 *reference, Lufia2CpuState *cpu) {
     cpu->accumulator = reference->a;
     cpu->x = reference->x;
     cpu->y = reference->y;
@@ -2749,7 +2749,7 @@ static void InterpToNative(
 /* JSR child in interp816 until its RTS. */
 static uint8_t RunSlotChild(
     void *opaque,
-    Lufia2ActorFrontendCpu *cpu,
+    Lufia2CpuState *cpu,
     uint32_t target,
     uint32_t site) {
     SlotsChildContext *context = (SlotsChildContext *)opaque;
@@ -2846,12 +2846,12 @@ static bool RunActorSlotsCase(
         0x0c, 0x0d, 0x0e, 0x21, 0x23, 0x30, 0x31, 0x3a, 0x3d, 0x40};
     const uint16_t dp = (case_index & 7u) == 7u ? 0x0020u : 0x0000u;
     SlotsChildContext child = {bus, reference, false, false};
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     uint8_t *native_wram;
     unsigned instructions = 0;
     unsigned visits = 0;
@@ -2920,11 +2920,11 @@ static bool RunActorSlotsCase(
             case_index);
         return false;
     }
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_CHILD_UNWOUND) {
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND) {
         ++stats->unterminated;
         return true;
     }
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         native.stack = (uint16_t)(native.stack + 3u);   /* RTL */
 
     native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
@@ -2937,7 +2937,7 @@ static bool RunActorSlotsCase(
     InitInterp(reference, 0x83bb93u, &input);
     while (instructions < 100000000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
-        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+        if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == 0x838081u
                 : pc == 0x83bba1u && ++visits == result.dispatches) {
             stopped = true;
@@ -2971,7 +2971,7 @@ static bool RunActorSlotsCase(
         return false;
     }
     free(native_wram);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         ++stats->returned;
     else
         ++stats->boundary;
@@ -3010,12 +3010,12 @@ static bool RunFieldTriggerCase(
     const uint16_t dp = dps[FieldRandom() & 7u];
     const uint8_t px = (uint8_t)(4u + FieldRandom() % 8u);
     const uint8_t py = (uint8_t)(4u + FieldRandom() % 8u);
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     uint8_t *native_wram;
     unsigned instructions = 0;
     bool stopped = false;
@@ -3107,7 +3107,7 @@ static bool RunFieldTriggerCase(
     memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
     native = input;
     result = Lufia2FieldTriggerUpdate(&memory, &native);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         native.stack = (uint16_t)(native.stack + 2u);   /* RTS */
 
     native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
@@ -3119,7 +3119,7 @@ static bool RunFieldTriggerCase(
     InitInterp(reference, 0x8381c6u, &input);
     while (instructions < 400000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
-        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+        if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == 0x83808fu
                 : pc == result.pc && reference->sp == native.stack) {
             stopped = true;
@@ -3157,7 +3157,7 @@ static bool RunFieldTriggerCase(
     }
     free(native_wram);
 
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+    if (result.flow == LUFIA2_EXECUTION_RETURNED) {
         ++stats->returned;
     } else {
         unsigned k = 0;
@@ -3197,12 +3197,12 @@ static bool RunObjectSlotsCase(
         0x83u, 0x83u, 0x83u, 0x83u, 0x83u, 0x00u, 0x80u, 0x7eu};
     const uint16_t dp = dps[ObjectRandom() & 7u];
     unsigned visits = 0;
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     uint8_t *native_wram;
     unsigned instructions = 0;
     bool stopped = false;
@@ -3273,7 +3273,7 @@ static bool RunObjectSlotsCase(
     memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
     native = input;
     result = Lufia2ObjectSlotsUpdate(&memory, &native);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         native.stack = (uint16_t)(native.stack + 2u);   /* RTS */
 
     native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
@@ -3285,7 +3285,7 @@ static bool RunObjectSlotsCase(
     InitInterp(reference, 0x83e03eu, &input);
     while (instructions < 64000000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
-        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+        if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == 0x838084u
                 : visits == result.dispatches && pc == result.pc &&
                       reference->sp == native.stack) {
@@ -3325,7 +3325,7 @@ static bool RunObjectSlotsCase(
     }
     free(native_wram);
     stats->dispatches += result.dispatches;
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         ++stats->returned;
     else
         ++stats->boundary;
@@ -3358,10 +3358,10 @@ static bool RunFieldNmiCase(
     static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
     static const uint8_t banks[4] = {0x80u, 0x80u, 0x00u, 0x7eu};
     const uint16_t dp = dps[NmiRandom() & 7u];
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
     SnesVerifyBusEvent *native_mmio;
     size_t native_count;
@@ -3556,12 +3556,12 @@ static bool RunFieldScrollCase(
     FieldScrollStats *stats) {
     static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
     static const uint8_t banks[4] = {0x83u, 0x83u, 0x80u, 0x7eu};
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     BusRegisters registers;
     SnesVerifyBusEvent *native_mmio;
     size_t native_count;
@@ -3597,7 +3597,7 @@ static bool RunFieldScrollCase(
     native = input;
     SnesVerifyBusResetMmio(bus);
     result = Lufia2FieldScrollUpdate(&memory, &native);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+    if (result.flow == LUFIA2_EXECUTION_RETURNED) {
         native.stack = (uint16_t)(native.stack + 3u);   /* RTL */
         native.program_bank = 0x83u;
     }
@@ -3619,7 +3619,7 @@ static bool RunFieldScrollCase(
     InitInterp(reference, 0x8ebd77u, &input);
     while (instructions < 400000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
-        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+        if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == 0x838088u
                 : visits == result.dispatches && pc == result.pc &&
                       reference->sp == native.stack) {
@@ -3666,7 +3666,7 @@ static bool RunFieldScrollCase(
     free(native_mmio);
     free(native_wram);
     stats->mmio_writes += (unsigned)native_count;
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+    if (result.flow == LUFIA2_EXECUTION_RETURNED) {
         ++stats->returned;
     } else {
         for (unsigned i = 0; i < 2u; ++i)
@@ -3683,8 +3683,8 @@ typedef struct FieldChildStats {
     unsigned boundary;
 } FieldChildStats;
 
-typedef Lufia2ActorPrimaryUpdateResult (*FieldChildFunction)(
-    const Lufia2ActorFrontendMemory *memory, Lufia2ActorFrontendCpu *cpu);
+typedef Lufia2ExecutionResult (*FieldChildFunction)(
+    const Lufia2Memory *memory, Lufia2CpuState *cpu);
 
 /* Idle gates mostly open; animation slots mostly off. */
 static void SeedFieldChild(SnesVerifyBus *bus, uint16_t return_word) {
@@ -3718,12 +3718,12 @@ static bool RunFieldChildCase(
     FieldChildStats *stats) {
     static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
     static const uint8_t banks[4] = {0x83u, 0x83u, 0x80u, 0x00u};
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     uint8_t *native_wram;
     unsigned instructions = 0;
     bool stopped = false;
@@ -3752,7 +3752,7 @@ static bool RunFieldChildCase(
     memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
     native = input;
     result = function(&memory, &native);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         native.stack = (uint16_t)(native.stack + 2u);   /* RTS */
     native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
     if (!native_wram)
@@ -3763,7 +3763,7 @@ static bool RunFieldChildCase(
     InitInterp(reference, entry, &input);
     while (instructions < 400000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
-        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+        if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == (0x830000u | (uint16_t)(return_word + 1u))
                 : pc == result.pc && reference->sp == native.stack) {
             stopped = true;
@@ -3796,7 +3796,7 @@ static bool RunFieldChildCase(
         return false;
     }
     free(native_wram);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         ++stats->returned;
     else
         ++stats->boundary;
@@ -3852,12 +3852,12 @@ static bool RunFieldColourCase(
     FieldColourStats *stats) {
     static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
     static const uint8_t banks[4] = {0x83u, 0x83u, 0x80u, 0x00u};
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     SnesVerifyBusEvent *native_mmio;
     size_t native_count;
     uint8_t *native_wram;
@@ -3891,7 +3891,7 @@ static bool RunFieldColourCase(
     native = input;
     SnesVerifyBusResetMmio(bus);
     result = Lufia2FieldColourEffects(&memory, &native);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         native.stack = (uint16_t)(native.stack + 2u);   /* RTS */
     native_count = bus->mmio_count;
     native_mmio = (SnesVerifyBusEvent *)malloc(
@@ -3910,7 +3910,7 @@ static bool RunFieldColourCase(
     InitInterp(reference, 0x83aeb5u, &input);
     while (instructions < 4000000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
-        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+        if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == 0x838073u
                 : visits == result.dispatches && pc == result.pc &&
                       reference->sp == native.stack) {
@@ -3953,7 +3953,7 @@ static bool RunFieldColourCase(
     free(native_mmio);
     free(native_wram);
     stats->mmio_writes += (unsigned)native_count;
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         ++stats->returned;
     else
         ++stats->boundary;
@@ -4052,12 +4052,12 @@ static bool RunFieldTickCase(
     const uint32_t entry = 0x809c72u;
     static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
     static const uint8_t banks[4] = {0x83u, 0x83u, 0x80u, 0x00u};
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     uint8_t *native_wram;
     static SnesVerifyBusEvent native_mmio[SNES_VERIFY_MAX_MMIO];
     size_t native_count;
@@ -4090,7 +4090,7 @@ static bool RunFieldTickCase(
     native = input;
     SnesVerifyBusResetMmio(bus);
     result = Lufia2FieldEventTick(&memory, &native);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+    if (result.flow == LUFIA2_EXECUTION_RETURNED) {
         native.stack = (uint16_t)(native.stack + 3u);   /* RTL */
         native.program_bank = 0x83u;
     }
@@ -4106,7 +4106,7 @@ static bool RunFieldTickCase(
     InitInterp(reference, entry, &input);
     while (instructions < 400000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
-        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+        if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == 0x838077u
                 : pc == result.pc && reference->sp == native.stack &&
                   visits++ == result.dispatches) {
@@ -4144,7 +4144,7 @@ static bool RunFieldTickCase(
         return false;
     }
     free(native_wram);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         ++stats->returned;
     else
         ++stats->boundary;
@@ -4169,12 +4169,12 @@ static bool RunBattleNmiCase(
     static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
     static const uint8_t banks[4] = {0x80u, 0x80u, 0x00u, 0x7eu};
     const uint16_t dp = dps[NmiRandom() & 7u];
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     SnesVerifyBusEvent *native_mmio;
     size_t native_count;
     uint8_t *native_wram;
@@ -4234,7 +4234,7 @@ static bool RunBattleNmiCase(
     native = input;
     SnesVerifyBusResetMmio(bus);
     result = Lufia2BattleNmiUploads(&memory, &native);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+    if (result.flow == LUFIA2_EXECUTION_RETURNED) {
         native.stack = (uint16_t)(native.stack + 3u);   /* RTL */
         native.program_bank = 0x00u;
     }
@@ -4255,7 +4255,7 @@ static bool RunBattleNmiCase(
     InitInterp(reference, 0x858dc5u, &input);
     while (instructions < 400000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
-        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+        if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == 0x00006au
                 : pc == result.pc && reference->sp == native.stack) {
             stopped = true;
@@ -4292,7 +4292,7 @@ static bool RunBattleNmiCase(
     }
     free(native_mmio);
     free(native_wram);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         ++stats->returned;
     else
         ++stats->boundary;
@@ -4367,12 +4367,12 @@ static bool RunFieldSpritesCase(
     static const uint8_t banks[4] = {0x83u, 0x83u, 0x80u, 0x7eu};
     const uint32_t entry = 0x83a21au;
     const uint32_t exit = 0x83808cu;
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     SnesVerifyBusEvent *native_mmio;
     size_t native_count;
     uint8_t *native_wram;
@@ -4413,7 +4413,7 @@ static bool RunFieldSpritesCase(
     native = input;
     SnesVerifyBusResetMmio(bus);
     result = Lufia2FieldActorSprites(&memory, &native);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+    if (result.flow == LUFIA2_EXECUTION_RETURNED) {
         native.stack = (uint16_t)(native.stack + 3u);   /* RTL */
         native.program_bank = 0x83u;
     }
@@ -4435,7 +4435,7 @@ static bool RunFieldSpritesCase(
     InitInterp(reference, entry, &input);
     while (instructions < 400000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
-        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+        if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == exit
                 : pc == result.pc && reference->sp == native.stack &&
                   visits == result.dispatches) {
@@ -4481,7 +4481,7 @@ static bool RunFieldSpritesCase(
     }
     free(native_mmio);
     free(native_wram);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         ++stats->returned;
     else
         ++stats->boundary;
@@ -4549,12 +4549,12 @@ static bool RunWorldMapNmiCase(
     WorldMapNmiStats *stats) {
     static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
     static const uint8_t banks[4] = {0x80u, 0x86u, 0x00u, 0x7eu};
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     SnesVerifyBusEvent *native_mmio;
     size_t native_count;
     uint8_t *native_wram;
@@ -4628,7 +4628,7 @@ static bool RunWorldMapNmiCase(
         memcmp(native_mmio, bus->mmio,
             sizeof(SnesVerifyBusEvent) * native_count) == 0;
 
-    if (result.flow != LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED || !stopped ||
+    if (result.flow != LUFIA2_EXECUTION_RETURNED || !stopped ||
         !same_mmio || !SameState(&native, reference) ||
         memcmp(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE) != 0) {
         size_t diff = 0;
@@ -4679,12 +4679,12 @@ static bool RunVramSlotCase(
     unsigned case_index,
     unsigned *boundaries) {
     static const uint8_t banks[4] = {0x85u, 0x85u, 0x00u, 0x7eu};
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     uint8_t *native_wram;
     unsigned instructions = 0;
     bool stopped = false;
@@ -4723,7 +4723,7 @@ static bool RunVramSlotCase(
     memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
     native = input;
     result = Lufia2BattleVramQueueSlot(&memory, &native);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+    if (result.flow == LUFIA2_EXECUTION_RETURNED) {
         native.stack = (uint16_t)(native.stack + 3u);   /* RTL */
         native.program_bank = 0x85u;
     }
@@ -4736,7 +4736,7 @@ static bool RunVramSlotCase(
     InitInterp(reference, 0x85ecdbu, &input);
     while (instructions < 10000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
-        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+        if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == 0x859637u
                 : pc == result.pc && reference->sp == native.stack) {
             stopped = true;
@@ -4757,7 +4757,7 @@ static bool RunVramSlotCase(
         return false;
     }
     free(native_wram);
-    if (result.flow != LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow != LUFIA2_EXECUTION_RETURNED)
         ++*boundaries;
     return true;
 }
@@ -4780,12 +4780,12 @@ static bool RunWorldMapEdgeCase(
     WorldMapEdgeStats *stats) {
     static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
     static const uint8_t banks[4] = {0x86u, 0x86u, 0x7eu, 0x00u};
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     uint8_t *native_wram;
     unsigned instructions = 0;
     bool stopped = false;
@@ -4836,7 +4836,7 @@ static bool RunWorldMapEdgeCase(
     native = input;
     SnesVerifyBusResetMmio(bus);
     result = Lufia2WorldMapStreamEdges(&memory, &native);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         native.stack = (uint16_t)(native.stack + 2u);   /* RTS */
     native_wram = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
     if (!native_wram)
@@ -4847,7 +4847,7 @@ static bool RunWorldMapEdgeCase(
     InitInterp(reference, 0x8699bfu, &input);
     while (instructions < 400000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
-        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+        if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == 0x869288u
                 : pc == result.pc && reference->sp == native.stack) {
             stopped = true;
@@ -4881,7 +4881,7 @@ static bool RunWorldMapEdgeCase(
         return false;
     }
     free(native_wram);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         ++stats->returned;
     else
         ++stats->boundary;
@@ -4890,8 +4890,8 @@ static bool RunWorldMapEdgeCase(
 
 enum { SMALL_CASES = 16384 };
 
-typedef Lufia2ActorPrimaryUpdateResult (*SmallFunction)(
-    const Lufia2ActorFrontendMemory *memory, Lufia2ActorFrontendCpu *cpu);
+typedef Lufia2ExecutionResult (*SmallFunction)(
+    const Lufia2Memory *memory, Lufia2CpuState *cpu);
 
 typedef struct SmallTarget {
     const char *name;
@@ -5221,12 +5221,12 @@ static bool RunSmallCase(
     static const uint16_t dps[8] = {0, 0, 0, 0, 0, 0, 0x0020u, 0x0400u};
     static const uint8_t banks[4] = {0x83u, 0x80u, 0x7eu, 0x00u};
     const uint32_t exit = (target->call_return + 1u) & 0x00ffffffu;
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     static SnesVerifyBusEvent native_mmio[SNES_VERIFY_MAX_MMIO];
     size_t native_count;
     uint8_t *native_wram;
@@ -5267,7 +5267,7 @@ static bool RunSmallCase(
     native = input;
     SnesVerifyBusResetMmio(bus);
     result = target->run(&memory, &native);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+    if (result.flow == LUFIA2_EXECUTION_RETURNED) {
         native.stack = (uint16_t)(native.stack + target->frame);
         native.program_bank = (uint8_t)(exit >> 16);
     }
@@ -5283,7 +5283,7 @@ static bool RunSmallCase(
     InitInterp(reference, target->entry, &input);
     while (instructions < 2000000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
-        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+        if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == exit
                 : pc == result.pc && reference->sp == native.stack &&
                   visits++ == result.dispatches) {
@@ -5318,7 +5318,7 @@ static bool RunSmallCase(
         return false;
     }
     free(native_wram);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         ++stats->returned;
     else
         ++stats->boundary;
@@ -5384,12 +5384,12 @@ static bool RunBattleFrameCase(
     static const uint8_t banks[4] = {0x81u, 0x85u, 0x00u, 0x7eu};
     const uint32_t entry = upkeep ? 0x85ecf0u : 0x858a2fu;
     const uint32_t exit = upkeep ? 0x81887bu : 0x85ecf8u;
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     SnesVerifyBusEvent *native_mmio;
     size_t native_count;
     uint8_t *native_wram;
@@ -5438,7 +5438,7 @@ static bool RunBattleFrameCase(
     SnesVerifyBusResetMmio(bus);
     result = upkeep ? Lufia2BattleFrameUpkeep(&memory, &native)
                     : Lufia2BattleSprites(&memory, &native);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+    if (result.flow == LUFIA2_EXECUTION_RETURNED) {
         native.stack = (uint16_t)(native.stack + 3u);   /* RTL */
         native.program_bank = (uint8_t)(exit >> 16);
     }
@@ -5460,7 +5460,7 @@ static bool RunBattleFrameCase(
     InitInterp(reference, entry, &input);
     while (instructions < 400000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
-        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED
+        if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == exit
                 : pc == result.pc && reference->sp == native.stack) {
             stopped = true;
@@ -5503,7 +5503,7 @@ static bool RunBattleFrameCase(
     }
     free(native_mmio);
     free(native_wram);
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED)
+    if (result.flow == LUFIA2_EXECUTION_RETURNED)
         ++stats->returned;
     else
         ++stats->boundary;
@@ -5534,12 +5534,12 @@ static bool RunSecondaryUpdateCase(
     const uint16_t record = (uint16_t)(slot * 3u);
     const uint16_t script = (uint16_t)(0x1800u + (WholeRandom() & 0x3ffu));
     const uint32_t exits[2] = {0x83d599u, 0x83d60eu};
-    Lufia2ActorFrontendCpu input;
-    Lufia2ActorFrontendCpu native;
+    Lufia2CpuState input;
+    Lufia2CpuState native;
     NativeMemory native_context = {bus};
-    Lufia2ActorFrontendMemory memory = {
+    Lufia2Memory memory = {
         NativeRead, NativeWrite, &native_context};
-    Lufia2ActorPrimaryUpdateResult result;
+    Lufia2ExecutionResult result;
     uint8_t *native_wram;
     unsigned instructions = 0;
     unsigned dispatches = 0;
@@ -5617,7 +5617,7 @@ static bool RunSecondaryUpdateCase(
     InitInterp(reference, 0x83d508u, &input);
     while (instructions < 4000000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
-        if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+        if (result.flow == LUFIA2_EXECUTION_RETURNED) {
             if (pc == exits[0] || pc == exits[1]) {
                 stopped = pc == result.pc;
                 break;
@@ -5661,7 +5661,7 @@ static bool RunSecondaryUpdateCase(
     free(native_wram);
 
     stats->dispatches += result.dispatches;
-    if (result.flow == LUFIA2_ACTOR_PRIMARY_UPDATE_RETURNED) {
+    if (result.flow == LUFIA2_EXECUTION_RETURNED) {
         if (result.pc == exits[0])
             ++stats->returned_c83b;
         else
