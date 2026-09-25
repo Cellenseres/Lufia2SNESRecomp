@@ -3118,7 +3118,8 @@ static bool RunFieldTriggerCase(
     memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
 
     InitInterp(reference, 0x8381c6u, &input);
-    while (instructions < 400000u) {
+    /* Random event scripts can run long list searches. */
+    while (instructions < 40000000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
         if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == 0x83808fu
