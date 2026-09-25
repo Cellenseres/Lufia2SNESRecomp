@@ -25,6 +25,7 @@ extern RecompReturn Lufia2DecompBridge_80CD(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8682(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_AEB5(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_9C72(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_CBAE(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8DC5(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_CEF6(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_ECDB(CpuState *cpu);
@@ -1293,6 +1294,26 @@ static void Seed85DC(CpuState *cpu) {
     SeedJslX16(cpu, 0x83);
 }
 
+/* Event slot timers; DB $C0 reads $1273 from ROM. */
+static void SeedCBAE(CpuState *cpu) {
+    static const uint8_t banks[8] = {
+        0x83u, 0x83u, 0x80u, 0x7eu, 0x7fu, 0x00u, 0x8eu, 0xc0u};
+    const unsigned mode = Random32() & 7u;
+
+    SeedJslX16(cpu, 0x80);
+    for (unsigned t = 0; t < 8u; ++t) {
+        const unsigned roll = Random32() % 16u;
+
+        g_bus.wram[0x1d18cu + t] = roll < 8u ? (uint8_t)(Random32() & 0x7fu)
+            : roll < 13u ? (uint8_t)(0x82u + Random32() % 0x7eu)
+            : roll < 15u ? 0x80u : 0x81u;
+    }
+    if (mode < 2u)
+        for (unsigned t = 0; t < 8u; ++t)
+            g_bus.wram[0x1d18cu + t] &= 0x7fu;
+    cpu->DB = banks[Random32() & 7u];
+}
+
 /* Menu routines in bank 82. */
 static void SeedMenu(CpuState *cpu) {
     SeedJslX16(cpu, 0x82);
@@ -1671,6 +1692,8 @@ static const WholeTarget kWholeTargets[] = {
      Lufia2DecompBridge_8A2F, 3, 4000000u},
     {"ECF0", 0x85ecf0u, 0u, SeedBattleFrame, Lufia2BattleFrameUpkeep,
      Lufia2DecompBridge_ECF0, 3, 4000000u},
+    {"CBAE", 0x80cbaeu, 0u, SeedCBAE, Lufia2FieldEventTimerTick,
+     Lufia2DecompBridge_CBAE, 3, 4000000u},
 };
 
 enum { WHOLE_TARGETS = sizeof(kWholeTargets) / sizeof(kWholeTargets[0]) };

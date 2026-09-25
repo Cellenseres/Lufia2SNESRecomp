@@ -5164,6 +5164,26 @@ static void SeedTextStep(uint8_t *wram, uint16_t dp) {
     wram[0x109b2u] = (uint8_t)(0x20u + (NmiRandom() & 0x3fu));
 }
 
+/* Event slot timers: idle, waiting, due ($81) or wrapping ($80). */
+static void SeedEventTimers(uint8_t *wram, uint16_t dp) {
+    const unsigned mode = NmiRandom() & 7u;
+
+    (void)dp;
+    for (unsigned t = 0; t < 8u; ++t) {
+        const unsigned roll = NmiRandom() % 16u;
+
+        wram[0x1d18cu + t] = roll < 8u ? (uint8_t)(NmiRandom() & 0x7fu)
+            : roll < 13u ? (uint8_t)(0x82u + NmiRandom() % 0x7eu)
+            : roll < 15u ? 0x80u : 0x81u;
+    }
+    if (mode < 2u)
+        for (unsigned t = 0; t < 8u; ++t)
+            wram[0x1d18cu + t] &= 0x7fu;
+    if (mode == 1u)
+        wram[0x1d18cu + NmiRandom() % 8u] =
+            (uint8_t)(0x82u + NmiRandom() % 0x7eu);
+}
+
 static void SeedTitleState(uint8_t *wram, uint16_t dp) {
     wram[dp + 0x30u] = (NmiRandom() & 15u) ? (uint8_t)(NmiRandom() % 9u)
                                       : (uint8_t)NmiRandom();
@@ -5206,6 +5226,8 @@ static const SmallTarget kSmallTargets[] = {
      SeedIntroNmi},
     {"B452", 0x85b452u, Lufia2BattleScript, 3, 0x81faecu,
      SeedBattleScript},
+    {"CBAE", 0x80cbaeu, Lufia2FieldEventTimerTick, 3, 0x83823au,
+     SeedEventTimers},
 };
 
 enum { SMALL_TARGETS = sizeof(kSmallTargets) / sizeof(kSmallTargets[0]) };
