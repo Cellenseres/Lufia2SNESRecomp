@@ -2986,7 +2986,7 @@ typedef struct FieldTriggerStats {
 } FieldTriggerStats;
 
 static const uint32_t kFieldBoundaries[5] = {
-    0x80cbccu, 0x80cc0eu, 0x83b96du, 0x838225u, 0x838251u};
+    0x80cc3fu, 0x80cc0eu, 0x83b96du, 0x838225u, 0x838251u};
 
 static uint64_t g_field_rng = UINT64_C(0x6a09e667f3bcc909);
 
@@ -3018,6 +3018,7 @@ static bool RunFieldTriggerCase(
     Lufia2ExecutionResult result;
     uint8_t *native_wram;
     unsigned instructions = 0;
+    unsigned visits = 0;
     bool stopped = false;
 
     for (size_t i = 0; i < SNES_VERIFY_WRAM_SIZE; i += 4) {
@@ -3121,7 +3122,8 @@ static bool RunFieldTriggerCase(
         const uint32_t pc = SnesVerifyPc24(reference);
         if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == 0x83808fu
-                : pc == result.pc && reference->sp == native.stack) {
+                : pc == result.pc && reference->sp == native.stack &&
+                  visits++ == result.dispatches) {
             stopped = true;
             break;
         }
@@ -5164,6 +5166,110 @@ static void SeedTextStep(uint8_t *wram, uint16_t dp) {
     wram[0x109b2u] = (uint8_t)(0x20u + (NmiRandom() & 0x3fu));
 }
 
+/* Forward-only event scripts of the native opcodes, in WRAM. */
+static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
+    static const uint8_t kOps[13] = {
+        0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
+        0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u};
+    uint8_t script[256];
+    uint16_t starts[48];
+    uint16_t words[96];
+    uint8_t owner[96];
+    unsigned n = 0, len = 0, patches = 0;
+    const uint8_t bank = (random() & 1u) ? 0x7eu : 0x7fu;
+    const uint16_t base = bank == 0x7eu && !(random() & 7u)
+        ? (uint16_t)(0xff00u + (random() & 0xf0u))
+        : (uint16_t)(0x9000u + (random() & 0x3fffu));
+    const uint32_t map_0692 = bank == 0x7eu ? 0x0692u : 0x10692u;
+
+    while (len < 220u && n < 47u) {
+        const unsigned roll = random() % 32u;
+        uint8_t op;
+
+        starts[n++] = (uint16_t)len;
+        if (roll < 2u) {
+            script[len++] = 0x00u;
+            continue;
+        }
+        if (roll < 4u) {
+            script[len++] = 0x11u;
+            script[len++] = (uint8_t)random();
+            continue;
+        }
+        if (roll < 5u) {
+            script[len++] = (uint8_t)random();
+            continue;
+        }
+        op = kOps[random() % 13u];
+        script[len++] = op;
+        switch (op) {
+        case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
+            script[len++] = (random() & 3u) ? (uint8_t)random()
+                                            : (uint8_t)(0xfbu + random() % 5u);
+            break;
+        case 0x0du: case 0x71u:
+            script[len++] = (random() & 1u) ? wram[map_0692]
+                                            : (uint8_t)random();
+            break;
+        case 0x1bu: case 0x1cu:
+            script[len++] = (uint8_t)random();
+            script[len++] = (uint8_t)random();
+            break;
+        default:
+            break;
+        }
+        if (op == 0x08u || op == 0x09u || op == 0x1bu || op == 0x1cu ||
+            op == 0x57u)
+            continue;
+        for (unsigned w = op == 0x1eu ? 2u : 1u; w > 0u; --w) {
+            owner[patches] = (uint8_t)(n - 1u);
+            words[patches++] = (uint16_t)len;
+            len += 2u;
+        }
+    }
+    starts[n] = (uint16_t)len;
+    script[len++] = 0x00u;
+    /* Gotos jump to a later opcode, rarely anywhere. */
+    for (unsigned p = 0; p < patches; ++p) {
+        const unsigned later = owner[p] + 1u + random() % (n - owner[p]);
+        const uint16_t target = (random() % 64u)
+            ? starts[later] : (uint16_t)random();
+
+        script[words[p]] = (uint8_t)target;
+        script[words[p] + 1u] = (uint8_t)(target >> 8);
+    }
+    for (unsigned i = 0; i < len; ++i) {
+        uint32_t at = (uint32_t)base + i;
+        uint32_t offset = bank == 0x7eu ? 0u : 0x10000u;
+
+        if (at > 0xffffu) {
+            at = 0x8000u + (at - 0x10000u);
+            offset += 0x10000u;
+        }
+        if (offset < 0x20000u)
+            wram[offset + at] = script[i];
+    }
+    wram[0x1d194u] = (uint8_t)base;
+    wram[0x1d195u] = (uint8_t)(base >> 8);
+    wram[0x1d196u] = bank;
+    if (random() & 1u)
+        wram[0x11273u] = 0;
+    for (unsigned t = 0; t < 8u; ++t) {
+        uint32_t at = (uint32_t)base + starts[random() % n];
+        uint8_t at_bank = bank;
+
+        if (!(random() % 8u))
+            continue;
+        if (at > 0xffffu) {
+            at = 0x8000u + (at - 0x10000u);
+            ++at_bank;
+        }
+        wram[0x1d134u + 3u * t] = (uint8_t)at;
+        wram[0x1d135u + 3u * t] = (uint8_t)(at >> 8);
+        wram[0x1d136u + 3u * t] = at_bank;
+    }
+}
+
 /* Event slot timers: idle, waiting, due ($81) or wrapping ($80). */
 static void SeedEventTimers(uint8_t *wram, uint16_t dp) {
     const unsigned mode = NmiRandom() & 7u;
@@ -5172,10 +5278,11 @@ static void SeedEventTimers(uint8_t *wram, uint16_t dp) {
     for (unsigned t = 0; t < 8u; ++t) {
         const unsigned roll = NmiRandom() % 16u;
 
-        wram[0x1d18cu + t] = roll < 8u ? (uint8_t)(NmiRandom() & 0x7fu)
-            : roll < 13u ? (uint8_t)(0x82u + NmiRandom() % 0x7eu)
-            : roll < 15u ? 0x80u : 0x81u;
+        wram[0x1d18cu + t] = roll < 6u ? (uint8_t)(NmiRandom() & 0x7fu)
+            : roll < 11u ? (uint8_t)(0x82u + NmiRandom() % 0x7eu)
+            : roll < 13u ? 0x80u : 0x81u;
     }
+    SeedEventScripts(wram, NmiRandom);
     if (mode < 2u)
         for (unsigned t = 0; t < 8u; ++t)
             wram[0x1d18cu + t] &= 0x7fu;
@@ -6403,7 +6510,7 @@ int main(int argc, char **argv) {
         actor_slots_passed, ACTOR_SLOTS_CASES, actor_slots.returned,
         actor_slots.boundary, actor_slots.unterminated);
     printf("$83:81C6 whole-function cases passed:      %u / %u "
-        "(RTS 829F %u; LLE 80:CBCC %u, 80:CC0E %u, B96D %u, 8225 %u, "
+        "(RTS 829F %u; LLE 80:CC3F %u, 80:CC0E %u, B96D %u, 8225 %u, "
         "8251 %u, other %u)\n",
         field_trigger_passed, FIELD_TRIGGER_CASES, field_trigger.returned,
         field_trigger.boundary[0], field_trigger.boundary[1],

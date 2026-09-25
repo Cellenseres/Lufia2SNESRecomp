@@ -1294,6 +1294,110 @@ static void Seed85DC(CpuState *cpu) {
     SeedJslX16(cpu, 0x83);
 }
 
+/* Forward-only event scripts of the native opcodes, in WRAM. */
+static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
+    static const uint8_t kOps[13] = {
+        0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
+        0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u};
+    uint8_t script[256];
+    uint16_t starts[48];
+    uint16_t words[96];
+    uint8_t owner[96];
+    unsigned n = 0, len = 0, patches = 0;
+    const uint8_t bank = (random() & 1u) ? 0x7eu : 0x7fu;
+    const uint16_t base = bank == 0x7eu && !(random() & 7u)
+        ? (uint16_t)(0xff00u + (random() & 0xf0u))
+        : (uint16_t)(0x9000u + (random() & 0x3fffu));
+    const uint32_t map_0692 = bank == 0x7eu ? 0x0692u : 0x10692u;
+
+    while (len < 220u && n < 47u) {
+        const unsigned roll = random() % 32u;
+        uint8_t op;
+
+        starts[n++] = (uint16_t)len;
+        if (roll < 2u) {
+            script[len++] = 0x00u;
+            continue;
+        }
+        if (roll < 4u) {
+            script[len++] = 0x11u;
+            script[len++] = (uint8_t)random();
+            continue;
+        }
+        if (roll < 5u) {
+            script[len++] = (uint8_t)random();
+            continue;
+        }
+        op = kOps[random() % 13u];
+        script[len++] = op;
+        switch (op) {
+        case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
+            script[len++] = (random() & 3u) ? (uint8_t)random()
+                                            : (uint8_t)(0xfbu + random() % 5u);
+            break;
+        case 0x0du: case 0x71u:
+            script[len++] = (random() & 1u) ? wram[map_0692]
+                                            : (uint8_t)random();
+            break;
+        case 0x1bu: case 0x1cu:
+            script[len++] = (uint8_t)random();
+            script[len++] = (uint8_t)random();
+            break;
+        default:
+            break;
+        }
+        if (op == 0x08u || op == 0x09u || op == 0x1bu || op == 0x1cu ||
+            op == 0x57u)
+            continue;
+        for (unsigned w = op == 0x1eu ? 2u : 1u; w > 0u; --w) {
+            owner[patches] = (uint8_t)(n - 1u);
+            words[patches++] = (uint16_t)len;
+            len += 2u;
+        }
+    }
+    starts[n] = (uint16_t)len;
+    script[len++] = 0x00u;
+    /* Gotos jump to a later opcode, rarely anywhere. */
+    for (unsigned p = 0; p < patches; ++p) {
+        const unsigned later = owner[p] + 1u + random() % (n - owner[p]);
+        const uint16_t target = (random() % 64u)
+            ? starts[later] : (uint16_t)random();
+
+        script[words[p]] = (uint8_t)target;
+        script[words[p] + 1u] = (uint8_t)(target >> 8);
+    }
+    for (unsigned i = 0; i < len; ++i) {
+        uint32_t at = (uint32_t)base + i;
+        uint32_t offset = bank == 0x7eu ? 0u : 0x10000u;
+
+        if (at > 0xffffu) {
+            at = 0x8000u + (at - 0x10000u);
+            offset += 0x10000u;
+        }
+        if (offset < 0x20000u)
+            wram[offset + at] = script[i];
+    }
+    wram[0x1d194u] = (uint8_t)base;
+    wram[0x1d195u] = (uint8_t)(base >> 8);
+    wram[0x1d196u] = bank;
+    if (random() & 1u)
+        wram[0x11273u] = 0;
+    for (unsigned t = 0; t < 8u; ++t) {
+        uint32_t at = (uint32_t)base + starts[random() % n];
+        uint8_t at_bank = bank;
+
+        if (!(random() % 8u))
+            continue;
+        if (at > 0xffffu) {
+            at = 0x8000u + (at - 0x10000u);
+            ++at_bank;
+        }
+        wram[0x1d134u + 3u * t] = (uint8_t)at;
+        wram[0x1d135u + 3u * t] = (uint8_t)(at >> 8);
+        wram[0x1d136u + 3u * t] = at_bank;
+    }
+}
+
 /* Event slot timers; DB $C0 reads $1273 from ROM. */
 static void SeedCBAE(CpuState *cpu) {
     static const uint8_t banks[8] = {
@@ -1304,13 +1408,14 @@ static void SeedCBAE(CpuState *cpu) {
     for (unsigned t = 0; t < 8u; ++t) {
         const unsigned roll = Random32() % 16u;
 
-        g_bus.wram[0x1d18cu + t] = roll < 8u ? (uint8_t)(Random32() & 0x7fu)
-            : roll < 13u ? (uint8_t)(0x82u + Random32() % 0x7eu)
-            : roll < 15u ? 0x80u : 0x81u;
+        g_bus.wram[0x1d18cu + t] = roll < 6u ? (uint8_t)(Random32() & 0x7fu)
+            : roll < 11u ? (uint8_t)(0x82u + Random32() % 0x7eu)
+            : roll < 13u ? 0x80u : 0x81u;
     }
     if (mode < 2u)
         for (unsigned t = 0; t < 8u; ++t)
             g_bus.wram[0x1d18cu + t] &= 0x7fu;
+    SeedEventScripts(g_bus.wram, Random32);
     cpu->DB = banks[Random32() & 7u];
 }
 
