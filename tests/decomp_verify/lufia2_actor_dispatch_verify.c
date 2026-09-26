@@ -53,6 +53,9 @@ static uint8_t Rom8(const SnesVerifyBus *bus, uint32_t address) {
     return offset < bus->rom_size ? bus->rom[offset] : 0xffu;
 }
 
+/* ROM for seeds that aim at list contents. */
+static const SnesVerifyBus *g_seed_rom;
+
 static uint16_t Rom16(const SnesVerifyBus *bus, uint32_t address) {
     const uint8_t lo = Rom8(bus, address);
     const uint32_t hi_address =
@@ -5759,6 +5762,101 @@ static void SeedSpriteUpload(uint8_t *wram, uint16_t dp) {
             }
 }
 
+/* Title particles $C448: half idle, ROM sprite lists, x near the
+   list offset and the screen edges. */
+static void SeedTitleParticles(uint8_t *wram, uint16_t dp) {
+    static const uint8_t edges[4] = {0x00u, 0xffu, 0x01u, 0x00u};
+
+    (void)dp;
+    for (unsigned b = 0; b < 2u; ++b)
+        for (unsigned k = 0; k < 75u; ++k) {
+            uint8_t *record = wram + 0x10000u * b + 0xc448u + 13u * k;
+            const uint16_t list = (uint16_t)(record[3] | (record[4] << 8));
+
+            if (NmiRandom() & 1u) {
+                record[1] = 0;
+                continue;
+            }
+            if (NmiRandom() & 7u)
+                record[4] |= 0x80u;
+            if (NmiRandom() & 1u)
+                record[5] = Rom8(g_seed_rom,
+                    (0x860000u + (list | 0x8000u) + 2u) & 0x00ffffffu);
+            if (NmiRandom() & 1u)
+                record[6] = edges[NmiRandom() & 3u];
+        }
+}
+
+/* Title objects: active, timers 0/1/long, angles on every
+   quadrant and near the $B400 wrap, depth 0-10, half-free pools. */
+static void SeedTitleObjects(uint8_t *wram, uint16_t dp) {
+    (void)dp;
+#define RANDOM NmiRandom
+    static const uint16_t objects[3] = {0xc400u, 0xc418u, 0xc430u};
+    static const uint16_t sprites[3] = {0xc448u, 0xc455u, 0xc462u};
+
+    for (unsigned b = 0; b < 2u; ++b) {
+        uint8_t *bank = wram + 0x10000u * b;
+
+        for (unsigned k = 0; k < 3u; ++k) {
+            uint8_t *object = bank + objects[k];
+            const unsigned timer = RANDOM() & 7u;
+
+            if (RANDOM() & 7u)
+                object[0x12] |= 0x80u;
+            object[0x08] = (uint8_t)(timer < 2u ? timer : RANDOM());
+            object[0x09] = (uint8_t)(timer < 4u ? 0u : RANDOM());
+            object[0x05] = (uint8_t)(RANDOM() % 0xb4u);
+            object[0x07] = (uint8_t)(RANDOM() % 0xb4u);
+            if (RANDOM() & 1u)
+                object[0x14] = (uint8_t)(RANDOM() & 3u);
+            if (RANDOM() & 1u)
+                object[0x16] = (uint8_t)(RANDOM() & 3u);
+            if ((RANDOM() & 3u) == 0) {
+                object[0x05] = 0xb3u;
+                object[0x04] = (uint8_t)(0xf0u | RANDOM());
+            }
+            object[0x17] = (uint8_t)(RANDOM() % 11u);
+            if (RANDOM() & 1u)
+                bank[sprites[k] + 1u] = 0;
+        }
+        for (unsigned k = 0; k < 72u; ++k)
+            if (RANDOM() & 1u)
+                bank[0xc46fu + 1u + 13u * k] = 0;
+    }
+#undef RANDOM
+}
+
+/* Title layer 10 on or off an 8-pixel step; frame 63 wraps. */
+static void SeedTitleLayers(uint8_t *wram, uint16_t dp) {
+    (void)dp;
+    for (unsigned b = 0; b < 2u; ++b) {
+        uint8_t *bank = wram + 0x10000u * b;
+
+        if (NmiRandom() & 1u)
+            bank[0x15b7u] = (uint8_t)(bank[0x15a1u] >> 3);
+        if ((NmiRandom() & 3u) == 0)
+            bank[0x15b8u] = 0x3fu;
+    }
+}
+
+/* Title palette timer: due, one frame off, or wrapping. */
+static void SeedTitlePalette(uint8_t *wram, uint16_t dp) {
+    static const uint8_t timers[4] = {0x01u, 0x02u, 0x00u, 0x01u};
+
+    (void)dp;
+    for (unsigned b = 0; b < 2u; ++b) {
+        uint8_t *bank = wram + 0x10000u * b;
+
+        if (NmiRandom() & 3u) {
+            bank[0x14b5u] = timers[NmiRandom() & 3u];
+            bank[0x14b6u] = 0x00u;
+        }
+        if (NmiRandom() & 1u)
+            bank[0x15b9u] = (uint8_t)(NmiRandom() & 1u);
+    }
+}
+
 /* Event slot timers: idle, waiting, due ($81) or wrapping ($80). */
 static void SeedEventTimers(uint8_t *wram, uint16_t dp) {
     const unsigned mode = NmiRandom() & 7u;
@@ -5828,6 +5926,14 @@ static const SmallTarget kSmallTargets[] = {
      SeedLoadSprite},
     {"8193", 0x848193u, Lufia2SpriteGraphicsUpload, 3, 0x83a7b4u,
      SeedSpriteUpload},
+    {"88BE", 0x8688beu, Lufia2TitleParticleSprites, 2, 0x8682f4u,
+     SeedTitleParticles},
+    {"838C", 0x86838cu, Lufia2TitleObjects, 2, 0x8682eau,
+     SeedTitleObjects},
+    {"86ED", 0x8686edu, Lufia2TitleLayers, 2, 0x8682e7u,
+     SeedTitleLayers},
+    {"8996", 0x868996u, Lufia2TitlePaletteCycle, 2, 0x8682edu,
+     SeedTitlePalette},
 };
 
 enum { SMALL_TARGETS = sizeof(kSmallTargets) / sizeof(kSmallTargets[0]) };
@@ -6446,6 +6552,7 @@ int main(int argc, char **argv) {
         goto done;
     }
     bus_initialized = true;
+    g_seed_rom = &bus;
     initial = (uint8_t *)malloc(SNES_VERIFY_WRAM_SIZE);
     reference =
         interp816_init(&bus, SnesVerifyBusRead, SnesVerifyBusWrite);

@@ -322,6 +322,22 @@ RecompReturn Lufia2DecompBridge_8193(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x848193u, Lufia2SpriteGraphicsUpload, 3);
 }
 
+RecompReturn Lufia2DecompBridge_88BE(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x8688beu, Lufia2TitleParticleSprites, 2);
+}
+
+RecompReturn Lufia2DecompBridge_838C(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x86838cu, Lufia2TitleObjects, 2);
+}
+
+RecompReturn Lufia2DecompBridge_86ED(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x8686edu, Lufia2TitleLayers, 2);
+}
+
+RecompReturn Lufia2DecompBridge_8996(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x868996u, Lufia2TitlePaletteCycle, 2);
+}
+
 RecompReturn Lufia2DecompBridge_8DC5(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x858dc5u, Lufia2BattleNmiUploads, 3);
 }

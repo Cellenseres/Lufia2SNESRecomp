@@ -28,6 +28,10 @@ extern RecompReturn Lufia2DecompBridge_9C72(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_CBAE(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_A9BA(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8193(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_88BE(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_838C(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_86ED(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_8996(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8DC5(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_CEF6(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_ECDB(CpuState *cpu);
@@ -1882,6 +1886,75 @@ static void SeedA9BA(CpuState *cpu) {
         g_bus.wram[0xe100u + k] = (Random32() & 3u) ? 0x00u : (uint8_t)Random32();
 }
 
+/* $86:86ED from the title loop: layer 10 half on a step. */
+static void Seed86ED(CpuState *cpu) {
+    SeedJslX16(cpu, 0x86);
+    if (Random32() & 1u)
+        g_bus.wram[0x15b7u] = (uint8_t)(g_bus.wram[0x15a1u] >> 3);
+}
+
+/* $86:8996 from the title loop: timer mostly due. */
+static void Seed8996(CpuState *cpu) {
+    SeedJslX16(cpu, 0x86);
+    if (Random32() & 3u) {
+        g_bus.wram[0x14b5u] = 0x01u;
+        g_bus.wram[0x14b6u] = 0x00u;
+    }
+    if (Random32() & 1u)
+        g_bus.wram[0x15b9u] = 0x00u;
+}
+
+/* $86:838C from the title loop: objects in $7E. */
+static void Seed838C(CpuState *cpu) {
+    uint8_t *wram = g_bus.wram;
+
+    SeedJslX16(cpu, 0x86);
+    cpu->DB = 0x7e;
+#define RANDOM Random32
+    static const uint16_t objects[3] = {0xc400u, 0xc418u, 0xc430u};
+    static const uint16_t sprites[3] = {0xc448u, 0xc455u, 0xc462u};
+
+    for (unsigned b = 0; b < 1u; ++b) {
+        uint8_t *bank = wram + 0x10000u * b;
+
+        for (unsigned k = 0; k < 3u; ++k) {
+            uint8_t *object = bank + objects[k];
+            const unsigned timer = RANDOM() & 7u;
+
+            if (RANDOM() & 7u)
+                object[0x12] |= 0x80u;
+            object[0x08] = (uint8_t)(timer < 2u ? timer : RANDOM());
+            object[0x09] = (uint8_t)(timer < 4u ? 0u : RANDOM());
+            object[0x05] = (uint8_t)(RANDOM() % 0xb4u);
+            object[0x07] = (uint8_t)(RANDOM() % 0xb4u);
+            if (RANDOM() & 1u)
+                object[0x14] = (uint8_t)(RANDOM() & 3u);
+            if (RANDOM() & 1u)
+                object[0x16] = (uint8_t)(RANDOM() & 3u);
+            if ((RANDOM() & 3u) == 0) {
+                object[0x05] = 0xb3u;
+                object[0x04] = (uint8_t)(0xf0u | RANDOM());
+            }
+            object[0x17] = (uint8_t)(RANDOM() % 11u);
+            if (RANDOM() & 1u)
+                bank[sprites[k] + 1u] = 0;
+        }
+        for (unsigned k = 0; k < 72u; ++k)
+            if (RANDOM() & 1u)
+                bank[0xc46fu + 1u + 13u * k] = 0;
+    }
+#undef RANDOM
+}
+
+/* $86:88BE from the title loop: particles in $7E, half idle. */
+static void Seed88BE(CpuState *cpu) {
+    SeedJslX16(cpu, 0x86);
+    cpu->DB = 0x7e;
+    for (unsigned k = 0; k < 75u; ++k)
+        if (Random32() & 1u)
+            g_bus.wram[0xc449u + 13u * k] = 0;
+}
+
 /* $84:8193 from $83:A7B1: queue $05C2 partly empty, X8 or X16. */
 static void Seed8193(CpuState *cpu) {
     SeedJslX16(cpu, 0x83);
@@ -2302,6 +2375,14 @@ static const WholeTarget kWholeTargets[] = {
      Lufia2DecompBridge_A9BA, 3, 4000000u},
     {"8193", 0x848193u, 0u, Seed8193, Lufia2SpriteGraphicsUpload,
      Lufia2DecompBridge_8193, 3, 4000000u},
+    {"88BE", 0x8688beu, 0u, Seed88BE, Lufia2TitleParticleSprites,
+     Lufia2DecompBridge_88BE, 2, 4000000u},
+    {"838C", 0x86838cu, 0u, Seed838C, Lufia2TitleObjects,
+     Lufia2DecompBridge_838C, 2, 4000000u},
+    {"86ED", 0x8686edu, 0u, Seed86ED, Lufia2TitleLayers,
+     Lufia2DecompBridge_86ED, 2, 4000000u},
+    {"8996", 0x868996u, 0u, Seed8996, Lufia2TitlePaletteCycle,
+     Lufia2DecompBridge_8996, 2, 4000000u},
 };
 
 enum { WHOLE_TARGETS = sizeof(kWholeTargets) / sizeof(kWholeTargets[0]) };
