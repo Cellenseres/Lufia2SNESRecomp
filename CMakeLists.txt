@@ -75,6 +75,13 @@ option(LUFIA2_ENABLE_PATCH_REPORTING
 # selection, widescreen decisions and the periodic CPU state dump. A shipped
 # build leaves this OFF; errors are reported either way.
 option(LUFIA2_ENABLE_RUNTIME_LOG "Progress and state tracing to stderr" OFF)
+# Per-PC interpreter histogram at exit (SNESRECOMP_INTERP_MS_PROF=1 adds
+# host time). A compile definition, not a C flag: the Visual Studio
+# generator drops C-only flags from targets that also compile C++.
+option(LUFIA2_ENABLE_INTERP_PROFILE "Interpreter PC histogram (profiling builds)" OFF)
+if(LUFIA2_ENABLE_INTERP_PROFILE OR CMAKE_C_FLAGS MATCHES "SNESRECOMP_INTERP_PROFILE")
+    add_compile_definitions(SNESRECOMP_INTERP_PROFILE)
+endif()
 # Desktop only, and not because of the compiler: the Vita bridge overlay in
 # ports/vita/InterpreterHostCosts.cmake already filters the same ring
 # with a fingerprint array and a refcounted presence map. Layering this

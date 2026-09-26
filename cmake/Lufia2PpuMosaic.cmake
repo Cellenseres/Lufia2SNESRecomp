@@ -51,6 +51,31 @@ function(lufia2_fix_ppu_4bpp_mosaic_palette source_var)
     set(${source_var} "${_prefix}${_body}${_suffix}" PARENT_SCOPE)
 endfunction()
 
+# The core's PpuDrawBackgrounds times sprites with PPU_T0 but never
+# declares its timer, so profiling builds (SNESRECOMP_INTERP_PROFILE)
+# fail to compile. Both macros are empty otherwise.
+function(lufia2_fix_ppu_profile_timer source_var)
+    set(_source "${${source_var}}")
+    set(_head "static void PpuDrawBackgrounds(Ppu *ppu, int y, bool sub) {\n")
+    string(FIND "${_source}" "${_head}" _start)
+    if(_start EQUAL -1)
+        return()
+    endif()
+    string(SUBSTRING "${_source}" ${_start} -1 _rest)
+    string(FIND "${_rest}" "\nstatic " _next)
+    if(_next EQUAL -1)
+        return()
+    endif()
+    string(SUBSTRING "${_rest}" 0 ${_next} _body)
+    string(FIND "${_body}" "PPU_T0;" _uses)
+    string(FIND "${_body}" "PPU_T0_DECL" _declared)
+    if(_uses EQUAL -1 OR NOT _declared EQUAL -1)
+        return()
+    endif()
+    string(REPLACE "${_head}" "${_head}  PPU_T0_DECL\n" _source "${_source}")
+    set(${source_var} "${_source}" PARENT_SCOPE)
+endfunction()
+
 # Desktop builds compile the corrected immutable copy. Vita folds the same
 # source transformation into its existing pixel-offload overlay.
 function(lufia2_prepare_ppu_mosaic_overlay sources_var core_root)
@@ -61,6 +86,7 @@ function(lufia2_prepare_ppu_mosaic_overlay sources_var core_root)
 
     file(READ "${_original}" _source)
     lufia2_fix_ppu_4bpp_mosaic_palette(_source)
+    lufia2_fix_ppu_profile_timer(_source)
 
     set(_directory "${CMAKE_BINARY_DIR}/generated/lufia2-ppu-fixes/snes")
     set(_overlay "${_directory}/ppu.c")
