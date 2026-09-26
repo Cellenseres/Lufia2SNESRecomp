@@ -5748,6 +5748,17 @@ static void SeedLoadSprite(uint8_t *wram, uint16_t dp) {
         wram[0xe100u + k] = (NmiRandom() & 3u) ? 0x00u : (uint8_t)NmiRandom();
 }
 
+/* Sprite graphics queue $05C2: sources, some empty, in both banks. */
+static void SeedSpriteUpload(uint8_t *wram, uint16_t dp) {
+    (void)dp;
+    for (unsigned b = 0; b < 2u; ++b)
+        for (unsigned k = 0; k < 0x10u; k += 2u)
+            if (NmiRandom() & 1u) {
+                wram[0x10000u * b + 0x05c2u + k] = 0;
+                wram[0x10000u * b + 0x05c3u + k] = 0;
+            }
+}
+
 /* Event slot timers: idle, waiting, due ($81) or wrapping ($80). */
 static void SeedEventTimers(uint8_t *wram, uint16_t dp) {
     const unsigned mode = NmiRandom() & 7u;
@@ -5815,6 +5826,8 @@ static const SmallTarget kSmallTargets[] = {
      SeedEventTimers},
     {"A9BA", 0x83a9bau, Lufia2ActorLoadSprite, 3, 0x83a791u,
      SeedLoadSprite},
+    {"8193", 0x848193u, Lufia2SpriteGraphicsUpload, 3, 0x83a7b4u,
+     SeedSpriteUpload},
 };
 
 enum { SMALL_TARGETS = sizeof(kSmallTargets) / sizeof(kSmallTargets[0]) };

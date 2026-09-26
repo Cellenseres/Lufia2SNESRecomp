@@ -27,6 +27,7 @@ extern RecompReturn Lufia2DecompBridge_AEB5(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_9C72(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_CBAE(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_A9BA(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_8193(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8DC5(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_CEF6(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_ECDB(CpuState *cpu);
@@ -1881,6 +1882,22 @@ static void SeedA9BA(CpuState *cpu) {
         g_bus.wram[0xe100u + k] = (Random32() & 3u) ? 0x00u : (uint8_t)Random32();
 }
 
+/* $84:8193 from $83:A7B1: queue $05C2 partly empty, X8 or X16. */
+static void Seed8193(CpuState *cpu) {
+    SeedJslX16(cpu, 0x83);
+    cpu->x_flag = Random32() & 1u;
+    if (cpu->x_flag) {
+        cpu->X &= 0x00ffu;
+        cpu->Y &= 0x00ffu;
+    }
+    cpu_mirrors_to_p(cpu);
+    for (unsigned k = 0; k < 0x10u; k += 2u)
+        if (Random32() & 1u) {
+            g_bus.wram[0x05c2u + k] = 0;
+            g_bus.wram[0x05c3u + k] = 0;
+        }
+}
+
 static void SeedCBAE(CpuState *cpu) {
     static const uint8_t banks[8] = {
         0x83u, 0x83u, 0x80u, 0x7eu, 0x7fu, 0x00u, 0x8eu, 0xc0u};
@@ -2283,6 +2300,8 @@ static const WholeTarget kWholeTargets[] = {
      Lufia2DecompBridge_CBAE, 3, 4000000u},
     {"A9BA", 0x83a9bau, 0u, SeedA9BA, Lufia2ActorLoadSprite,
      Lufia2DecompBridge_A9BA, 3, 4000000u},
+    {"8193", 0x848193u, 0u, Seed8193, Lufia2SpriteGraphicsUpload,
+     Lufia2DecompBridge_8193, 3, 4000000u},
 };
 
 enum { WHOLE_TARGETS = sizeof(kWholeTargets) / sizeof(kWholeTargets[0]) };
