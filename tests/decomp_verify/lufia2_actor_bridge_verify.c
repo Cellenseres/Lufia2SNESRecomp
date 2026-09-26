@@ -1296,7 +1296,7 @@ static void Seed85DC(CpuState *cpu) {
 
 /* Forward-only event scripts of the native opcodes, in WRAM. */
 static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
-    static const uint8_t kOps[142] = {
+    static const uint8_t kOps[143] = {
         0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
         0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u, 0x2fu,
         0x30u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u, 0x37u,
@@ -1314,7 +1314,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         0x02u, 0x03u, 0x28u, 0xa0u, 0xa1u, 0xbau, 0x1du, 0x63u,
         0x87u, 0x88u, 0x89u, 0x20u, 0x10u, 0x7bu, 0x94u, 0x95u, 0x96u,
         0x97u, 0x98u, 0x99u, 0x9au, 0x8au, 0x8bu, 0x60u, 0x61u, 0x78u,
-        0x59u, 0x21u, 0x22u, 0x2au, 0xbcu};
+        0x59u, 0x21u, 0x22u, 0x2au, 0xbcu, 0xb3u};
     uint8_t script[384];
     uint16_t starts[48];
     uint16_t words[96];
@@ -1348,7 +1348,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             continue;
         }
-        op = kOps[random() % 142u];
+        op = kOps[random() % 143u];
         script[len++] = op;
         switch (op) {
         case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
@@ -1469,6 +1469,13 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             /* Cell x, y near the pending objects of $7F:D69C. */
             script[len++] = (uint8_t)(random() & 3u);
             script[len++] = (uint8_t)(random() & 3u);
+            break;
+        case 0xb3u:
+            /* Area operand, map object key (variable), $E316 byte. */
+            script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x60u + (random() & 7u));
+            script[len++] = (random() & 3u) ? (uint8_t)(random() & 7u)
+                                            : (uint8_t)(0xfbu + random() % 5u);
+            script[len++] = (uint8_t)random();
             break;
         case 0xbcu:
             /* Actor id (+$4F in $05FA), then a position operand. */
