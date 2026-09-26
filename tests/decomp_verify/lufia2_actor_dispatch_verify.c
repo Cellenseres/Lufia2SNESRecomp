@@ -5172,7 +5172,7 @@ static void SeedTextStep(uint8_t *wram, uint16_t dp) {
 
 /* Forward-only event scripts of the native opcodes, in WRAM. */
 static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
-    static const uint8_t kOps[140] = {
+    static const uint8_t kOps[141] = {
         0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
         0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u, 0x2fu,
         0x30u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u, 0x37u,
@@ -5190,7 +5190,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         0x02u, 0x03u, 0x28u, 0xa0u, 0xa1u, 0xbau, 0x1du, 0x63u,
         0x87u, 0x88u, 0x89u, 0x20u, 0x10u, 0x7bu, 0x94u, 0x95u, 0x96u,
         0x97u, 0x98u, 0x99u, 0x9au, 0x8au, 0x8bu, 0x60u, 0x61u, 0x78u,
-        0x59u, 0x21u, 0x22u};
+        0x59u, 0x21u, 0x22u, 0x2au};
     uint8_t script[384];
     uint16_t starts[48];
     uint16_t words[96];
@@ -5224,7 +5224,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             continue;
         }
-        op = kOps[random() % 140u];
+        op = kOps[random() % 141u];
         script[len++] = op;
         switch (op) {
         case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
@@ -5346,6 +5346,12 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)(random() & 3u);
             script[len++] = (uint8_t)(random() & 3u);
             break;
+        case 0x2au:
+            /* Position, then a $F016 map object key. */
+            script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x20u + (random() & 7u));
+            script[len++] = (random() & 7u) ? (uint8_t)(random() & 7u)
+                                            : (uint8_t)random();
+            break;
         case 0x22u:
             script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x20u + (random() & 7u));
             break;
@@ -5463,7 +5469,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             op == 0x02u || op == 0x03u || op == 0x28u ||
             op == 0xbau || op == 0x1du || op == 0x63u || op == 0x87u ||
             op == 0x10u || op == 0x7bu || op == 0x94u || op == 0x60u || op == 0x61u ||
-            op == 0x59u || op == 0x21u || op == 0x22u ||
+            op == 0x59u || op == 0x21u || op == 0x22u || op == 0x2au ||
             op == 0xa7u || op == 0x9cu || op == 0x9fu || op == 0x5eu ||
             op == 0x55u || op == 0x69u || op == 0x85u ||
             (op >= 0x64u && op <= 0x67u))
@@ -5556,6 +5562,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             for (unsigned b = 1; b < stride; ++b)
                 wram[(uint16_t)(at + b)] = (uint8_t)(
                     l == 4u && b == 5u ? random() & 1u
+                    : l == 2u && b == 5u ? 1u + (random() & 1u)
                     : b < 5u ? random() & 3u
                     : l == 3u && b == 13u ? random() & 7u : random());
         }
@@ -5811,7 +5818,8 @@ static bool RunSmallCase(
     RestoreBusRegisters(bus, &registers);
 
     InitInterp(reference, target->entry, &input);
-    while (instructions < 2000000u) {
+    /* A looping event tick runs 4096 opcodes. */
+    while (instructions < 10000000u) {
         const uint32_t pc = SnesVerifyPc24(reference);
         if (result.flow == LUFIA2_EXECUTION_RETURNED
                 ? pc == exit
