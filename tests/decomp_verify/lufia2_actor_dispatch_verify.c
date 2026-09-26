@@ -5172,7 +5172,7 @@ static void SeedTextStep(uint8_t *wram, uint16_t dp) {
 
 /* Forward-only event scripts of the native opcodes, in WRAM. */
 static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
-    static const uint8_t kOps[143] = {
+    static const uint8_t kOps[147] = {
         0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
         0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u, 0x2fu,
         0x30u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u, 0x37u,
@@ -5190,7 +5190,8 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         0x02u, 0x03u, 0x28u, 0xa0u, 0xa1u, 0xbau, 0x1du, 0x63u,
         0x87u, 0x88u, 0x89u, 0x20u, 0x10u, 0x7bu, 0x94u, 0x95u, 0x96u,
         0x97u, 0x98u, 0x99u, 0x9au, 0x8au, 0x8bu, 0x60u, 0x61u, 0x78u,
-        0x59u, 0x21u, 0x22u, 0x2au, 0xbcu, 0xb3u};
+        0x59u, 0x21u, 0x22u, 0x2au, 0xbcu, 0xb3u, 0x5au, 0x5bu, 0x5cu,
+        0x5du};
     uint8_t script[384];
     uint16_t starts[48];
     uint16_t words[96];
@@ -5224,7 +5225,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             continue;
         }
-        op = kOps[random() % 143u];
+        op = kOps[random() % 147u];
         script[len++] = op;
         switch (op) {
         case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
@@ -5345,6 +5346,12 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             /* Cell x, y near the pending objects of $7F:D69C. */
             script[len++] = (uint8_t)(random() & 3u);
             script[len++] = (uint8_t)(random() & 3u);
+            break;
+        case 0x5au: case 0x5bu: case 0x5cu: case 0x5du:
+            /* Pending object slot ($7F:D69C), then byte $22. */
+            script[len++] = (random() & 3u) ? (uint8_t)(random() % 0x30u)
+                                            : (uint8_t)(0xa0u + (random() & 0x1fu));
+            script[len++] = (uint8_t)random();
             break;
         case 0xb3u:
             /* Area operand, map object key (variable), $E316 byte. */
@@ -5483,6 +5490,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             op == 0xbau || op == 0x1du || op == 0x63u || op == 0x87u ||
             op == 0x10u || op == 0x7bu || op == 0x94u || op == 0x60u || op == 0x61u ||
             op == 0x59u || op == 0x21u || op == 0x22u || op == 0x2au ||
+            (op >= 0x5au && op <= 0x5du) ||
             op == 0xa7u || op == 0x9cu || op == 0x9fu || op == 0x5eu ||
             op == 0x55u || op == 0x69u || op == 0x85u ||
             (op >= 0x64u && op <= 0x67u))
@@ -5660,6 +5668,34 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         wram[0x10000u * b + 0x1261u] = (uint8_t)random();   /* bit 6: $59 */
     }
     wram[0x05aau] = (uint8_t)(2u * (random() & 3u));        /* layer */
+    /* Mostly free attribute cells near the origin, so pushes pass
+       $83:D89E. */
+    for (unsigned k = 0; k < 0x180u; ++k)
+        wram[0x4000u + k] = (random() & 3u) ? 0x00u
+            : (random() & 1u) ? 0x80u : (uint8_t)random();
+    /* Pending object types ($7F:D7FC by $D6FC) often 1; secondary
+       actors on small cells. */
+    for (unsigned k = 0x10u; k < 0x14u; ++k)
+        wram[0x1d7fcu + k] = (random() & 1u) ? (uint8_t)(1u + (random() & 1u))
+                                             : (uint8_t)random();
+    /* Tile attributes ($7F:D03E base) at $7F:6000: 0, 1, 9 or any. */
+    wram[0x1d03eu] = 0x00u;
+    wram[0x1d03fu] = 0x60u;
+    for (unsigned k = 0; k < 0x400u; ++k) {
+        static const uint8_t kAttributes[4] = {0x00u, 0x01u, 0x09u, 0x02u};
+
+        wram[0x16000u + k] = (random() & 3u) ? kAttributes[random() & 3u]
+                                             : (uint8_t)random();
+    }
+    for (unsigned k = 0; k < 0x20u; ++k) {
+        const uint16_t fine_x = (uint16_t)(((random() & 7u) << 4) | (random() & 15u));
+        const uint16_t fine_y = (uint16_t)(((random() & 7u) << 4) | (random() & 15u));
+
+        wram[0x1ddfeu + 2u * k] = (uint8_t)fine_x;
+        wram[0x1ddffu + 2u * k] = (uint8_t)(fine_x >> 8);
+        wram[0x1de8eu + 2u * k] = (uint8_t)fine_y;
+        wram[0x1de8fu + 2u * k] = (uint8_t)(fine_y >> 8);
+    }
     wram[0x05abu] = 0;
     for (unsigned k = 0; k < 8u; ++k) {
         wram[0x1d057u + k] = (random() & 1u) ? (uint8_t)(0x80u | random())
