@@ -3227,7 +3227,7 @@ static bool RunObjectSlotsCase(
         0x89, 0xea, 0xf8, 0xf9, 0xe2, 0x82, 0x83, 0xeb, 0xec, 0xed,
         0x35, 0x2c, 0x25, 0xfd, 0x8f, 0x01, 0x80, 0x53, 0x28, 0xd0,
         0xfb, 0xfc, 0xe3, 0xf7, 0x20, 0xf1, 0x19, 0x8e, 0x26, 0xa0,
-        0x60, 0x85, 0x8a, 0xee};
+        0x60, 0x85, 0x8a, 0xee, 0x14, 0x14, 0x14};
     for (uint16_t i = 0x1800u; i < 0x1f00u; ++i)
         bus->wram[i] = (ObjectRandom() % 100u) < 85u
             ? ops[ObjectRandom() % sizeof(ops)] : (uint8_t)ObjectRandom();
@@ -3252,6 +3252,21 @@ static bool RunObjectSlotsCase(
         if (ObjectRandom() & 1u)
             bus->wram[0x1daecu + slot] = 0x1fu;
         bus->wram[0x1e23eu + slot] &= 0x0fu;
+        /* Op $14: steps due, zoom near zero, limits as they come. */
+        if (ObjectRandom() & 1u) {
+            const uint32_t pick = ObjectRandom();
+
+            bus->wram[0x15f9u + slot] =
+                (uint8_t)((bus->wram[0x15d9u + slot] & 0x0fu) - 1u);
+            bus->wram[0x1659u + slot] =
+                (uint8_t)((bus->wram[0x1639u + slot] & 0x0fu) - 1u);
+            bus->wram[0x16b9u + slot] =
+                (uint8_t)((bus->wram[0x1699u + slot] & 0x0fu) - 1u);
+            if (pick & 1u)
+                bus->wram[0x1579u + slot] &= 0x03u;
+            if (pick & 2u)
+                bus->wram[0x15b9u + slot] &= 0xf7u;
+        }
     }
     if (ObjectRandom() & 3u)
         bus->wram[0x09a7u] |= 0x01u;
