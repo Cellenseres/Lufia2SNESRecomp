@@ -268,6 +268,34 @@ uint64_t lufia2_frame_wait_ff_site_pairs_count(unsigned site) {
                 include("${CMAKE_SOURCE_DIR}/cmake/Lufia2BridgeAudit.cmake")
                 lufia2_apply_bridge_audit(_text)
             endif()
+            if(LUFIA2_ENABLE_INTERP_PROFILE)
+                # Profiling builds: SNESRECOMP_INTERP_HIST_FILE receives every
+                # histogram entry (pc, steps, host ms), not only the top 60.
+                set(_old "    for (unsigned i = 0; i < 60 && i < PROFILE_HIST_CAP && s_interp_hist[i].n; i++)")
+                string(REPLACE "${_old}" "" _removed "${_text}")
+                string(LENGTH "${_text}" _before)
+                string(LENGTH "${_removed}" _after)
+                string(LENGTH "${_old}" _length)
+                math(EXPR _delta "${_before} - ${_after}")
+                if(NOT _delta EQUAL _length)
+                    message(FATAL_ERROR "Histogram dump seam must match exactly once")
+                endif()
+                string(REPLACE "${_old}" [=[
+    {
+        const char *_l2_path = getenv("SNESRECOMP_INTERP_HIST_FILE");
+        FILE *_l2_file = _l2_path && *_l2_path ? fopen(_l2_path, "w") : NULL;
+        if (_l2_file) {
+            for (unsigned i = 0; i < PROFILE_HIST_CAP; i++)
+                if (s_interp_hist[i].n)
+                    fprintf(_l2_file, "%06X %llu %.1f\n",
+                            (unsigned)s_interp_hist[i].pc24,
+                            (unsigned long long)s_interp_hist[i].n,
+                            s_interp_hist[i].ms);
+            fclose(_l2_file);
+        }
+    }
+    for (unsigned i = 0; i < 60 && i < PROFILE_HIST_CAP && s_interp_hist[i].n; i++)]=] _text "${_text}")
+            endif()
             set(_out "${CMAKE_BINARY_DIR}/generated/native-patches/interp_bridge.c")
             file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/generated/native-patches")
             file(WRITE "${_out}"
