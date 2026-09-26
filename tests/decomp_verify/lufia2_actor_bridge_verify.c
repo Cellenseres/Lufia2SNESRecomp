@@ -1296,7 +1296,7 @@ static void Seed85DC(CpuState *cpu) {
 
 /* Forward-only event scripts of the native opcodes, in WRAM. */
 static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
-    static const uint8_t kOps[134] = {
+    static const uint8_t kOps[136] = {
         0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
         0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u, 0x2fu,
         0x30u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u, 0x37u,
@@ -1313,7 +1313,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         0x5eu, 0x41u, 0x46u, 0x4bu, 0x50u, 0x54u, 0x26u, 0x27u,
         0x02u, 0x03u, 0x28u, 0xa0u, 0xa1u, 0xbau, 0x1du, 0x63u,
         0x87u, 0x88u, 0x89u, 0x20u, 0x10u, 0x7bu, 0x94u, 0x95u, 0x96u,
-        0x97u, 0x98u, 0x99u, 0x9au, 0x8au, 0x8bu};
+        0x97u, 0x98u, 0x99u, 0x9au, 0x8au, 0x8bu, 0x60u, 0x61u};
     uint8_t script[384];
     uint16_t starts[48];
     uint16_t words[96];
@@ -1347,7 +1347,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             continue;
         }
-        op = kOps[random() % 134u];
+        op = kOps[random() % 136u];
         script[len++] = op;
         switch (op) {
         case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
@@ -1459,7 +1459,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (random() & 7u) ? (uint8_t)(random() & 7u)
                                             : (uint8_t)random();
             break;
-        case 0x97u: case 0x98u: case 0x99u: case 0x9au:
+        case 0x97u: case 0x98u: case 0x99u: case 0x9au: case 0x60u: case 0x61u:
             /* Actor id (+$4F in $05FA). */
             script[len++] = (random() & 7u) ? (uint8_t)(random() & 7u)
                                             : (uint8_t)random();
@@ -1571,7 +1571,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             (op >= 0x41u && op <= 0x54u) ||
             op == 0x02u || op == 0x03u || op == 0x28u ||
             op == 0xbau || op == 0x1du || op == 0x63u || op == 0x87u ||
-            op == 0x10u || op == 0x7bu || op == 0x94u ||
+            op == 0x10u || op == 0x7bu || op == 0x94u || op == 0x60u || op == 0x61u ||
             op == 0xa7u || op == 0x9cu || op == 0x9fu || op == 0x5eu ||
             op == 0x55u || op == 0x69u || op == 0x85u ||
             (op >= 0x64u && op <= 0x67u))
