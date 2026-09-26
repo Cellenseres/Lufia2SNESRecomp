@@ -5172,7 +5172,7 @@ static void SeedTextStep(uint8_t *wram, uint16_t dp) {
 
 /* Forward-only event scripts of the native opcodes, in WRAM. */
 static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
-    static const uint8_t kOps[132] = {
+    static const uint8_t kOps[134] = {
         0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
         0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u, 0x2fu,
         0x30u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u, 0x37u,
@@ -5189,7 +5189,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         0x5eu, 0x41u, 0x46u, 0x4bu, 0x50u, 0x54u, 0x26u, 0x27u,
         0x02u, 0x03u, 0x28u, 0xa0u, 0xa1u, 0xbau, 0x1du, 0x63u,
         0x87u, 0x88u, 0x89u, 0x20u, 0x10u, 0x7bu, 0x94u, 0x95u, 0x96u,
-        0x97u, 0x98u, 0x99u, 0x9au};
+        0x97u, 0x98u, 0x99u, 0x9au, 0x8au, 0x8bu};
     uint8_t script[384];
     uint16_t starts[48];
     uint16_t words[96];
@@ -5223,7 +5223,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             continue;
         }
-        op = kOps[random() % 132u];
+        op = kOps[random() % 134u];
         script[len++] = op;
         switch (op) {
         case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
@@ -5395,7 +5395,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
                                    : (uint8_t)random();
             script[len++] = (uint8_t)random();
             break;
-        case 0x5fu: case 0x68u:
+        case 0x5fu: case 0x68u: case 0x8au: case 0x8bu:
             /* Actor slot, or a variable $A0-$BF. */
             script[len++] = (random() & 3u) ? (uint8_t)(random() % 0x28u)
                                             : (uint8_t)(0xa0u + (random() & 0x1fu));
