@@ -1296,7 +1296,7 @@ static void Seed85DC(CpuState *cpu) {
 
 /* Forward-only event scripts of the native opcodes, in WRAM. */
 static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
-    static const uint8_t kOps[138] = {
+    static const uint8_t kOps[140] = {
         0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
         0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u, 0x2fu,
         0x30u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u, 0x37u,
@@ -1314,7 +1314,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         0x02u, 0x03u, 0x28u, 0xa0u, 0xa1u, 0xbau, 0x1du, 0x63u,
         0x87u, 0x88u, 0x89u, 0x20u, 0x10u, 0x7bu, 0x94u, 0x95u, 0x96u,
         0x97u, 0x98u, 0x99u, 0x9au, 0x8au, 0x8bu, 0x60u, 0x61u, 0x78u,
-        0x59u};
+        0x59u, 0x21u, 0x22u};
     uint8_t script[384];
     uint16_t starts[48];
     uint16_t words[96];
@@ -1348,7 +1348,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             continue;
         }
-        op = kOps[random() % 138u];
+        op = kOps[random() % 140u];
         script[len++] = op;
         switch (op) {
         case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
@@ -1465,6 +1465,14 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (random() & 7u) ? (uint8_t)(random() & 7u)
                                             : (uint8_t)random();
             break;
+        case 0x21u:
+            /* Cell x, y near the pending objects of $7F:D69C. */
+            script[len++] = (uint8_t)(random() & 3u);
+            script[len++] = (uint8_t)(random() & 3u);
+            break;
+        case 0x22u:
+            script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x20u + (random() & 7u));
+            break;
         case 0x78u:
             /* Area operand, count (rarely 0 = 256), spawn id. */
             script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x60u + (random() & 7u));
@@ -1579,7 +1587,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             op == 0x02u || op == 0x03u || op == 0x28u ||
             op == 0xbau || op == 0x1du || op == 0x63u || op == 0x87u ||
             op == 0x10u || op == 0x7bu || op == 0x94u || op == 0x60u || op == 0x61u ||
-            op == 0x59u ||
+            op == 0x59u || op == 0x21u || op == 0x22u ||
             op == 0xa7u || op == 0x9cu || op == 0x9fu || op == 0x5eu ||
             op == 0x55u || op == 0x69u || op == 0x85u ||
             (op >= 0x64u && op <= 0x67u))
@@ -1755,6 +1763,8 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         wram[0x10000u * b + 0x0583u] = (random() & 3u) ? 0x00u : 0x80u;
         wram[0x10000u * b + 0x1261u] = (uint8_t)random();   /* bit 6: $59 */
     }
+    wram[0x05aau] = (uint8_t)(2u * (random() & 3u));        /* layer */
+    wram[0x05abu] = 0;
     for (unsigned k = 0; k < 8u; ++k) {
         wram[0x1d057u + k] = (random() & 1u) ? (uint8_t)(0x80u | random())
                                              : (uint8_t)(random() & 0x7fu);
