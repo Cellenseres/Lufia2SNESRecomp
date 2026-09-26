@@ -200,16 +200,17 @@ typedef Lufia2ExecutionResult (*ActorWholeFunction)(
     const Lufia2Memory *memory, Lufia2CpuState *cpu);
 
 /* Whole JSR routine with exact LLE boundaries. */
-static RecompReturn ActorBridgeWhole(
+static RecompReturn ActorBridgeRunWhole(
     CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction run,
-    uint8_t frame_size) {
+    uint8_t frame_size, int any_width) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
         ActorBridgeRead, ActorBridgeWrite, cpu};
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
 
-    if (!ActorBridgeSupported(cpu, 1, 0))
+    if (any_width ? cpu->emulation || cpu->_flag_D
+                  : !ActorBridgeSupported(cpu, 1, 0))
         return ActorBridgeFallback(cpu, &frame, entry_pc24);
     ActorBridgeLoad(cpu, &state);
     result = run(&memory, &state);
@@ -220,6 +221,19 @@ static RecompReturn ActorBridgeWhole(
             cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
     }
     return ActorBridgeReturn(cpu, &frame, frame_size, result.pc);
+}
+
+static RecompReturn ActorBridgeWhole(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction run,
+    uint8_t frame_size) {
+    return ActorBridgeRunWhole(cpu, entry_pc24, run, frame_size, 0);
+}
+
+/* Routine that sets its own widths (PHP first). */
+static RecompReturn ActorBridgeWholeAnyWidth(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction run,
+    uint8_t frame_size) {
+    return ActorBridgeRunWhole(cpu, entry_pc24, run, frame_size, 1);
 }
 
 RecompReturn Lufia2DecompBridge_C7F8(CpuState *cpu) {
@@ -352,6 +366,18 @@ RecompReturn Lufia2DecompBridge_ED9C(CpuState *cpu) {
 
 RecompReturn Lufia2DecompBridge_8E9D(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x808e9du, Lufia2DecompressResource, 3);
+}
+
+RecompReturn Lufia2DecompBridge_8878(CpuState *cpu) {
+    return ActorBridgeWholeAnyWidth(cpu, 0x808878u, Lufia2MenuDrawString, 3);
+}
+
+RecompReturn Lufia2DecompBridge_F1C5(CpuState *cpu) {
+    return ActorBridgeWholeAnyWidth(cpu, 0x81f1c5u, Lufia2LoadItemRecord, 3);
+}
+
+RecompReturn Lufia2DecompBridge_F414(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x81f414u, Lufia2LoadSpellRecord, 3);
 }
 
 RecompReturn Lufia2DecompBridge_8DC5(CpuState *cpu) {
