@@ -1850,13 +1850,12 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
 }
 
 /* Event slot timers; DB $C0 reads $1273 from ROM. */
-/* $83:A9BA from $83:A78E: actor $A7 with its AB4F offsets, any M/X
-   (the bridge takes M=1 natively). */
+/* $83:A9BA from $83:A78E: actor $A7 with its AB4F offsets, X8 or
+   X16 (M=0 entries are the unsupported cases). */
 static void SeedA9BA(CpuState *cpu) {
     const uint8_t slot = (uint8_t)(Random32() % 0x28u);
 
     SeedJslX16(cpu, 0x83);
-    cpu->m_flag = (Random32() & 3u) ? 1u : 0u;
     cpu->x_flag = Random32() & 1u;
     if (cpu->x_flag) {
         cpu->X &= 0x00ffu;
