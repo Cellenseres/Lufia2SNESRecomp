@@ -32,6 +32,7 @@ extern RecompReturn Lufia2DecompBridge_88BE(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_838C(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_86ED(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8996(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_E8CE(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8DC5(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_CEF6(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_ECDB(CpuState *cpu);
@@ -1893,6 +1894,13 @@ static void Seed86ED(CpuState *cpu) {
         g_bus.wram[0x15b7u] = (uint8_t)(g_bus.wram[0x15a1u] >> 3);
 }
 
+/* $86:E8CE from the world map loop at $86:9365. */
+static void SeedE8CE(CpuState *cpu) {
+    SeedJslX16(cpu, 0x86);
+    if (Random32() & 1u)
+        g_bus.wram[0x1e51u] = 0x01u;
+}
+
 /* $86:8996 from the title loop: timer mostly due. */
 static void Seed8996(CpuState *cpu) {
     SeedJslX16(cpu, 0x86);
@@ -2383,6 +2391,8 @@ static const WholeTarget kWholeTargets[] = {
      Lufia2DecompBridge_86ED, 2, 4000000u},
     {"8996", 0x868996u, 0u, Seed8996, Lufia2TitlePaletteCycle,
      Lufia2DecompBridge_8996, 2, 4000000u},
+    {"E8CE", 0x86e8ceu, 0u, SeedE8CE, Lufia2WorldSpriteChain,
+     Lufia2DecompBridge_E8CE, 2, 4000000u},
 };
 
 enum { WHOLE_TARGETS = sizeof(kWholeTargets) / sizeof(kWholeTargets[0]) };

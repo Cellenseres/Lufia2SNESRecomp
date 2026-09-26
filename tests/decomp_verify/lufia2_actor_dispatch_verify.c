@@ -5907,6 +5907,26 @@ static void SeedTitlePalette(uint8_t *wram, uint16_t dp) {
     }
 }
 
+/* World sprite chain: shake decaying out, frame near $4AA, angle
+   quadrants, y near the hide band. */
+static void SeedWorldChain(uint8_t *wram, uint16_t dp) {
+    for (unsigned b = 0; b < 2u; ++b) {
+        uint8_t *bank = wram + 0x10000u * b;
+        const uint32_t pick = NmiRandom();
+
+        if (pick & 1u)
+            bank[0x1e51u] = (uint8_t)(pick >> 8 & 0x03u);
+        if (pick & 2u)
+            bank[0x1e53u] = (uint8_t)(pick >> 10 & 0x03u);
+        if (pick & 4u)
+            bank[0x1e59u] = (uint8_t)(0xd8u + (pick >> 12 & 0x1fu));
+    }
+    if (NmiRandom() & 1u) {
+        wram[(uint16_t)(dp + 0x42u)] = (uint8_t)(0xa8u + (NmiRandom() & 3u));
+        wram[(uint16_t)(dp + 0x43u)] = 0x04u;
+    }
+}
+
 /* Event slot timers: idle, waiting, due ($81) or wrapping ($80). */
 static void SeedEventTimers(uint8_t *wram, uint16_t dp) {
     const unsigned mode = NmiRandom() & 7u;
@@ -5984,6 +6004,8 @@ static const SmallTarget kSmallTargets[] = {
      SeedTitleLayers},
     {"8996", 0x868996u, Lufia2TitlePaletteCycle, 2, 0x8682edu,
      SeedTitlePalette},
+    {"E8CE", 0x86e8ceu, Lufia2WorldSpriteChain, 2, 0x86937du,
+     SeedWorldChain},
 };
 
 enum { SMALL_TARGETS = sizeof(kSmallTargets) / sizeof(kSmallTargets[0]) };
