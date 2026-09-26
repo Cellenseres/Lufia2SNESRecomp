@@ -3991,13 +3991,13 @@ static void SeedTextScript(uint8_t *wram) {
     {
         static const uint8_t ops[64] = {
             0x33u, 0x03u, 0x37u, 0x3cu, 0x00u, 0x42u, 0x68u, 0x05u,
-            0x06u, 0x0fu, 0x15u, 0x1au, 0x1bu, 0x1cu, 0x1du, 0x2eu,
+            0x06u, 0x0fu, 0x15u, 0x1au, 0x1bu, 0x38u, 0x1du, 0x2eu,
             0x3eu, 0x3fu, 0x4fu, 0x5fu, 0x27u, 0x2au, 0x50u, 0xc1u,
             0x5au, 0x8au, 0xc5u, 0xb5u, 0x57u, 0x71u, 0x76u, 0xaau,
             0xccu, 0x60u, 0x1eu, 0x09u, 0x22u, 0x26u, 0x95u, 0x94u,
             0x96u, 0x47u, 0x49u, 0x4au, 0x52u, 0x7cu, 0x7du, 0x7eu,
             0x7fu, 0x80u, 0xcbu, 0x74u, 0x0cu, 0x0du, 0x0eu, 0x0bu,
-            0x69u, 0x01u, 0x1cu, 0x42u, 0x00u, 0x37u, 0x4bu, 0x68u};
+            0x69u, 0x01u, 0x1cu, 0x41u, 0x00u, 0x37u, 0x4bu, 0x68u};
         const uint16_t back = (uint16_t)(0x8000u + (NmiRandom() & 0x7ff0u));
 
         if (NmiRandom() & 1u)
@@ -4026,6 +4026,24 @@ static void SeedTextScript(uint8_t *wram) {
 
             wram[0x09acu] = speaker < 4u ? (uint8_t)(0xfeu + (speaker & 1u))
                                          : wram[0x05fau + speaker];
+        }
+        if (NmiRandom() & 1u) {
+            /* $38: seconds near the argument; $41: view at its target. */
+            const uint32_t pick = NmiRandom();
+            const uint16_t view = (uint16_t)((pick & 3u) * 2u);
+
+            wram[0x125fu] = (uint8_t)((pick >> 2) & 0x0fu);
+            wram[0x0042u] = (uint8_t)(0x3au + ((pick >> 6) & 3u));
+            wram[(uint16_t)(text + 2u)] = (pick & 0x100u) ? 0xffu : wram[(uint16_t)(text + 2u)];
+            wram[0x05aau] = (uint8_t)view;
+            wram[0x05abu] = 0;
+            if (pick & 0x200u) {
+                wram[0x1d08bu] = wram[0x121eu + view];
+                wram[0x1d08cu] = wram[0x121fu + view];
+                wram[0x1d08du] = wram[0x1226u + view];
+                wram[0x1d08eu] = (pick & 0x400u) ? wram[0x1227u + view]
+                                                 : (uint8_t)~wram[0x1227u + view];
+            }
         }
         wram[0x1254u] = (NmiRandom() & 1u) ? 0x7eu : 0x00u;
         wram[0x1252u] = (uint8_t)back;
