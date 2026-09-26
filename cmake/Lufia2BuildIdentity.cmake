@@ -37,7 +37,6 @@ if(CMAKE_SCRIPT_MODE_FILE)
     string(APPEND _text "#define LUFIA2_BUILD_DECOMP \"${_decomp}\"\n")
     string(APPEND _text "#define LUFIA2_BUILD_SNESRECOMP \"${SNESRECOMP}\"\n")
     string(APPEND _text "#define LUFIA2_BUILD_CONFIG \"${CONFIG}\"\n")
-    string(APPEND _text "#define LUFIA2_BUILD_INTERP_PROFILE ${PROFILE}\n")
     string(APPEND _text "#define LUFIA2_BUILD_MANIFEST_SHA256 \"${_manifest}\"\n")
     set(_old "")
     if(EXISTS "${OUTPUT}")
@@ -56,10 +55,6 @@ function(lufia2_add_build_identity target)
     if(NOT _decomp)
         set(_decomp "${CMAKE_SOURCE_DIR}/lib/lufia2-decomp")
     endif()
-    set(_profile 0)
-    if(CMAKE_C_FLAGS MATCHES "SNESRECOMP_INTERP_PROFILE")
-        set(_profile 1)
-    endif()
     get_filename_component(_snesrecomp "${SNESRECOMP_ROOT}" NAME)
     file(MAKE_DIRECTORY "${_dir}")
     add_custom_target(Lufia2BuildIdentity
@@ -69,7 +64,6 @@ function(lufia2_add_build_identity target)
             "-DMANIFEST=${CMAKE_BINARY_DIR}/lufia2-gen/program_manifest.json"
             "-DSNESRECOMP=${_snesrecomp}"
             "-DCONFIG=$<CONFIG>"
-            "-DPROFILE=${_profile}"
             "-DOUTPUT=${_header}"
             -P "${_LUFIA2_BUILD_IDENTITY_SCRIPT}"
         BYPRODUCTS "${_header}"

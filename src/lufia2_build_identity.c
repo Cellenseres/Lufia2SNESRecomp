@@ -6,6 +6,13 @@
 #include "lufia2_build_identity_values.h"
 #include "snes/tier2_capture.h"
 
+/* What the compiler saw, not what CMake was told. */
+#ifdef SNESRECOMP_INTERP_PROFILE
+#define BUILD_INTERP_PROFILE 1
+#else
+#define BUILD_INTERP_PROFILE 0
+#endif
+
 /* Sidecar next to the tier2 manifest: <manifest>.build.json. */
 static int SidecarPath(char *out, size_t size) {
     const char *manifest = tier2_capture_manifest_path("lufia2");
@@ -28,7 +35,7 @@ void Lufia2ReportBuildIdentity(void) {
         "[build] lufia2 %s decomp %s %s %s profile=%d manifest %s\n",
         LUFIA2_BUILD_SUPERPROJECT, LUFIA2_BUILD_DECOMP,
         LUFIA2_BUILD_SNESRECOMP, LUFIA2_BUILD_CONFIG,
-        LUFIA2_BUILD_INTERP_PROFILE, LUFIA2_BUILD_MANIFEST_SHA256);
+        BUILD_INTERP_PROFILE, LUFIA2_BUILD_MANIFEST_SHA256);
     if (!tier2_capture_enabled() || !SidecarPath(path, sizeof path))
         return;
     file = fopen(path, "w");
@@ -48,6 +55,6 @@ void Lufia2ReportBuildIdentity(void) {
         "}\n",
         LUFIA2_BUILD_SUPERPROJECT, LUFIA2_BUILD_DECOMP,
         LUFIA2_BUILD_SNESRECOMP, LUFIA2_BUILD_CONFIG,
-        LUFIA2_BUILD_INTERP_PROFILE, LUFIA2_BUILD_MANIFEST_SHA256);
+        BUILD_INTERP_PROFILE, LUFIA2_BUILD_MANIFEST_SHA256);
     fclose(file);
 }
