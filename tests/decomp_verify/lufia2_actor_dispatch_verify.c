@@ -3996,8 +3996,8 @@ static void SeedTextScript(uint8_t *wram) {
             0x5au, 0x8au, 0xc5u, 0xb5u, 0x57u, 0x71u, 0x76u, 0xaau,
             0xccu, 0x60u, 0x1eu, 0x09u, 0x22u, 0x26u, 0x95u, 0x94u,
             0x96u, 0x47u, 0x49u, 0x4au, 0x52u, 0x7cu, 0x7du, 0x7eu,
-            0x7fu, 0x80u, 0xcbu, 0x74u, 0x0cu, 0x0du, 0x0eu, 0x33u,
-            0x03u, 0x05u, 0x1cu, 0x42u, 0x00u, 0x37u, 0x4bu, 0x68u};
+            0x7fu, 0x80u, 0xcbu, 0x74u, 0x0cu, 0x0du, 0x0eu, 0x0bu,
+            0x69u, 0x01u, 0x1cu, 0x42u, 0x00u, 0x37u, 0x4bu, 0x68u};
         const uint16_t back = (uint16_t)(0x8000u + (NmiRandom() & 0x7ff0u));
 
         if (NmiRandom() & 1u)
@@ -4012,6 +4012,20 @@ static void SeedTextScript(uint8_t *wram) {
             wram[(uint16_t)(text + 1u)] = id;
             wram[0x05fau + NmiRandom() % 0x28u] = id;
             wram[0x105fau + NmiRandom() % 0x28u] = id;
+        }
+        if (NmiRandom() & 1u) {
+            /* Choice ($0B): 1-4 rows, table in $7E; speaker ($01) listed. */
+            const uint16_t table = (uint16_t)(0x8000u + (NmiRandom() & 0x7ff0u));
+
+            wram[0x126eu] = (uint8_t)(1u + (NmiRandom() & 3u));
+            wram[0x126au] = (uint8_t)(NmiRandom() % 5u);
+            wram[0x126du] = 0x7eu;
+            wram[0x126bu] = (uint8_t)table;
+            wram[0x126cu] = (uint8_t)(table >> 8);
+            const uint32_t speaker = NmiRandom() % 0x28u;
+
+            wram[0x09acu] = speaker < 4u ? (uint8_t)(0xfeu + (speaker & 1u))
+                                         : wram[0x05fau + speaker];
         }
         wram[0x1254u] = (NmiRandom() & 1u) ? 0x7eu : 0x00u;
         wram[0x1252u] = (uint8_t)back;
@@ -5180,6 +5194,9 @@ static void SeedTextStep(uint8_t *wram, uint16_t dp) {
         SeedTextScript(wram);
     wram[0x09b2u] = (uint8_t)(0x20u + (NmiRandom() & 0x3fu));
     wram[0x109b2u] = (uint8_t)(0x20u + (NmiRandom() & 0x3fu));
+    /* Line starts off the stack page too ($03 adds $400). */
+    wram[0x1251u] = (uint8_t)(0x20u + (wram[0x1251u] & 0x3fu));
+    wram[0x11251u] = (uint8_t)(0x20u + (wram[0x11251u] & 0x3fu));
 }
 
 /* Forward-only event scripts of the native opcodes, in WRAM. */
