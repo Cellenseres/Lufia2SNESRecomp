@@ -59,6 +59,7 @@
 #include "lufia2_log.h"
 #include "lufia2_wide_range.h"
 #include "lufia2_battle.h"
+#include "lufia2_build_identity.h"
 #include "lufia2_battle_widescreen.h"
 #include "lufia2_map_load.h"
 #include "lufia2_msu_driver.h"
@@ -2561,6 +2562,7 @@ int main(int argc, char **argv) {
 
     /* Register early so Tier-2 reporting has the game identity. */
     RtlRegisterGame(&kLufia2GameInfo);
+    Lufia2ReportBuildIdentity();
 
 #ifdef LUFIA2_ENABLE_GAMEPLAY_CAPTURE
     host_report_init("lufia2", "desktop-gameplay-capture1");
