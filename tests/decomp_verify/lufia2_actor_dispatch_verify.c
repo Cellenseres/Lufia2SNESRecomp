@@ -5944,6 +5944,22 @@ static void SeedPartyLevel(uint8_t *wram, uint16_t dp) {
     }
 }
 
+/* Map attributes: small maps (1-32 cells a side), tile classes 0-15
+   and $80+, terminated lists at $7E:F000. */
+static void SeedMapAttributes(uint8_t *wram, uint16_t dp) {
+    (void)dp;
+    for (unsigned i = 0; i < 0x108u; ++i)
+        wram[0x1d010u + i] = (uint8_t)(1u + NmiRandom() % 32u);
+    for (unsigned i = 0; i < 0x400u; ++i)
+        if (NmiRandom() & 1u)
+            wram[0x10000u + (NmiRandom() & 0xffffu)] &= 0x0fu;
+    for (unsigned i = 0; i < 0x40u; ++i)
+        wram[0x1f000u + (NmiRandom() & 0x0fffu)] = 0xffu;
+    for (unsigned i = 0; i < 0x30u; ++i)
+        if (NmiRandom() & 1u)
+            wram[0x1d69cu + i] = 0xffu;
+}
+
 /* Event slot timers: idle, waiting, due ($81) or wrapping ($80). */
 static void SeedEventTimers(uint8_t *wram, uint16_t dp) {
     const unsigned mode = NmiRandom() & 7u;
@@ -6025,6 +6041,8 @@ static const SmallTarget kSmallTargets[] = {
      SeedWorldChain},
     {"F9E9", 0x81f9e9u, Lufia2PartyExperienceForLevel, 3, 0x81f98bu,
      SeedPartyLevel},
+    {"ED9C", 0x80ed9cu, Lufia2FieldBuildAttributes, 3, 0x8eb2e5u,
+     SeedMapAttributes},
 };
 
 enum { SMALL_TARGETS = sizeof(kSmallTargets) / sizeof(kSmallTargets[0]) };
