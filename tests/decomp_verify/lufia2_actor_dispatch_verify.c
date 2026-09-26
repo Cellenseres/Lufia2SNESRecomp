@@ -5724,6 +5724,21 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
     }
 }
 
+/* Actor slot $A7 with its AB4F offsets; sprite slot runs in
+   $7E:E100 mostly free. */
+static void SeedLoadSprite(uint8_t *wram, uint16_t dp) {
+    const uint8_t slot = (uint8_t)(NmiRandom() % 0x28u);
+
+    wram[(uint16_t)(dp + 0xa7u)] = slot;
+    wram[(uint16_t)(dp + 0xa8u)] = 0;
+    wram[(uint16_t)(dp + 0xa9u)] = (uint8_t)(2u * slot);
+    wram[(uint16_t)(dp + 0xaau)] = 0;
+    wram[(uint16_t)(dp + 0xabu)] = (uint8_t)(3u * slot);
+    wram[(uint16_t)(dp + 0xacu)] = 0;
+    for (unsigned k = 0; k < 0x80u; ++k)
+        wram[0xe100u + k] = (NmiRandom() & 3u) ? 0x00u : (uint8_t)NmiRandom();
+}
+
 /* Event slot timers: idle, waiting, due ($81) or wrapping ($80). */
 static void SeedEventTimers(uint8_t *wram, uint16_t dp) {
     const unsigned mode = NmiRandom() & 7u;
@@ -5789,6 +5804,8 @@ static const SmallTarget kSmallTargets[] = {
      SeedBattleScript},
     {"CBAE", 0x80cbaeu, Lufia2FieldEventTimerTick, 3, 0x83823au,
      SeedEventTimers},
+    {"A9BA", 0x83a9bau, Lufia2ActorLoadSprite, 3, 0x83a791u,
+     SeedLoadSprite},
 };
 
 enum { SMALL_TARGETS = sizeof(kSmallTargets) / sizeof(kSmallTargets[0]) };

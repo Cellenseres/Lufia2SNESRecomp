@@ -26,6 +26,7 @@ extern RecompReturn Lufia2DecompBridge_8682(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_AEB5(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_9C72(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_CBAE(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_A9BA(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8DC5(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_CEF6(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_ECDB(CpuState *cpu);
@@ -1849,6 +1850,29 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
 }
 
 /* Event slot timers; DB $C0 reads $1273 from ROM. */
+/* $83:A9BA from $83:A78E: actor $A7 with its AB4F offsets, any M/X
+   (the bridge takes M=1 natively). */
+static void SeedA9BA(CpuState *cpu) {
+    const uint8_t slot = (uint8_t)(Random32() % 0x28u);
+
+    SeedJslX16(cpu, 0x83);
+    cpu->m_flag = (Random32() & 3u) ? 1u : 0u;
+    cpu->x_flag = Random32() & 1u;
+    if (cpu->x_flag) {
+        cpu->X &= 0x00ffu;
+        cpu->Y &= 0x00ffu;
+    }
+    cpu_mirrors_to_p(cpu);
+    g_bus.wram[(uint16_t)(cpu->D + 0xa7u)] = slot;
+    g_bus.wram[(uint16_t)(cpu->D + 0xa8u)] = 0;
+    g_bus.wram[(uint16_t)(cpu->D + 0xa9u)] = (uint8_t)(2u * slot);
+    g_bus.wram[(uint16_t)(cpu->D + 0xaau)] = 0;
+    g_bus.wram[(uint16_t)(cpu->D + 0xabu)] = (uint8_t)(3u * slot);
+    g_bus.wram[(uint16_t)(cpu->D + 0xacu)] = 0;
+    for (unsigned k = 0; k < 0x80u; ++k)
+        g_bus.wram[0xe100u + k] = (Random32() & 3u) ? 0x00u : (uint8_t)Random32();
+}
+
 static void SeedCBAE(CpuState *cpu) {
     static const uint8_t banks[8] = {
         0x83u, 0x83u, 0x80u, 0x7eu, 0x7fu, 0x00u, 0x8eu, 0xc0u};
@@ -2249,6 +2273,8 @@ static const WholeTarget kWholeTargets[] = {
      Lufia2DecompBridge_ECF0, 3, 4000000u},
     {"CBAE", 0x80cbaeu, 0u, SeedCBAE, Lufia2FieldEventTimerTick,
      Lufia2DecompBridge_CBAE, 3, 4000000u},
+    {"A9BA", 0x83a9bau, 0u, SeedA9BA, Lufia2ActorLoadSprite,
+     Lufia2DecompBridge_A9BA, 3, 4000000u},
 };
 
 enum { WHOLE_TARGETS = sizeof(kWholeTargets) / sizeof(kWholeTargets[0]) };
