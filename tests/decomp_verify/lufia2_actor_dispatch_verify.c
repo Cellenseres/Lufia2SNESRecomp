@@ -5927,6 +5927,23 @@ static void SeedWorldChain(uint8_t *wram, uint16_t dp) {
     }
 }
 
+/* Member 0-7, levels 1-99 around the factor steps and the 98 cap;
+   level 0 or a set $09FF loops up to 65,536 times (MMIO log cap). */
+static void SeedPartyLevel(uint8_t *wram, uint16_t dp) {
+    static const uint8_t levels[8] = {1u, 2u, 8u, 9u, 97u, 98u, 99u, 16u};
+
+    (void)dp;
+    for (unsigned b = 0; b < 2u; ++b) {
+        uint8_t *bank = wram + 0x10000u * b;
+        const uint32_t pick = NmiRandom();
+
+        bank[0x09fau] = (uint8_t)(pick & 7u);
+        bank[0x09feu] = (pick & 0x18u)
+            ? (uint8_t)(1u + (pick >> 8) % 97u) : levels[(pick >> 5) & 7u];
+        bank[0x09ffu] = 0;
+    }
+}
+
 /* Event slot timers: idle, waiting, due ($81) or wrapping ($80). */
 static void SeedEventTimers(uint8_t *wram, uint16_t dp) {
     const unsigned mode = NmiRandom() & 7u;
@@ -6006,6 +6023,8 @@ static const SmallTarget kSmallTargets[] = {
      SeedTitlePalette},
     {"E8CE", 0x86e8ceu, Lufia2WorldSpriteChain, 2, 0x86937du,
      SeedWorldChain},
+    {"F9E9", 0x81f9e9u, Lufia2PartyExperienceForLevel, 3, 0x81f98bu,
+     SeedPartyLevel},
 };
 
 enum { SMALL_TARGETS = sizeof(kSmallTargets) / sizeof(kSmallTargets[0]) };

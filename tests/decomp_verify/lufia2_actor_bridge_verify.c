@@ -33,6 +33,7 @@ extern RecompReturn Lufia2DecompBridge_838C(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_86ED(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8996(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_E8CE(CpuState *cpu);
+extern RecompReturn Lufia2DecompBridge_F9E9(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_8DC5(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_CEF6(CpuState *cpu);
 extern RecompReturn Lufia2DecompBridge_ECDB(CpuState *cpu);
@@ -1894,6 +1895,14 @@ static void Seed86ED(CpuState *cpu) {
         g_bus.wram[0x15b7u] = (uint8_t)(g_bus.wram[0x15a1u] >> 3);
 }
 
+/* $81:F9E9 from $81:F988: member 0-7, level 1-99. */
+static void SeedF9E9(CpuState *cpu) {
+    SeedJslX16(cpu, 0x81);
+    g_bus.wram[0x09fau] = (uint8_t)(Random32() & 7u);
+    g_bus.wram[0x09feu] = (uint8_t)(1u + Random32() % 99u);
+    g_bus.wram[0x09ffu] = 0;
+}
+
 /* $86:E8CE from the world map loop at $86:9365. */
 static void SeedE8CE(CpuState *cpu) {
     SeedJslX16(cpu, 0x86);
@@ -2393,6 +2402,8 @@ static const WholeTarget kWholeTargets[] = {
      Lufia2DecompBridge_8996, 2, 4000000u},
     {"E8CE", 0x86e8ceu, 0u, SeedE8CE, Lufia2WorldSpriteChain,
      Lufia2DecompBridge_E8CE, 2, 4000000u},
+    {"F9E9", 0x81f9e9u, 0u, SeedF9E9, Lufia2PartyExperienceForLevel,
+     Lufia2DecompBridge_F9E9, 3, 4000000u},
 };
 
 enum { WHOLE_TARGETS = sizeof(kWholeTargets) / sizeof(kWholeTargets[0]) };
