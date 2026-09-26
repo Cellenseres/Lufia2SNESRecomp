@@ -5169,7 +5169,7 @@ static void SeedTextStep(uint8_t *wram, uint16_t dp) {
 
 /* Forward-only event scripts of the native opcodes, in WRAM. */
 static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
-    static const uint8_t kOps[123] = {
+    static const uint8_t kOps[125] = {
         0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
         0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u, 0x2fu,
         0x30u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u, 0x37u,
@@ -5185,7 +5185,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         0x70u, 0x23u, 0x6au, 0xaeu, 0x0fu, 0x6cu, 0xa7u, 0x9cu, 0x9fu,
         0x5eu, 0x41u, 0x46u, 0x4bu, 0x50u, 0x54u, 0x26u, 0x27u,
         0x02u, 0x03u, 0x28u, 0xa0u, 0xa1u, 0xbau, 0x1du, 0x63u,
-        0x87u, 0x88u, 0x89u, 0x20u};
+        0x87u, 0x88u, 0x89u, 0x20u, 0x10u, 0x7bu};
     uint8_t script[384];
     uint16_t starts[48];
     uint16_t words[96];
@@ -5219,7 +5219,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             continue;
         }
-        op = kOps[random() % 123u];
+        op = kOps[random() % 125u];
         script[len++] = op;
         switch (op) {
         case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
@@ -5316,7 +5316,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
                                             : (uint8_t)random();
             script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x20u + (random() & 7u));
             break;
-        case 0x1du: case 0x63u:
+        case 0x1du: case 0x63u: case 0x10u: case 0x7bu:
             break;
         case 0x87u: case 0x88u: case 0x89u:
             /* Layer mask, then two position operands. */
@@ -5431,6 +5431,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             (op >= 0x41u && op <= 0x54u) ||
             op == 0x02u || op == 0x03u || op == 0x28u ||
             op == 0xbau || op == 0x1du || op == 0x63u || op == 0x87u ||
+            op == 0x10u || op == 0x7bu ||
             op == 0xa7u || op == 0x9cu || op == 0x9fu || op == 0x5eu ||
             op == 0x55u || op == 0x69u || op == 0x85u ||
             (op >= 0x64u && op <= 0x67u))
@@ -5574,6 +5575,33 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         for (unsigned k = 0; k < 0x28u; ++k)
             wram[0x10000u * b + 0x05fau + k] = (random() & 3u)
                 ? (uint8_t)(0x4fu + (random() & 7u)) : (uint8_t)random();
+    /* Layer modes ($FF skips), cameras in both banks and map sizes
+       for $10 and $7B; $0100 divides by zero. */
+    for (unsigned layer = 0; layer < 8u; layer += 2u) {
+        static const uint8_t kModes[16] = {
+            0, 0, 0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 0x80u, 0x85u, 0x05u};
+        const uint16_t width = (random() & 7u) ? (uint16_t)(random() & 0x7fu) : 0x0100u;
+        const uint16_t height = (random() & 7u) ? (uint16_t)(random() & 0x7fu) : 0x0100u;
+
+        wram[0x1d020u + layer] = (random() & 7u) ? kModes[random() & 15u] : 0xffu;
+        for (unsigned b = 0; b < 2u; ++b) {
+            const uint16_t x = (uint16_t)(random() & 0x07ffu);
+            const uint16_t y = (uint16_t)(random() & 0x07ffu);
+
+            wram[0x10000u * b + 0x121eu + layer] = (uint8_t)x;
+            wram[0x10000u * b + 0x121fu + layer] = (uint8_t)(x >> 8);
+            wram[0x10000u * b + 0x1226u + layer] = (uint8_t)y;
+            wram[0x10000u * b + 0x1227u + layer] = (uint8_t)(y >> 8);
+        }
+        wram[0x1d010u + layer] = (uint8_t)width;
+        wram[0x1d011u + layer] = (uint8_t)(width >> 8);
+        wram[0x1d018u + layer] = (uint8_t)height;
+        wram[0x1d019u + layer] = (uint8_t)(height >> 8);
+        wram[0x1d0deu + layer] = (uint8_t)(random() % 9u);
+        wram[0x1d0dfu + layer] = 0;
+        wram[0x1d0e6u + layer] = (uint8_t)(random() % 9u);
+        wram[0x1d0e7u + layer] = 0;
+    }
     /* $0583 bit 7 in both script banks; queued object animations. */
     for (unsigned b = 0; b < 2u; ++b)
         wram[0x10000u * b + 0x0583u] = (random() & 3u) ? 0x00u : 0x80u;
