@@ -346,6 +346,10 @@ RecompReturn Lufia2DecompBridge_F9E9(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x81f9e9u, Lufia2PartyExperienceForLevel, 3);
 }
 
+RecompReturn Lufia2DecompBridge_ED9C(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x80ed9cu, Lufia2FieldBuildAttributes, 3);
+}
+
 RecompReturn Lufia2DecompBridge_8DC5(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x858dc5u, Lufia2BattleNmiUploads, 3);
 }
