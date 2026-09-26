@@ -3017,6 +3017,7 @@ static bool RunFieldTriggerCase(
         NativeRead, NativeWrite, &native_context};
     Lufia2ExecutionResult result;
     uint8_t *native_wram;
+    BusRegisters registers;
     unsigned instructions = 0;
     unsigned visits = 0;
     bool stopped = false;
@@ -3106,6 +3107,7 @@ static bool RunFieldTriggerCase(
     }
 
     memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    registers = SaveBusRegisters(bus);
     native = input;
     result = Lufia2FieldTriggerUpdate(&memory, &native);
     if (result.flow == LUFIA2_EXECUTION_RETURNED)
@@ -3116,6 +3118,7 @@ static bool RunFieldTriggerCase(
         return false;
     memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
     memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+    RestoreBusRegisters(bus, &registers);
 
     InitInterp(reference, 0x8381c6u, &input);
     /* Random event scripts can run long list searches. */
@@ -5169,7 +5172,7 @@ static void SeedTextStep(uint8_t *wram, uint16_t dp) {
 
 /* Forward-only event scripts of the native opcodes, in WRAM. */
 static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
-    static const uint8_t kOps[125] = {
+    static const uint8_t kOps[128] = {
         0x01u, 0x0cu, 0x08u, 0x09u, 0x0au, 0x0du, 0x71u,
         0x19u, 0x1eu, 0x2bu, 0x1bu, 0x1cu, 0x57u, 0x2fu,
         0x30u, 0x31u, 0x32u, 0x33u, 0x34u, 0x35u, 0x36u, 0x37u,
@@ -5185,7 +5188,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
         0x70u, 0x23u, 0x6au, 0xaeu, 0x0fu, 0x6cu, 0xa7u, 0x9cu, 0x9fu,
         0x5eu, 0x41u, 0x46u, 0x4bu, 0x50u, 0x54u, 0x26u, 0x27u,
         0x02u, 0x03u, 0x28u, 0xa0u, 0xa1u, 0xbau, 0x1du, 0x63u,
-        0x87u, 0x88u, 0x89u, 0x20u, 0x10u, 0x7bu};
+        0x87u, 0x88u, 0x89u, 0x20u, 0x10u, 0x7bu, 0x94u, 0x95u, 0x96u};
     uint8_t script[384];
     uint16_t starts[48];
     uint16_t words[96];
@@ -5219,7 +5222,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             script[len++] = (uint8_t)random();
             continue;
         }
-        op = kOps[random() % 125u];
+        op = kOps[random() % 128u];
         script[len++] = op;
         switch (op) {
         case 0x01u: case 0x0cu: case 0x08u: case 0x09u:
@@ -5324,6 +5327,12 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
                                             : (uint8_t)random();
             for (unsigned b = 0; b < 2u; ++b)
                 script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x20u + (random() & 7u));
+            break;
+        case 0x94u: case 0x95u: case 0x96u:
+            /* Position, then a $F016 map object key. */
+            script[len++] = (uint8_t)((random() & 3u) == 0 ? 0xfbu : (random() & 1u) ? 0xe0u + (random() & 0x1fu) : 0x20u + (random() & 7u));
+            script[len++] = (random() & 7u) ? (uint8_t)(random() & 7u)
+                                            : (uint8_t)random();
             break;
         case 0x20u:
             /* Actor ids (+$4F in $05FA) to $FF, rarely 30-69. */
@@ -5431,7 +5440,7 @@ static void SeedEventScripts(uint8_t *wram, uint32_t (*random)(void)) {
             (op >= 0x41u && op <= 0x54u) ||
             op == 0x02u || op == 0x03u || op == 0x28u ||
             op == 0xbau || op == 0x1du || op == 0x63u || op == 0x87u ||
-            op == 0x10u || op == 0x7bu ||
+            op == 0x10u || op == 0x7bu || op == 0x94u ||
             op == 0xa7u || op == 0x9cu || op == 0x9fu || op == 0x5eu ||
             op == 0x55u || op == 0x69u || op == 0x85u ||
             (op >= 0x64u && op <= 0x67u))
@@ -5721,6 +5730,7 @@ static bool RunSmallCase(
     static SnesVerifyBusEvent native_mmio[SNES_VERIFY_MAX_MMIO];
     size_t native_count;
     uint8_t *native_wram;
+    BusRegisters registers;
     unsigned instructions = 0;
     unsigned visits = 0;
     bool stopped = false;
@@ -5755,6 +5765,7 @@ static bool RunSmallCase(
     }
 
     memcpy(initial, bus->wram, SNES_VERIFY_WRAM_SIZE);
+    registers = SaveBusRegisters(bus);
     native = input;
     SnesVerifyBusResetMmio(bus);
     result = target->run(&memory, &native);
@@ -5770,6 +5781,7 @@ static bool RunSmallCase(
         return false;
     memcpy(native_wram, bus->wram, SNES_VERIFY_WRAM_SIZE);
     memcpy(bus->wram, initial, SNES_VERIFY_WRAM_SIZE);
+    RestoreBusRegisters(bus, &registers);
 
     InitInterp(reference, target->entry, &input);
     while (instructions < 2000000u) {
