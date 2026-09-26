@@ -561,6 +561,8 @@ add_executable(Lufia2Recomp
 if(TARGET lufia2_margin_pack)
     add_dependencies(Lufia2Recomp lufia2_margin_pack)
 endif()
+include("${CMAKE_SOURCE_DIR}/cmake/Lufia2BuildIdentity.cmake")
+lufia2_add_build_identity(Lufia2Recomp)
 
 if(LUFIA2_ENABLE_GAMEPLAY_CAPTURE)
     target_compile_definitions(Lufia2Recomp PRIVATE LUFIA2_ENABLE_GAMEPLAY_CAPTURE=1)
