@@ -483,3 +483,8 @@ bridge = "Lufia2DecompBridge_F979"
 [[binding]]
 address = "81:FC0B"
 bridge = "Lufia2DecompBridge_FC0B"
+
+# E835 is reached by the existing generated battle-text callers.
+[[binding]]
+address = "81:E835"
+bridge = "Lufia2DecompBridge_E835"
