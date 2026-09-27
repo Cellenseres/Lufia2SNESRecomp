@@ -412,6 +412,10 @@ RecompReturn Lufia2DecompBridge_8BF5(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x868bf5u, Lufia2SpriteBuildOam, 3);
 }
 
+RecompReturn Lufia2DecompBridge_C35F(CpuState *cpu) {
+    return ActorBridgeWholeAnyWidth(cpu, 0x81c35fu, Lufia2BattlePopups, 3);
+}
+
 RecompReturn Lufia2DecompBridge_8DC5(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x858dc5u, Lufia2BattleNmiUploads, 3);
 }
