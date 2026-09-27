@@ -21,7 +21,9 @@ the interpreter, so the resume PC and boundary decision are unchanged.
 `$83:900E` and `$83:9010`, kept for diagnosis.
 
 `LUFIA2_ENABLE_ACTOR_EARLY_RETURN` — retires the 19-opcode idle prefix of
-`$83:C7F8` and the actor-zero 17-opcode path of `$83:D508`. The dispatcher
+`$83:C7F8` and the actor-zero 17-opcode path of `$83:D508`. Normal builds
+with active semantic decomp exclude both interpreter patches at build time;
+the option remains available for non-decomp and reference builds. The dispatcher
 beyond `$83:D59A` and every state-changing path stay interpreter-owned.
 
 `LUFIA2_ENABLE_DMA_HOST_FASTFORWARD` — collapses the blocking `$420B` drain

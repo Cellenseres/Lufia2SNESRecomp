@@ -44,7 +44,7 @@ option(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD
     "Guarded portable batching for reviewed Lufia II frame waits" ON)
 
 option(LUFIA2_ENABLE_ACTOR_EARLY_RETURN
-    "Guarded native C fast paths for reviewed write-free actor paths" ON)
+    "Interpreter actor fast paths for non-decomp/reference builds" ON)
 
 option(LUFIA2_ENABLE_DMA_HOST_FASTFORWARD
     "Collapse host-only idle iterations in synchronous SNES DMA" ON)
@@ -88,14 +88,6 @@ endif()
 # index on top would measure nothing and its anchors no longer match.
 if(LUFIA2_ENABLE_QUIESCENCE_INDEX AND (VITA OR NOT LUFIA2_ENABLE_NATIVE_WAIT OR LUFIA2_ENABLE_BRIDGE_AUDIT))
     message(FATAL_ERROR "QuiescenceIndex needs desktop NativeWait with BridgeAudit OFF; the Vita bridge already filters the ring")
-endif()
-
-if(LUFIA2_ENABLE_ACTOR_EARLY_RETURN AND
-   (LUFIA2_ENABLE_NATIVE_WAIT OR LUFIA2_ENABLE_GAMEPLAY_CAPTURE OR
-    LUFIA2_ENABLE_PERF_AUDIT OR LUFIA2_ENABLE_BRIDGE_AUDIT OR
-    LUFIA2_ENABLE_QUIESCENCE_INDEX))
-    message(FATAL_ERROR
-        "ActorEarlyReturn is part of the ordinary build; disable it for audit experiment builds")
 endif()
 
 # Keep the ordinary build separate from the earlier measurement builds.
@@ -257,6 +249,20 @@ lufia2_prepare_decomp(
     REPORT "${CMAKE_BINARY_DIR}/generated/decomp_coverage.json"
     TEXT_REPORT "${CMAKE_BINARY_DIR}/generated/LUFIA2_FUNCTION_SOURCES.txt"
     OUT_CFG_DIR LUFIA2_EFFECTIVE_CFG_DIR)
+
+# The verified C7F8/D508 replacements own actor semantics in normal builds.
+# Shadow the cache option rather than erasing the user's fallback preference.
+if(LUFIA2_DECOMP_AVAILABLE AND NOT LUFIA2_DECOMP_REFERENCE_ONLY)
+    set(LUFIA2_ENABLE_ACTOR_EARLY_RETURN OFF)
+    message(STATUS "Interpreter actor fast paths excluded: semantic decomp selected")
+endif()
+if(LUFIA2_ENABLE_ACTOR_EARLY_RETURN AND
+   (LUFIA2_ENABLE_NATIVE_WAIT OR LUFIA2_ENABLE_GAMEPLAY_CAPTURE OR
+    LUFIA2_ENABLE_PERF_AUDIT OR LUFIA2_ENABLE_BRIDGE_AUDIT OR
+    LUFIA2_ENABLE_QUIESCENCE_INDEX))
+    message(FATAL_ERROR
+        "Disable interpreter actor fast paths for audit experiment builds")
+endif()
 
 
 # Full-width TGAs stay outside release artifacts.
