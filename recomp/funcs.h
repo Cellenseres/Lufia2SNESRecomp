@@ -1,4 +1,5 @@
 #pragma once
 #include "cpu_state.h"
 
-RecompReturn Lufia2MapActorContinuation_M1X1(CpuState *cpu);
+/* Generated banks include this consumer declaration seam. The retired A321
+ * continuation no longer requires a declaration here. */
