@@ -2,6 +2,7 @@
 
 #include "cpu_state.h"
 #include "lufia2/decomp.h"
+#include "../lufia2_sprite_visibility.h"
 
 typedef struct ActorBridgeFrame {
     uint16_t entry_s;
@@ -259,6 +260,10 @@ RecompReturn Lufia2DecompBridge_C7F8(CpuState *cpu) {
 
 RecompReturn Lufia2DecompBridge_D508(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x83d508u, Lufia2ActorSecondaryUpdate, 2);
+}
+
+RecompReturn Lufia2DecompBridge_A21A(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x83a21au, Lufia2PatchedFieldActorSprites, 3);
 }
 
 typedef struct ActorSlotsCall {

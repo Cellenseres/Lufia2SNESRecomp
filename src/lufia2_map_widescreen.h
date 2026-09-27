@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #include "snes/ppu.h"
+#include "lufia2_map_visibility.h"
 
 enum {
     LUFIA2_WS_SHADOW_TILE_BIAS = 128,
@@ -20,10 +21,8 @@ typedef enum Lufia2MapWidescreenResult {
 Lufia2MapWidescreenResult Lufia2PrepareMapWidescreen(
     Ppu *ppu,
     int margin_pixels);
-bool Lufia2MapWidescreenIsActive(void);
 void Lufia2FinalizeMapWidescreen(Ppu *ppu, int margin_pixels);
 void Lufia2BeginMapRenderOverlay(Ppu *ppu);
 void Lufia2EndMapRenderOverlay(Ppu *ppu);
 void Lufia2DeactivateMapWidescreen(void);
 void Lufia2MapWidescreenStateChanged(void);
-bool Lufia2MapWidescreenWorldPointIsVisible(uint16_t x, uint16_t y);

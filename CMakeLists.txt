@@ -455,11 +455,9 @@ set(LUFIA2_HOST_SOURCES
     src/gen_stubs.c
 )
 
-# The C caller needs a continuation only recomp/bank83.cfg generates.
-if(EXISTS "${CMAKE_SOURCE_DIR}/recomp/bank83.cfg")
+# Widescreen policy uses the portable semantic builder when available.
+if(LUFIA2_DECOMP_AVAILABLE)
     list(APPEND LUFIA2_HOST_SOURCES src/lufia2_sprite_visibility.c)
-else()
-    message(STATUS "Lufia2 actor HLE OFF: recomp/bank83.cfg absent")
 endif()
 
 if(LUFIA2_ENABLE_GAMEPLAY_CAPTURE)
