@@ -181,7 +181,6 @@ static Lufia2VideoLayout s_last_video_layout = LUFIA2_VIDEO_LAYOUT_COUNT;
 static Lufia2VideoLayout s_held_video_layout = LUFIA2_VIDEO_CENTERED;
 static Lufia2VideoLayout s_current_video_layout = LUFIA2_VIDEO_CENTERED;
 static Lufia2VideoHandoff s_video_handoff;
-static Lufia2BattleWidescreen s_battle_widescreen;
 static uint64_t s_last_intro_raster_reject_signature = UINT64_MAX;
 
 typedef enum Lufia2VisualPreset {
@@ -1667,9 +1666,12 @@ static void ComposeFrom(const uint8_t *pixels, bool include_rewind,
     }
 
     uint8_t margin_background;
+    /* Inspect again at composition: callback/background may have changed
+       since PrepareVideoFrame. Never retain an outgoing Battle asset. */
+    const Lufia2BattleState battle = Lufia2BattleInspect(g_ram);
     if (g_ws_active &&
         Lufia2BattleWidescreenMargin(
-            &s_battle_widescreen, g_ppu, &margin_background)) {
+            &battle, g_ppu, &margin_background)) {
         Lufia2MarginAssetApply(
             LUFIA2_MARGIN_SCENE_BATTLE, margin_background,
             s_present_pixels, (size_t)s_frame_width, SNES_HEIGHT,
@@ -1904,14 +1906,15 @@ static void PrepareVideoFrame(void) {
             raster_rows, raster_stride, LUFIA2_PPU_VISIBLE_LINES,
             raster_valid);
     const Lufia2BattleState battle = Lufia2BattleInspect(g_ram);
-    Lufia2BattleWidescreenObserve(
-        &s_battle_widescreen, &battle, g_ppu,
-        raster_rows, raster_stride, LUFIA2_PPU_VISIBLE_LINES, raster_valid);
+    /* A scene's cached margins/effect pixels cannot cross Battle ownership.
+       In particular the callback can change before the PPU picture is ready. */
+    Lufia2BattleWidescreenHandoff(
+        &s_video_handoff, &battle, s_current_video_layout);
     const Lufia2VideoObservation observation = {
         g_ram[0x05ac],
         Lufia2ResumePc(),
         intro_raster.classification,
-        battle.layout_hint,
+        battle.active,
     };
 
     if (Lufia2IntroMode7Candidate(&observation) &&
@@ -2298,7 +2301,6 @@ static void InvalidateDerivedHostState(bool reset_rewind) {
     s_last_video_layout = LUFIA2_VIDEO_LAYOUT_COUNT;
     s_held_video_layout = LUFIA2_VIDEO_CENTERED;
     s_current_video_layout = LUFIA2_VIDEO_CENTERED;
-    Lufia2BattleWidescreenReset(&s_battle_widescreen);
     Lufia2VideoHandoffReset(&s_video_handoff);
     s_last_intro_raster_reject_signature = UINT64_MAX;
     Lufia2IntroWidescreenRelease(g_ppu);

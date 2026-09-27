@@ -111,6 +111,11 @@ Lufia2VideoLayout Lufia2SelectVideoLayoutObserved(
     if (!widescreen_requested)
         return LUFIA2_VIDEO_NATIVE;
 
+    /* Callback ownership identifies Battle even during resource setup and
+       ordinary fades. Its viewport stays centered until margins are ready. */
+    if (observation && observation->battle_active)
+        return LUFIA2_VIDEO_BATTLE;
+
     /* The flyover programs Mode 7 through the scanline/HDMA walk, after this
        policy runs. Its map/wait pair identifies the sequence; only a black
        transition or a completed Mode 7 raster whose visible layers are a
@@ -123,16 +128,12 @@ Lufia2VideoLayout Lufia2SelectVideoLayoutObserved(
     }
 
     if (!ppu)
-        return observation && observation->battle_layout
-            ? LUFIA2_VIDEO_BATTLE : LUFIA2_VIDEO_CENTERED;
+        return LUFIA2_VIDEO_CENTERED;
     /* The guest blanks the screen for room and scene transitions. The
        registers in flight say nothing about the scene, so the caller
        holds its previous decision instead. */
     if (PPU_forcedBlank(ppu))
         return LUFIA2_VIDEO_BLANK;
-
-    if (observation && observation->battle_layout)
-        return LUFIA2_VIDEO_BATTLE;
 
     /* Save selection, name entry and the matching menu family put their
        repeating backdrop on BG2, windows on BG1 and text on BG3. */

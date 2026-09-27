@@ -51,7 +51,7 @@ typedef struct Lufia2VideoObservation {
     uint8_t runtime_map;
     uint32_t resume_pc;
     Lufia2IntroMode7Raster intro_raster;
-    bool battle_layout;
+    bool battle_active;
 } Lufia2VideoObservation;
 
 bool Lufia2IntroMode7Candidate(const Lufia2VideoObservation *observation);
