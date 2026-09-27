@@ -777,3 +777,12 @@ RecompReturn Lufia2DecompBridge_C1B4(CpuState *cpu) {
     return ActorBridgeWhole(
         cpu, 0x83c1b4u, Lufia2PlayerSlotStandardUpdate, 2);
 }
+
+/* S19 standalone contracts: M1X16, native mode, binary arithmetic. */
+RecompReturn Lufia2DecompBridge_F0A2(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x81f0a2u, Lufia2InventoryAdd, 2);
+}
+
+RecompReturn Lufia2DecompBridge_E835(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x81e835u, Lufia2BattleGlyph, 2);
+}
