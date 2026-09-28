@@ -12,18 +12,16 @@ function(lufia2_prepare_dma_overlay sources_var core_root)
         return()
     endif()
 
-    file(SHA256 "${_original}" _hash)
+    file(READ "${_original}" _text)
+    string(REPLACE "\r\n" "\n" _text "${_text}")
+    string(SHA256 _hash "${_text}")
     if(NOT _hash STREQUAL
-           "3ad3add226c91330c756906617dc0094be7135f7f64d06af6b21adcd9641fa85")
+           "97e8d6f9b1ab26dd5f776ea3ff7937ce8a59885a1fb782859cc9bfe89cd6da14")
         message(FATAL_ERROR
             "The dma.c overlay requires the reviewed pinned dma.c; review the "
             "bus contract, then accept ${_hash}")
     endif()
 
-    file(READ "${_original}" _text)
-    string(REPLACE "
-" "
-" _text "${_text}")
     set(_prologue)
 
     # Specialize only side-effect-free DMA source reads used by Lufia II's plain

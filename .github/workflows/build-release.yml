@@ -90,6 +90,13 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Install native analyzer toolchain
+        shell: pwsh
+        run: |
+          rustup toolchain install 1.97.1 --profile minimal
+          if ($LASTEXITCODE -ne 0) { throw "Rust toolchain install failed" }
+          cargo +1.97.1 --version
+
       - name: Prepare ROM
         shell: pwsh
         run: |
@@ -182,6 +189,13 @@ jobs:
           path: private-content
           fetch-depth: 1
           persist-credentials: false
+
+      - name: Install native analyzer toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          rustup toolchain install 1.97.1 --profile minimal
+          cargo +1.97.1 --version
 
       - name: Prepare ROM
         shell: bash
