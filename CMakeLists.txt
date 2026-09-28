@@ -252,7 +252,7 @@ lufia2_prepare_decomp(
 
 # The verified C7F8/D508 replacements own actor semantics in normal builds.
 # Shadow the cache option rather than erasing the user's fallback preference.
-if(LUFIA2_DECOMP_AVAILABLE AND NOT LUFIA2_DECOMP_REFERENCE_ONLY)
+if(LUFIA2_ENABLE_DECOMP AND NOT LUFIA2_DECOMP_REFERENCE_ONLY)
     set(LUFIA2_ENABLE_ACTOR_EARLY_RETURN OFF)
     message(STATUS "Interpreter actor fast paths excluded: semantic decomp selected")
 endif()
@@ -456,7 +456,7 @@ set(LUFIA2_HOST_SOURCES
 )
 
 # Widescreen policy uses the portable semantic builder when available.
-if(LUFIA2_DECOMP_AVAILABLE)
+if(LUFIA2_ENABLE_DECOMP)
     list(APPEND LUFIA2_HOST_SOURCES src/lufia2_sprite_visibility.c)
 endif()
 
@@ -643,6 +643,7 @@ target_link_libraries(Lufia2Recomp PRIVATE
     SDL3::SDL3
     snesrecomp::platform
     snesrecomp::runtime
+    Lufia2::ResourceFormat
     ${SNESRECOMP_RUNNER_LIBRARIES}
 )
 lufia2_add_decomp_bridge(Lufia2Recomp "${SNESRECOMP_ROOT}")
