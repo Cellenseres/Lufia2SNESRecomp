@@ -985,3 +985,43 @@ RecompReturn Lufia2DecompBridge_A918(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_ACDB(CpuState *cpu) {
     return ActorBridgeWholeM1X16(cpu, 0x82acdbu, Lufia2MenuListRow, 2);
 }
+
+RecompReturn Lufia2DecompBridge_ED8E(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x81ed8eu, Lufia2PartyUnpackMember, 2);
+}
+
+RecompReturn Lufia2DecompBridge_EE94(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x81ee94u, Lufia2PartyUnpackMemberBare, 2);
+}
+
+RecompReturn Lufia2DecompBridge_C129(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x81c129u, Lufia2BattleIpSkills, 2);
+}
+
+RecompReturn Lufia2DecompBridge_DFA2(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x81dfa2u, Lufia2BattleListRows, 2);
+}
+
+RecompReturn Lufia2DecompBridge_C652(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x80c652u, Lufia2TextMeasure, 2);
+}
+
+RecompReturn Lufia2DecompBridge_C784(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x80c784u, Lufia2TextClearGlyphBuffer, 3);
+}
+
+RecompReturn Lufia2DecompBridge_C56E(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x80c56eu, Lufia2TextQueueWindowRow, 2);
+}
+
+RecompReturn Lufia2DecompBridge_C23D(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x80c23du, Lufia2TextPrepareWindow, 2);
+}
+
+RecompReturn Lufia2DecompBridge_FB1F(CpuState *cpu) {
+    return ActorBridgeWholeM0X0(cpu, 0x82fb1fu, Lufia2ItemPossessionCount, 3);
+}
+
+RecompReturn Lufia2DecompBridge_C305(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x80c305u, Lufia2TextBuildWindow, 2);
+}
