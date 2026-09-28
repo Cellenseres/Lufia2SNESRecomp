@@ -1025,3 +1025,63 @@ RecompReturn Lufia2DecompBridge_FB1F(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_C305(CpuState *cpu) {
     return ActorBridgeWholeM1X16(cpu, 0x80c305u, Lufia2TextBuildWindow, 2);
 }
+
+typedef struct ActorCaveCall {
+    CpuState *cpu;
+    ActorBridgeFrame frame;
+    RecompReturn unwound;
+} ActorCaveCall;
+
+/* The cave function has already pushed the child's JSL frame. */
+static uint8_t ActorBridgeCaveChild(
+    void *context, Lufia2CpuState *state, uint32_t target,
+    uint32_t site, uint8_t frame_size) {
+    ActorCaveCall *call = (ActorCaveCall *)context;
+    const uint16_t post_s = (uint16_t)(state->stack + frame_size);
+    const uint32_t landing = (site & 0xff0000u) |
+        (uint16_t)(site + (frame_size == 3u ? 4u : 3u));
+    uint32_t return_pc24 = landing;
+    RecompReturn result;
+
+    ActorBridgeStore(call->cpu, state);
+    result = cpu_dispatch_call_pc_pushed(
+        call->cpu, target, site, frame_size, &return_pc24);
+    if (result != RECOMP_RETURN_NORMAL) {
+        call->unwound = result;
+        return 0;
+    }
+    if (call->cpu->S != post_s || return_pc24 != landing) {
+        call->unwound = interp_tier_dispatch_tail(
+            call->cpu, return_pc24, site,
+            call->frame.entry_s, call->frame.hrv);
+        return 0;
+    }
+    ActorBridgeLoad(call->cpu, state);
+    state->program_bank = call->cpu->PB;
+    return 1;
+}
+
+RecompReturn Lufia2DecompBridge_9E31(CpuState *cpu) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu};
+    ActorCaveCall call;
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (!ActorBridgeSupported(cpu, 0, 0) || cpu->D != 0)
+        return ActorBridgeFallback(cpu, &frame, 0x839e31u);
+    call.cpu = cpu;
+    call.frame = frame;
+    call.unwound = RECOMP_RETURN_NORMAL;
+    ActorBridgeLoad(cpu, &state);
+    result = Lufia2AncientCaveGenerateFloor(
+        &memory, &state, ActorBridgeCaveChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+}
