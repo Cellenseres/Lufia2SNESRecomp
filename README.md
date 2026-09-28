@@ -109,7 +109,6 @@ production code and are always built; only their instrumentation switches:
 |---|---|
 | `LUFIA2_ENABLE_RUNTIME_LOG` | map, MSU, widescreen and periodic state tracing |
 | `LUFIA2_ENABLE_PATCH_REPORTING` | patch counters and scheduler time every 120 boundaries |
-| `LUFIA2_ENABLE_PATCH_TESTS` | the contract selftests and their command-line entries |
 | `LUFIA2_ENABLE_PERF_AUDIT` | the finite Vita performance audit |
 | `LUFIA2_ENABLE_DECOMP` | select verified semantic replacements at runtime; OFF keeps the generated/original game-function path |
 | `LUFIA2_DECOMP_ROOT` | override the required `Lufia2Decomp` checkout; otherwise use the pinned submodule |

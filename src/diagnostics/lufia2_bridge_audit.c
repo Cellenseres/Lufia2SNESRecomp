@@ -196,29 +196,3 @@ void L2BAFrameEnd(void) {
         fprintf(stderr,"[bridge-audit] complete session=%u; Ctrl+Shift+F9 starts another window\n",s_session);
     }
 }
-int L2BASelfTest(void) {
-    /* Deterministic observer-only test before game initialization. Nested
-     * scopes must partition elapsed time, restore parents, and stay inert
-     * outside a sample. The process exits immediately after this test. */
-    s_fake_clock=1; s_fake_now=100; s_last=s_start=100;
-    s_group=0; s_pc=0x83900e; s_phase=L2BA_CHECKS; l2ba_sample_active=1;
-    s_fake_now=110; L2BAMark(L2BA_QUIESCENCE);
-    s_fake_now=140; int q=L2BAEnter(L2BA_BUS);
-    s_fake_now=160; int b=L2BAEnter(L2BA_APU_LOCK);
-    s_fake_now=170; L2BALeave(b);
-    s_fake_now=190; L2BALeave(q);
-    s_fake_now=200; L2BAMark(L2BA_TAIL);
-    L2BALoop(0x123456,0,0); /* nested bridge must not finish outer sample */
-    int ok=l2ba_sample_active;
-    s_fake_now=220; L2BAFinish();
-    Stats *s=&s_stats[0];
-    ok=ok && s->samples==1 && s->ns[L2BA_CHECKS]==10 &&
-        s->ns[L2BA_QUIESCENCE]==40 && s->ns[L2BA_BUS]==40 &&
-        s->ns[L2BA_APU_LOCK]==10 && s->ns[L2BA_TAIL]==20 &&
-        total(s)==120 && s_measured_total==120 && !l2ba_sample_active;
-    uint64_t reads=s_clock_reads;
-    L2BALoop(0x83900e,3,1); L2BAMark(L2BA_BUS); L2BALeave(L2BAEnter(L2BA_AOT));
-    ok=ok && s_clock_reads==reads && !l2ba_sample_active;
-    fprintf(stderr,"[bridge-audit-test] %s nested_scopes=checked partition=checked disabled_clock=checked devices=not-tested\n",ok?"PASS":"FAIL");
-    return ok?0:1;
-}

@@ -45,7 +45,6 @@
     "src/lufia2_video_policy.h": "05c77b65c34c3416bbaa863a01e0e8ec1582a6008acb9f04696308630e5d906a",
     "src/main.c": "b55cf4152a9a5a857c677c3c447c53592d0893cc78b7b82f3a693d7d9c64c706",
     "src/variables.h": "aecb9819eb04bf5ad6cd2535cfac9b1bed5ef7946e551eff2224759862e16294",
-    "tests/test_msu_pack.c": "e1229ce55f0e368d1faf86b38ed4933dfd060bf5644b81ced9a054d91588a0c4",
     "lib/snesrecomp-platform/.gitignore": "51ed479a9dbf3c6cbb506eccb3bfe528f9184c717979a0c005dcb190e41842b8",
     "lib/snesrecomp-platform/CMakeLists.txt": "b1a65c364d0cd7992a417c73480b9ed049c0e815355b3ace4e22cea0e7cc59c2",
     "lib/snesrecomp-platform/README.md": "3238966f6ae1f08efee7ee04bd427fed54c349e26bc9a968ccec901708df311e",

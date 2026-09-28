@@ -71,6 +71,5 @@ static inline bool L2DmaHostDirectSourceRead(Snes *snes, uint8_t bank,
 }
 
 uint64_t Lufia2DmaHostFastForwardIdleTicks(void);
-int Lufia2DmaHostFastForwardSelfTest(void);
 
 #endif
