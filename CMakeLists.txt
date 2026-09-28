@@ -118,13 +118,14 @@ endif()
 
 # Pinned so a build is reproducible. Follow upstream for one configure with
 # -DLUFIA2_SNESRECOMP_REVISION=<sha> or -DLUFIA2_RECOMP_UI_REVISION=<sha>.
-# Fork until the HLE boundary fix lands upstream.
+# The fork revision tracks upstream native analysis plus the per-entry exit-MX
+# CFG directive required by the reviewed Lufia II entry contracts.
 if(NOT DEFINED LUFIA2_SNESRECOMP_REPOSITORY)
     set(LUFIA2_SNESRECOMP_REPOSITORY "Cellenseres/snesrecomp")
 endif()
 if(NOT DEFINED LUFIA2_SNESRECOMP_REVISION)
     set(LUFIA2_SNESRECOMP_REVISION
-        "f57204394d5a4f5619ea2714aac982c5d86e5027")
+        "678b0656de909ffb9b762ff32dabc9e13425c811")
 endif()
 if(NOT DEFINED LUFIA2_RECOMP_UI_REVISION)
     set(LUFIA2_RECOMP_UI_REVISION
@@ -315,7 +316,7 @@ if(EXISTS "${LUFIA2_ROM}")
             --rom "${LUFIA2_ROM}"
             --cfg-dir "${LUFIA2_EFFECTIVE_CFG_DIR}"
             --out-dir "${LUFIA2_GENERATED_DIR}"
-            --analysis-backend python
+            --analysis-backend native
             --no-host-root-scan
             ${_lufia2_reviewed_aot_args}
         WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"

@@ -3,8 +3,10 @@ include_guard(GLOBAL)
 # This integration seam belongs to maintained build input. The owner creates
 # an overlay copy; neither fetched sources nor game AOT output are edited.
 function(lufia2_prepare_native_patch_sources sources_var core_root)
-    file(SHA256 "${core_root}/runner/src/snes/interp_bridge.c" _core_hash)
-    if(NOT _core_hash STREQUAL "9b60c571e6bbf9d4480a8ec2fa7829a6ffb1fb0ebae122819e7fe90c59481b57")
+    file(READ "${core_root}/runner/src/snes/interp_bridge.c" _core_text)
+    string(REPLACE "\r\n" "\n" _core_text "${_core_text}")
+    string(SHA256 _core_hash "${_core_text}")
+    if(NOT _core_hash STREQUAL "f96baa3bef2a19c2c1c1c1b1e5fa4eb10d281bb332b2dac1aabcff10561952af")
         message(FATAL_ERROR "Native patches require the reviewed pinned interpreter bridge; "
             "review the patch contract, then accept ${_core_hash}")
     endif()
@@ -19,7 +21,7 @@ function(lufia2_prepare_native_patch_sources sources_var core_root)
             # adds its host-cost overlay on top, so two inputs are reviewed.
             string(SHA256 _input_hash "${_text}")
             if(NOT _input_hash STREQUAL
-                   "d2c0ee21451237a58f432de8ce2011a22a80238af9be06a73c74d577abf8b7b3" AND
+                   "c868ae712f151f943b59e1197355046e9dc4c9e020b864b82f006a7708f1e6ef" AND
                NOT _input_hash STREQUAL
                    "d7f15f12e19220443862fb77620192759d52c46b4630b0a99c57ac0084e592d4")
                 message(FATAL_ERROR

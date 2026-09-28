@@ -9,15 +9,15 @@ function(lufia2_prepare_dma_host_fastforward sources_var core_root)
         message(FATAL_ERROR "Missing pinned snes.c: ${_original}")
     endif()
 
-    file(SHA256 "${_original}" _hash)
+    file(READ "${_original}" _text)
+    string(REPLACE "\r\n" "\n" _text "${_text}")
+    string(SHA256 _hash "${_text}")
     if(NOT _hash STREQUAL
-           "7ce7b20f91415a5f8d59730846d15fa31ed20f6e6931d5c5f74673074ef90f78")
+           "401c6e2cb37e4d865621ec45800e58b4bdb68949185931c1d084954eb55205aa")
         message(FATAL_ERROR
             "DMA host fast-forward requires the reviewed pinned snes.c; review the timing contract before updating core")
     endif()
 
-    file(READ "${_original}" _text)
-    string(REPLACE "\r\n" "\n" _text "${_text}")
     set(_old "      while (dma_cycle(snes->dma)) {}")
     set(_new [=[      uint64_t l2_dma_idle_ticks = 0;
       while (L2DmaHostFastForwardCycle(snes->dma,
