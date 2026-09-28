@@ -111,11 +111,15 @@ production code and are always built; only their instrumentation switches:
 | `LUFIA2_ENABLE_PATCH_REPORTING` | patch counters and scheduler time every 120 boundaries |
 | `LUFIA2_ENABLE_PATCH_TESTS` | the contract selftests and their command-line entries |
 | `LUFIA2_ENABLE_PERF_AUDIT` | the finite Vita performance audit |
-| `LUFIA2_ENABLE_DECOMP` | use verified-and-bound standalone decomp replacements when available |
-| `LUFIA2_DECOMP_ROOT` | optional local `Lufia2Decomp` checkout; releases use the pinned submodule |
+| `LUFIA2_ENABLE_DECOMP` | select verified semantic replacements at runtime; OFF keeps the generated/original game-function path |
+| `LUFIA2_DECOMP_ROOT` | override the required `Lufia2Decomp` checkout; otherwise use the pinned submodule |
 | `LUFIA2_DECOMP_REFERENCE_ONLY` | expose the decomp library without activating native replacements |
 
 Errors are always reported.
+
+`Lufia2Decomp` is a required build dependency in every configuration. The host
+links its shared resource-format decoder even when semantic replacements are
+disabled; `LUFIA2_ENABLE_DECOMP` controls game-function source selection only.
 
 ## Run
 

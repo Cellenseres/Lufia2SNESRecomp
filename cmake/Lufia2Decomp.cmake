@@ -3,7 +3,7 @@ include_guard(GLOBAL)
 option(LUFIA2_ENABLE_DECOMP
     "Enable verified standalone-decomp replacements when available" ON)
 set(LUFIA2_DECOMP_ROOT "" CACHE PATH
-    "Optional Lufia2Decomp checkout; otherwise use lib/lufia2-decomp")
+    "Lufia2Decomp checkout; otherwise use lib/lufia2-decomp")
 option(LUFIA2_DECOMP_REFERENCE_ONLY
     "Expose the decomp dependency without selecting native replacements" OFF)
 option(LUFIA2_DECOMP_ALLOW_DRAFT_REPLACEMENTS
@@ -17,7 +17,7 @@ function(lufia2_write_decomp_fallback_report path reason)
         "================================\n\n"
         "Standalone decomp replacements used (0):\n"
         "- None\n\n"
-        "Decomp integration status:\n"
+        "Semantic replacement status:\n"
         "- ${reason}\n\n"
         "All game functions use the generated static recomp/LLE path.\n")
 endfunction()
@@ -37,27 +37,9 @@ function(lufia2_prepare_decomp)
         set(_root "${CMAKE_SOURCE_DIR}/lib/lufia2-decomp")
     endif()
 
-    if(NOT LUFIA2_ENABLE_DECOMP)
-        message(STATUS "Lufia2 decomp integration OFF; using source cfg files")
-        lufia2_write_decomp_fallback_report(
-            "${DECOMP_TEXT_REPORT}" "disabled by LUFIA2_ENABLE_DECOMP=OFF")
-        set(${DECOMP_OUT_CFG_DIR} "${DECOMP_CFG_DIR}" PARENT_SCOPE)
-        set(LUFIA2_DECOMP_AVAILABLE FALSE PARENT_SCOPE)
-        set(LUFIA2_DECOMP_TEXT_REPORT
-            "${DECOMP_TEXT_REPORT}" PARENT_SCOPE)
-        return()
-    endif()
     if(NOT _root)
-        message(STATUS
-            "Lufia2 decomp checkout unavailable; using source cfg files. "
-            "Set LUFIA2_DECOMP_ROOT or initialize lib/lufia2-decomp.")
-        lufia2_write_decomp_fallback_report(
-            "${DECOMP_TEXT_REPORT}" "checkout unavailable")
-        set(${DECOMP_OUT_CFG_DIR} "${DECOMP_CFG_DIR}" PARENT_SCOPE)
-        set(LUFIA2_DECOMP_AVAILABLE FALSE PARENT_SCOPE)
-        set(LUFIA2_DECOMP_TEXT_REPORT
-            "${DECOMP_TEXT_REPORT}" PARENT_SCOPE)
-        return()
+        message(FATAL_ERROR
+            "Lufia2Decomp is required. Initialize lib/lufia2-decomp or set LUFIA2_DECOMP_ROOT.")
     endif()
     if(NOT EXISTS "${_root}/metadata/functions.toml" OR
        NOT EXISTS "${_root}/CMakeLists.txt")
@@ -70,6 +52,21 @@ function(lufia2_prepare_decomp)
     endif()
     if(NOT TARGET Lufia2::Decomp)
         message(FATAL_ERROR "Lufia2Decomp did not define Lufia2::Decomp")
+    endif()
+    if(NOT TARGET Lufia2::ResourceFormat)
+        message(FATAL_ERROR "Lufia2Decomp did not define Lufia2::ResourceFormat")
+    endif()
+    set(LUFIA2_DECOMP_AVAILABLE TRUE PARENT_SCOPE)
+
+    if(NOT LUFIA2_ENABLE_DECOMP)
+        message(STATUS "Lufia2 semantic replacements OFF; using source cfg files")
+        lufia2_write_decomp_fallback_report(
+            "${DECOMP_TEXT_REPORT}" "disabled by LUFIA2_ENABLE_DECOMP=OFF")
+        set(${DECOMP_OUT_CFG_DIR} "${DECOMP_CFG_DIR}" PARENT_SCOPE)
+        set(LUFIA2_DECOMP_RESOLVED_ROOT "${_root}" PARENT_SCOPE)
+        set(LUFIA2_DECOMP_TEXT_REPORT
+            "${DECOMP_TEXT_REPORT}" PARENT_SCOPE)
+        return()
     endif()
 
     # Re-run the manifest when metadata or bindings change.
@@ -104,7 +101,6 @@ function(lufia2_prepare_decomp)
     endif()
 
     set(${DECOMP_OUT_CFG_DIR} "${DECOMP_OUTPUT_DIR}" PARENT_SCOPE)
-    set(LUFIA2_DECOMP_AVAILABLE TRUE PARENT_SCOPE)
     set(LUFIA2_DECOMP_RESOLVED_ROOT "${_root}" PARENT_SCOPE)
     set(LUFIA2_DECOMP_TEXT_REPORT "${DECOMP_TEXT_REPORT}" PARENT_SCOPE)
     message(STATUS "Lufia2 decomp source: ${_root}")
@@ -125,7 +121,7 @@ function(lufia2_add_decomp_bridge target snesrecomp_root)
                 "${LUFIA2_DECOMP_TEXT_REPORT}"
                 "$<TARGET_FILE_DIR:${target}>/LUFIA2_FUNCTION_SOURCES.txt")
     endif()
-    if(NOT LUFIA2_DECOMP_AVAILABLE)
+    if(NOT LUFIA2_ENABLE_DECOMP)
         return()
     endif()
     set(_bridge_sources
