@@ -901,3 +901,87 @@ RecompReturn Lufia2DecompBridge_CE23(CpuState *cpu) {
     return ActorBridgeWholeM1X16(
         cpu, 0x82ce23u, Lufia2CapsuleExperienceRange, 2);
 }
+
+RecompReturn Lufia2DecompBridge_810E(CpuState *cpu) {
+    return ActorBridgeWholeM0X0(cpu, 0x82810eu, Lufia2MenuDrawWindow, 2);
+}
+
+RecompReturn Lufia2DecompBridge_C2FD(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82c2fdu, Lufia2CapsuleReset, 3);
+}
+
+RecompReturn Lufia2DecompBridge_CD83(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82cd83u, Lufia2CapsuleLevelUp, 3);
+}
+
+RecompReturn Lufia2DecompBridge_9F6F(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x829f6fu, Lufia2MenuEquipCommands, 2);
+}
+
+RecompReturn Lufia2DecompBridge_D721(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82d721u, Lufia2MenuShopWindows, 2);
+}
+
+RecompReturn Lufia2DecompBridge_E49E(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82e49eu, Lufia2MenuShopTitle, 2);
+}
+
+RecompReturn Lufia2DecompBridge_EFC5(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82efc5u, Lufia2MenuSavedWindow, 2);
+}
+
+RecompReturn Lufia2DecompBridge_82F0A2(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82f0a2u, Lufia2MenuNameEntryWindows, 2);
+}
+
+RecompReturn Lufia2DecompBridge_D749(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82d749u, Lufia2MenuShopParty, 2);
+}
+
+RecompReturn Lufia2DecompBridge_A2E3(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82a2e3u, Lufia2MenuCapsuleScreen, 2);
+}
+
+RecompReturn Lufia2DecompBridge_950E(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82950eu, Lufia2MenuMemberStatus, 2);
+}
+
+RecompReturn Lufia2DecompBridge_D07B(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82d07bu, Lufia2MenuCapsuleStatus, 2);
+}
+
+RecompReturn Lufia2DecompBridge_E297(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82e297u, Lufia2MenuShopSetup, 2);
+}
+
+RecompReturn Lufia2DecompBridge_CD1F(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82cd1fu, Lufia2CapsuleTryLearn, 3);
+}
+
+RecompReturn Lufia2DecompBridge_E5E1(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82e5e1u, Lufia2MenuShopCompare, 2);
+}
+
+RecompReturn Lufia2DecompBridge_DCF4(CpuState *cpu) {
+    return ActorBridgeWholeM0X0(cpu, 0x82dcf4u, Lufia2MenuShopRow, 2);
+}
+
+RecompReturn Lufia2DecompBridge_DCC1(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82dcc1u, Lufia2MenuShopRows, 2);
+}
+
+RecompReturn Lufia2DecompBridge_B2C5(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82b2c5u, Lufia2MenuEquipUpgrade, 2);
+}
+
+RecompReturn Lufia2DecompBridge_9CB2(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x829cb2u, Lufia2MenuWarpList, 2);
+}
+
+RecompReturn Lufia2DecompBridge_A918(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82a918u, Lufia2MenuListCursor, 2);
+}
+
+RecompReturn Lufia2DecompBridge_ACDB(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82acdbu, Lufia2MenuListRow, 2);
+}
