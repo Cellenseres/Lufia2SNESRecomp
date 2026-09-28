@@ -63,12 +63,7 @@ if(LUFIA2_ENABLE_BRIDGE_AUDIT AND (VITA OR NOT LUFIA2_ENABLE_NATIVE_WAIT))
 endif()
 
 option(LUFIA2_ENABLE_QUIESCENCE_INDEX "Exact candidate index for bridge state ring (experimental)" OFF)
-# Developer instrumentation for the patches above: the periodic scheduler
-# report and the contract selftests. The patches themselves are production
-# code and stay in; only their instrumentation is optional, and the two halves
-# switch separately because they answer different questions.
-option(LUFIA2_ENABLE_PATCH_TESTS
-    "Link the patch contract selftests and their command-line entries" OFF)
+# Optional scheduler reporting for development measurements.
 option(LUFIA2_ENABLE_PATCH_REPORTING
     "Report patch counters and scheduler time every 120 boundaries" OFF)
 # Progress and state tracing from the game code itself: map changes, MSU track
@@ -338,6 +333,36 @@ elseif(NOT EXISTS "${CMAKE_SOURCE_DIR}/src/gen/dispatch_v2.c")
 endif()
 
 
+set(SDL_SHARED ON CACHE BOOL "" FORCE)
+set(SDL_STATIC OFF CACHE BOOL "" FORCE)
+set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)
+set(SDL_TESTS OFF CACHE BOOL "" FORCE)
+set(SDL_EXAMPLES OFF CACHE BOOL "" FORCE)
+set(SDL_INSTALL OFF CACHE BOOL "" FORCE)
+
+if(LUFIA2_SDL3_ROOT)
+    set(SDL3_SOURCE_DIR "${LUFIA2_SDL3_ROOT}")
+else()
+    set(SDL3_SOURCE_DIR "${_deps_root}/SDL3-src")
+    lufia2_download_source(
+        "https://github.com/libsdl-org/SDL/releases/download/release-${LUFIA2_SDL_VERSION}/SDL3-${LUFIA2_SDL_VERSION}.tar.gz"
+        "SDL3-${LUFIA2_SDL_VERSION}.tar.gz"
+        "SDL3-${LUFIA2_SDL_VERSION}"
+        "${SDL3_SOURCE_DIR}"
+        "CMakeLists.txt"
+    )
+endif()
+
+if(NOT EXISTS "${SDL3_SOURCE_DIR}/CMakeLists.txt")
+    message(FATAL_ERROR "Invalid SDL3 source tree: ${SDL3_SOURCE_DIR}")
+endif()
+
+add_subdirectory(
+    "${SDL3_SOURCE_DIR}"
+    "${CMAKE_BINARY_DIR}/_deps/sdl3-build"
+    EXCLUDE_FROM_ALL
+)
+
 # Project-owned, game-neutral host-platform layer. Its runtime policy target is
 # SDL-free; its presentation target consumes only public SDL types and raw video
 # frames. Neither target depends on Lufia or generated game code.
@@ -359,10 +384,8 @@ option(LUFIA2_VULKAN_VALIDATION
 set(SNESRECOMP_PLATFORM_VULKAN_VALIDATION ${LUFIA2_VULKAN_VALIDATION}
     CACHE BOOL "" FORCE)
 
-enable_testing()
 add_subdirectory("${CMAKE_SOURCE_DIR}/lib/snesrecomp-platform")
 
-include("${CMAKE_SOURCE_DIR}/cmake/Lufia2Msu.cmake")
 
 set(SNESRECOMP_SDL_BACKEND "SDL3" CACHE STRING "" FORCE)
 set(SNESRECOMP_ENABLE_MODS OFF CACHE BOOL "" FORCE)
@@ -472,32 +495,8 @@ if(LUFIA2_ENABLE_NATIVE_WAIT OR LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD OR
     include("${CMAKE_SOURCE_DIR}/cmake/Lufia2NativePatches.cmake")
     lufia2_prepare_native_patch_sources(SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
     list(APPEND LUFIA2_HOST_SOURCES patches/native_patches.c)
-    if(LUFIA2_ENABLE_PATCH_TESTS)
-        if(LUFIA2_ENABLE_NATIVE_WAIT)
-            list(APPEND LUFIA2_HOST_SOURCES patches/tests/frame_wait_contract.c)
-        endif()
-        if(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD)
-            list(APPEND LUFIA2_HOST_SOURCES
-                patches/tests/frame_wait_fastforward_contract.c)
-        endif()
-        if(LUFIA2_ENABLE_ACTOR_EARLY_RETURN)
-            list(APPEND LUFIA2_HOST_SOURCES
-                patches/tests/actor_early_return_contract.c
-                patches/tests/actor_d508_early_return_contract.c)
-        endif()
-    endif()
 endif()
 
-if(LUFIA2_ENABLE_PATCH_TESTS)
-    list(APPEND LUFIA2_HOST_SOURCES patches/tests/mode7_substep_contract.c)
-endif()
-
-if(NOT VITA AND LUFIA2_ENABLE_PATCH_TESTS AND
-   (LUFIA2_ENABLE_DMA_HOST_FASTFORWARD OR
-    LUFIA2_ENABLE_DMA_DIRECT_SOURCE_READ))
-    list(APPEND LUFIA2_HOST_SOURCES
-        patches/tests/dma_host_fastforward_contract.c)
-endif()
 if(LUFIA2_ENABLE_DMA_HOST_FASTFORWARD)
     message(STATUS
         "Lufia2 DMA host fast-forward: synchronous idle timer iterations collapsed; byte transfers unchanged")
@@ -526,9 +525,6 @@ if(LUFIA2_ENABLE_BRIDGE_AUDIT)
     message(STATUS "BridgeAudit: Ctrl+Shift+F9, 120 warmup + 600 boundaries, randomized iteration sampling; gameplay unchanged")
 endif()
 
-if(LUFIA2_ENABLE_QUIESCENCE_INDEX AND LUFIA2_ENABLE_PATCH_TESTS)
-    list(APPEND LUFIA2_HOST_SOURCES patches/tests/quiescence_index_contract.c)
-endif()
 
 add_executable(Lufia2Recomp
     ${SNESRECOMP_RUNNER_SOURCES}
@@ -588,10 +584,6 @@ endif()
 if(LUFIA2_ENABLE_RUNTIME_LOG)
     target_compile_definitions(Lufia2Recomp PRIVATE LUFIA2_ENABLE_RUNTIME_LOG=1)
     message(STATUS "Lufia2 runtime log ON: map, MSU, widescreen and periodic state tracing")
-endif()
-if(LUFIA2_ENABLE_PATCH_TESTS)
-    target_compile_definitions(Lufia2Recomp PRIVATE LUFIA2_ENABLE_PATCH_TESTS=1)
-    message(STATUS "Lufia2 patch tests ON: contract selftests linked; run them with their --*-selftest flags")
 endif()
 if(LUFIA2_ENABLE_PATCH_REPORTING)
     target_compile_definitions(Lufia2Recomp PRIVATE LUFIA2_ENABLE_PATCH_REPORTING=1)

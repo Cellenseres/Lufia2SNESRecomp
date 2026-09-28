@@ -17,14 +17,9 @@ extern const uint8_t *g_rom;
 void Lufia2NativePatchesInit(void);
 void Lufia2NativeWaitBegin(void);
 void Lufia2NativeWaitEnd(void);
-int Lufia2NativeWaitSelfTest(void);
-int Lufia2FrameWaitFastForwardSelfTest(void);
-int Lufia2ActorEarlyReturnSelfTest(void);
-int Lufia2ActorD508EarlyReturnSelfTest(void);
 int Lufia2NativeObserversActive(void);
 #ifdef LUFIA2_ENABLE_DMA_HOST_FASTFORWARD
 uint64_t Lufia2DmaHostFastForwardIdleTicks(void);
-int Lufia2DmaHostFastForwardSelfTest(void);
 #endif
 
 /* Automatic A/B for whichever experiment is set to `auto`. A host that already

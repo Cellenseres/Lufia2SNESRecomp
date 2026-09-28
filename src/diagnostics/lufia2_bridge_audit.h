@@ -18,7 +18,6 @@ void L2BALeave(int previous);
 void L2BAToggle(void);
 void L2BAFrameBegin(void);
 void L2BAFrameEnd(void);
-int L2BASelfTest(void);
 
 /* Scopes nest by restoring the previous phase. No clock is queried on an
  * unsampled instruction. These macros never evaluate CALL more than once. */

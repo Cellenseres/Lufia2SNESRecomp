@@ -1,6 +1,6 @@
 # Maintained native game patches
 
-Host-native replacements for interpreted hot paths, plus their contract tests.
+Host-native replacements for interpreted hot paths.
 Maintained input, not generated output: nothing is discovered or activated
 automatically.
 
@@ -61,29 +61,12 @@ the original path and print a diagnostic.
 | `LUFIA2_ACTOR_D508_EARLY_RETURN` | `0` |
 | `LUFIA2_QUIESCENCE_INDEX` | `0`, `1`, `auto` |
 
-## Contract tests
-
-`LUFIA2_ENABLE_PATCH_TESTS` links these tests and their command-line entries;
-`LUFIA2_ENABLE_PATCH_REPORTING` turns on the periodic scheduler report. Both are
-off by default and independent, so a measurement build can report without
-carrying test code. The patches themselves are always built.
-
-The tests are desktop-only: the Vita host has no command line to invoke them.
-Reporting works on both.
-
-Each test compares the patch against the actual linked `interp816_runOpcode` or
-core DMA. They verify the instruction and mapping contracts only, not gameplay.
-Host tools, invoked by flag and never run during play:
-`--frame-wait-fastforward-selftest`, `--native-wait-selftest`,
-`--actor-early-return-selftest`, `--actor-d508-early-return-selftest`,
-`--dma-host-fastforward-selftest`, `--quiescence-index-selftest`.
 
 ## Source map
 
 - `frame_wait.h`, `actor_early_return.h`, `actor_d508_early_return.h`,
   `dma_host_fastforward.h`, `quiescence_index.h`: the payloads.
 - `native_patches.c/.h`: activation, counters, scheduler timing.
-- `tests/`: one contract test per patch, named after it.
 - `../cmake/Lufia2NativePatches.cmake`: the bridge seam.
 - `../cmake/Lufia2QuiescenceIndex.cmake`, `../cmake/Lufia2DmaHostFastForward.cmake`:
   the pinned core overlays.

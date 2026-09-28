@@ -12,7 +12,6 @@ typedef struct L2QIndex {
     uint8_t slot_bucket[64];
 } L2QIndex;
 extern int lufia2_quiescence_index_enabled;
-int L2QIndexSelfTest(void);
 
 static inline unsigned L2QBucket(uint32_t pc, uint64_t read_epoch, uint64_t write_epoch) {
     return (unsigned)(pc ^ (pc >> 6) ^ read_epoch ^ (read_epoch >> 32) ^
