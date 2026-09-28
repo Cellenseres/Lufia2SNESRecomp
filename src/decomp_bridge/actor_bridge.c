@@ -199,6 +199,26 @@ RecompReturn Lufia2DecompBridge_FB71(CpuState *cpu) {
 
 typedef Lufia2ExecutionResult (*ActorWholeFunction)(
     const Lufia2Memory *memory, Lufia2CpuState *cpu);
+typedef void (*ActorVoidFunction)(
+    const Lufia2Memory *memory, Lufia2CpuState *cpu);
+
+/* A complete leaf with its return instruction outside the portable API. */
+static RecompReturn ActorBridgeRunVoid(
+    CpuState *cpu, uint32_t entry_pc24, ActorVoidFunction run,
+    uint8_t frame_size, uint32_t return_pc24, int any_width) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu};
+    Lufia2CpuState state;
+
+    if (cpu->emulation || (!any_width &&
+        (cpu->_flag_D || !cpu->m_flag || cpu->x_flag)))
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    ActorBridgeLoad(cpu, &state);
+    run(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, frame_size, return_pc24);
+}
 
 /* Whole JSR routine with exact LLE boundaries. */
 static RecompReturn ActorBridgeRunWhole(
@@ -790,4 +810,60 @@ RecompReturn Lufia2DecompBridge_F0A2(CpuState *cpu) {
 
 RecompReturn Lufia2DecompBridge_E835(CpuState *cpu) {
     return ActorBridgeWholeM1X16(cpu, 0x81e835u, Lufia2BattleGlyph, 2);
+}
+
+/* Both RNG leaves save P before changing M/X and restore it before RTL. */
+RecompReturn Lufia2DecompBridge_8299(CpuState *cpu) {
+    return ActorBridgeRunVoid(
+        cpu, 0x808299u, Lufia2RandomScale, 3, 0x8082c6u, 1);
+}
+
+RecompReturn Lufia2DecompBridge_82C7(CpuState *cpu) {
+    return ActorBridgeRunVoid(
+        cpu, 0x8082c7u, Lufia2RandomByte, 3, 0x8082e6u, 1);
+}
+
+RecompReturn Lufia2DecompBridge_A746(CpuState *cpu) {
+    return ActorBridgeRunVoid(
+        cpu, 0x83a746u, Lufia2ActorSyncFinePosition, 3, 0x83a76cu, 0);
+}
+
+RecompReturn Lufia2DecompBridge_C947(CpuState *cpu) {
+    return ActorBridgeRunVoid(
+        cpu, 0x83c947u, Lufia2ActorPrimaryReset, 2, 0x83c989u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_CA68(CpuState *cpu) {
+    return ActorBridgeRunVoid(
+        cpu, 0x83ca68u, Lufia2ActorBlockedEvent, 3, 0x83ca92u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_CB65(CpuState *cpu) {
+    return ActorBridgeRunVoid(
+        cpu, 0x83cb65u, Lufia2ActorClearSlotLinks, 2, 0x83cb70u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_D416(CpuState *cpu) {
+    return ActorBridgeRunVoid(
+        cpu, 0x83d416u, Lufia2ActorLoadPrimaryScript, 3, 0x83d436u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_FA3F(CpuState *cpu) {
+    return ActorBridgeRunVoid(
+        cpu, 0x83fa3fu, Lufia2ActorMarkMapOccupancy, 3, 0x83fa80u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_FA81(CpuState *cpu) {
+    return ActorBridgeRunVoid(
+        cpu, 0x83fa81u, Lufia2ActorMoveFinePosition, 2, 0x83facau, 0);
+}
+
+RecompReturn Lufia2DecompBridge_FACB(CpuState *cpu) {
+    return ActorBridgeRunVoid(
+        cpu, 0x83facbu, Lufia2ActorAddDisplayOffset, 2, 0x83faf3u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_8766(CpuState *cpu) {
+    return ActorBridgeRunVoid(
+        cpu, 0x848766u, Lufia2QueueDeferredSound, 3, 0x848774u, 0);
 }
