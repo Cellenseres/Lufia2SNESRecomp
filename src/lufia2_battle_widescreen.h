@@ -12,8 +12,8 @@ void Lufia2BattleWidescreenHandoff(
     const Lufia2BattleState *battle,
     Lufia2VideoLayout previous_layout);
 
-/* Pure presentation guard over the current semantic observation and PPU.
- * No raster history or host Battle state machine is needed. */
+/* Pure presentation guard over callback ownership, loaded background, display
+ * shadow and live brightness. Battle PPU layout varies during the fight. */
 bool Lufia2BattleWidescreenMargin(
     const Lufia2BattleState *battle,
     const Ppu *ppu,
