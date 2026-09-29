@@ -1026,17 +1026,17 @@ RecompReturn Lufia2DecompBridge_C305(CpuState *cpu) {
     return ActorBridgeWholeM1X16(cpu, 0x80c305u, Lufia2TextBuildWindow, 2);
 }
 
-typedef struct ActorCaveCall {
+typedef struct ActorPushedCall {
     CpuState *cpu;
     ActorBridgeFrame frame;
     RecompReturn unwound;
-} ActorCaveCall;
+} ActorPushedCall;
 
 /* The cave function has already pushed the child's JSL frame. */
-static uint8_t ActorBridgeCaveChild(
+static uint8_t ActorBridgePushedChild(
     void *context, Lufia2CpuState *state, uint32_t target,
     uint32_t site, uint8_t frame_size) {
-    ActorCaveCall *call = (ActorCaveCall *)context;
+    ActorPushedCall *call = (ActorPushedCall *)context;
     const uint16_t post_s = (uint16_t)(state->stack + frame_size);
     const uint32_t landing = (site & 0xff0000u) |
         (uint16_t)(site + (frame_size == 3u ? 4u : 3u));
@@ -1065,7 +1065,7 @@ RecompReturn Lufia2DecompBridge_9E31(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
         ActorBridgeRead, ActorBridgeWrite, cpu};
-    ActorCaveCall call;
+    ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
 
@@ -1076,7 +1076,7 @@ RecompReturn Lufia2DecompBridge_9E31(CpuState *cpu) {
     call.unwound = RECOMP_RETURN_NORMAL;
     ActorBridgeLoad(cpu, &state);
     result = Lufia2AncientCaveGenerateFloor(
-        &memory, &state, ActorBridgeCaveChild, &call);
+        &memory, &state, ActorBridgePushedChild, &call);
     if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
         return (RecompReturn)((int)call.unwound - 1);
     ActorBridgeStore(cpu, &state);
@@ -1084,4 +1084,26 @@ RecompReturn Lufia2DecompBridge_9E31(CpuState *cpu) {
         return interp_tier_dispatch_tail(
             cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
     return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_83E0(CpuState *cpu) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu};
+    ActorPushedCall call;
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (!ActorBridgeSupported(cpu, 0, 0))
+        return ActorBridgeFallback(cpu, &frame, 0x8383e0u);
+    call.cpu = cpu;
+    call.frame = frame;
+    call.unwound = RECOMP_RETURN_NORMAL;
+    ActorBridgeLoad(cpu, &state);
+    result = Lufia2FieldEncounterHandoff(
+        &memory, &state, ActorBridgePushedChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
 }
