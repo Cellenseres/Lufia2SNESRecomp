@@ -491,23 +491,23 @@ RecompReturn Lufia2DecompBridge_B9AF(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_C2C0(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x81c2c0u, Lufia2BattleCopyC2C0, 2);
+    return ActorBridgeWhole(cpu, 0x81c2c0u, Lufia2BattleLoadDisplayDefaults, 2);
 }
 
 RecompReturn Lufia2DecompBridge_C2D0(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x81c2d0u, Lufia2BattleClear2000, 2);
+    return ActorBridgeWhole(cpu, 0x81c2d0u, Lufia2BattleClearBackgroundTilemap, 2);
 }
 
 RecompReturn Lufia2DecompBridge_C2E3(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x81c2e3u, Lufia2BattleFill2800, 2);
+    return ActorBridgeWhole(cpu, 0x81c2e3u, Lufia2BattleResetPartyTilemap, 2);
 }
 
 RecompReturn Lufia2DecompBridge_C2FB(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x81c2fbu, Lufia2BattleClear3000, 2);
+    return ActorBridgeWhole(cpu, 0x81c2fbu, Lufia2BattleClearWindowTilemap, 2);
 }
 
 RecompReturn Lufia2DecompBridge_C30E(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x81c30eu, Lufia2BattleClear3800, 2);
+    return ActorBridgeWhole(cpu, 0x81c30eu, Lufia2BattleClearTilemap3800, 2);
 }
 
 RecompReturn Lufia2DecompBridge_C5CF(CpuState *cpu) {
