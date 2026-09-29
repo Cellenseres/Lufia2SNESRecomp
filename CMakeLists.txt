@@ -123,9 +123,14 @@ endif()
 if(NOT DEFINED LUFIA2_SNESRECOMP_REPOSITORY)
     set(LUFIA2_SNESRECOMP_REPOSITORY "Cellenseres/snesrecomp")
 endif()
-if(NOT DEFINED LUFIA2_SNESRECOMP_REVISION)
-    set(LUFIA2_SNESRECOMP_REVISION
-        "678b0656de909ffb9b762ff32dabc9e13425c811")
+set(_lufia2_snesrecomp_pin "678b0656de909ffb9b762ff32dabc9e13425c811")
+# Older Windows build trees cached this revision. Upgrade that known stale pin
+# so regenerating an existing build uses the current native analyzer.
+if(NOT DEFINED LUFIA2_SNESRECOMP_REVISION OR
+   LUFIA2_SNESRECOMP_REVISION STREQUAL
+       "f57204394d5a4f5619ea2714aac982c5d86e5027")
+    set(LUFIA2_SNESRECOMP_REVISION "${_lufia2_snesrecomp_pin}"
+        CACHE STRING "Pinned snesrecomp revision" FORCE)
 endif()
 if(NOT DEFINED LUFIA2_RECOMP_UI_REVISION)
     set(LUFIA2_RECOMP_UI_REVISION
@@ -385,6 +390,9 @@ option(LUFIA2_VULKAN_VALIDATION
 set(SNESRECOMP_PLATFORM_VULKAN_VALIDATION ${LUFIA2_VULKAN_VALIDATION}
     CACHE BOOL "" FORCE)
 
+# Consumer Release does not build Platform's optional smoke tests. Old build
+# trees may still cache this option as ON from a standalone test run.
+set(SNESRECOMP_PLATFORM_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 add_subdirectory("${CMAKE_SOURCE_DIR}/lib/snesrecomp-platform")
 
 
