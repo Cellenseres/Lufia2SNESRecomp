@@ -1261,3 +1261,25 @@ RecompReturn Lufia2DecompBridge_B062(CpuState *cpu) {
     ActorBridgeStore(cpu, &state);
     return ActorBridgeReturn(cpu, &frame, 2, result.pc);
 }
+
+RecompReturn Lufia2DecompBridge_851E(CpuState *cpu) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu};
+    ActorPushedCall call;
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (!ActorBridgeSupported(cpu, 0, 0))
+        return ActorBridgeFallback(cpu, &frame, 0x81851eu);
+    call.cpu = cpu;
+    call.frame = frame;
+    call.unwound = RECOMP_RETURN_NORMAL;
+    ActorBridgeLoad(cpu, &state);
+    result = Lufia2BattleDisplaySetup(
+        &memory, &state, ActorBridgePushedChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
