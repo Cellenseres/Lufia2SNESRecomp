@@ -8,14 +8,13 @@ void Lufia2BattleWidescreenHandoff(
         Lufia2VideoHandoffReset(handoff);
 }
 
-/* These registers describe the composition supported by the static margin
- * assets. They never establish Battle identity. Check each picture, including
- * fades, resource setup and menus that temporarily change the composition. */
+/* The Battle callback owns the scene. Require the live BG tile layout used by
+ * the margin asset. Subscreen layers can change while that picture is visible:
+ * a Battle frame has $212D=$15 with the same main layers and tile layout. */
 static bool PictureReady(const Ppu *ppu) {
     return ppu && !PPU_forcedBlank(ppu) && PPU_brightness(ppu) > 0u &&
         PPU_mode(ppu) == 1u &&
         ppu->screenEnabled[0] == 0x1fu &&
-        ppu->screenEnabled[1] == 0u &&
         ppu->bgTileAdr == 0x0142u &&
         (ppu->bgXsc[0] & 3u) == 0u &&
         (ppu->bgXsc[1] & 3u) == 0u;
