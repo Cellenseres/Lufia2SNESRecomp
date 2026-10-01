@@ -65,6 +65,7 @@
 #include "lufia2_equip_names.h"
 #include "lufia2_spell_price.h"
 #include "lufia2_play_time.h"
+#include "lufia2_party_limits.h"
 #include "lufia2_msu_driver.h"
 #include "lufia2_map_widescreen.h"
 #include "lufia2_ui_margins.h"
@@ -2645,6 +2646,7 @@ int main(int argc, char **argv) {
     Lufia2MapLoadInstallHooks();
     Lufia2EquipNamesInstall();
     Lufia2PlayTimeInstall();
+    Lufia2PartyLimitsInstall();
     Lufia2SpellPriceInstall();
 
     Snes *snes = SnesInit(rom_data, (int)rom_size);
