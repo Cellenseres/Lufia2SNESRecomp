@@ -2645,7 +2645,7 @@ int main(int argc, char **argv) {
     Lufia2MapLoadInstallHooks();
     Lufia2EquipNamesInstall();
     Lufia2PlayTimeInstall();
-    Lufia2SpellPriceInstallHooks();
+    Lufia2SpellPriceInstall();
 
     Snes *snes = SnesInit(rom_data, (int)rom_size);
     if (!snes) {
