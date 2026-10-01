@@ -8,6 +8,7 @@ static Lufia2DecompPlayTimeTickEvent play_time_tick_event;
 static Lufia2DecompMenuNumberEvent menu_number_event;
 static Lufia2DecompMapLoadEvent map_load_begin_event;
 static Lufia2DecompMapLoadEvent map_load_committed_event;
+static Lufia2DecompGameFileEvent game_file_event;
 static uint8_t interpreter_map_loading;
 static uint16_t interpreter_map_return_stack;
 
@@ -93,4 +94,42 @@ void Lufia2DecompSetMapLoadCommittedEvent(Lufia2DecompMapLoadEvent callback) {
     map_load_committed_event = callback;
     interpreter_map_loading = 0;
     InstallInterpreterMapEvents();
+}
+
+static uint16_t GameFileFrameByte(const CpuState *cpu, unsigned offset) {
+    const uint16_t address = (uint16_t)(cpu->S + offset);
+    return cpu->emulation ? (uint16_t)(0x0100u | (address & 0x00ffu)) : address;
+}
+
+void Lufia2DecompGameFile(CpuState *cpu, uint32_t pc) {
+    Lufia2DecompGameFileOperation operation;
+    if (!game_file_event)
+        return;
+    switch (pc & 0x7fffffu) {
+    case 0x009099u:
+        operation = LUFIA2_DECOMP_GAME_FILE_LOAD;
+        break;
+    case 0x0090c9u:
+        operation = LUFIA2_DECOMP_GAME_FILE_SAVE;
+        break;
+    case 0x00914bu: {
+        const uint8_t low = cpu_read8(cpu, 0u, GameFileFrameByte(cpu, 1u));
+        const uint8_t high = cpu_read8(cpu, 0u, GameFileFrameByte(cpu, 2u));
+        const uint8_t bank = cpu_read8(cpu, 0u, GameFileFrameByte(cpu, 3u));
+        operation = low == 0xa8u && high == 0x90u && !(bank & 0x7fu)
+            ? LUFIA2_DECOMP_GAME_FILE_LOAD_HEADER
+            : LUFIA2_DECOMP_GAME_FILE_PREVIEW;
+        break;
+    }
+    default:
+        return;
+    }
+    game_file_event(cpu, pc, operation);
+}
+
+void Lufia2DecompSetGameFileEvent(Lufia2DecompGameFileEvent callback) {
+    game_file_event = callback;
+    interp_bridge_set_pre_opcode_hook(0x809099u, Lufia2DecompGameFile);
+    interp_bridge_set_pre_opcode_hook(0x8090c9u, Lufia2DecompGameFile);
+    interp_bridge_set_pre_opcode_hook(0x80914bu, Lufia2DecompGameFile);
 }
