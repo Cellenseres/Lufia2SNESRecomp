@@ -3,17 +3,10 @@
 #include <stdio.h>
 
 #include "cpu_state.h"
-#include "snes/interp_bridge.h"
+#include "decomp_bridge/host_events.h"
 #include "lufia2_log.h"
 
 enum {
-    /* $83:B53B installs a regular map: it reads the map id from $05AC,
-       calls the only map resource loader at $80:EAE7 and returns through
-       $83:B580. An MVN keeps the routine on the interpreter tier, so these
-       two sites are observable without replacing any guest code. */
-    LUFIA2_MAP_LOAD_CALL = 0x83b548,
-    LUFIA2_MAP_LOAD_RETURN = 0x83b580,
-
     LUFIA2_CURRENT_MAP = 0x05ac,
 
     /* $05AC is written before the load runs, so a mismatch normally means a
@@ -71,9 +64,10 @@ static void MapLoadCommit(CpuState *cpu, uint32_t pc24) {
         (unsigned)s_committed_map);
 }
 
+/* $83:B53B: begin at the $80:EAE7 call, commit at its RTL. */
 void Lufia2MapLoadInstallHooks(void) {
-    interp_bridge_set_pre_opcode_hook(LUFIA2_MAP_LOAD_CALL, MapLoadBegin);
-    interp_bridge_set_pre_opcode_hook(LUFIA2_MAP_LOAD_RETURN, MapLoadCommit);
+    Lufia2DecompSetMapLoadBeginEvent(MapLoadBegin);
+    Lufia2DecompSetMapLoadCommittedEvent(MapLoadCommit);
 }
 
 void Lufia2MapLoadFrame(void) {
