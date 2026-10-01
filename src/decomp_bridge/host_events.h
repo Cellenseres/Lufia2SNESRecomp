@@ -21,4 +21,11 @@ typedef void (*Lufia2DecompMenuNumberEvent)(CpuState *, uint32_t);
 void Lufia2DecompSetMenuNumberEvent(Lufia2DecompMenuNumberEvent callback);
 void Lufia2DecompMenuNumber(CpuState *cpu, uint32_t pc);
 
+/* Map ID in A at $83:B548; commit at $83:B580 only after a real load. */
+typedef void (*Lufia2DecompMapLoadEvent)(CpuState *, uint32_t);
+void Lufia2DecompSetMapLoadBeginEvent(Lufia2DecompMapLoadEvent callback);
+void Lufia2DecompSetMapLoadCommittedEvent(Lufia2DecompMapLoadEvent callback);
+void Lufia2DecompMapLoadBegin(CpuState *cpu, uint32_t pc);
+void Lufia2DecompMapLoadCommitted(CpuState *cpu, uint32_t pc);
+
 #endif

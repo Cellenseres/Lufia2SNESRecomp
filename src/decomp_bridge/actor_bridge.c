@@ -2146,3 +2146,56 @@ RecompReturn Lufia2DecompBridge_808638(CpuState *cpu) {
     return interp_tier_dispatch_tail(
         cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
 }
+
+static void ActorBridgeMapLoad(
+    void *context, Lufia2CpuState *state, uint32_t pc) {
+    ActorPushedCall *call = (ActorPushedCall *)context;
+    ActorBridgeStore(call->cpu, state);
+    if (pc == 0x83b548u)
+        Lufia2DecompMapLoadBegin(call->cpu, pc);
+    else
+        Lufia2DecompMapLoadCommitted(call->cpu, pc);
+    ActorBridgeLoad(call->cpu, state);
+}
+
+RecompReturn Lufia2DecompBridge_83B53B(CpuState *cpu) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    ActorPushedCall call;
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (!ActorBridgeSupported(cpu, 1, 0))
+        return ActorBridgeFallback(cpu, &frame, 0x83b53bu);
+    call.cpu = cpu;
+    call.frame = frame;
+    call.unwound = RECOMP_RETURN_NORMAL;
+    ActorBridgeLoad(cpu, &state);
+    result = Lufia2FieldInstallMap(
+        &memory, &state, ActorBridgePushedChild, ActorBridgeMapLoad, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 3u, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_80EAE7(CpuState *cpu) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    ActorPushedCall call;
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (!ActorBridgeSupported(cpu, 1, 0))
+        return ActorBridgeFallback(cpu, &frame, 0x80eae7u);
+    call.cpu = cpu;
+    call.frame = frame;
+    call.unwound = RECOMP_RETURN_NORMAL;
+    ActorBridgeLoad(cpu, &state);
+    result = Lufia2FieldLoadMapResources(
+        &memory, &state, ActorBridgePushedChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 3u, result.pc);
+}
