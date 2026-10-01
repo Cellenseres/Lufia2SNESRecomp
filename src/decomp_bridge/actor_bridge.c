@@ -465,6 +465,18 @@ RecompReturn Lufia2DecompBridge_C261(CpuState *cpu) {
     return ActorBridgeWholeM1X16(cpu, 0x82c261u, Lufia2CapsuleLoadStats, 3);
 }
 
+RecompReturn Lufia2DecompBridge_83F9F7(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x83f9f7u, Lufia2MapCellOffset, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83F9D9(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x83f9d9u, Lufia2LayerCellOffset, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83F91F(CpuState *cpu) {
+    return ActorBridgeWholeM0X0(cpu, 0x83f91fu, Lufia2FieldCopyCellTile, 2u);
+}
+
 RecompReturn Lufia2DecompBridge_F4D5(CpuState *cpu) {
     return ActorBridgeWholeAnyWidth(cpu, 0x81f4d5u, Lufia2PartyDerivedStats, 3);
 }
