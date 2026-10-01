@@ -1888,3 +1888,44 @@ RecompReturn Lufia2DecompBridge_80F47A(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_838E66(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x838e66u, Lufia2FieldRedrawAllLayers, 3);
 }
+
+RecompReturn Lufia2DecompBridge_83B5D3(CpuState *cpu) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    ActorPushedCall call;
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (!ActorBridgeSupported(cpu, 0, 0) || cpu->D != 0 ||
+        !(cpu->DB == 0x7eu || (cpu->DB & 0x7fu) < 0x40u))
+        return ActorBridgeFallback(cpu, &frame, 0x83b5d3u);
+    call.cpu = cpu;
+    call.frame = frame;
+    call.unwound = RECOMP_RETURN_NORMAL;
+    ActorBridgeLoad(cpu, &state);
+    result = Lufia2FieldLoadMapHeader(
+        &memory, &state, ActorBridgePushedChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_80E844(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x80e844u, Lufia2FieldInitializeMapEvents, 3, 4);
+}
+
+RecompReturn Lufia2DecompBridge_80E722(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x80e722u, Lufia2FieldStartEvent, 3, 4);
+}
+
+RecompReturn Lufia2DecompBridge_8EB847(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x8eb847u, Lufia2CaveBuildMapHeader, 3, 3);
+}
+
+RecompReturn Lufia2DecompBridge_839B44(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x839b44u, Lufia2CaveRoomHeaderCoordinates, 3, 4);
+}
