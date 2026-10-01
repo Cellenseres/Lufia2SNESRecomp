@@ -1977,3 +1977,61 @@ RecompReturn Lufia2DecompBridge_83B007(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_83F6CA(CpuState *cpu) {
     return ActorBridgeRunWhole(cpu, 0x83f6cau, Lufia2FieldSetupObjectActorSprite, 2, 4);
 }
+
+typedef Lufia2ExecutionResult (*FieldObjectTransition)(
+    const Lufia2Memory *, Lufia2CpuState *, Lufia2PushedChildCall, void *);
+
+static RecompReturn ActorBridgeObjectTransition(
+    CpuState *cpu, uint32_t entry, FieldObjectTransition run,
+    uint8_t frame_size) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    ActorPushedCall call;
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (!ActorBridgeSupported(cpu, 0, 0))
+        return ActorBridgeFallback(cpu, &frame, entry);
+    call.cpu = cpu;
+    call.frame = frame;
+    call.unwound = RECOMP_RETURN_NORMAL;
+    ActorBridgeLoad(cpu, &state);
+    result = run(&memory, &state, ActorBridgePushedChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return ActorBridgeReturn(cpu, &frame, frame_size, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_838B40(CpuState *cpu) {
+    return ActorBridgeObjectTransition(
+        cpu, 0x838b40u, Lufia2FieldLoadObjectRecord, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_83F5EA(CpuState *cpu) {
+    return ActorBridgeObjectTransition(
+        cpu, 0x83f5eau, Lufia2FieldInitializeObjectActor, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_83F5B9(CpuState *cpu) {
+    return ActorBridgeObjectTransition(
+        cpu, 0x83f5b9u, Lufia2FieldRefreshObjectActor, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83F7B1(CpuState *cpu) {
+    return ActorBridgeObjectTransition(
+        cpu, 0x83f7b1u, Lufia2FieldPlaceActorObject, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83F795(CpuState *cpu) {
+    return ActorBridgeObjectTransition(
+        cpu, 0x83f795u, Lufia2FieldRebuildActorObject, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83F620(CpuState *cpu) {
+    return ActorBridgeObjectTransition(
+        cpu, 0x83f620u, Lufia2FieldClaimPlacedObject, 3u);
+}
