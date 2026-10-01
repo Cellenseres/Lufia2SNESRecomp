@@ -11,6 +11,7 @@ static Lufia2DecompMapLoadEvent map_load_committed_event;
 static Lufia2DecompGameFileEvent game_file_event;
 static Lufia2DecompSongLoadEvent song_load_event;
 static Lufia2DecompMusicFadeOutEvent music_fade_out_event;
+static Lufia2DecompSpellPriceStoredEvent spell_price_stored_event;
 static uint8_t interpreter_map_loading;
 static uint16_t interpreter_map_return_stack;
 
@@ -171,4 +172,15 @@ void Lufia2DecompMusicFadeOut(CpuState *cpu, uint32_t pc) {
 void Lufia2DecompSetMusicFadeOutEvent(Lufia2DecompMusicFadeOutEvent callback) {
     music_fade_out_event = callback;
     interp_bridge_set_pre_opcode_hook(0x809692u, Lufia2DecompMusicFadeOut);
+}
+
+void Lufia2DecompSpellPriceStored(CpuState *cpu, uint32_t pc) {
+    if (spell_price_stored_event)
+        spell_price_stored_event(cpu, pc);
+}
+
+void Lufia2DecompSetSpellPriceStoredEvent(
+    Lufia2DecompSpellPriceStoredEvent callback) {
+    spell_price_stored_event = callback;
+    interp_bridge_set_pre_opcode_hook(0x82d922u, Lufia2DecompSpellPriceStored);
 }

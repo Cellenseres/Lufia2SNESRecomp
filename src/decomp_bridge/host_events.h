@@ -54,4 +54,10 @@ typedef void (*Lufia2DecompMusicFadeOutEvent)(CpuState *, uint32_t);
 void Lufia2DecompSetMusicFadeOutEvent(Lufia2DecompMusicFadeOutEvent callback);
 void Lufia2DecompMusicFadeOut(CpuState *cpu, uint32_t pc);
 
+/* Both spell-price word stores have completed, before LDA #$20 at $82:D922. */
+typedef void (*Lufia2DecompSpellPriceStoredEvent)(CpuState *, uint32_t);
+void Lufia2DecompSetSpellPriceStoredEvent(
+    Lufia2DecompSpellPriceStoredEvent callback);
+void Lufia2DecompSpellPriceStored(CpuState *cpu, uint32_t pc);
+
 #endif

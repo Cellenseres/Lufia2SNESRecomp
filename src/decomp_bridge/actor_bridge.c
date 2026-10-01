@@ -2116,6 +2116,44 @@ RecompReturn Lufia2DecompBridge_82A318(CpuState *cpu) {
     return ActorBridgeReturn(cpu, &frame, 2u, result.pc);
 }
 
+static void ActorBridgeSpellPriceStored(
+    void *context, Lufia2CpuState *state, uint32_t pc) {
+    ActorPushedCall *call = (ActorPushedCall *)context;
+    ActorBridgeStore(call->cpu, state);
+    Lufia2DecompSpellPriceStored(call->cpu, pc);
+    ActorBridgeLoad(call->cpu, state);
+}
+
+RecompReturn Lufia2DecompBridge_82D905(CpuState *cpu) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    ActorPushedCall call;
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (!ActorBridgeSupported(cpu, 0, 0))
+        return ActorBridgeFallback(cpu, &frame, 0x82d905u);
+    call.cpu = cpu;
+    call.frame = frame;
+    call.unwound = RECOMP_RETURN_NORMAL;
+    ActorBridgeLoad(cpu, &state);
+    result = Lufia2MenuSpellShopSetup(
+        &memory, &state, ActorBridgePushedChild,
+        ActorBridgeSpellPriceStored, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return ActorBridgeReturn(cpu, &frame, 2u, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_829918(CpuState *cpu) {
+    return ActorBridgeWholeAnyWidth(
+        cpu, 0x829918u, Lufia2AdjustPurchasePrice, 2u);
+}
+
 static void ActorBridgePlayTimeTick(
     void *context, Lufia2CpuState *state, uint32_t pc) {
     ActorPushedCall *call = (ActorPushedCall *)context;
