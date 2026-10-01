@@ -28,4 +28,18 @@ void Lufia2DecompSetMapLoadCommittedEvent(Lufia2DecompMapLoadEvent callback);
 void Lufia2DecompMapLoadBegin(CpuState *cpu, uint32_t pc);
 void Lufia2DecompMapLoadCommitted(CpuState *cpu, uint32_t pc);
 
+typedef enum Lufia2DecompGameFileOperation {
+    LUFIA2_DECOMP_GAME_FILE_LOAD,
+    LUFIA2_DECOMP_GAME_FILE_SAVE,
+    LUFIA2_DECOMP_GAME_FILE_PREVIEW,
+    LUFIA2_DECOMP_GAME_FILE_LOAD_HEADER
+} Lufia2DecompGameFileOperation;
+
+/* File index in A at 9099/90C9/914B, before their first opcode.
+ * LOAD_HEADER identifies the nested 914B call from 9099, not a preview. */
+typedef void (*Lufia2DecompGameFileEvent)(
+    CpuState *, uint32_t, Lufia2DecompGameFileOperation);
+void Lufia2DecompSetGameFileEvent(Lufia2DecompGameFileEvent callback);
+void Lufia2DecompGameFile(CpuState *cpu, uint32_t pc);
+
 #endif

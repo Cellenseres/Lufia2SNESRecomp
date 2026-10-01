@@ -2199,3 +2199,83 @@ RecompReturn Lufia2DecompBridge_80EAE7(CpuState *cpu) {
     ActorBridgeStore(cpu, &state);
     return ActorBridgeReturn(cpu, &frame, 3u, result.pc);
 }
+
+typedef Lufia2ExecutionResult (*ActorSaveFunction)(
+    const Lufia2Memory *, Lufia2CpuState *, Lufia2PushedChildCall,
+    Lufia2ExecutionCheckpoint, void *);
+
+static void ActorBridgeGameFile(
+    void *context, Lufia2CpuState *state, uint32_t pc) {
+    ActorPushedCall *call = (ActorPushedCall *)context;
+    ActorBridgeStore(call->cpu, state);
+    Lufia2DecompGameFile(call->cpu, pc);
+    ActorBridgeLoad(call->cpu, state);
+}
+
+static RecompReturn ActorBridgeSave(
+    CpuState *cpu, uint32_t entry, ActorSaveFunction run,
+    uint8_t frame_size, int any_width) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    ActorPushedCall call = {cpu, frame, RECOMP_RETURN_NORMAL};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (any_width ? cpu->emulation || cpu->_flag_D
+                  : !ActorBridgeSupported(cpu, 0, 0))
+        return ActorBridgeFallback(cpu, &frame, entry);
+    ActorBridgeLoad(cpu, &state);
+    result = run(
+        &memory, &state, ActorBridgePushedChild, ActorBridgeGameFile, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return ActorBridgeReturn(cpu, &frame, frame_size, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_809099(CpuState *cpu) {
+    return ActorBridgeSave(cpu, 0x809099u, Lufia2LoadGameFile, 3u, 1);
+}
+
+RecompReturn Lufia2DecompBridge_8090C9(CpuState *cpu) {
+    return ActorBridgeSave(cpu, 0x8090c9u, Lufia2SaveGameFile, 3u, 1);
+}
+
+RecompReturn Lufia2DecompBridge_80914B(CpuState *cpu) {
+    return ActorBridgeSave(cpu, 0x80914bu, Lufia2ReadGameFile, 3u, 0);
+}
+
+static Lufia2ExecutionResult ActorBridgeWriteGameFile(
+    const Lufia2Memory *memory, Lufia2CpuState *state,
+    Lufia2PushedChildCall child, Lufia2ExecutionCheckpoint checkpoint,
+    void *context) {
+    (void)checkpoint;
+    return Lufia2WriteGameFile(memory, state, child, context);
+}
+
+static Lufia2ExecutionResult ActorBridgeSaveChecksum(
+    const Lufia2Memory *memory, Lufia2CpuState *state,
+    Lufia2PushedChildCall child, Lufia2ExecutionCheckpoint checkpoint,
+    void *context) {
+    (void)checkpoint;
+    return Lufia2SaveFileChecksum(memory, state, child, context);
+}
+
+RecompReturn Lufia2DecompBridge_809184(CpuState *cpu) {
+    return ActorBridgeSave(cpu, 0x809184u, ActorBridgeWriteGameFile, 2u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_8090FC(CpuState *cpu) {
+    return ActorBridgeSave(cpu, 0x8090fcu, ActorBridgeSaveChecksum, 2u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_8091D3(CpuState *cpu) {
+    return ActorBridgeWhole(cpu, 0x8091d3u, Lufia2ResolveSaveFileAddress, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8082E7(CpuState *cpu) {
+    return ActorBridgeWholeAnyWidth(cpu, 0x8082e7u, Lufia2SeedRandom, 3u);
+}
