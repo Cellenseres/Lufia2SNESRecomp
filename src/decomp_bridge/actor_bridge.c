@@ -254,7 +254,8 @@ static RecompReturn ActorBridgeRunWhole(
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
 
-    if (any_width == 4 ? !ActorBridgeSupported(cpu, 0, 0)
+    if (any_width == 5 ? cpu->emulation || cpu->_flag_D || cpu->m_flag
+        : any_width == 4 ? !ActorBridgeSupported(cpu, 0, 0)
         : any_width == 3 ? cpu->emulation || cpu->_flag_D || cpu->x_flag
         : any_width == 2 ? cpu->emulation || cpu->_flag_D ||
                          cpu->m_flag || cpu->x_flag
@@ -296,6 +297,12 @@ static RecompReturn ActorBridgeWholeM1X16(
     CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction run,
     uint8_t frame_size) {
     return ActorBridgeRunWhole(cpu, entry_pc24, run, frame_size, 4);
+}
+
+static RecompReturn ActorBridgeWholeM0(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction run,
+    uint8_t frame_size) {
+    return ActorBridgeRunWhole(cpu, entry_pc24, run, frame_size, 5);
 }
 
 RecompReturn Lufia2DecompBridge_C7F8(CpuState *cpu) {
@@ -2128,6 +2135,16 @@ RecompReturn Lufia2DecompBridge_83F86B(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_838A6F(CpuState *cpu) {
     return ActorBridgeWholeM1X16(
         cpu, 0x838a6fu, Lufia2FieldClearObjectTileIds, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_839000(CpuState *cpu) {
+    return ActorBridgeWholeM0(
+        cpu, 0x839000u, Lufia2FieldPixelCellCeiling, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_839004(CpuState *cpu) {
+    return ActorBridgeWholeM0(
+        cpu, 0x839004u, Lufia2FieldPixelCellFloor, 2u);
 }
 
 RecompReturn Lufia2DecompBridge_83F747(CpuState *cpu) {
