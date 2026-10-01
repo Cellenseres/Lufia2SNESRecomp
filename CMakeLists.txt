@@ -466,6 +466,7 @@ set(LUFIA2_HOST_SOURCES
     patches/lufia2_intro_mode7_world.c
     patches/lufia2_mode7_substep.c
     src/lufia2_map_load.c
+    src/lufia2_equip_names.c
     src/lufia2_map_widescreen.c
     src/lufia2_ui_margins.c
     src/lufia2_map_names.c
