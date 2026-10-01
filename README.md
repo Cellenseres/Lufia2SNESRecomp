@@ -132,6 +132,17 @@ On Linux it is `./Lufia2Recomp` in the build directory, same arguments.
 
 Save data is stored in `saves\save.srm` next to the executable.
 
+## Bug fixes
+
+Some bugs from the original game are fixed:
+
+- Buying a spell no longer costs extra gold after a big shopping trip. In the
+  original, spending 65,536 gold or more on items could make the next spell
+  cost 65,536 gold more than its price tag.
+- Equipment names no longer leave leftover letters behind. In the original,
+  switching characters with L or R in the equipment or status screen could
+  show part of the previous name, such as "Gladiussword".
+
 ## Repository
 
 - `recomp/` contains the control-flow information used during recompilation.
