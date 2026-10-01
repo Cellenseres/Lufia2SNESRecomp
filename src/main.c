@@ -64,6 +64,7 @@
 #include "lufia2_map_load.h"
 #include "lufia2_msu_driver.h"
 #include "lufia2_map_widescreen.h"
+#include "lufia2_ui_margins.h"
 #include "lufia2_intro_mode7_world.h"
 #include "lufia2_mode7_substep.h"
 #include "lufia2_intro_widescreen.h"
@@ -1950,8 +1951,11 @@ static void PrepareVideoFrame(void) {
        the Mode 7 overworld that follows is layer 0, which the stale mask
        then excludes from the margins entirely. Publish it per frame like
        every other policy; each branch sets its own afterwards. */
-    if (g_ppu)
+    if (g_ppu) {
         PpuSetWidescreenLayerMask(g_ppu, 0);
+        /* Sticky as well; only the map UI margins set it. */
+        PpuSetWidescreenBg3Widen(g_ppu, 0);
+    }
 
     Lufia2VideoLayout layout =
         Lufia2SelectVideoLayoutObserved(
@@ -2007,6 +2011,7 @@ static void PrepareVideoFrame(void) {
                 g_ppu,
                 LUFIA2_MAP_WINDOW_LAYER_MASK,
                 LUFIA2_OUTDOOR_WINDOW_MASK);
+            Lufia2UiMarginsMap(g_ppu);
             finalize_map_widescreen = true;
             break;
         case LUFIA2_MAP_WIDESCREEN_LOADING:
@@ -2037,6 +2042,7 @@ static void PrepareVideoFrame(void) {
             g_ppu, LUFIA2_MENU_REPEAT_LAYER_MASK);
         PpuSetWidescreenLayerClamp(
             g_ppu, LUFIA2_MENU_CLAMP_LAYER_MASK);
+        Lufia2UiMarginsMenu(g_ppu);
         break;
 
     case LUFIA2_VIDEO_CENTERED:
