@@ -2125,6 +2125,11 @@ RecompReturn Lufia2DecompBridge_83F86B(CpuState *cpu) {
         cpu, 0x83f86bu, Lufia2FieldPlacePendingObject, 3u);
 }
 
+RecompReturn Lufia2DecompBridge_838A6F(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(
+        cpu, 0x838a6fu, Lufia2FieldClearObjectTileIds, 3u);
+}
+
 RecompReturn Lufia2DecompBridge_83F747(CpuState *cpu) {
     return ActorBridgeObjectTransition(
         cpu, 0x83f747u, Lufia2FieldRestoreObjectTiles, 3u);
