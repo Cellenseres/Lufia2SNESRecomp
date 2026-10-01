@@ -470,6 +470,7 @@ set(LUFIA2_HOST_SOURCES
     src/lufia2_equip_names.c
     src/lufia2_spell_price.c
     src/lufia2_play_time.c
+    src/lufia2_party_limits.c
     src/lufia2_map_widescreen.c
     src/lufia2_ui_margins.c
     src/lufia2_map_names.c
