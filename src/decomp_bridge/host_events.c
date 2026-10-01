@@ -9,6 +9,8 @@ static Lufia2DecompMenuNumberEvent menu_number_event;
 static Lufia2DecompMapLoadEvent map_load_begin_event;
 static Lufia2DecompMapLoadEvent map_load_committed_event;
 static Lufia2DecompGameFileEvent game_file_event;
+static Lufia2DecompSongLoadEvent song_load_event;
+static Lufia2DecompMusicFadeOutEvent music_fade_out_event;
 static uint8_t interpreter_map_loading;
 static uint16_t interpreter_map_return_stack;
 
@@ -132,4 +134,41 @@ void Lufia2DecompSetGameFileEvent(Lufia2DecompGameFileEvent callback) {
     interp_bridge_set_pre_opcode_hook(0x809099u, Lufia2DecompGameFile);
     interp_bridge_set_pre_opcode_hook(0x8090c9u, Lufia2DecompGameFile);
     interp_bridge_set_pre_opcode_hook(0x80914bu, Lufia2DecompGameFile);
+}
+
+uint32_t Lufia2DecompSongLoad(CpuState *cpu, uint32_t pc) {
+    return song_load_event ? song_load_event(cpu, pc) : 0u;
+}
+
+static void InterpreterSongPush(CpuState *cpu, uint8_t value) {
+    cpu_write8(cpu, 0u, cpu->S, value);
+    cpu->S = (uint16_t)(cpu->S - 1u);
+    if (cpu->emulation)
+        cpu->S = (uint16_t)(0x0100u | (cpu->S & 0x00ffu));
+}
+
+static void InterpreterSongLoad(CpuState *cpu, uint32_t pc) {
+    const uint32_t target = Lufia2DecompSongLoad(cpu, pc);
+    if (target) {
+        const uint16_t back = (uint16_t)(pc - 1u);
+        InterpreterSongPush(cpu, (uint8_t)(pc >> 16));
+        InterpreterSongPush(cpu, (uint8_t)(back >> 8));
+        InterpreterSongPush(cpu, (uint8_t)back);
+        interp_bridge_pre_opcode_redirect(target);
+    }
+}
+
+void Lufia2DecompSetSongLoadEvent(Lufia2DecompSongLoadEvent callback) {
+    song_load_event = callback;
+    interp_bridge_set_pre_opcode_hook(0x80942eu, InterpreterSongLoad);
+}
+
+void Lufia2DecompMusicFadeOut(CpuState *cpu, uint32_t pc) {
+    if (music_fade_out_event)
+        music_fade_out_event(cpu, pc);
+}
+
+void Lufia2DecompSetMusicFadeOutEvent(Lufia2DecompMusicFadeOutEvent callback) {
+    music_fade_out_event = callback;
+    interp_bridge_set_pre_opcode_hook(0x809692u, Lufia2DecompMusicFadeOut);
 }

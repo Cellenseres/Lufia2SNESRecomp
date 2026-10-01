@@ -115,6 +115,14 @@ function(lufia2_prepare_decomp)
 endfunction()
 
 function(lufia2_add_decomp_bridge target snesrecomp_root)
+    # Interpreter-backed subscribers also need this when native decomp is off.
+    get_target_property(_host_sources ${target} SOURCES)
+    string(REPLACE "\\" "/" _host_sources "${_host_sources}")
+    if(NOT _host_sources MATCHES "src/decomp_bridge/host_events[.]c")
+        set(_host_events "${CMAKE_SOURCE_DIR}/src/decomp_bridge/host_events.c")
+        target_sources(${target} PRIVATE "${_host_events}")
+        source_group("Decomp Bridge" FILES "${_host_events}")
+    endif()
     if(LUFIA2_DECOMP_TEXT_REPORT)
         add_custom_command(TARGET ${target} POST_BUILD
             COMMAND "${CMAKE_COMMAND}" -E copy_if_different
