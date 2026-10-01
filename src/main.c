@@ -2642,7 +2642,7 @@ int main(int argc, char **argv) {
     recompui_keybinds_init(NULL);
 
     Lufia2MapLoadInstallHooks();
-    Lufia2EquipNamesInstallHooks();
+    Lufia2EquipNamesInstall();
     Lufia2SpellPriceInstallHooks();
 
     Snes *snes = SnesInit(rom_data, (int)rom_size);

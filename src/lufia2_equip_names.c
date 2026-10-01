@@ -4,12 +4,9 @@
 #include <string.h>
 
 #include "cpu_state.h"
-#include "snes/interp_bridge.h"
+#include "decomp_bridge/host_events.h"
 
 enum {
-    /* LDY #$C37D ahead of both equipment list draws. */
-    EQUIP_LIST_FIRST_DRAW = 0x82a3b4,
-    EQUIP_LIST_REDRAW = 0x82a3f0,
     /* Six slots of icon plus twelve characters at $7E:30E2. */
     EQUIP_LIST_ORIGIN = 0x30e2,
     EQUIP_LIST_COLUMNS = 13,
@@ -30,7 +27,6 @@ static void ClearEquipList(CpuState *cpu, uint32_t pc24) {
     }
 }
 
-void Lufia2EquipNamesInstallHooks(void) {
-    interp_bridge_set_pre_opcode_hook(EQUIP_LIST_FIRST_DRAW, ClearEquipList);
-    interp_bridge_set_pre_opcode_hook(EQUIP_LIST_REDRAW, ClearEquipList);
+void Lufia2EquipNamesInstall(void) {
+    Lufia2DecompSetEquipmentListDrawEvent(ClearEquipList);
 }
