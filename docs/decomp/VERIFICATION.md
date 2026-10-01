@@ -14,3 +14,7 @@ Public checks include the Decomp metadata validator
 (`python scripts/metadata_index.py --check`), generated Consumer binding coverage,
 and normal Release builds with Decomp enabled and disabled. A successful build
 does not by itself promote a function to `verified`.
+
+`src/decomp_bridge/actor_bridge.c` also contains battle and field bridges.
+A later change can split these by subsystem, keeping the runtime ABI covered
+by the existing tests.
