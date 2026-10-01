@@ -2047,3 +2047,22 @@ RecompReturn Lufia2DecompBridge_83FB9F(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_83F9AD(CpuState *cpu) {
     return ActorBridgeRunWhole(cpu, 0x83f9adu, Lufia2FieldObjectAttributeCell, 2u, 4);
 }
+
+RecompReturn Lufia2DecompBridge_83F80D(CpuState *cpu) {
+    return ActorBridgeObjectTransition(
+        cpu, 0x83f80du, Lufia2FieldMarkObjectAttributes, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83F747(CpuState *cpu) {
+    return ActorBridgeObjectTransition(
+        cpu, 0x83f747u, Lufia2FieldRestoreObjectTiles, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_83F933(CpuState *cpu) {
+    return ActorBridgeObjectTransition(
+        cpu, 0x83f933u, Lufia2FieldQueueObjectRedraw, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_838B6A(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x838b6au, Lufia2FieldCopyObjectTiles, 3u, 4);
+}
