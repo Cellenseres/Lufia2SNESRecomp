@@ -62,6 +62,7 @@
 #include "lufia2_build_identity.h"
 #include "lufia2_battle_widescreen.h"
 #include "lufia2_map_load.h"
+#include "lufia2_equip_names.h"
 #include "lufia2_msu_driver.h"
 #include "lufia2_map_widescreen.h"
 #include "lufia2_ui_margins.h"
@@ -2640,6 +2641,7 @@ int main(int argc, char **argv) {
     recompui_keybinds_init(NULL);
 
     Lufia2MapLoadInstallHooks();
+    Lufia2EquipNamesInstallHooks();
 
     Snes *snes = SnesInit(rom_data, (int)rom_size);
     if (!snes) {
