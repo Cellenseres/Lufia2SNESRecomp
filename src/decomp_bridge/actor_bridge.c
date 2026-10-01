@@ -2142,6 +2142,26 @@ RecompReturn Lufia2DecompBridge_838E85(CpuState *cpu) {
         cpu, 0x838e85u, Lufia2FieldRenderRegion, 3u);
 }
 
+RecompReturn Lufia2DecompBridge_838AF7(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(
+        cpu, 0x838af7u, Lufia2FieldObjectBitIndex, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_838AC9(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(
+        cpu, 0x838ac9u, Lufia2FieldObjectBitTest, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_838AD5(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(
+        cpu, 0x838ad5u, Lufia2FieldObjectBitSet, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_838AE5(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(
+        cpu, 0x838ae5u, Lufia2FieldObjectBitClear, 3u);
+}
+
 RecompReturn Lufia2DecompBridge_839000(CpuState *cpu) {
     return ActorBridgeWholeM0(
         cpu, 0x839000u, Lufia2FieldPixelCellCeiling, 2u);
