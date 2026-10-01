@@ -60,4 +60,47 @@ void Lufia2DecompSetSpellPriceStoredEvent(
     Lufia2DecompSpellPriceStoredEvent callback);
 void Lufia2DecompSpellPriceStored(CpuState *cpu, uint32_t pc);
 
+/* Derived totals complete at $81:F4E2, before REP #$30 and register restore. */
+typedef void (*Lufia2DecompPartyStatsDerivedEvent)(CpuState *, uint32_t);
+void Lufia2DecompSetPartyStatsDerivedEvent(
+    Lufia2DecompPartyStatsDerivedEvent callback);
+void Lufia2DecompPartyStatsDerived(CpuState *cpu, uint32_t pc);
+
+/* Inventory-add child returned, before LDX $0A06 at $81:F099. */
+typedef void (*Lufia2DecompItemReceivedEvent)(CpuState *, uint32_t);
+void Lufia2DecompSetItemReceivedEvent(Lufia2DecompItemReceivedEvent callback);
+void Lufia2DecompItemReceived(CpuState *cpu, uint32_t pc);
+
+/* Eight subscribers per observer event, in registration order; dispatch uses a snapshot.
+ * Set replaces that event's list, NULL clears it. Add returns 1 for success
+ * (including duplicates), 0 for NULL/full. Remove affects only that callback.
+ * NULL setters retain interpreter forwarders and leave other events intact. */
+int Lufia2DecompAddEquipmentListDrawEvent(Lufia2DecompEquipmentListDrawEvent callback);
+void Lufia2DecompRemoveEquipmentListDrawEvent(Lufia2DecompEquipmentListDrawEvent callback);
+int Lufia2DecompAddPlayTimeTickEvent(Lufia2DecompPlayTimeTickEvent callback);
+void Lufia2DecompRemovePlayTimeTickEvent(Lufia2DecompPlayTimeTickEvent callback);
+int Lufia2DecompAddMenuNumberEvent(Lufia2DecompMenuNumberEvent callback);
+void Lufia2DecompRemoveMenuNumberEvent(Lufia2DecompMenuNumberEvent callback);
+int Lufia2DecompAddMapLoadBeginEvent(Lufia2DecompMapLoadEvent callback);
+void Lufia2DecompRemoveMapLoadBeginEvent(Lufia2DecompMapLoadEvent callback);
+int Lufia2DecompAddMapLoadCommittedEvent(Lufia2DecompMapLoadEvent callback);
+void Lufia2DecompRemoveMapLoadCommittedEvent(Lufia2DecompMapLoadEvent callback);
+int Lufia2DecompAddMusicFadeOutEvent(Lufia2DecompMusicFadeOutEvent callback);
+void Lufia2DecompRemoveMusicFadeOutEvent(Lufia2DecompMusicFadeOutEvent callback);
+int Lufia2DecompAddSpellPriceStoredEvent(Lufia2DecompSpellPriceStoredEvent callback);
+void Lufia2DecompRemoveSpellPriceStoredEvent(Lufia2DecompSpellPriceStoredEvent callback);
+int Lufia2DecompAddPartyStatsDerivedEvent(Lufia2DecompPartyStatsDerivedEvent callback);
+void Lufia2DecompRemovePartyStatsDerivedEvent(Lufia2DecompPartyStatsDerivedEvent callback);
+int Lufia2DecompAddItemReceivedEvent(Lufia2DecompItemReceivedEvent callback);
+void Lufia2DecompRemoveItemReceivedEvent(Lufia2DecompItemReceivedEvent callback);
+
+int Lufia2DecompAddGameFileEvent(Lufia2DecompGameFileEvent callback);
+void Lufia2DecompRemoveGameFileEvent(Lufia2DecompGameFileEvent callback);
+
+/* SetSongLoadEvent changes only the guest-call controller. Additional observers
+ * run at each checkpoint, including re-entry after its requested guest call. */
+typedef void (*Lufia2DecompSongLoadObserver)(CpuState *, uint32_t);
+int Lufia2DecompAddSongLoadObserver(Lufia2DecompSongLoadObserver callback);
+void Lufia2DecompRemoveSongLoadObserver(Lufia2DecompSongLoadObserver callback);
+
 #endif
