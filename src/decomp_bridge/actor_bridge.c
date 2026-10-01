@@ -2279,3 +2279,108 @@ RecompReturn Lufia2DecompBridge_8091D3(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_8082E7(CpuState *cpu) {
     return ActorBridgeWholeAnyWidth(cpu, 0x8082e7u, Lufia2SeedRandom, 3u);
 }
+
+/* A song subscriber may call a guest command before the original STA $54.
+ * Its JSL frame returns to the checkpoint itself, then the event runs again. */
+static uint8_t ActorBridgeMusicCheckpoint(
+    void *context, Lufia2CpuState *state, uint32_t pc) {
+    ActorPushedCall *call = (ActorPushedCall *)context;
+    if (pc == 0x809692u) {
+        ActorBridgeStore(call->cpu, state);
+        Lufia2DecompMusicFadeOut(call->cpu, pc);
+        ActorBridgeLoad(call->cpu, state);
+        return 1;
+    }
+    for (;;) {
+        uint32_t target;
+        uint32_t landing = pc;
+        uint16_t post_s;
+        RecompReturn result;
+        ActorBridgeStore(call->cpu, state);
+        target = Lufia2DecompSongLoad(call->cpu, pc);
+        ActorBridgeLoad(call->cpu, state);
+        if (!target)
+            return 1;
+        post_s = state->stack;
+        cpu_write8(call->cpu, 0u, state->stack, (uint8_t)(pc >> 16));
+        state->stack = (uint16_t)(state->stack - 1u);
+        cpu_write8(call->cpu, 0u, state->stack, (uint8_t)((pc - 1u) >> 8));
+        state->stack = (uint16_t)(state->stack - 1u);
+        cpu_write8(call->cpu, 0u, state->stack, (uint8_t)(pc - 1u));
+        state->stack = (uint16_t)(state->stack - 1u);
+        ActorBridgeStore(call->cpu, state);
+        call->cpu->PB = (uint8_t)(target >> 16);
+        result = cpu_dispatch_call_pc_pushed(
+            call->cpu, target, pc, 3u, &landing);
+        if (result != RECOMP_RETURN_NORMAL) {
+            call->unwound = result;
+            return 0;
+        }
+        if (call->cpu->S != post_s || landing != pc) {
+            call->unwound = interp_tier_dispatch_tail(
+                call->cpu, landing, pc,
+                call->frame.entry_s, call->frame.hrv);
+            return 0;
+        }
+        call->cpu->PB = (uint8_t)(pc >> 16);
+        ActorBridgeLoad(call->cpu, state);
+        state->program_bank = call->cpu->PB;
+    }
+}
+
+typedef Lufia2ExecutionResult (*ActorMusicFunction)(
+    const Lufia2Memory *, Lufia2CpuState *, Lufia2PushedChildCall,
+    Lufia2MusicCheckpoint, void *);
+
+static RecompReturn ActorBridgeMusic(
+    CpuState *cpu, uint32_t entry, ActorMusicFunction run, uint8_t frame_size) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    ActorPushedCall call = {cpu, frame, RECOMP_RETURN_NORMAL};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+    if (cpu->emulation || cpu->_flag_D)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    ActorBridgeLoad(cpu, &state);
+    result = run(&memory, &state, ActorBridgePushedChild,
+        ActorBridgeMusicCheckpoint, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return ActorBridgeReturn(cpu, &frame, frame_size, result.pc);
+}
+
+static Lufia2ExecutionResult ActorBridgePlaySong(
+    const Lufia2Memory *memory, Lufia2CpuState *state,
+    Lufia2PushedChildCall child, Lufia2MusicCheckpoint checkpoint,
+    void *context) {
+    (void)checkpoint;
+    return Lufia2PlaySong(memory, state, child, context);
+}
+
+static Lufia2ExecutionResult ActorBridgeMusicVolume(
+    const Lufia2Memory *memory, Lufia2CpuState *state,
+    Lufia2PushedChildCall child, Lufia2MusicCheckpoint checkpoint,
+    void *context) {
+    (void)checkpoint;
+    return Lufia2SetMusicVolume(memory, state, child, context);
+}
+
+RecompReturn Lufia2DecompBridge_80941A(CpuState *cpu) {
+    return ActorBridgeMusic(cpu, 0x80941au, Lufia2LoadSong, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8093FE(CpuState *cpu) {
+    return ActorBridgeMusic(cpu, 0x8093feu, ActorBridgePlaySong, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_809692(CpuState *cpu) {
+    return ActorBridgeMusic(cpu, 0x809692u, Lufia2FadeOutMusic, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_809601(CpuState *cpu) {
+    return ActorBridgeMusic(cpu, 0x809601u, ActorBridgeMusicVolume, 3u);
+}

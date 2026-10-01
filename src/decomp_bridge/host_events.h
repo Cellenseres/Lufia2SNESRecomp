@@ -42,4 +42,16 @@ typedef void (*Lufia2DecompGameFileEvent)(
 void Lufia2DecompSetGameFileEvent(Lufia2DecompGameFileEvent callback);
 void Lufia2DecompGameFile(CpuState *cpu, uint32_t pc);
 
+/* Song ID in A before STA $54 at $80:942E. Return zero to continue,
+ * or a guest JSL target. The event runs again at the same PC on return,
+ * so the subscriber can restore A after a volume command. */
+typedef uint32_t (*Lufia2DecompSongLoadEvent)(CpuState *, uint32_t);
+void Lufia2DecompSetSongLoadEvent(Lufia2DecompSongLoadEvent callback);
+uint32_t Lufia2DecompSongLoad(CpuState *cpu, uint32_t pc);
+
+/* Before PHP at $80:9692. */
+typedef void (*Lufia2DecompMusicFadeOutEvent)(CpuState *, uint32_t);
+void Lufia2DecompSetMusicFadeOutEvent(Lufia2DecompMusicFadeOutEvent callback);
+void Lufia2DecompMusicFadeOut(CpuState *cpu, uint32_t pc);
+
 #endif
