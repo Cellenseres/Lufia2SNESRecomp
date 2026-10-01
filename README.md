@@ -142,6 +142,9 @@ Some bugs from the original game are fixed:
 - Equipment names no longer leave leftover letters behind. In the original,
   switching characters with L or R in the equipment or status screen could
   show part of the previous name, such as "Gladiussword".
+- The play time clock keeps counting after 99 hours instead of jumping back
+  to 00:00, and the menus show three digits for the hours. It stops at
+  255:59, the most an original save file can hold.
 
 ## Repository
 
