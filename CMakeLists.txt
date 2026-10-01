@@ -459,6 +459,7 @@ endif()
 
 set(LUFIA2_HOST_SOURCES
     src/main.c
+    src/decomp_bridge/host_events.c
     src/desktop_glue.c
     src/lufia2_battle.c
     src/lufia2_battle_widescreen.c

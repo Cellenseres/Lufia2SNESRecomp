@@ -2,6 +2,7 @@
 
 #include "cpu_state.h"
 #include "lufia2/decomp.h"
+#include "decomp_bridge/host_events.h"
 #include "../lufia2_sprite_visibility.h"
 
 typedef struct ActorBridgeFrame {
@@ -410,8 +411,22 @@ RecompReturn Lufia2DecompBridge_8E9D(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x808e9du, Lufia2DecompressResource, 3);
 }
 
+static void ActorBridgeMenuNumber(
+    void *context, Lufia2CpuState *state, uint32_t pc) {
+    CpuState *cpu = (CpuState *)context;
+    ActorBridgeStore(cpu, state);
+    Lufia2DecompMenuNumber(cpu, pc);
+    ActorBridgeLoad(cpu, state);
+}
+
+static Lufia2ExecutionResult ActorBridgeDrawString(
+    const Lufia2Memory *memory, Lufia2CpuState *state) {
+    return Lufia2MenuDrawStringWithCheckpoint(
+        memory, state, ActorBridgeMenuNumber, memory->context);
+}
+
 RecompReturn Lufia2DecompBridge_8878(CpuState *cpu) {
-    return ActorBridgeWholeAnyWidth(cpu, 0x808878u, Lufia2MenuDrawString, 3);
+    return ActorBridgeWholeAnyWidth(cpu, 0x808878u, ActorBridgeDrawString, 3);
 }
 
 RecompReturn Lufia2DecompBridge_F1C5(CpuState *cpu) {
@@ -2065,4 +2080,69 @@ RecompReturn Lufia2DecompBridge_83F933(CpuState *cpu) {
 
 RecompReturn Lufia2DecompBridge_838B6A(CpuState *cpu) {
     return ActorBridgeRunWhole(cpu, 0x838b6au, Lufia2FieldCopyObjectTiles, 3u, 4);
+}
+
+static void ActorBridgeEquipmentListDraw(
+    void *context, Lufia2CpuState *state, uint32_t pc) {
+    ActorPushedCall *call = (ActorPushedCall *)context;
+
+    ActorBridgeStore(call->cpu, state);
+    Lufia2DecompEquipmentListDraw(call->cpu, pc);
+    ActorBridgeLoad(call->cpu, state);
+}
+
+RecompReturn Lufia2DecompBridge_82A318(CpuState *cpu) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    ActorPushedCall call;
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (!ActorBridgeSupported(cpu, 0, 0))
+        return ActorBridgeFallback(cpu, &frame, 0x82a318u);
+    call.cpu = cpu;
+    call.frame = frame;
+    call.unwound = RECOMP_RETURN_NORMAL;
+    ActorBridgeLoad(cpu, &state);
+    result = Lufia2MenuDrawStatus(
+        &memory, &state, ActorBridgePushedChild,
+        ActorBridgeEquipmentListDraw, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return ActorBridgeReturn(cpu, &frame, 2u, result.pc);
+}
+
+static void ActorBridgePlayTimeTick(
+    void *context, Lufia2CpuState *state, uint32_t pc) {
+    ActorPushedCall *call = (ActorPushedCall *)context;
+    ActorBridgeStore(call->cpu, state);
+    Lufia2DecompPlayTimeTick(call->cpu, pc);
+    ActorBridgeLoad(call->cpu, state);
+}
+
+RecompReturn Lufia2DecompBridge_808638(CpuState *cpu) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    ActorPushedCall call;
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->_flag_D)
+        return ActorBridgeFallback(cpu, &frame, 0x808638u);
+    call.cpu = cpu;
+    call.frame = frame;
+    call.unwound = RECOMP_RETURN_NORMAL;
+    ActorBridgeLoad(cpu, &state);
+    result = Lufia2MainNmi(
+        &memory, &state, ActorBridgePushedChild,
+        ActorBridgePlayTimeTick, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    return interp_tier_dispatch_tail(
+        cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
 }
