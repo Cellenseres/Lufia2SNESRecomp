@@ -1929,3 +1929,51 @@ RecompReturn Lufia2DecompBridge_8EB847(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_839B44(CpuState *cpu) {
     return ActorBridgeRunWhole(cpu, 0x839b44u, Lufia2CaveRoomHeaderCoordinates, 3, 4);
 }
+
+RecompReturn Lufia2DecompBridge_83F611(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x83f611u, Lufia2FieldObjectLayer, 2, 4);
+}
+
+RecompReturn Lufia2DecompBridge_83D7A5(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x83d7a5u, Lufia2ActorPositionToObjectProbe, 2, 4);
+}
+
+RecompReturn Lufia2DecompBridge_83F422(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x83f422u, Lufia2FieldSetObjectOrigin, 3, 4);
+}
+
+RecompReturn Lufia2DecompBridge_83F6B0(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x83f6b0u, Lufia2ActorResetObjectOffsets, 2, 3);
+}
+
+RecompReturn Lufia2DecompBridge_83F85A(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x83f85au, Lufia2FieldPendingTileOffsets, 2, 3);
+}
+
+RecompReturn Lufia2DecompBridge_83F784(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x83f784u, Lufia2FieldSetMapTileNumber, 2, 2);
+}
+
+RecompReturn Lufia2DecompBridge_83F7D4(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x83f7d4u, Lufia2FieldReleaseClaimedActors, 3, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83F731(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x83f731u, Lufia2FieldCopyObjectPalette, 2, 2);
+}
+
+RecompReturn Lufia2DecompBridge_83F7F8(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x83f7f8u, Lufia2FieldPrepareObjectOrigin, 2, 4);
+}
+
+RecompReturn Lufia2DecompBridge_83F7DF(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x83f7dfu, Lufia2FieldStartObjectEvent, 2, 4);
+}
+
+RecompReturn Lufia2DecompBridge_83B007(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x83b007u, Lufia2FieldUploadFixedGraphics, 3, 1);
+}
+
+RecompReturn Lufia2DecompBridge_83F6CA(CpuState *cpu) {
+    return ActorBridgeRunWhole(cpu, 0x83f6cau, Lufia2FieldSetupObjectActorSprite, 2, 4);
+}
