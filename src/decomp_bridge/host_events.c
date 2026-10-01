@@ -3,59 +3,136 @@
 #include "cpu_state.h"
 #include "snes/interp_bridge.h"
 
-static Lufia2DecompEquipmentListDrawEvent equipment_list_draw_event;
-static Lufia2DecompPlayTimeTickEvent play_time_tick_event;
-static Lufia2DecompMenuNumberEvent menu_number_event;
-static Lufia2DecompMapLoadEvent map_load_begin_event;
-static Lufia2DecompMapLoadEvent map_load_committed_event;
-static Lufia2DecompGameFileEvent game_file_event;
+enum { EVENT_SUBSCRIBER_CAPACITY = 8 };
+typedef void (*CpuEventCallback)(CpuState *, uint32_t);
+typedef struct CpuEventList {
+    CpuEventCallback callbacks[EVENT_SUBSCRIBER_CAPACITY];
+    unsigned count;
+} CpuEventList;
+
+static int CpuEventAdd(CpuEventList *event, CpuEventCallback callback) {
+    if (!callback)
+        return 0;
+    for (unsigned i = 0; i < event->count; ++i)
+        if (event->callbacks[i] == callback)
+            return 1;
+    if (event->count == EVENT_SUBSCRIBER_CAPACITY)
+        return 0;
+    event->callbacks[event->count++] = callback;
+    return 1;
+}
+
+static void CpuEventSet(CpuEventList *event, CpuEventCallback callback) {
+    event->count = 0;
+    (void)CpuEventAdd(event, callback);
+}
+
+static void CpuEventRemove(CpuEventList *event, CpuEventCallback callback) {
+    for (unsigned i = 0; i < event->count; ++i) {
+        if (event->callbacks[i] != callback)
+            continue;
+        --event->count;
+        for (; i < event->count; ++i)
+            event->callbacks[i] = event->callbacks[i + 1u];
+        return;
+    }
+}
+
+static void CpuEventDispatch(
+    const CpuEventList *event, CpuState *cpu, uint32_t pc) {
+    const CpuEventList snapshot = *event;
+    for (unsigned i = 0; i < snapshot.count; ++i)
+        snapshot.callbacks[i](cpu, pc);
+}
+
+typedef struct GameFileEventList {
+    Lufia2DecompGameFileEvent callbacks[EVENT_SUBSCRIBER_CAPACITY];
+    unsigned count;
+} GameFileEventList;
+
+static int GameFileEventAdd(
+    GameFileEventList *event, Lufia2DecompGameFileEvent callback) {
+    if (!callback)
+        return 0;
+    for (unsigned i = 0; i < event->count; ++i)
+        if (event->callbacks[i] == callback)
+            return 1;
+    if (event->count == EVENT_SUBSCRIBER_CAPACITY)
+        return 0;
+    event->callbacks[event->count++] = callback;
+    return 1;
+}
+
+static void GameFileEventRemove(
+    GameFileEventList *event, Lufia2DecompGameFileEvent callback) {
+    for (unsigned i = 0; i < event->count; ++i) {
+        if (event->callbacks[i] != callback)
+            continue;
+        --event->count;
+        for (; i < event->count; ++i)
+            event->callbacks[i] = event->callbacks[i + 1u];
+        return;
+    }
+}
+
+static CpuEventList equipment_list_draw_event;
+static CpuEventList play_time_tick_event;
+static CpuEventList menu_number_event;
+static CpuEventList map_load_begin_event;
+static CpuEventList map_load_committed_event;
+static GameFileEventList game_file_event;
+static CpuEventList song_load_observers;
 static Lufia2DecompSongLoadEvent song_load_event;
-static Lufia2DecompMusicFadeOutEvent music_fade_out_event;
-static Lufia2DecompSpellPriceStoredEvent spell_price_stored_event;
+static CpuEventList music_fade_out_event;
+static CpuEventList spell_price_stored_event;
+static CpuEventList party_stats_derived_event;
+static CpuEventList item_received_event;
 static uint8_t interpreter_map_loading;
 static uint16_t interpreter_map_return_stack;
 
 void Lufia2DecompEquipmentListDraw(CpuState *cpu, uint32_t pc) {
-    if (equipment_list_draw_event)
-        equipment_list_draw_event(cpu, pc);
+    CpuEventDispatch(&equipment_list_draw_event, cpu, pc);
 }
 
 void Lufia2DecompSetEquipmentListDrawEvent(
     Lufia2DecompEquipmentListDrawEvent callback) {
-    equipment_list_draw_event = callback;
+    CpuEventSet(&equipment_list_draw_event, callback);
     /* NULL clears the entire interpreter table; retain no-op forwarders. */
     interp_bridge_set_pre_opcode_hook(0x82a3b4u, Lufia2DecompEquipmentListDraw);
     interp_bridge_set_pre_opcode_hook(0x82a3f0u, Lufia2DecompEquipmentListDraw);
 }
 
 void Lufia2DecompPlayTimeTick(CpuState *cpu, uint32_t pc) {
-    if (play_time_tick_event)
-        play_time_tick_event(cpu, pc);
+    CpuEventDispatch(&play_time_tick_event, cpu, pc);
 }
 
 void Lufia2DecompSetPlayTimeTickEvent(Lufia2DecompPlayTimeTickEvent callback) {
-    play_time_tick_event = callback;
+    CpuEventSet(&play_time_tick_event, callback);
     interp_bridge_set_pre_opcode_hook(0x808699u, Lufia2DecompPlayTimeTick);
 }
 
 void Lufia2DecompMenuNumber(CpuState *cpu, uint32_t pc) {
-    if (menu_number_event)
-        menu_number_event(cpu, pc);
+    CpuEventDispatch(&menu_number_event, cpu, pc);
 }
 
 void Lufia2DecompSetMenuNumberEvent(Lufia2DecompMenuNumberEvent callback) {
-    menu_number_event = callback;
+    CpuEventSet(&menu_number_event, callback);
     interp_bridge_set_pre_opcode_hook(0x808922u, Lufia2DecompMenuNumber);
 }
 
+/* A native load that unwinds finishes in the interpreter. */
 void Lufia2DecompMapLoadBegin(CpuState *cpu, uint32_t pc) {
-    if (map_load_begin_event)
-        map_load_begin_event(cpu, pc);
+    CpuEventDispatch(&map_load_begin_event, cpu, pc);
+    interpreter_map_loading = 1;
+    interpreter_map_return_stack = (uint16_t)(cpu->S + 1u);
+    if (cpu->emulation)
+        interpreter_map_return_stack =
+            (uint16_t)(0x0100u | (interpreter_map_return_stack & 0x00ffu));
 }
 
 void Lufia2DecompMapLoadCommitted(CpuState *cpu, uint32_t pc) {
-    if (map_load_committed_event)
-        map_load_committed_event(cpu, pc);
+    interpreter_map_loading = 0;
+    CpuEventDispatch(&map_load_committed_event, cpu, pc);
 }
 
 static void InterpreterMapEntered(CpuState *cpu, uint32_t pc) {
@@ -66,11 +143,6 @@ static void InterpreterMapEntered(CpuState *cpu, uint32_t pc) {
 
 static void InterpreterMapBegin(CpuState *cpu, uint32_t pc) {
     Lufia2DecompMapLoadBegin(cpu, pc);
-    interpreter_map_loading = 1;
-    interpreter_map_return_stack = (uint16_t)(cpu->S + 1u);
-    if (cpu->emulation)
-        interpreter_map_return_stack =
-            (uint16_t)(0x0100u | (interpreter_map_return_stack & 0x00ffu));
 }
 
 static void InterpreterMapCommitted(CpuState *cpu, uint32_t pc) {
@@ -88,13 +160,13 @@ static void InstallInterpreterMapEvents(void) {
 }
 
 void Lufia2DecompSetMapLoadBeginEvent(Lufia2DecompMapLoadEvent callback) {
-    map_load_begin_event = callback;
+    CpuEventSet(&map_load_begin_event, callback);
     interpreter_map_loading = 0;
     InstallInterpreterMapEvents();
 }
 
 void Lufia2DecompSetMapLoadCommittedEvent(Lufia2DecompMapLoadEvent callback) {
-    map_load_committed_event = callback;
+    CpuEventSet(&map_load_committed_event, callback);
     interpreter_map_loading = 0;
     InstallInterpreterMapEvents();
 }
@@ -106,7 +178,7 @@ static uint16_t GameFileFrameByte(const CpuState *cpu, unsigned offset) {
 
 void Lufia2DecompGameFile(CpuState *cpu, uint32_t pc) {
     Lufia2DecompGameFileOperation operation;
-    if (!game_file_event)
+    if (!game_file_event.count)
         return;
     switch (pc & 0x7fffffu) {
     case 0x009099u:
@@ -127,17 +199,21 @@ void Lufia2DecompGameFile(CpuState *cpu, uint32_t pc) {
     default:
         return;
     }
-    game_file_event(cpu, pc, operation);
+    const GameFileEventList snapshot = game_file_event;
+    for (unsigned i = 0; i < snapshot.count; ++i)
+        snapshot.callbacks[i](cpu, pc, operation);
 }
 
 void Lufia2DecompSetGameFileEvent(Lufia2DecompGameFileEvent callback) {
-    game_file_event = callback;
+    game_file_event.count = 0;
+    (void)GameFileEventAdd(&game_file_event, callback);
     interp_bridge_set_pre_opcode_hook(0x809099u, Lufia2DecompGameFile);
     interp_bridge_set_pre_opcode_hook(0x8090c9u, Lufia2DecompGameFile);
     interp_bridge_set_pre_opcode_hook(0x80914bu, Lufia2DecompGameFile);
 }
 
 uint32_t Lufia2DecompSongLoad(CpuState *cpu, uint32_t pc) {
+    CpuEventDispatch(&song_load_observers, cpu, pc);
     return song_load_event ? song_load_event(cpu, pc) : 0u;
 }
 
@@ -165,22 +241,152 @@ void Lufia2DecompSetSongLoadEvent(Lufia2DecompSongLoadEvent callback) {
 }
 
 void Lufia2DecompMusicFadeOut(CpuState *cpu, uint32_t pc) {
-    if (music_fade_out_event)
-        music_fade_out_event(cpu, pc);
+    CpuEventDispatch(&music_fade_out_event, cpu, pc);
 }
 
 void Lufia2DecompSetMusicFadeOutEvent(Lufia2DecompMusicFadeOutEvent callback) {
-    music_fade_out_event = callback;
+    CpuEventSet(&music_fade_out_event, callback);
     interp_bridge_set_pre_opcode_hook(0x809692u, Lufia2DecompMusicFadeOut);
 }
 
 void Lufia2DecompSpellPriceStored(CpuState *cpu, uint32_t pc) {
-    if (spell_price_stored_event)
-        spell_price_stored_event(cpu, pc);
+    CpuEventDispatch(&spell_price_stored_event, cpu, pc);
 }
 
 void Lufia2DecompSetSpellPriceStoredEvent(
     Lufia2DecompSpellPriceStoredEvent callback) {
-    spell_price_stored_event = callback;
+    CpuEventSet(&spell_price_stored_event, callback);
     interp_bridge_set_pre_opcode_hook(0x82d922u, Lufia2DecompSpellPriceStored);
+}
+
+void Lufia2DecompPartyStatsDerived(CpuState *cpu, uint32_t pc) {
+    CpuEventDispatch(&party_stats_derived_event, cpu, pc);
+}
+
+void Lufia2DecompSetPartyStatsDerivedEvent(
+    Lufia2DecompPartyStatsDerivedEvent callback) {
+    CpuEventSet(&party_stats_derived_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x81f4e2u, Lufia2DecompPartyStatsDerived);
+}
+
+void Lufia2DecompItemReceived(CpuState *cpu, uint32_t pc) {
+    CpuEventDispatch(&item_received_event, cpu, pc);
+}
+
+void Lufia2DecompSetItemReceivedEvent(Lufia2DecompItemReceivedEvent callback) {
+    CpuEventSet(&item_received_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x81f099u, Lufia2DecompItemReceived);
+}
+
+int Lufia2DecompAddEquipmentListDrawEvent(Lufia2DecompEquipmentListDrawEvent callback) {
+    const int added = CpuEventAdd(&equipment_list_draw_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x82a3b4u, Lufia2DecompEquipmentListDraw);
+    interp_bridge_set_pre_opcode_hook(0x82a3f0u, Lufia2DecompEquipmentListDraw);
+    return added;
+}
+
+void Lufia2DecompRemoveEquipmentListDrawEvent(Lufia2DecompEquipmentListDrawEvent callback) {
+    CpuEventRemove(&equipment_list_draw_event, callback);
+}
+
+int Lufia2DecompAddPlayTimeTickEvent(Lufia2DecompPlayTimeTickEvent callback) {
+    const int added = CpuEventAdd(&play_time_tick_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x808699u, Lufia2DecompPlayTimeTick);
+    return added;
+}
+
+void Lufia2DecompRemovePlayTimeTickEvent(Lufia2DecompPlayTimeTickEvent callback) {
+    CpuEventRemove(&play_time_tick_event, callback);
+}
+
+int Lufia2DecompAddMenuNumberEvent(Lufia2DecompMenuNumberEvent callback) {
+    const int added = CpuEventAdd(&menu_number_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x808922u, Lufia2DecompMenuNumber);
+    return added;
+}
+
+void Lufia2DecompRemoveMenuNumberEvent(Lufia2DecompMenuNumberEvent callback) {
+    CpuEventRemove(&menu_number_event, callback);
+}
+
+int Lufia2DecompAddMapLoadBeginEvent(Lufia2DecompMapLoadEvent callback) {
+    const int added = CpuEventAdd(&map_load_begin_event, callback);
+    InstallInterpreterMapEvents();
+    return added;
+}
+
+void Lufia2DecompRemoveMapLoadBeginEvent(Lufia2DecompMapLoadEvent callback) {
+    CpuEventRemove(&map_load_begin_event, callback);
+}
+
+int Lufia2DecompAddMapLoadCommittedEvent(Lufia2DecompMapLoadEvent callback) {
+    const int added = CpuEventAdd(&map_load_committed_event, callback);
+    InstallInterpreterMapEvents();
+    return added;
+}
+
+void Lufia2DecompRemoveMapLoadCommittedEvent(Lufia2DecompMapLoadEvent callback) {
+    CpuEventRemove(&map_load_committed_event, callback);
+}
+
+int Lufia2DecompAddMusicFadeOutEvent(Lufia2DecompMusicFadeOutEvent callback) {
+    const int added = CpuEventAdd(&music_fade_out_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x809692u, Lufia2DecompMusicFadeOut);
+    return added;
+}
+
+void Lufia2DecompRemoveMusicFadeOutEvent(Lufia2DecompMusicFadeOutEvent callback) {
+    CpuEventRemove(&music_fade_out_event, callback);
+}
+
+int Lufia2DecompAddSpellPriceStoredEvent(Lufia2DecompSpellPriceStoredEvent callback) {
+    const int added = CpuEventAdd(&spell_price_stored_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x82d922u, Lufia2DecompSpellPriceStored);
+    return added;
+}
+
+void Lufia2DecompRemoveSpellPriceStoredEvent(Lufia2DecompSpellPriceStoredEvent callback) {
+    CpuEventRemove(&spell_price_stored_event, callback);
+}
+
+int Lufia2DecompAddPartyStatsDerivedEvent(Lufia2DecompPartyStatsDerivedEvent callback) {
+    const int added = CpuEventAdd(&party_stats_derived_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x81f4e2u, Lufia2DecompPartyStatsDerived);
+    return added;
+}
+
+void Lufia2DecompRemovePartyStatsDerivedEvent(Lufia2DecompPartyStatsDerivedEvent callback) {
+    CpuEventRemove(&party_stats_derived_event, callback);
+}
+
+int Lufia2DecompAddItemReceivedEvent(Lufia2DecompItemReceivedEvent callback) {
+    const int added = CpuEventAdd(&item_received_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x81f099u, Lufia2DecompItemReceived);
+    return added;
+}
+
+void Lufia2DecompRemoveItemReceivedEvent(Lufia2DecompItemReceivedEvent callback) {
+    CpuEventRemove(&item_received_event, callback);
+}
+
+int Lufia2DecompAddGameFileEvent(Lufia2DecompGameFileEvent callback) {
+    const int added = GameFileEventAdd(&game_file_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x809099u, Lufia2DecompGameFile);
+    interp_bridge_set_pre_opcode_hook(0x8090c9u, Lufia2DecompGameFile);
+    interp_bridge_set_pre_opcode_hook(0x80914bu, Lufia2DecompGameFile);
+    return added;
+}
+
+void Lufia2DecompRemoveGameFileEvent(Lufia2DecompGameFileEvent callback) {
+    GameFileEventRemove(&game_file_event, callback);
+}
+
+int Lufia2DecompAddSongLoadObserver(Lufia2DecompSongLoadObserver callback) {
+    const int added = CpuEventAdd(&song_load_observers, callback);
+    interp_bridge_set_pre_opcode_hook(0x80942eu, InterpreterSongLoad);
+    return added;
+}
+
+void Lufia2DecompRemoveSongLoadObserver(Lufia2DecompSongLoadObserver callback) {
+    CpuEventRemove(&song_load_observers, callback);
 }

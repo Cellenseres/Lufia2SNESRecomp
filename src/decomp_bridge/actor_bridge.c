@@ -94,6 +94,23 @@ static void ActorBridgeStore(
     cpu_mirrors_to_p(cpu);
 }
 
+/* Inlined semantic children retain their caller bank between JSL/RTL frames. */
+static void ActorBridgeExecutionCheckpoint(
+    void *context, Lufia2CpuState *state, uint32_t pc) {
+    CpuState *cpu = (CpuState *)context;
+    const uint8_t host_bank = cpu->PB;
+    const uint8_t semantic_bank = state->program_bank;
+    ActorBridgeStore(cpu, state);
+    cpu->PB = (uint8_t)(pc >> 16);
+    if (pc == 0x81f4e2u)
+        Lufia2DecompPartyStatsDerived(cpu, pc);
+    else if (pc == 0x81f099u)
+        Lufia2DecompItemReceived(cpu, pc);
+    ActorBridgeLoad(cpu, state);
+    cpu->PB = host_bank;
+    state->program_bank = semantic_bank;
+}
+
 /* Generated RTS/RTL tail for a balanced routine. */
 static RecompReturn ActorBridgeReturn(
     CpuState *cpu,
@@ -132,7 +149,8 @@ static RecompReturn ActorBridgeReturn(
 RecompReturn Lufia2DecompBridge_D350(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     Lufia2CpuState state;
 
     /* TDC feeds DP high into the D370/D385 index. */
@@ -148,7 +166,8 @@ RecompReturn Lufia2DecompBridge_D350(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_F9D4(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     Lufia2CpuState state;
 
     if (!ActorBridgeSupported(cpu, 0, 0))
@@ -162,7 +181,8 @@ RecompReturn Lufia2DecompBridge_F9D4(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_FB12(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     Lufia2CpuState state;
     uint32_t rtl_pc24;
 
@@ -187,7 +207,8 @@ RecompReturn Lufia2DecompBridge_FB12(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_FB71(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     Lufia2CpuState state;
 
     if (!ActorBridgeSupported(cpu, 0, 0))
@@ -209,7 +230,8 @@ static RecompReturn ActorBridgeRunVoid(
     uint8_t frame_size, uint32_t return_pc24, int any_width) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     Lufia2CpuState state;
 
     if (cpu->emulation || (!any_width &&
@@ -227,7 +249,8 @@ static RecompReturn ActorBridgeRunWhole(
     uint8_t frame_size, int any_width) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
 
@@ -314,7 +337,8 @@ static uint8_t ActorBridgeSlotChild(
 RecompReturn Lufia2DecompBridge_BB93(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorSlotsCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -438,7 +462,7 @@ RecompReturn Lufia2DecompBridge_F414(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_C261(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x82c261u, Lufia2CapsuleLoadStats, 3);
+    return ActorBridgeWholeM1X16(cpu, 0x82c261u, Lufia2CapsuleLoadStats, 3);
 }
 
 RecompReturn Lufia2DecompBridge_F4D5(CpuState *cpu) {
@@ -1081,7 +1105,8 @@ static uint8_t ActorBridgePushedChild(
 RecompReturn Lufia2DecompBridge_9E31(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -1106,7 +1131,8 @@ RecompReturn Lufia2DecompBridge_9E31(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_83E0(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -1128,7 +1154,8 @@ RecompReturn Lufia2DecompBridge_83E0(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_845B(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -1150,7 +1177,8 @@ RecompReturn Lufia2DecompBridge_845B(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_8BC7(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -1172,7 +1200,8 @@ RecompReturn Lufia2DecompBridge_8BC7(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_8821(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -1194,7 +1223,8 @@ RecompReturn Lufia2DecompBridge_8821(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_8000(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -1216,7 +1246,8 @@ RecompReturn Lufia2DecompBridge_8000(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_B9C7(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -1238,7 +1269,8 @@ RecompReturn Lufia2DecompBridge_B9C7(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_876B(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -1260,7 +1292,8 @@ RecompReturn Lufia2DecompBridge_876B(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_B062(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -1282,7 +1315,8 @@ RecompReturn Lufia2DecompBridge_B062(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_851E(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -1304,7 +1338,8 @@ RecompReturn Lufia2DecompBridge_851E(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_886F(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu};
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -1325,7 +1360,8 @@ RecompReturn Lufia2DecompBridge_886F(CpuState *cpu) {
 
 RecompReturn Lufia2DecompBridge_C240(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -1350,7 +1386,8 @@ typedef Lufia2ExecutionResult (*BattleControlFunction)(
 static RecompReturn ActorBridgeBattleControl(
     CpuState *cpu, uint32_t entry, BattleControlFunction run) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call = {cpu, frame, RECOMP_RETURN_NORMAL};
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -1412,7 +1449,8 @@ static RecompReturn ActorBridgeBattleEntry(CpuState *cpu, uint32_t entry,
                                            unsigned frame_size, unsigned width,
                                            int any_dp, int db, int nonzero_mask) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call = {cpu, frame, RECOMP_RETURN_NORMAL};
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -1906,7 +1944,8 @@ RecompReturn Lufia2DecompBridge_838E66(CpuState *cpu) {
 
 RecompReturn Lufia2DecompBridge_83B5D3(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -2000,7 +2039,8 @@ static RecompReturn ActorBridgeObjectTransition(
     CpuState *cpu, uint32_t entry, FieldObjectTransition run,
     uint8_t frame_size) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -2093,7 +2133,8 @@ static void ActorBridgeEquipmentListDraw(
 
 RecompReturn Lufia2DecompBridge_82A318(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -2126,7 +2167,8 @@ static void ActorBridgeSpellPriceStored(
 
 RecompReturn Lufia2DecompBridge_82D905(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -2164,7 +2206,8 @@ static void ActorBridgePlayTimeTick(
 
 RecompReturn Lufia2DecompBridge_808638(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -2198,7 +2241,8 @@ static void ActorBridgeMapLoad(
 
 RecompReturn Lufia2DecompBridge_83B53B(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -2219,7 +2263,8 @@ RecompReturn Lufia2DecompBridge_83B53B(CpuState *cpu) {
 
 RecompReturn Lufia2DecompBridge_80EAE7(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -2254,7 +2299,8 @@ static RecompReturn ActorBridgeSave(
     CpuState *cpu, uint32_t entry, ActorSaveFunction run,
     uint8_t frame_size, int any_width) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call = {cpu, frame, RECOMP_RETURN_NORMAL};
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -2373,7 +2419,8 @@ typedef Lufia2ExecutionResult (*ActorMusicFunction)(
 static RecompReturn ActorBridgeMusic(
     CpuState *cpu, uint32_t entry, ActorMusicFunction run, uint8_t frame_size) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu};
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call = {cpu, frame, RECOMP_RETURN_NORMAL};
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
