@@ -1,10 +1,15 @@
 #include "host_events.h"
 
+#include "cpu_state.h"
 #include "snes/interp_bridge.h"
 
 static Lufia2DecompEquipmentListDrawEvent equipment_list_draw_event;
 static Lufia2DecompPlayTimeTickEvent play_time_tick_event;
 static Lufia2DecompMenuNumberEvent menu_number_event;
+static Lufia2DecompMapLoadEvent map_load_begin_event;
+static Lufia2DecompMapLoadEvent map_load_committed_event;
+static uint8_t interpreter_map_loading;
+static uint16_t interpreter_map_return_stack;
 
 void Lufia2DecompEquipmentListDraw(CpuState *cpu, uint32_t pc) {
     if (equipment_list_draw_event)
@@ -37,4 +42,55 @@ void Lufia2DecompMenuNumber(CpuState *cpu, uint32_t pc) {
 void Lufia2DecompSetMenuNumberEvent(Lufia2DecompMenuNumberEvent callback) {
     menu_number_event = callback;
     interp_bridge_set_pre_opcode_hook(0x808922u, Lufia2DecompMenuNumber);
+}
+
+void Lufia2DecompMapLoadBegin(CpuState *cpu, uint32_t pc) {
+    if (map_load_begin_event)
+        map_load_begin_event(cpu, pc);
+}
+
+void Lufia2DecompMapLoadCommitted(CpuState *cpu, uint32_t pc) {
+    if (map_load_committed_event)
+        map_load_committed_event(cpu, pc);
+}
+
+static void InterpreterMapEntered(CpuState *cpu, uint32_t pc) {
+    (void)cpu;
+    (void)pc;
+    interpreter_map_loading = 0;
+}
+
+static void InterpreterMapBegin(CpuState *cpu, uint32_t pc) {
+    Lufia2DecompMapLoadBegin(cpu, pc);
+    interpreter_map_loading = 1;
+    interpreter_map_return_stack = (uint16_t)(cpu->S + 1u);
+    if (cpu->emulation)
+        interpreter_map_return_stack =
+            (uint16_t)(0x0100u | (interpreter_map_return_stack & 0x00ffu));
+}
+
+static void InterpreterMapCommitted(CpuState *cpu, uint32_t pc) {
+    const uint8_t loaded = interpreter_map_loading;
+    interpreter_map_loading = 0;
+    if (loaded && cpu->S == interpreter_map_return_stack)
+        Lufia2DecompMapLoadCommitted(cpu, pc);
+}
+
+static void InstallInterpreterMapEvents(void) {
+    /* The skip path shares B580; a new entry also cancels stale loads. */
+    interp_bridge_set_pre_opcode_hook(0x83b53bu, InterpreterMapEntered);
+    interp_bridge_set_pre_opcode_hook(0x83b548u, InterpreterMapBegin);
+    interp_bridge_set_pre_opcode_hook(0x83b580u, InterpreterMapCommitted);
+}
+
+void Lufia2DecompSetMapLoadBeginEvent(Lufia2DecompMapLoadEvent callback) {
+    map_load_begin_event = callback;
+    interpreter_map_loading = 0;
+    InstallInterpreterMapEvents();
+}
+
+void Lufia2DecompSetMapLoadCommittedEvent(Lufia2DecompMapLoadEvent callback) {
+    map_load_committed_event = callback;
+    interpreter_map_loading = 0;
+    InstallInterpreterMapEvents();
 }
