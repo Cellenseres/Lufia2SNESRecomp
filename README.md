@@ -145,6 +145,11 @@ Some bugs from the original game are fixed:
 - The play time clock keeps counting after 99 hours instead of jumping back
   to 00:00, and the menus show three digits for the hours. It stops at
   255:59, the most an original save file can hold.
+- Item drops after a battle are always announced. In the original, some
+  items you already carried were added without the message saying so.
+- Saving no longer scrambles HP and MP. In the original, a character with
+  more than 1,023 maximum HP could load with wrong HP and MP; saves now
+  keep these values at 999, the most the menus can show.
 
 ## Repository
 

@@ -468,6 +468,7 @@ set(LUFIA2_HOST_SOURCES
     patches/lufia2_mode7_substep.c
     src/lufia2_map_load.c
     src/lufia2_equip_names.c
+    src/lufia2_drop_text.c
     src/lufia2_spell_price.c
     src/lufia2_play_time.c
     src/lufia2_party_limits.c
