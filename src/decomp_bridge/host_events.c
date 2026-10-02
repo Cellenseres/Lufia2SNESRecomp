@@ -89,6 +89,8 @@ static CpuEventList party_stats_derived_event;
 static CpuEventList party_stat_totals_event;
 static CpuEventList item_received_event;
 static CpuEventList cave_exit_begin_event;
+static CpuEventList cave_defeat_begin_event;
+static CpuEventList cave_defeat_reset_event;
 static CpuEventList cave_exit_restored_event;
 static uint8_t interpreter_map_loading;
 static uint16_t interpreter_map_return_stack;
@@ -449,4 +451,42 @@ int Lufia2DecompAddCaveExitRestoredEvent(Lufia2DecompCaveExitEvent callback) {
 
 void Lufia2DecompRemoveCaveExitRestoredEvent(Lufia2DecompCaveExitEvent callback) {
     CpuEventRemove(&cave_exit_restored_event, callback);
+}
+
+void Lufia2DecompCaveDefeatBegin(CpuState *cpu, uint32_t pc) {
+    CpuEventDispatch(&cave_defeat_begin_event, cpu, pc);
+}
+
+void Lufia2DecompSetCaveDefeatBeginEvent(Lufia2DecompCaveDefeatEvent callback) {
+    CpuEventSet(&cave_defeat_begin_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x848b9cu, Lufia2DecompCaveDefeatBegin);
+}
+
+int Lufia2DecompAddCaveDefeatBeginEvent(Lufia2DecompCaveDefeatEvent callback) {
+    const int added = CpuEventAdd(&cave_defeat_begin_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x848b9cu, Lufia2DecompCaveDefeatBegin);
+    return added;
+}
+
+void Lufia2DecompRemoveCaveDefeatBeginEvent(Lufia2DecompCaveDefeatEvent callback) {
+    CpuEventRemove(&cave_defeat_begin_event, callback);
+}
+
+void Lufia2DecompCaveDefeatReset(CpuState *cpu, uint32_t pc) {
+    CpuEventDispatch(&cave_defeat_reset_event, cpu, pc);
+}
+
+void Lufia2DecompSetCaveDefeatResetEvent(Lufia2DecompCaveDefeatEvent callback) {
+    CpuEventSet(&cave_defeat_reset_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x848ba5u, Lufia2DecompCaveDefeatReset);
+}
+
+int Lufia2DecompAddCaveDefeatResetEvent(Lufia2DecompCaveDefeatEvent callback) {
+    const int added = CpuEventAdd(&cave_defeat_reset_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x848ba5u, Lufia2DecompCaveDefeatReset);
+    return added;
+}
+
+void Lufia2DecompRemoveCaveDefeatResetEvent(Lufia2DecompCaveDefeatEvent callback) {
+    CpuEventRemove(&cave_defeat_reset_event, callback);
 }
