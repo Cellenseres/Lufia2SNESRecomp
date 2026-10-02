@@ -9,10 +9,10 @@
 #include "common_rtl.h"
 #include "config.h"
 #include "cpu_state.h"
+#include "decomp_bridge/host_events.h"
 #include "desktop/sdl_compat.h"
 #include "lufia2_map_names.h"
 #include "lufia2_overlay_ui.h"
-#include "snes/interp_bridge.h"
 
 extern uint8_t g_ram[0x20000];
 
@@ -31,16 +31,9 @@ enum {
     REPEAT_RATE_MS  = 90,
 
     WRAM_CURRENT_MAP = 0x05ac,
-    /* The save menu's chosen file; only bank $02 writes it. */
-    WRAM_GAME_SAVE_FILE = 0x14b3,
 
-    /* Save and load dispatches, all in interpreted banks. */
-    DISPATCH_B05_SAVE = 0x0583ca,
-    DISPATCH_B05_LOAD = 0x0583dd,
-    DISPATCH_B02_LOAD = 0x02ead5,
-    DISPATCH_B02_SAVE = 0x02eb61,
-    /* The title screen reads a file here just to describe it. */
-    DISPATCH_B02_PREVIEW = 0x02f001,
+    /* JSL return of the title screen's file description. */
+    TITLE_PREVIEW_RETURN = 0x02f004,
 
     /* $00:9040 checks four; the player is shown three. */
     GAME_SAVE_FILES = 4,
@@ -299,21 +292,30 @@ static void clear_unbound_states(void) {
     if (f) fclose(f);
 }
 
-static void on_slot_transfer(CpuState *cpu, uint32_t pc24) {
-    (void)cpu;
-    int file;
+static uint8_t StackByte(const CpuState *cpu, unsigned offset) {
+    uint16_t address = (uint16_t)(cpu->S + offset);
+    if (cpu->emulation)
+        address = (uint16_t)(0x0100u | (address & 0x00ffu));
+    return cpu_read8((CpuState *)cpu, 0u, address);
+}
 
-    /* Bank $05 holds the file in direct page $03, whose D we cannot
-     * assume; $05:83C0 has just mirrored it into the SRAM header. */
-    if ((pc24 & 0x7F0000u) == 0x050000u) {
-        if (!g_sram || g_sram_size < 1) return;
-        file = g_sram[0] & (GAME_SAVE_FILES - 1);
-    } else {
-        file = g_ram[WRAM_GAME_SAVE_FILE] & (GAME_SAVE_FILES - 1);
-    }
+/* Slot lists and checks also preview; only the title counts. */
+static bool IsTitlePreview(const CpuState *cpu) {
+    const uint32_t back = StackByte(cpu, 1) | StackByte(cpu, 2) << 8 |
+                          (uint32_t)(StackByte(cpu, 3) & 0x7f) << 16;
+    return back == TITLE_PREVIEW_RETURN;
+}
+
+static void on_slot_transfer(CpuState *cpu, uint32_t pc24,
+                             Lufia2DecompGameFileOperation operation) {
+    (void)pc24;
+    if (operation == LUFIA2_DECOMP_GAME_FILE_LOAD_HEADER) return;
+    if (operation == LUFIA2_DECOMP_GAME_FILE_PREVIEW && !IsTitlePreview(cpu))
+        return;
+    const int file = cpu->A & (GAME_SAVE_FILES - 1);
 
     /* A preview means the file select, not a game: it also unbinds. */
-    s_bound = (pc24 & 0x7FFFFFu) != (uint32_t)DISPATCH_B02_PREVIEW;
+    s_bound = operation != LUFIA2_DECOMP_GAME_FILE_PREVIEW;
 
     if (file == s_game_file) return;
     s_game_file = file;
@@ -321,15 +323,10 @@ static void on_slot_transfer(CpuState *cpu, uint32_t pc24) {
 }
 
 void Lufia2SavestateMenuInstall(void) {
-    static const uint32_t kDispatch[] = {
-        DISPATCH_B05_SAVE, DISPATCH_B05_LOAD,
-        DISPATCH_B02_LOAD, DISPATCH_B02_SAVE, DISPATCH_B02_PREVIEW,
-    };
     if (s_installed) return;
     s_installed = true;
 
-    for (size_t i = 0; i < sizeof kDispatch / sizeof kDispatch[0]; i++)
-        interp_bridge_set_pre_opcode_hook(kDispatch[i], on_slot_transfer);
+    Lufia2DecompAddGameFileEvent(on_slot_transfer);
 
     RtlEnsureSaveDir();
     clear_unbound_states();
