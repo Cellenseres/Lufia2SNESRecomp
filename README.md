@@ -153,6 +153,9 @@ Some bugs from the original game are fixed:
 - Dragon eggs found in the Ancient Cave are no longer lost. In the original,
   an egg could appear in a cave chest and vanished when you left the cave
   or were defeated there, so all eight eggs could never be collected again.
+- Being defeated in the Ancient Cave while standing on stairs restarts the
+  cave as it should. In the original, the stairs still took you one floor
+  deeper with your stats reset, which was almost always fatal.
 
 ## Repository
 
