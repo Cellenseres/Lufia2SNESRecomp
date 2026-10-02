@@ -67,6 +67,7 @@
 #include "lufia2_play_time.h"
 #include "lufia2_party_limits.h"
 #include "lufia2_drop_text.h"
+#include "lufia2_cave_eggs.h"
 #include "lufia2_msu_driver.h"
 #include "lufia2_map_widescreen.h"
 #include "lufia2_ui_margins.h"
@@ -2650,6 +2651,7 @@ int main(int argc, char **argv) {
     Lufia2PartyLimitsInstall();
     Lufia2SpellPriceInstall();
     Lufia2DropTextInstall();
+    Lufia2CaveEggsInstall();
 
     Snes *snes = SnesInit(rom_data, (int)rom_size);
     if (!snes) {

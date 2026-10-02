@@ -150,6 +150,9 @@ Some bugs from the original game are fixed:
 - HP and MP stop at 999, the most the menus can show. In the original,
   level-ups could push maximum HP past that, and a character with more
   than 1,023 loaded a save with wrong HP and MP.
+- Dragon eggs found in the Ancient Cave are no longer lost. In the original,
+  an egg could appear in a cave chest and vanished when you left the cave
+  or were defeated there, so all eight eggs could never be collected again.
 
 ## Repository
 
