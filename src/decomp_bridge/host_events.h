@@ -123,4 +123,17 @@ int Lufia2DecompAddCaveExitRestoredEvent(Lufia2DecompCaveExitEvent callback);
 void Lufia2DecompRemoveCaveExitRestoredEvent(Lufia2DecompCaveExitEvent callback);
 void Lufia2DecompCaveExitRestored(CpuState *cpu, uint32_t pc);
 
+/* Cave inventory intact before LDA #$FF at $84:8B9C, also without decomp. */
+typedef void (*Lufia2DecompCaveDefeatEvent)(CpuState *, uint32_t);
+void Lufia2DecompSetCaveDefeatBeginEvent(Lufia2DecompCaveDefeatEvent callback);
+int Lufia2DecompAddCaveDefeatBeginEvent(Lufia2DecompCaveDefeatEvent callback);
+void Lufia2DecompRemoveCaveDefeatBeginEvent(Lufia2DecompCaveDefeatEvent callback);
+void Lufia2DecompCaveDefeatBegin(CpuState *cpu, uint32_t pc);
+
+/* Party/inventory reset complete before REP at $84:8BA5. */
+void Lufia2DecompSetCaveDefeatResetEvent(Lufia2DecompCaveDefeatEvent callback);
+int Lufia2DecompAddCaveDefeatResetEvent(Lufia2DecompCaveDefeatEvent callback);
+void Lufia2DecompRemoveCaveDefeatResetEvent(Lufia2DecompCaveDefeatEvent callback);
+void Lufia2DecompCaveDefeatReset(CpuState *cpu, uint32_t pc);
+
 #endif
