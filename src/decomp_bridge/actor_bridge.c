@@ -2675,3 +2675,61 @@ RecompReturn Lufia2DecompBridge_8383EB(CpuState *cpu) {
     return ActorBridgeObjectTransition(
         cpu, 0x8383ebu, Lufia2FieldBattleTransition, 3u);
 }
+
+static RecompReturn ActorBridgeFieldWidthSetup(
+    CpuState *cpu, uint32_t entry, FieldObjectTransition run,
+    uint8_t frame_size) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    ActorPushedCall call;
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->_flag_D)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    call.cpu = cpu;
+    call.frame = frame;
+    call.unwound = RECOMP_RETURN_NORMAL;
+    ActorBridgeLoad(cpu, &state);
+    result = run(
+        &memory, &state, ActorBridgePushedChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    cpu->PB = state.program_bank;
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return ActorBridgeReturn(cpu, &frame, frame_size, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_8385DC(CpuState *cpu) {
+    if (cpu->PB != 0x83u) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        const uint32_t entry = ((uint32_t)cpu->PB << 16) | 0x85dcu;
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeFieldWidthSetup(
+        cpu, 0x8385dcu, Lufia2FieldReloadMap, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_83AB61(CpuState *cpu) {
+    if (cpu->PB != 0x83u) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        const uint32_t entry = ((uint32_t)cpu->PB << 16) | 0xab61u;
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeWholeAnyWidth(
+        cpu, 0x83ab61u, Lufia2SpriteResetAllocations, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8EB09C(CpuState *cpu) {
+    if (cpu->PB != 0x8eu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        const uint32_t entry = ((uint32_t)cpu->PB << 16) | 0xb09cu;
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeFieldWidthSetup(
+        cpu, 0x8eb09cu, Lufia2FieldPrepareCameraScroll, 3u);
+}
