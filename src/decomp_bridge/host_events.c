@@ -86,6 +86,7 @@ static Lufia2DecompSongLoadEvent song_load_event;
 static CpuEventList music_fade_out_event;
 static CpuEventList spell_price_stored_event;
 static CpuEventList party_stats_derived_event;
+static CpuEventList party_stat_totals_event;
 static CpuEventList item_received_event;
 static uint8_t interpreter_map_loading;
 static uint16_t interpreter_map_return_stack;
@@ -389,4 +390,23 @@ int Lufia2DecompAddSongLoadObserver(Lufia2DecompSongLoadObserver callback) {
 
 void Lufia2DecompRemoveSongLoadObserver(Lufia2DecompSongLoadObserver callback) {
     CpuEventRemove(&song_load_observers, callback);
+}
+
+void Lufia2DecompPartyStatTotals(CpuState *cpu, uint32_t pc) {
+    CpuEventDispatch(&party_stat_totals_event, cpu, pc);
+}
+
+void Lufia2DecompSetPartyStatTotalsEvent(Lufia2DecompPartyStatTotalsEvent callback) {
+    CpuEventSet(&party_stat_totals_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x81f576u, Lufia2DecompPartyStatTotals);
+}
+
+int Lufia2DecompAddPartyStatTotalsEvent(Lufia2DecompPartyStatTotalsEvent callback) {
+    const int added = CpuEventAdd(&party_stat_totals_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x81f576u, Lufia2DecompPartyStatTotals);
+    return added;
+}
+
+void Lufia2DecompRemovePartyStatTotalsEvent(Lufia2DecompPartyStatTotalsEvent callback) {
+    CpuEventRemove(&party_stat_totals_event, callback);
 }

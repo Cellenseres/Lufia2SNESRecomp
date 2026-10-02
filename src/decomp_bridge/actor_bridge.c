@@ -104,6 +104,8 @@ static void ActorBridgeExecutionCheckpoint(
     cpu->PB = (uint8_t)(pc >> 16);
     if (pc == 0x81f4e2u)
         Lufia2DecompPartyStatsDerived(cpu, pc);
+    else if (pc == 0x81f576u)
+        Lufia2DecompPartyStatTotals(cpu, pc);
     else if (pc == 0x81f099u)
         Lufia2DecompItemReceived(cpu, pc);
     ActorBridgeLoad(cpu, state);
