@@ -2763,3 +2763,33 @@ RecompReturn Lufia2DecompBridge_80F40A(CpuState *cpu) {
     return ActorBridgeWholeAnyWidth(
         cpu, 0x80f40au, Lufia2FieldMirrorPlaneByte, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_80EF8E(CpuState *cpu) {
+    if (cpu->PB != 0x80u) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        const uint32_t entry = ((uint32_t)cpu->PB << 16) | 0xef8eu;
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeFieldWidthSetup(
+        cpu, 0x80ef8eu, Lufia2FieldLoadSceneGraphics, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_80F2F3(CpuState *cpu) {
+    if (cpu->PB != 0x80u || !cpu->m_flag) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        const uint32_t entry = ((uint32_t)cpu->PB << 16) | 0xf2f3u;
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeWholeAnyWidth(
+        cpu, 0x80f2f3u, Lufia2FieldSetSceneDisplay, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_80F338(CpuState *cpu) {
+    if (cpu->PB != 0x80u) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        const uint32_t entry = ((uint32_t)cpu->PB << 16) | 0xf338u;
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeWholeAnyWidth(
+        cpu, 0x80f338u, Lufia2FieldCopyScenePalette, 3u);
+}
