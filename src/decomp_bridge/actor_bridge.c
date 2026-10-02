@@ -305,6 +305,13 @@ static RecompReturn ActorBridgeWholeM0(
     return ActorBridgeRunWhole(cpu, entry_pc24, run, frame_size, 5);
 }
 
+/* Routine that sets its accumulator width; X16 only. */
+static RecompReturn ActorBridgeWholeX16(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction run,
+    uint8_t frame_size) {
+    return ActorBridgeRunWhole(cpu, entry_pc24, run, frame_size, 3);
+}
+
 RecompReturn Lufia2DecompBridge_C7F8(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x83c7f8u, Lufia2ActorPrimaryUpdate, 2);
 }
@@ -2147,6 +2154,36 @@ RecompReturn Lufia2DecompBridge_838AF7(CpuState *cpu) {
         cpu, 0x838af7u, Lufia2FieldObjectBitIndex, 2u);
 }
 
+RecompReturn Lufia2DecompBridge_838E01(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(
+        cpu, 0x838e01u, Lufia2FieldLayerScaleMode, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_838E2B(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(
+        cpu, 0x838e2bu, Lufia2FieldPrepareCoordinateScale, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_838E09(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(
+        cpu, 0x838e09u, Lufia2FieldScaleCoordinateRight, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_838E1A(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(
+        cpu, 0x838e1au, Lufia2FieldScaleCoordinateLeft, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_838DDA(CpuState *cpu) {
+    return ActorBridgeWholeX16(
+        cpu, 0x838ddau, Lufia2FieldPrepareLayerScrollX, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_838DF0(CpuState *cpu) {
+    return ActorBridgeWholeM0X0(
+        cpu, 0x838df0u, Lufia2FieldPrepareLayerScrollY, 2u);
+}
+
 RecompReturn Lufia2DecompBridge_838AC9(CpuState *cpu) {
     return ActorBridgeWholeM1X16(
         cpu, 0x838ac9u, Lufia2FieldObjectBitTest, 3u);
@@ -2532,4 +2569,9 @@ RecompReturn Lufia2DecompBridge_809692(CpuState *cpu) {
 
 RecompReturn Lufia2DecompBridge_809601(CpuState *cpu) {
     return ActorBridgeMusic(cpu, 0x809601u, ActorBridgeMusicVolume, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_838D42(CpuState *cpu) {
+    return ActorBridgeWholeAnyWidth(
+        cpu, 0x838d42u, Lufia2FieldSetupLayerScroll, 3u);
 }
