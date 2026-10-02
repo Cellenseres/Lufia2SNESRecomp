@@ -111,4 +111,16 @@ typedef void (*Lufia2DecompSongLoadObserver)(CpuState *, uint32_t);
 int Lufia2DecompAddSongLoadObserver(Lufia2DecompSongLoadObserver callback);
 void Lufia2DecompRemoveSongLoadObserver(Lufia2DecompSongLoadObserver callback);
 
+/* Cave inventory intact before PHP at $84:890B; restored inventory before
+ * LDA $7FE759 at $84:8A38. Both routes run without a decomp build. */
+typedef void (*Lufia2DecompCaveExitEvent)(CpuState *, uint32_t);
+void Lufia2DecompSetCaveExitBeginEvent(Lufia2DecompCaveExitEvent callback);
+int Lufia2DecompAddCaveExitBeginEvent(Lufia2DecompCaveExitEvent callback);
+void Lufia2DecompRemoveCaveExitBeginEvent(Lufia2DecompCaveExitEvent callback);
+void Lufia2DecompCaveExitBegin(CpuState *cpu, uint32_t pc);
+void Lufia2DecompSetCaveExitRestoredEvent(Lufia2DecompCaveExitEvent callback);
+int Lufia2DecompAddCaveExitRestoredEvent(Lufia2DecompCaveExitEvent callback);
+void Lufia2DecompRemoveCaveExitRestoredEvent(Lufia2DecompCaveExitEvent callback);
+void Lufia2DecompCaveExitRestored(CpuState *cpu, uint32_t pc);
+
 #endif

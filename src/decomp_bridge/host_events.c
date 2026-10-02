@@ -88,6 +88,8 @@ static CpuEventList spell_price_stored_event;
 static CpuEventList party_stats_derived_event;
 static CpuEventList party_stat_totals_event;
 static CpuEventList item_received_event;
+static CpuEventList cave_exit_begin_event;
+static CpuEventList cave_exit_restored_event;
 static uint8_t interpreter_map_loading;
 static uint16_t interpreter_map_return_stack;
 
@@ -409,4 +411,42 @@ int Lufia2DecompAddPartyStatTotalsEvent(Lufia2DecompPartyStatTotalsEvent callbac
 
 void Lufia2DecompRemovePartyStatTotalsEvent(Lufia2DecompPartyStatTotalsEvent callback) {
     CpuEventRemove(&party_stat_totals_event, callback);
+}
+
+void Lufia2DecompCaveExitBegin(CpuState *cpu, uint32_t pc) {
+    CpuEventDispatch(&cave_exit_begin_event, cpu, pc);
+}
+
+void Lufia2DecompSetCaveExitBeginEvent(Lufia2DecompCaveExitEvent callback) {
+    CpuEventSet(&cave_exit_begin_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x84890bu, Lufia2DecompCaveExitBegin);
+}
+
+int Lufia2DecompAddCaveExitBeginEvent(Lufia2DecompCaveExitEvent callback) {
+    const int added = CpuEventAdd(&cave_exit_begin_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x84890bu, Lufia2DecompCaveExitBegin);
+    return added;
+}
+
+void Lufia2DecompRemoveCaveExitBeginEvent(Lufia2DecompCaveExitEvent callback) {
+    CpuEventRemove(&cave_exit_begin_event, callback);
+}
+
+void Lufia2DecompCaveExitRestored(CpuState *cpu, uint32_t pc) {
+    CpuEventDispatch(&cave_exit_restored_event, cpu, pc);
+}
+
+void Lufia2DecompSetCaveExitRestoredEvent(Lufia2DecompCaveExitEvent callback) {
+    CpuEventSet(&cave_exit_restored_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x848a38u, Lufia2DecompCaveExitRestored);
+}
+
+int Lufia2DecompAddCaveExitRestoredEvent(Lufia2DecompCaveExitEvent callback) {
+    const int added = CpuEventAdd(&cave_exit_restored_event, callback);
+    interp_bridge_set_pre_opcode_hook(0x848a38u, Lufia2DecompCaveExitRestored);
+    return added;
+}
+
+void Lufia2DecompRemoveCaveExitRestoredEvent(Lufia2DecompCaveExitEvent callback) {
+    CpuEventRemove(&cave_exit_restored_event, callback);
 }
