@@ -108,6 +108,10 @@ static void ActorBridgeExecutionCheckpoint(
         Lufia2DecompPartyStatTotals(cpu, pc);
     else if (pc == 0x81f099u)
         Lufia2DecompItemReceived(cpu, pc);
+    else if (pc == 0x84890bu)
+        Lufia2DecompCaveExitBegin(cpu, pc);
+    else if (pc == 0x848a38u)
+        Lufia2DecompCaveExitRestored(cpu, pc);
     ActorBridgeLoad(cpu, state);
     cpu->PB = host_bank;
     state->program_bank = semantic_bank;
@@ -2606,4 +2610,24 @@ RecompReturn Lufia2DecompBridge_809601(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_838D42(CpuState *cpu) {
     return ActorBridgeWholeAnyWidth(
         cpu, 0x838d42u, Lufia2FieldSetupLayerScroll, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_848AF4(CpuState *cpu) {
+    if (cpu->PB != 0x84u) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        const uint32_t entry = ((uint32_t)cpu->PB << 16) | 0x8af4u;
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeWholeM0X0(
+        cpu, 0x848af4u, Lufia2AncientCaveCarryBlueItem, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_84890B(CpuState *cpu) {
+    if (cpu->PB != 0x84u) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        const uint32_t entry = ((uint32_t)cpu->PB << 16) | 0x890bu;
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeObjectTransition(
+        cpu, 0x84890bu, Lufia2AncientCaveExit, 3u);
 }
