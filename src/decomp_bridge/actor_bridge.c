@@ -2156,6 +2156,11 @@ RecompReturn Lufia2DecompBridge_838E76(CpuState *cpu) {
         cpu, 0x838e76u, Lufia2FieldRenderLayerPair, 3u);
 }
 
+RecompReturn Lufia2DecompBridge_838C8A(CpuState *cpu) {
+    return ActorBridgeWholeAnyWidth(
+        cpu, 0x838c8au, Lufia2FieldRefreshObjectAttributes, 3u);
+}
+
 RecompReturn Lufia2DecompBridge_838AF7(CpuState *cpu) {
     return ActorBridgeWholeM1X16(
         cpu, 0x838af7u, Lufia2FieldObjectBitIndex, 2u);
