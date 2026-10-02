@@ -147,9 +147,9 @@ Some bugs from the original game are fixed:
   255:59, the most an original save file can hold.
 - Item drops after a battle are always announced. In the original, some
   items you already carried were added without the message saying so.
-- Saving no longer scrambles HP and MP. In the original, a character with
-  more than 1,023 maximum HP could load with wrong HP and MP; saves now
-  keep these values at 999, the most the menus can show.
+- HP and MP stop at 999, the most the menus can show. In the original,
+  level-ups could push maximum HP past that, and a character with more
+  than 1,023 loaded a save with wrong HP and MP.
 
 ## Repository
 
