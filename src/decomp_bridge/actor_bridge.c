@@ -268,7 +268,7 @@ static RecompReturn ActorBridgeRunWhole(
     result = run(&memory, &state);
     ActorBridgeStore(cpu, &state);
     if (result.flow == LUFIA2_EXECUTION_BOUNDARY) {
-        /* Exact ROM state at result.pc; LLE finishes the RTS. */
+        cpu->PB = state.program_bank;
         return interp_tier_dispatch_tail(
             cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
     }
@@ -2149,6 +2149,11 @@ RecompReturn Lufia2DecompBridge_838A6F(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_838E85(CpuState *cpu) {
     return ActorBridgeWholeM1X16(
         cpu, 0x838e85u, Lufia2FieldRenderRegion, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_838E76(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(
+        cpu, 0x838e76u, Lufia2FieldRenderLayerPair, 3u);
 }
 
 RecompReturn Lufia2DecompBridge_838AF7(CpuState *cpu) {
