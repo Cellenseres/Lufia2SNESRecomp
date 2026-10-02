@@ -46,5 +46,5 @@ static void LimitBeforeSave(CpuState *cpu, uint32_t pc24,
 }
 
 void Lufia2PartyLimitsInstall(void) {
-    Lufia2DecompSetGameFileEvent(LimitBeforeSave);
+    Lufia2DecompAddGameFileEvent(LimitBeforeSave);
 }
