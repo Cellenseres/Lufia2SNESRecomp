@@ -66,6 +66,14 @@ void Lufia2DecompSetPartyStatsDerivedEvent(
     Lufia2DecompPartyStatsDerivedEvent callback);
 void Lufia2DecompPartyStatsDerived(CpuState *cpu, uint32_t pc);
 
+/* Shared totals complete at $81:F576, before RTS; X is the block pointer.
+ * Includes equipment preview, far/direct totals and wrapped derived stats. */
+typedef void (*Lufia2DecompPartyStatTotalsEvent)(CpuState *, uint32_t);
+void Lufia2DecompSetPartyStatTotalsEvent(Lufia2DecompPartyStatTotalsEvent callback);
+void Lufia2DecompPartyStatTotals(CpuState *cpu, uint32_t pc);
+int Lufia2DecompAddPartyStatTotalsEvent(Lufia2DecompPartyStatTotalsEvent callback);
+void Lufia2DecompRemovePartyStatTotalsEvent(Lufia2DecompPartyStatTotalsEvent callback);
+
 /* Inventory-add child returned, before LDX $0A06 at $81:F099. */
 typedef void (*Lufia2DecompItemReceivedEvent)(CpuState *, uint32_t);
 void Lufia2DecompSetItemReceivedEvent(Lufia2DecompItemReceivedEvent callback);
