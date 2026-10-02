@@ -2752,6 +2752,7 @@ int main(int argc, char **argv) {
 
             L2CaptureFrameBegin(input);
             RtlRunFrame(input);
+            Lufia2MsuDriverFrame();
             L2CaptureGuestEnd();
             snes_osd_note_frame();
             snes_rewind_note_frame();

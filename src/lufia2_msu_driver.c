@@ -5,24 +5,26 @@
 #include <string.h>
 
 #include "cpu_state.h"
-#include "snes/interp_bridge.h"
+#include "decomp_bridge/host_events.h"
 #include "snes/msu1.h"
 #include "snes/saveload.h"
+#include "snes/snes.h"
 #include "lufia2_log.h"
 
-/* The SPC driver scales voices 0-7 by the music group volume at $08CC and
- * voices 8-15 by $08CD; command $0B behind $00:9601 sets the first. Zeroing it
- * keeps the sequencer running, which the intro waits on -- the fade-out at
- * $00:9692 ends in the driver's full music stop ($3645) and strands it. The
- * volume reaches a voice at its next note-on ($3FFD), so it is set during the
- * load, before the upload. */
+/* The SPC keeps playing at zero music volume; MSU follows it. */
 enum {
-    SONG_LOAD    = 0x00942Eu, /* STA $54, song id live in A */
-    MUSIC_VOLUME = 0x009601u, /* JSL: command $0B, A = music group volume */
-    FADE_OUT     = 0x009692u, /* JSL: command $06, the game stopping music */
-
     VOLUME_FULL = 0xFFu,
     NO_SONG     = 0xFFFFu,
+};
+
+/* SPC driver RAM. */
+enum {
+    SPC_MUSIC_STATE = 0x009B,
+    SPC_FADE_LEVEL  = 0x08CA, /* scales music voices, $FF = full */
+    /* Command $0B only, which the game never sends. */
+    SPC_MUSIC_VOLUME = 0x08CC,
+
+    SPC_MUSIC_PLAYING = 0x01,
 };
 
 enum {
@@ -38,9 +40,13 @@ enum {
     MSU_CTL_REPEAT = 0x02,
 };
 
+extern Snes *g_snes;
+
 static bool     s_installed;
+static unsigned s_song = NO_SONG;  /* selected track, NO_SONG if missing */
+static bool     s_rewound;
 static bool     s_playing;
-static unsigned s_song = NO_SONG;
+static int      s_volume = -1;
 static unsigned s_loading_song;
 static bool     s_volume_sent;
 
@@ -81,80 +87,90 @@ bool Lufia2MsuDriverPlaying(void) {
     return s_playing;
 }
 
-static void MsuSilence(void) {
-    msu1_write(MSU_CONTROL, 0);
-    s_playing = false;
-    s_song = NO_SONG;
-}
-
-/* Selecting stops playback by spec, so this also cuts a track short. */
+/* Selecting stops and rewinds by spec. */
 static bool MsuSelectTrack(unsigned song) {
     msu1_write(MSU_TRACK_LO, (uint8_t)song);
     msu1_write(MSU_TRACK_HI, 0);
     return (msu1_read(MSU_STATUS) & MSU_ST_AUDIO_ERROR) == 0;
 }
 
-static void GuestPush8(CpuState *cpu, uint8_t value) {
-    cpu_write8(cpu, 0x00, cpu->S, value);
-    cpu->S = (uint16)(cpu->S - 1u);
+static void MsuStop(void) {
+    msu1_write(MSU_CONTROL, 0);
+    s_playing = false;
+    s_rewound = false;
 }
 
-/* RTL continues one past the address it pops; push order as a real JSL. */
-static void GuestCall(CpuState *cpu, uint32_t entry, uint32_t resume) {
-    const uint32_t bank = resume & 0xFF0000u;
-    const uint32_t back = bank | ((resume - 1u) & 0xFFFFu);
-    GuestPush8(cpu, (uint8_t)(back >> 16));
-    GuestPush8(cpu, (uint8_t)(back >> 8));
-    GuestPush8(cpu, (uint8_t)back);
-    interp_bridge_pre_opcode_redirect(bank | entry);
+static void MsuForget(void) {
+    MsuStop();
+    s_song = NO_SONG;
 }
 
-static void StartTrack(unsigned song) {
+static void SelectSong(unsigned song) {
+    MsuForget();
     if (!MsuSelectTrack(song)) {
-        MsuSilence();
         LUFIA2_LOG("[msu] song $%02X: no track, SPC plays it\n", song);
         LUFIA2_LOG_FLUSH();
         return;
     }
-    msu1_write(MSU_VOLUME, 0xFF);
-    /* Repeat everything; the one-shot list is not established yet. */
-    msu1_write(MSU_CONTROL, MSU_CTL_PLAY | MSU_CTL_REPEAT);
-    s_playing = true;
     s_song = song;
+    s_rewound = true;
     LUFIA2_LOG("[msu] song $%02X -> track %u\n", song, song);
     LUFIA2_LOG_FLUSH();
 }
 
-static void SongLoad(CpuState *cpu, uint32_t pc24) {
+/* The original stops the SPC before every load, so restart. */
+static uint32_t SongLoad(CpuState *cpu, uint32_t pc24) {
+    (void)pc24;
     if (s_volume_sent) {
-        s_volume_sent = false;   /* $9601 clobbered A; STA $54 wants the id */
+        /* Savestate from the guest-call driver; restore the id. */
+        s_volume_sent = false;
         cpu->A = (uint16)((cpu->A & 0xFF00u) | s_loading_song);
-        return;
+        return 0;
     }
 
-    const unsigned song = cpu->A & 0xFFu;
-    s_loading_song = song;
-    /* Restarting the track already playing would stutter. */
-    if (!s_playing || song != s_song) StartTrack(song);
+    s_loading_song = cpu->A & 0xFFu;
+    SelectSong(s_loading_song);
 
-    if (!HushEnabled()) return;
-    cpu->A = (uint16)((cpu->A & 0xFF00u) | (s_playing ? 0u : VOLUME_FULL));
-    s_volume_sent = true;
-    GuestCall(cpu, MUSIC_VOLUME, pc24);
+    /* Read at note-on, so set before the upload. */
+    if (HushEnabled() && g_snes && g_snes->apu)
+        g_snes->apu->ram[SPC_MUSIC_VOLUME] =
+            (uint8_t)(s_song != NO_SONG ? 0u : VOLUME_FULL);
+    return 0;
 }
 
-static void MusicFadeOut(CpuState *cpu, uint32_t pc24) {
-    (void)cpu;
-    (void)pc24;
-    MsuSilence();
+static void MsuPlay(void) {
+    if (!s_rewound && !MsuSelectTrack(s_song)) {
+        MsuForget();
+        return;
+    }
+    msu1_write(MSU_CONTROL, MSU_CTL_PLAY | MSU_CTL_REPEAT);
+    s_playing = true;
+    s_rewound = false;
+}
+
+/* Play, stop and fade exactly as the SPC music does. */
+void Lufia2MsuDriverFrame(void) {
+    if (!s_installed || s_song == NO_SONG || !g_snes || !g_snes->apu)
+        return;
+    const uint8_t *spc = g_snes->apu->ram;
+
+    if (!(spc[SPC_MUSIC_STATE] & SPC_MUSIC_PLAYING)) {
+        if (s_playing) MsuStop();
+        return;
+    }
+    const int volume = spc[SPC_FADE_LEVEL];
+    if (volume != s_volume) {
+        msu1_write(MSU_VOLUME, (uint8_t)volume);
+        s_volume = volume;
+    }
+    if (!s_playing) MsuPlay();
 }
 
 void Lufia2MsuDriverInstall(void) {
     if (s_installed || !msu1_enabled()) return;
-    interp_bridge_set_pre_opcode_hook(SONG_LOAD, SongLoad);
-    interp_bridge_set_pre_opcode_hook(FADE_OUT, MusicFadeOut);
+    Lufia2DecompSetSongLoadEvent(SongLoad);
     s_installed = true;
-    LUFIA2_LOG("[msu] driver: load $%06X, fade $%06X\n", SONG_LOAD, FADE_OUT);
+    LUFIA2_LOG("[msu] driver: following the SPC music\n");
     LUFIA2_LOG_FLUSH();
 }
 
@@ -180,19 +196,15 @@ bool Lufia2MsuLoadState(SaveLoadInfo *sli) {
     return s_loaded_state_valid;
 }
 
+/* The next frame resumes from the restored SPC state. */
 void Lufia2MsuApplyLoadedState(void) {
-    if (!s_loaded_state_valid) {
-        MsuSilence();
-        s_loading_song = 0;
-        s_volume_sent = false;
-        return;
-    }
-
+    const bool valid = s_loaded_state_valid;
     const Lufia2MsuState state = s_loaded_state;
     s_loaded_state_valid = false;
-    MsuSilence();
-    s_loading_song = state.loading_song;
-    s_volume_sent = state.volume_sent != 0;
-    if (s_installed && state.playing && state.song != NO_SONG)
-        StartTrack(state.song);
+
+    MsuForget();
+    s_loading_song = valid ? state.loading_song : 0u;
+    s_volume_sent = valid && state.volume_sent != 0;
+    if (s_installed && valid && state.song != NO_SONG)
+        SelectSong(state.song);
 }

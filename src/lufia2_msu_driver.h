@@ -4,9 +4,11 @@
 
 struct SaveLoadInfo;
 
-/* MSU-1 music driver. Hooks the game's own song-start routine and drives the
- * registers directly, so no ROM is patched. No-op unless a pack was armed. */
+/* MSU-1 music, swapped in on the decomp song load. */
 void Lufia2MsuDriverInstall(void);
+
+/* Once per frame, after the guest ran. */
+void Lufia2MsuDriverFrame(void);
 
 bool Lufia2MsuDriverPlaying(void);
 
