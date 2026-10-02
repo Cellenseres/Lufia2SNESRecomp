@@ -2665,3 +2665,13 @@ RecompReturn Lufia2DecompBridge_83B76E(CpuState *cpu) {
     return ActorBridgeObjectTransition(
         cpu, 0x83b76eu, Lufia2FieldApplyAreaTransition, 3u);
 }
+
+RecompReturn Lufia2DecompBridge_8383EB(CpuState *cpu) {
+    if (cpu->PB != 0x83u) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        const uint32_t entry = ((uint32_t)cpu->PB << 16) | 0x83ebu;
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeObjectTransition(
+        cpu, 0x8383ebu, Lufia2FieldBattleTransition, 3u);
+}
