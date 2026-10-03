@@ -133,3 +133,33 @@ the original code. 8,192-case original-ROM profiles per routine add aliasing
 item indices, data banks, widths, carry and decimal input. Every supported case
 runs natively and matches, fallbacks leave the CPU unchanged, and frame,
 overflow, bank, stack, emulation, band and width mutations are caught.
+
+
+## Copied-member totals integration
+
+`$81:F481` is verified through RTL for native mode, PB81, DP0 and the caller
+stack `$1F00..$1FFC`. Other contexts retain the original entry before any
+memory access. It accepts all M/X widths, data banks and decimal modes.
+The scratch record is a forward byte copy; overlapping records therefore keep
+the original write order. The absolute `$C1` reload is independent of DP.
+The shared `$81:F4ED` calculation retains its checkpoint at `$81:F576`, before
+its RTS. Neither the derived-stat event at `$81:F4E2` nor an extra event is
+introduced. Three named copy phases replace instruction-by-instruction loops.
+
+21,568 differential cases cover the general seeds, a 16,384-case matrix
+of records, scratch/stack overlap, widths and banks, and 4,096 subscriber cases.
+5,581 cases execute the actual native bridge against the ROM; 15,987 unsupported entries are
+unchanged handoffs. Every supported comparison checks the entire CPU state,
+WRAM and ordered writes, both at the stat checkpoint and at the final RTL.
+The subscriber changes scratch totals and the output record receives them.
+The real host event dispatcher is used in the consumer ABI test. Fifteen
+additional guard tests cover three host-return modes. Eight bridge mutations
+(frame, overflow, PB, stack bounds, emulation, DP and missing checkpoint) are
+detected. Tests exercise data subscribers that preserve execution state.
+
+Nineteen of the 95 feature additions are verified; 76 remain draft. All 518
+integrated jobs and the Release build pass with 385 standalone replacements.
+The first run hit three 120-second timeouts; the complete rerun with two jobs
+passes the unchanged plan and time limits. The private verifier CMake module
+accepts LUFIA2_DECOMP_VERIFY_JOBS (1-16, default 4). This is an isolated repair
+checkpoint, not a main rollout.
