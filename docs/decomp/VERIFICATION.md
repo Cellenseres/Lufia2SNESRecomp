@@ -49,3 +49,22 @@ reloads without false normal returns and fifteen completed fade-ins. Each fade-i
 clears `$0581` after eight frames; the final brightness reaches `$0F`.
 The full verifier passes all 518 independent jobs with this repair, including
 the existing 3,456 reload ABI cases and the additional 704 handoff cases.
+
+## Battle wave table integration
+
+The feature repair selects `$85:ADE1`, `$85:AE68`, `$85:AEEB` and `$85:AA3D`
+through standalone replacements. These leaf bridges require native M1X0 in
+bank `$85`, accept both decimal modes and preserve the two-byte JSR frame.
+Other entry modes transfer unchanged to the owning interpreter.
+
+Private original-ROM comparisons cover 4,352 ABI cases across three host-return
+modes and 48 rejected entries. Mutation checks detect a wrong return-frame
+size, lost overflow and an omitted program-bank guard. The three wave builders
+additionally pass 196,608 comparisons spanning every 16-bit phase value. The
+integrated Release build and all 518 existing verification jobs pass. These
+checks do not establish interrupt scheduling or rendered PPU behavior.
+
+The repaired feature remains isolated: 370 standalone replacements are selected
+and 91 unverified feature drafts retain static recomp selection. A complete
+entry/exit and child-call contract, ROM comparisons and consumer ABI evidence
+are required before selecting each further draft.
