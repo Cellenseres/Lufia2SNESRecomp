@@ -18,3 +18,17 @@ does not by itself promote a function to `verified`.
 `src/decomp_bridge/actor_bridge.c` also contains battle and field bridges.
 A later change can split these by subsystem, keeping the runtime ABI covered
 by the existing tests.
+
+## Field reload runtime regression
+
+In-game bisect identified the complete `$83:85DC` native binding as the cause
+of intermittent black field scenes after save selection or closing a menu.
+The consumer therefore uses `Lufia2DecompBridge_85DC`, which reconstructs the
+original setup and hands off at `$83:8637`. Other native bindings stay enabled.
+The complete reconstruction remains available for diagnosis, but its runtime
+binding must not be restored on the strength of the existing green parent tests.
+
+Those tests compare the parent with explicit contracts for eleven children.
+They do not reproduce the actual nested runtime dispatch, NMI or scheduler
+sequence. Re-enabling the complete bridge requires a failing reproduction of
+the menu-to-field transition and a regression test that detects its cause.
