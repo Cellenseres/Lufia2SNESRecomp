@@ -66,8 +66,8 @@ additionally pass 196,608 comparisons spanning every 16-bit phase value. The
 integrated Release build and all 518 existing verification jobs pass. These
 checks do not establish interrupt scheduling or rendered PPU behavior.
 
-The repaired feature remains isolated: 382 standalone replacements are selected
-and 79 unverified feature drafts retain static recomp selection. A complete
+The repaired feature remains isolated: 384 standalone replacements are selected
+and 77 unverified feature drafts retain static recomp selection. A complete
 entry/exit and child-call contract, ROM comparisons and consumer ABI evidence
 are required before selecting each further draft.
 
@@ -123,3 +123,13 @@ direct pages overlapping the work tables. Every supported case runs natively
 and matches; unsupported entries fall back with unchanged CPU state. Five bridge
 mutations per routine, plus a width-guard mutation for the slot clear, are
 caught. No consumer hook lies inside any of the six routines.
+
+## Menu item integration
+
+The menu item index `$82:88A0` and position `$82:88CB` are selected for the
+caller stack band `$1F00..$1FFC`, where the inlined multiply's return frame
+cannot alias its work words; the position also requires M1. Other entries keep
+the original code. 8,192-case original-ROM profiles per routine add aliasing
+item indices, data banks, widths, carry and decimal input. Every supported case
+runs natively and matches, fallbacks leave the CPU unchanged, and frame,
+overflow, bank, stack, emulation, band and width mutations are caught.

@@ -3026,3 +3026,51 @@ static RecompReturn ActorBridgeWorldClearSlots(
 RecompReturn Lufia2DecompBridge_86E640(CpuState *cpu) {
     return ActorBridgeWorldClearSlots(cpu, 0x86e640u, Lufia2WorldMapClearSlotFlags);
 }
+
+/* Menu item index needs the caller stack band. */
+static RecompReturn ActorBridgeMenuItemIndex(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction build_table) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x82u || cpu->S > 0x1ffcu ||
+        cpu->S < 0x1f00u)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = build_table(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_8288A0(CpuState *cpu) {
+    return ActorBridgeMenuItemIndex(cpu, 0x8288a0u, Lufia2MenuItemIndex);
+}
+
+/* Menu item position needs M1 and the caller stack band. */
+static RecompReturn ActorBridgeMenuItemPosition(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction build_table) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x82u || cpu->S > 0x1ffcu ||
+        cpu->S < 0x1f00u || !cpu->m_flag)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = build_table(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_8288CB(CpuState *cpu) {
+    return ActorBridgeMenuItemPosition(cpu, 0x8288cbu, Lufia2MenuItemPosition);
+}
