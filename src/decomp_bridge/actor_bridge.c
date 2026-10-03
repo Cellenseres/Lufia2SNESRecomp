@@ -3074,3 +3074,27 @@ static RecompReturn ActorBridgeMenuItemPosition(
 RecompReturn Lufia2DecompBridge_8288CB(CpuState *cpu) {
     return ActorBridgeMenuItemPosition(cpu, 0x8288cbu, Lufia2MenuItemPosition);
 }
+
+/* Scratch stat totals preserve the stat event and caller frame. */
+static RecompReturn ActorBridgePartyStatCopy(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction calculate_totals) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x81u || cpu->S > 0x1ffcu ||
+        cpu->S < 0x1f00u || cpu->D != 0u)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = calculate_totals(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_81F481(CpuState *cpu) {
+    return ActorBridgePartyStatCopy(cpu, 0x81f481u, Lufia2PartyStatTotalsOfCopy);
+}
