@@ -1120,6 +1120,19 @@ static uint8_t ActorBridgePushedChild(
 
     ActorBridgeStore(call->cpu, state);
     call->cpu->PB = (uint8_t)(target >> 16);
+    /* Reload children can yield while NMI is disabled. A missing native
+     * entry must continue in the owning interpreter, rather than start a
+     * nested call interpreter that can consume the scheduler's deadline. */
+    if (site >= 0x838637u && site <= 0x83866du &&
+        !cpu_dispatch_has_entry(call->cpu, target)) {
+        result = interp_tier_dispatch_tail(
+            call->cpu, target, site,
+            call->frame.entry_s, call->frame.hrv);
+        /* The parent removes one child unwind level. This handoff already
+         * represents the parent's continuation, so preserve its result. */
+        call->unwound = (RecompReturn)((int)result + 1);
+        return 0;
+    }
     result = cpu_dispatch_call_pc_pushed(
         call->cpu, target, site, frame_size, &return_pc24);
     if (result != RECOMP_RETURN_NORMAL) {

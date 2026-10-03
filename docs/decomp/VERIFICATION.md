@@ -32,3 +32,20 @@ Those tests compare the parent with explicit contracts for eleven children.
 They do not reproduce the actual nested runtime dispatch, NMI or scheduler
 sequence. Re-enabling the complete bridge requires a failing reproduction of
 the menu-to-field transition and a regression test that detects its cause.
+
+The failing gameplay trace identifies the upload call at `$83:865D` to
+`$80:8285`: the camera leaves X8 active, for which the upload has no native
+dispatch entry. A nested call interpreter consumes its own deadline and returns
+`SKIP_1` with the child still active (`S=$1FF0`, expected `$1FFA`, resume
+`$80:880B`). The parent removes one unwind level and reports a normal return,
+before reaching the NMI re-enable. Missing native reload children now transfer
+their already-pushed guest frame to the owning interpreter. The parent preserves
+the transfer's return code rather than interpreting it as a child return.
+
+The reload ABI suite additionally checks 704 missing-entry handoffs against the
+original ROM through each child entry, including CPU, guest stack, WRAM and four
+transfer return codes. Replaying the recorded upload deadline against the old
+bridge fails this suite. These tests cover the transfer contract; the corrected
+complete binding still needs confirmation of the actual menu transitions.
+The full verifier passes all 518 independent jobs with this repair, including
+the existing 3,456 reload ABI cases and the additional 704 handoff cases.
