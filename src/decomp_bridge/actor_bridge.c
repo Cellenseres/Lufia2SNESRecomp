@@ -2806,3 +2806,38 @@ RecompReturn Lufia2DecompBridge_80F338(CpuState *cpu) {
     return ActorBridgeWholeAnyWidth(
         cpu, 0x80f338u, Lufia2FieldCopyScenePalette, 3u);
 }
+
+/* Wave tables preserve decimal arithmetic and use a JSR frame. */
+static RecompReturn ActorBridgeWaveTable(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction build_table) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x85u ||
+        !cpu->m_flag || cpu->x_flag)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    ActorBridgeLoad(cpu, &state);
+    result = build_table(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_85ADE1(CpuState *cpu) {
+    return ActorBridgeWaveTable(cpu, 0x85ade1u, Lufia2BattleWaveBackward);
+}
+
+RecompReturn Lufia2DecompBridge_85AE68(CpuState *cpu) {
+    return ActorBridgeWaveTable(cpu, 0x85ae68u, Lufia2BattleWaveForward);
+}
+
+RecompReturn Lufia2DecompBridge_85AEEB(CpuState *cpu) {
+    return ActorBridgeWaveTable(cpu, 0x85aeebu, Lufia2BattleWaveFill);
+}
+
+RecompReturn Lufia2DecompBridge_85AA3D(CpuState *cpu) {
+    return ActorBridgeWaveTable(cpu, 0x85aa3du, Lufia2BattleRippleWords);
+}
