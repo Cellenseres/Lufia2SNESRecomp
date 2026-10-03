@@ -23,15 +23,13 @@ by the existing tests.
 
 In-game bisect identified the complete `$83:85DC` native binding as the cause
 of intermittent black field scenes after save selection or closing a menu.
-The consumer therefore uses `Lufia2DecompBridge_85DC`, which reconstructs the
-original setup and hands off at `$83:8637`. Other native bindings stay enabled.
-The complete reconstruction remains available for diagnosis, but its runtime
-binding must not be restored on the strength of the existing green parent tests.
+The consumer temporarily used `Lufia2DecompBridge_85DC`, which reconstructs the
+original setup and hands off at `$83:8637`. After the bridge repair and successful
+gameplay confirmation, the complete `Lufia2DecompBridge_8385DC` is selected again.
 
 Those tests compare the parent with explicit contracts for eleven children.
-They do not reproduce the actual nested runtime dispatch, NMI or scheduler
-sequence. Re-enabling the complete bridge requires a failing reproduction of
-the menu-to-field transition and a regression test that detects its cause.
+They did not reproduce the actual nested runtime dispatch, NMI or scheduler
+sequence, so their green result alone did not establish runtime correctness.
 
 The failing gameplay trace identifies the upload call at `$83:865D` to
 `$80:8285`: the camera leaves X8 active, for which the upload has no native
@@ -45,7 +43,9 @@ the transfer's return code rather than interpreting it as a child return.
 The reload ABI suite additionally checks 704 missing-entry handoffs against the
 original ROM through each child entry, including CPU, guest stack, WRAM and four
 transfer return codes. Replaying the recorded upload deadline against the old
-bridge fails this suite. These tests cover the transfer contract; the corrected
-complete binding still needs confirmation of the actual menu transitions.
+bridge fails this suite. Gameplay confirmation covers loading from save selection
+and repeated returns from the game menu. The corrected trace contains nine
+reloads without false normal returns and fifteen completed fade-ins. Each fade-in
+clears `$0581` after eight frames; the final brightness reaches `$0F`.
 The full verifier passes all 518 independent jobs with this repair, including
 the existing 3,456 reload ABI cases and the additional 704 handoff cases.
