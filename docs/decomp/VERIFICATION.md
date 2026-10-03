@@ -66,8 +66,8 @@ additionally pass 196,608 comparisons spanning every 16-bit phase value. The
 integrated Release build and all 518 existing verification jobs pass. These
 checks do not establish interrupt scheduling or rendered PPU behavior.
 
-The repaired feature remains isolated: 376 standalone replacements are selected
-and 85 unverified feature drafts retain static recomp selection. A complete
+The repaired feature remains isolated: 382 standalone replacements are selected
+and 79 unverified feature drafts retain static recomp selection. A complete
 entry/exit and child-call contract, ROM comparisons and consumer ABI evidence
 are required before selecting each further draft.
 
@@ -106,3 +106,20 @@ ordered word reads, passes all 518 independent jobs and Release. Selection lists
 adapter tests pass 1,048,576 interpreter comparisons; word-order properties pass
 458,752 cases with each of MSVC and clang. Interrupt scheduling and rendered
 PPU timing are outside these plane-table comparisons.
+
+
+## Arithmetic, angle and clear-routine integration
+
+Six further leaves are selected: menu multiply `$82:8000`, world division
+`$86:A5A9`, battle sine/cosine `$85:DE2A`/`$85:DE1E`, and the world sprite and
+slot-flag clears `$86:E650`/`$86:E640`. Each bridge requires native mode, the
+routine bank and S at most `$1FFC`; the slot clear also requires M1X0. The
+others accept any widths, D and DB, as their ROM code saves and restores P.
+
+Dedicated original-ROM profiles add 16,384 multiply, 32,768 division, 16,384
+cases per angle lookup and 4,096 per clear routine. They cover edge operands,
+carry and decimal input, every width pair, several data banks, and stacks or
+direct pages overlapping the work tables. Every supported case runs natively
+and matches; unsupported entries fall back with unchanged CPU state. Five bridge
+mutations per routine, plus a width-guard mutation for the slot clear, are
+caught. No consumer hook lies inside any of the six routines.
