@@ -55,16 +55,34 @@ the existing 3,456 reload ABI cases and the additional 704 handoff cases.
 The feature repair selects `$85:ADE1`, `$85:AE68`, `$85:AEEB` and `$85:AA3D`
 through standalone replacements. These leaf bridges require native M1X0 in
 bank `$85`, accept both decimal modes and preserve the two-byte JSR frame.
-Other entry modes transfer unchanged to the owning interpreter.
+The return frame must lie in the bank-zero WRAM mirror, including any extra
+byte required for a paired host return. Rejected entries transfer unchanged to
+the owning interpreter before any memory access.
 
 Private original-ROM comparisons cover 4,352 ABI cases across three host-return
-modes and 48 rejected entries. Mutation checks detect a wrong return-frame
+modes and 60 rejected entries. Mutation checks detect a wrong return-frame
 size, lost overflow and an omitted program-bank guard. The three wave builders
 additionally pass 196,608 comparisons spanning every 16-bit phase value. The
 integrated Release build and all 518 existing verification jobs pass. These
 checks do not establish interrupt scheduling or rendered PPU behavior.
 
-The repaired feature remains isolated: 370 standalone replacements are selected
-and 91 unverified feature drafts retain static recomp selection. A complete
+The repaired feature remains isolated: 375 standalone replacements are selected
+and 86 unverified feature drafts retain static recomp selection. A complete
 entry/exit and child-call contract, ROM comparisons and consumer ABI evidence
 are required before selecting each further draft.
+
+## Menu palette integration
+
+The five fixed palette loaders `$86:90C0`, `$86:90D3`, `$86:90E6`, `$86:90F9`
+and `$86:910C` preserve the original bank `$9F` MVN transfers and RTL boundary.
+Their bridges accept either M width, X16 and both decimal modes in bank `$86`.
+Entry guards require native mode and a WRAM return frame before reading it.
+
+The ABI oracle checks actual native selection as well as resulting behavior:
+8,960 native calls, 1,600 unchanged fallbacks and 60 explicit rejected entries
+pass across three host-return modes. Focused cases include palette output
+overlapping saved stack bytes. Wrong RTL size, overflow and program-bank guards
+are detected by mutations. The earlier motion repair passed all 518 jobs and
+the Release build; the combined nine-binding snapshot also passes all 518 jobs and Release.
+Its first run timed out in object-update-abi during a concurrent large matrix;
+an unchanged rerun without that matrix passes within the existing timeout.

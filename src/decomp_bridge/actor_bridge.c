@@ -2810,7 +2810,7 @@ RecompReturn Lufia2DecompBridge_80F338(CpuState *cpu) {
 /* Wave tables preserve decimal arithmetic and use a JSR frame. */
 static RecompReturn ActorBridgeWaveTable(
     CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction build_table) {
-    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
     const Lufia2Memory memory = {
         ActorBridgeRead, ActorBridgeWrite, cpu,
         ActorBridgeExecutionCheckpoint, cpu};
@@ -2818,8 +2818,10 @@ static RecompReturn ActorBridgeWaveTable(
     Lufia2ExecutionResult result;
 
     if (cpu->emulation || cpu->PB != 0x85u ||
-        !cpu->m_flag || cpu->x_flag)
+        !cpu->m_flag || cpu->x_flag ||
+        cpu->S > (cpu->host_return_valid == 3u ? 0x1ffcu : 0x1ffdu))
         return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
     ActorBridgeLoad(cpu, &state);
     result = build_table(&memory, &state);
     ActorBridgeStore(cpu, &state);
@@ -2840,4 +2842,43 @@ RecompReturn Lufia2DecompBridge_85AEEB(CpuState *cpu) {
 
 RecompReturn Lufia2DecompBridge_85AA3D(CpuState *cpu) {
     return ActorBridgeWaveTable(cpu, 0x85aa3du, Lufia2BattleRippleWords);
+}
+
+/* Menu palettes accept either accumulator width and use a JSL frame. */
+static RecompReturn ActorBridgeMenuPalette(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction build_table) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->x_flag || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = build_table(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_8690C0(CpuState *cpu) {
+    return ActorBridgeMenuPalette(cpu, 0x8690c0u, Lufia2MenuLoadPalette0);
+}
+
+RecompReturn Lufia2DecompBridge_8690D3(CpuState *cpu) {
+    return ActorBridgeMenuPalette(cpu, 0x8690d3u, Lufia2MenuLoadPalette1);
+}
+
+RecompReturn Lufia2DecompBridge_8690E6(CpuState *cpu) {
+    return ActorBridgeMenuPalette(cpu, 0x8690e6u, Lufia2MenuLoadPalette2);
+}
+
+RecompReturn Lufia2DecompBridge_8690F9(CpuState *cpu) {
+    return ActorBridgeMenuPalette(cpu, 0x8690f9u, Lufia2MenuLoadPalette3);
+}
+
+RecompReturn Lufia2DecompBridge_86910C(CpuState *cpu) {
+    return ActorBridgeMenuPalette(cpu, 0x86910cu, Lufia2MenuLoadPalette4);
 }
