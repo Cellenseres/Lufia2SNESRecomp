@@ -2882,3 +2882,27 @@ RecompReturn Lufia2DecompBridge_8690F9(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_86910C(CpuState *cpu) {
     return ActorBridgeMenuPalette(cpu, 0x86910cu, Lufia2MenuLoadPalette4);
 }
+
+/* World perspective tables use the original bank-$86 caller context. */
+static RecompReturn ActorBridgeWorldPlane(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction build_table) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || !cpu->m_flag || cpu->x_flag ||
+        cpu->D != 0 || cpu->DB != 0x86u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = build_table(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_86A894(CpuState *cpu) {
+    return ActorBridgeWorldPlane(cpu, 0x86a894u, Lufia2WorldMapPlane);
+}
