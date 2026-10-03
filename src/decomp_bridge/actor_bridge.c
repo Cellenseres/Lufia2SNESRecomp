@@ -2906,3 +2906,123 @@ static RecompReturn ActorBridgeWorldPlane(
 RecompReturn Lufia2DecompBridge_86A894(CpuState *cpu) {
     return ActorBridgeWorldPlane(cpu, 0x86a894u, Lufia2WorldMapPlane);
 }
+
+/* Menu multiply keeps P and X; any widths, JSL frame. */
+static RecompReturn ActorBridgeMenuMultiply(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction build_table) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x82u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = build_table(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_828000(CpuState *cpu) {
+    return ActorBridgeMenuMultiply(cpu, 0x828000u, Lufia2MenuMultiply);
+}
+
+/* World division keeps P; any widths and direct page. */
+static RecompReturn ActorBridgeWorldDivide(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction build_table) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = build_table(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_86A5A9(CpuState *cpu) {
+    return ActorBridgeWorldDivide(cpu, 0x86a5a9u, Lufia2WorldMapDivide32);
+}
+
+/* Angle lookups keep P; any widths and direct page. */
+static RecompReturn ActorBridgeBattleAngle(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction build_table) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x85u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = build_table(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_85DE2A(CpuState *cpu) {
+    return ActorBridgeBattleAngle(cpu, 0x85de2au, Lufia2BattleSineOfAngle);
+}
+
+RecompReturn Lufia2DecompBridge_85DE1E(CpuState *cpu) {
+    return ActorBridgeBattleAngle(cpu, 0x85de1eu, Lufia2BattleCosineOfAngle);
+}
+
+/* Sprite clear keeps P; any widths. */
+static RecompReturn ActorBridgeWorldClearSprites(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction build_table) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = build_table(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_86E650(CpuState *cpu) {
+    return ActorBridgeWorldClearSprites(cpu, 0x86e650u, Lufia2WorldMapClearSprites);
+}
+
+/* Slot flag clear needs M1X0. */
+static RecompReturn ActorBridgeWorldClearSlots(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction build_table) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->S > 0x1ffcu ||
+        !cpu->m_flag || cpu->x_flag)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = build_table(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_86E640(CpuState *cpu) {
+    return ActorBridgeWorldClearSlots(cpu, 0x86e640u, Lufia2WorldMapClearSlotFlags);
+}
