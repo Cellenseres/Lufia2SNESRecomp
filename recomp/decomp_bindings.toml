@@ -1645,3 +1645,27 @@ bridge = "Lufia2DecompBridge_868FF6"
 address = "00:057D"
 bridge = "Lufia2DecompBridge_00057D"
 dispatch_addresses = ["83:057D", "86:057D"]
+
+[[binding]]
+address = "80:87A7"
+bridge = "Lufia2DecompBridge_8087A7"
+
+[[binding]]
+address = "80:87FC"
+bridge = "Lufia2DecompBridge_8087FC"
+
+[[binding]]
+address = "81:B3F8"
+bridge = "Lufia2DecompBridge_81B3F8"
+
+[[binding]]
+address = "81:B396"
+bridge = "Lufia2DecompBridge_81B396"
+
+[[binding]]
+address = "82:80A5"
+bridge = "Lufia2DecompBridge_8280A5"
+
+[[binding]]
+address = "86:E686"
+bridge = "Lufia2DecompBridge_86E686"

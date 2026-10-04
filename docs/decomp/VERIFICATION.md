@@ -470,3 +470,42 @@ integrated jobs and the Release build pass with 411 canonical standalone
 replacements. The RAM kernel has actual dispatch in both PB83 and PB86;
 all four copy roots have generated calls. Main and the normal build remain
 unchanged; this is an isolated local checkpoint.
+
+
+## Queued uploads, palette components and visible-object ordering
+
+Six complete feature roots are selected: $80:87A7/$87FC, $81:B3F8/$B396,
+$82:80A5 and $86:E686. The palette proofs cover every colour word and all
+32 component values against all 256 hardware factors, including decimal
+fade arithmetic. Tile filling covers every destination offset. Sorting is
+stable, descending and unsigned, with the original object references retained;
+the native list contract is bounded at 21 entries before any writes.
+
+Queued NMI uploads retain the eight scroll-register writes, the four listed
+requests, channel selection, request acknowledgement, tilemap DMA and saved
+status. A reverse DMA can replace the listed upload's two-byte return frame.
+The old reconstruction discarded those bytes and continued its normal parent.
+The original instead transfers to the altered return address with the parent's
+saved P still on the stack. The implementation now reads the real frame,
+preserves the temporary comparison carry and dispatches that transfer. Original
+ROM seed1520000 takes 92 instructions to $80:8638; before repair, C incorrectly
+returned at $80:87FB and emitted 27 rather than 24 bus events. No binding of
+this feature routine was enabled before this counterexample was repaired.
+
+The actual-library ABI matrices pass 223616 cases:
+210208 native comparisons and 13408 unchanged entry fallbacks, with
+144 rejection fixtures and 37 broken source/bridge controls caught. A separate
+reverse-DMA model writes the child frame at MDMAEN identically for C and ROM:
+10240 exact native transfer comparisons cover all four slots, all four request kinds, six channel bits,
+five return targets including wraparound, four DB mirrors, four stack bounds,
+all entry M/X combinations and both decimal modes. CPU, all WRAM and ordered
+bus events remain mandatory; the transfer PC and boundary flow are additionally
+required. Five broken return/carry/dispatch controls are caught. The verifier's
+default partial label for intentional control transfers is retained; ordinary
+routine matrices must still have zero partial results. This models DMA's
+external memory effect; it does not claim cycle-accurate PPU/DMA verification.
+
+51 of 95 feature routines are verified, with 44 draft. All 518 independent
+integrated jobs and the Release build pass with 417 canonical standalone
+replacements. All six roots have actual generated dispatch calls. This is
+an isolated local checkpoint; main and the normal build remain unchanged.
