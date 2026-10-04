@@ -368,3 +368,53 @@ fixtures and29 deliberately broken source/bridge controls are detected.
 integrated jobs and the Release build pass with401 standalone replacements.
 All three new bindings have generated dispatch calls. Main and the normal
 build remain unchanged; this is an isolated local checkpoint.
+
+
+## Six complete field, sprite and circle roots
+
+$80:C195 now uses a readable fixed-range flag loop. It marks slots 5 through
+39, preserving the other bits and the accumulator high byte; X and final
+comparison flags match the ROM. M8/X16, any DP/DB, RTL. Native PB80 and
+S=1F00..1FFC keep the caller frame separate from the output bytes.
+
+$83:F9D0 now expresses cell-pointer arithmetic directly: twice the sum of
+column and the hardware row product, then the selected map's table base.
+Both original JSR/RTS frames and the saved relative offset remain observable.
+M8/X16, any DP/DB, S=1F04..1FFC, RTL; native PB83. Decimal arithmetic,
+pointer carry into the next long-address bank, direct-page wrapping and
+scratch reads overlapping nested frames are covered. An initial rewrite
+omitted N/Z export; the corrected LeaveSum version passes all comparisons.
+
+$86:8E6B now uses a readable 1000-byte clear loop, retaining each individual
+bus write. Final X=15C0, Y=0, Z=1, N=0; accumulator, carry and overflow stay
+unchanged. M8/X16, any DP/DB, RTL. Native PB86 and S=1F00..1FFC exclude
+return-frame overlap with the clear range. The matrices include all 256
+banks and four distinct old-byte patterns, including nonzero boundaries.
+
+$85:8F4A is verified through RTS for M8, either index width and any DP/DB.
+Native PB85 and S=1F00..1FFC keep the caller frame outside the 88-bit random
+register. Every 16-bit direct-page value and each individual random bit,
+with zero/all-one patterns, are checked. High-byte-first word writes,
+rotation carry, direct-page-derived accumulator high byte and final flags
+are retained. The existing readable implementation needed no rewrite.
+
+$85:B26D is verified through RTS for DP0, DB7E, S=1F00..1FFC and any entry
+widths/status. It computes the midpoint half-width table and restores the
+saved status. $85:B208 is verified through RTS for M8/X16, DP0, any DB and
+S=1F08..1FFC; this also supports its nested width child. Both native entries
+require PB85. Every radius in binary/decimal modes is covered, with entry
+width combinations, high register edges, previous-radius comparisons,
+rebuild/no-change paths, saved X/DB and the original table write sequence.
+The fixed scratch and stack contract keeps output and saved frames disjoint.
+
+The six actual-library bridges pass 191104 cases: 189946 native ROM
+comparisons and 1158 original-entry handoffs. All 108 additional guard
+fixtures preserve CPU/WRAM and perform no accesses. Seventy deliberately
+broken bridge/source controls are detected, including output byte order,
+hidden accumulator bytes, decimal arithmetic, saved X and the circle rebuild
+condition. Native dispatch counts are measured separately from semantic passes.
+
+41 of 95 feature routines are verified, with 54 draft. All 518 independent
+integrated jobs and the Release build pass with 407 standalone replacements.
+All six new bindings have generated dispatch calls. Main and the normal
+build remain unchanged; this is an isolated local checkpoint.
