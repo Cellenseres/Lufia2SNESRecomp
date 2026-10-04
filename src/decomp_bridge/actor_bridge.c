@@ -4409,3 +4409,12 @@ RecompReturn Lufia2DecompBridge_869022(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_868F6F(CpuState *cpu) {
     return ActorBridgeMenuUploadParent(cpu, 0x868f6fu, Lufia2MenuLoadImageSet, 3u, 0x1f10u, 0);
 }
+
+/* Slide count and slide: original sprite frame and JSR sites as children. */
+RecompReturn Lufia2DecompBridge_828AFA(CpuState *cpu) {
+    return ActorBridgeMenuUploadParent(cpu, 0x828afau, Lufia2MenuSlideCount, 2u, 0x1f10u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_8289FA(CpuState *cpu) {
+    return ActorBridgeMenuUploadParent(cpu, 0x8289fau, Lufia2MenuCursorSlide, 2u, 0x1f12u, 0);
+}

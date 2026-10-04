@@ -775,3 +775,41 @@ now use complete callback signatures; partial bodies are private helpers.
 pass with454 native replacements. All four roots have generated dispatch and
 wrapper entries. The exact production bridges also pass the native archive.
 This is a local checkpoint; main and the normal build remain unchanged.
+
+
+## Cursor slide and slide count
+
+$82:8AFA counts the slide steps; every sixteenth step it runs the original
+$86:8B55 sprite frame (animation, OAM rebuild and the $86:8B48 wait) through
+its JSL frame at $82:8B02. $82:89FA moves the cursor slot along the major
+axis with the original error corrections and calls $82:8AFA through its real
+JSR sites at $82:8A98 and $82:8AD3, so a bound count runs natively inside the
+slide while the frame service stays original.
+
+The slide's entry contract is checked before any write: PB82, M8/X16, DP0,
+binary arithmetic, S $1F12..$1FFC, a register/low-WRAM DB mirror, slots below
+48 and a major span of at most 127. When a frame will occur, every active
+sprite's timer must outlive the slide, and each descriptor must lie in ROM or
+$7E:2000+ without wrapping its bank, with at most 128 OAM pieces in total. The
+sprite service then cannot rewrite the pending frames or the saved registers.
+
+88192 production-preview ABI cases: 77189 native and 11003
+unchanged-entry fallbacks. The selection oracle was written separately from
+the ROM services and agrees in every case. The slide's count child runs the
+native count in these matrices: about 5.6 million composed count calls in the
+whole-ROM cases match. Edge cases cover spans 127/128, the timer threshold,
+128/129 pieces, descriptors at $1FFF/$2000 and at the bank end, unused bad
+descriptors and slots 47/48. 54 zero-access CPU guards pass. Eleven
+deliberate errors (wait target/frame, return frames, count site, span, timer,
+piece, descriptor, slot and stack bounds) fail with clear diagnostics. Dropping
+the Y refresh after the count is not detectable: both children preserve Y.
+
+Two random-WRAM count seeds (143, 356) stay inconclusive: the original
+$86:8B55 child exceeds the trace cap on random sprite data on both sides.
+The harness previously left a child interpreter current after such an abort,
+which corrupted all later cases; it now restores the outer reference.
+
+90 of 95 feature routines are verified, with 5 draft. All 518 independent
+verification jobs and Release pass with 456 native replacements. Both roots
+have generated dispatch and wrapper entries. This checkpoint is local; main
+and the normal build remain unchanged.
