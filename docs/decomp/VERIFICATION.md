@@ -321,3 +321,50 @@ bad bank assumption fail against the ROM. Normal-stack behavior is preserved.
 integrated jobs and the Release build pass with 398 standalone replacements.
 The three new bindings have generated dispatch calls. Main and the normal
 build remain unchanged; this is an isolated local checkpoint.
+
+
+## Battle tile copying and world motion
+
+$81:BCCC is verified through RTL for M8/X16, binary arithmetic, DP0,
+S=1F00..1FFC and a DB exposing the hardware multiplier (00..3F or80..BF).
+The native bridge also requires native mode and PB81. The low product byte
+of the two factors gives the row count; zero means256 rows. The two planes
+are copied in their original forward byte order, including overlapping
+source and output buffers. No source bytes are cached ahead of writes.
+
+Before execution, six RAM reads inspect position, factors and target base.
+Let n be the row count, p the position word and b the target base. The first
+target is uint16(b+(((p+(p&F8))&FF)<<6)); the last primary output byte is
+first+(n-1)*64+floor((n-1+(p&7))/8)*512+63. The complete native contract
+requires first>=2000 and last<=FFFF. This keeps outputs separate from the
+work bytes and return frame; the second plane may extend into bank7F RAM.
+Unsupported spans retain original execution before writes. Nine guard
+fixtures check the exact six reads and final open-bus target high byte;
+27 CPU guard fixtures require no accesses. Rejections preserve registers,
+status and WRAM. Supported execution captures the return frame after the
+body, whose outputs cannot touch that frame.
+
+ROM callers at81:BCA3 and85:EC3A establish the ordinary tile-buffer layout.
+The proof also covers zero256-row counts, boundary targets and overlapping
+planes with explicitly byte-distinct payloads. An earlier all-zero payload
+did not detect a deliberately reordered plane read; the strengthened
+payload now detects that control. No comparison was weakened.
+
+$86:A417 and$86:995B are verified through RTS for M8/X16, DP0 and a DB
+mapping low work RAM. Their native bridges require native mode and PB86.
+StepOffsets accepts S=1E00..1FFC; ScrollAdvance accepts S=1E02..1FFC so its
+nested JSR reaches the supported child stack. The original product calls,
+quadrant handling, decimal arithmetic, fractional offsets and nested stack
+writes/reads remain observable. The minimum stack keeps child frames away
+from direct-page scratch and world-map globals.
+
+Actual-library bridge verification passes74944 cases:71602 native ROM
+comparisons and3342 original-entry handoffs. The blitter contributes7232
+cases; each world routine contributes33856, including all256 angles and
+distance, bank, decimal and stack boundaries. All84 additional guard
+fixtures and29 deliberately broken source/bridge controls are detected.
+
+35 of95 feature routines are verified, with60 draft. All518 independent
+integrated jobs and the Release build pass with401 standalone replacements.
+All three new bindings have generated dispatch calls. Main and the normal
+build remain unchanged; this is an isolated local checkpoint.

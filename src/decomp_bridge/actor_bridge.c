@@ -3389,3 +3389,62 @@ static RecompReturn ActorBridgePackedAttributes(
 RecompReturn Lufia2DecompBridge_80ED0E(CpuState *cpu) {
     return ActorBridgePackedAttributes(cpu, 0x80ed0eu, Lufia2FieldUnpackAttributes);
 }
+
+/* Copy both tile planes in their original forward byte order. */
+static RecompReturn ActorBridgeBattleBlit(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction copy_rows) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x81u || cpu->S > 0x1ffcu ||
+        !cpu->m_flag || cpu->x_flag ||
+        cpu->S < 0x1f00u || cpu->D != 0u || cpu->_flag_D ||
+        !(cpu->DB < 0x40u || (cpu->DB >= 0x80u && cpu->DB < 0xc0u)))
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    ActorBridgeLoad(cpu, &state);
+    result = copy_rows(&memory, &state);
+    if (result.flow != LUFIA2_EXECUTION_RETURNED)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    /* The supported outputs stay clear of the caller's return frame. */
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_81BCCC(CpuState *cpu) {
+    return ActorBridgeBattleBlit(cpu, 0x81bcccu, Lufia2BattleBlitTileRows);
+}
+
+/* Preserve world motion arithmetic and original nested JSR frames. */
+static RecompReturn ActorBridgeWorldMotion(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction move, uint16_t minimum_stack) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->S > 0x1ffcu || cpu->S < minimum_stack ||
+        cpu->D != 0u || !ActorBridgeWorldRamBank(cpu->DB) ||
+        !cpu->m_flag || cpu->x_flag)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = move(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_86A417(CpuState *cpu) {
+    return ActorBridgeWorldMotion(cpu, 0x86a417u, Lufia2WorldStepOffsets, 0x1e00u);
+}
+
+
+RecompReturn Lufia2DecompBridge_86995B(CpuState *cpu) {
+    return ActorBridgeWorldMotion(cpu, 0x86995bu, Lufia2WorldScrollAdvance, 0x1e02u);
+}
