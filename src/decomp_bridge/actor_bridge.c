@@ -3269,3 +3269,48 @@ static RecompReturn ActorBridgeVisibleList(
 RecompReturn Lufia2DecompBridge_86E287(CpuState *cpu) {
     return ActorBridgeVisibleList(cpu, 0x86e287u, Lufia2WorldMapTestObjects);
 }
+
+/* Build one perspective band with the original multiplier and write order. */
+static RecompReturn ActorBridgeWorldRows(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction build_rows) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->S > 0x1ffcu ||
+        cpu->D != 0u || cpu->DB != 0x86u ||
+        (cpu->Y != 0x0382u && cpu->Y != 0x01c1u) ||
+        cpu->m_flag || cpu->x_flag)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    {
+        const uint8_t low = ActorBridgeRead(cpu, 0x26u);
+        const uint8_t high = ActorBridgeRead(cpu, 0x27u);
+        const uint16_t count = (uint16_t)(low | ((uint16_t)high << 8));
+        if (count == 0u || count > 112u)
+            return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    }
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = build_rows(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_86A9B0(CpuState *cpu) {
+    return ActorBridgeWorldRows(cpu, 0x86a9b0u, Lufia2WorldPlaneRows0);
+}
+
+RecompReturn Lufia2DecompBridge_86AA5B(CpuState *cpu) {
+    return ActorBridgeWorldRows(cpu, 0x86aa5bu, Lufia2WorldPlaneRows1);
+}
+
+RecompReturn Lufia2DecompBridge_86AB0E(CpuState *cpu) {
+    return ActorBridgeWorldRows(cpu, 0x86ab0eu, Lufia2WorldPlaneRows2);
+}
+
+RecompReturn Lufia2DecompBridge_86ABC1(CpuState *cpu) {
+    return ActorBridgeWorldRows(cpu, 0x86abc1u, Lufia2WorldPlaneRows3);
+}
