@@ -222,6 +222,7 @@ static bool s_hd_mode7_present_error_reported;
 static Lufia2IntroMode7WorldStatus s_last_intro_world_status =
     LUFIA2_INTRO_WORLD_INVALID_ARGUMENT;
 static bool s_intro_mode7_world_active_reported;
+static bool s_mode7_substep_live; /* refined on the last frame */
 
 static const char kCleanHdPresetPath[] =
     "assets/shaders/clean-hd/clean-hd.glslp";
@@ -1721,6 +1722,9 @@ static bool SubmitFrame(bool include_rewind) {
         mode7_layout && s_hd_mode7_scale != 0u &&
         snesrecomp_presenter_mode7_scale_supported(
             s_presenter, s_hd_mode7_scale);
+    const bool substep_was_live = s_mode7_substep_live;
+
+    s_mode7_substep_live = false;
 
     if (!intro_world_requested) {
         s_last_intro_world_status = LUFIA2_INTRO_WORLD_INVALID_ARGUMENT;
@@ -1747,6 +1751,10 @@ static bool SubmitFrame(bool include_rewind) {
             snesrecomp_ppu_mode7_compile_lines(
                 &capture, s_hd_mode7_lines, SNES_HEIGHT)) {
             semantic_ready = true;
+            /* A new Mode 7 scene must not pair with the last one's camera. */
+            if (!substep_was_live)
+                Lufia2Mode7SubstepStateChanged();
+            s_mode7_substep_live = true;
             /* Spend the sub-pixel and sub-step remainders the guest keeps but
              * cannot publish, before the world lift reads the lines. */
             Lufia2Mode7SubstepRefine(&capture, s_hd_mode7_lines,
