@@ -539,3 +539,31 @@ remain mandatory.
 60 of 95 feature routines are verified, with 35 draft. The integrated 518-job
 verification and Release build must pass before the staged selection is a
 green checkpoint. Main and the normal build remain unchanged.
+
+
+## Effect stream opcodes and battle tile ids
+
+Four further roots are selected: the effect opcodes $81:A40B (add a stream
+word to a slot field) and $81:953F (repeat counter), and the battle tile row
+$85:9790 with its grid $85:972E. Their bodies were already exact; no source
+change was needed.
+
+The opcodes run from the dispatcher's JSR (abs,X) with M8/X16. Their profile
+covers decimal mode, eight direct pages including pages that place the
+stream pointer on the scratch word or wrap bank zero, sixteen slot indices
+including the scratch word, the caller frame and the bank-7F carry, stream
+pointers in WRAM, ROM and the bank-zero mirror, and repeat counts 0, 1, 2
+and 255. The tile profile covers counter wrap, row offsets crossing banks
+or landing on the caller frame, eight data banks and four stacks. The grid's
+stores start at $2816 and cannot reach the bank-zero stack.
+
+The actual-library ABI matrices pass 102656 cases: 101952 native
+comparisons and 704 unchanged entry fallbacks. Frame, overflow,
+emulation, bank, stack and width bridge mutations and 5 source
+mutations are caught (41 controls). The shared production bridges
+repeat the matrices with identical counts, and ten further controls against
+them are caught. No consumer hook lies inside these routines.
+
+64 of 95 feature routines are verified, with 31 draft. The integrated 518-job
+verification and Release build must pass before the staged selection is a
+green checkpoint. Main and the normal build remain unchanged.

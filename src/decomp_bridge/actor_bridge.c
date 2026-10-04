@@ -3982,3 +3982,60 @@ RecompReturn Lufia2DecompBridge_86E4E7(CpuState *cpu) {
     return ActorBridgeWorldSprite(
         cpu, 0x86e4e7u, Lufia2WorldMapDrawSmallSprite, 0x1f02u, 127u, 1);
 }
+
+/* Effect stream opcodes run with M8/X16 from the dispatcher. */
+static RecompReturn ActorBridgeEffectOpcode(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction run_opcode) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x81u || cpu->S > 0x1ffcu ||
+        !cpu->m_flag || cpu->x_flag)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = run_opcode(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_81A40B(CpuState *cpu) {
+    return ActorBridgeEffectOpcode(cpu, 0x81a40bu, Lufia2BattleEffectAddToField);
+}
+
+RecompReturn Lufia2DecompBridge_81953F(CpuState *cpu) {
+    return ActorBridgeEffectOpcode(cpu, 0x81953fu, Lufia2BattleEffectRepeat);
+}
+
+/* Battle tile ids: rows need M16/X16, the grid X16. */
+static RecompReturn ActorBridgeBattleTiles(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction fill_tiles,
+    int needs_wide_accumulator, uint8_t frame_size) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x85u || cpu->S > 0x1ffcu ||
+        cpu->x_flag || (needs_wide_accumulator && cpu->m_flag))
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = fill_tiles(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, frame_size, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_859790(CpuState *cpu) {
+    return ActorBridgeBattleTiles(cpu, 0x859790u, Lufia2BattleTileRow, 1, 2);
+}
+
+RecompReturn Lufia2DecompBridge_85972E(CpuState *cpu) {
+    return ActorBridgeBattleTiles(cpu, 0x85972eu, Lufia2BattleTileGridEntry, 0, 3);
+}
