@@ -740,3 +740,38 @@ environment for differential execution, not a full NMI or gameplay test.
 Release pass with450 native replacements. The three roots have actual dispatch
 and wrapper entries; their exact production bridges pass against the native
 archive. This is a local checkpoint; main and the normal build are unchanged.
+
+
+## Complete menu screen and image-upload parents
+
+$86:8DD7, $82:8044, $86:9022 and $86:8F6F now implement complete parent
+contracts using required original frame-wait children. The screen's wait is
+$86:8B48; uploads use $82:93C2. Tile clears, OAM clear, image block moves and
+transfer-register/request writes remain native in their original order.
+Returned uploads restore the encoded bank and frames before the parent's
+RTL. Unwinds preserve the live runtime state. No native loop skips frames,
+clears a request or claims completion of hardware work.
+
+Screen/queue entries require M8/X16, DP0, binary arithmetic and S $1F04..$1FFC.
+Image parents require X16, DP0, binary arithmetic, S $1F10..$1FFC, a low-WRAM
+alias DB or $7E, and the original MVN/RTS stub. The set also requires M8,
+1..7 list entries with indices <=85. Missing children or unsupported entries
+hand off before writes. Original children remain responsible for timing.
+
+32768 complete-ROM cases and 32768 preview ABI cases include every DB bank,
+all flags, counter wrap, 1..7 list lengths, byte indices 0..85, RAM-stub faults,
+width/DP/decimal/stack bounds, transfer sizes/addresses and rejected counts.
+The ABI matrix has20768 native comparisons and12000 unchanged-entry fallbacks,
+120 redirects/unwinds and105 zero-access CPU guards. Nine deliberate errors
+are detected cleanly. CPU, all WRAM and ordered writes/MMIO reads are compared.
+Counter changes are symmetric fixtures, not a fullNMI timing or gameplay test.
+
+Full-parent/ABI tests found two flaws missed by prefixes: restoring frames
+without restoring PB after upload, and treating the grid's RTL as RTS. Both
+are repaired and covered by effective source/bridge controls. Public names
+now use complete callback signatures; partial bodies are private helpers.
+
+88/95 additions are verified,7 draft. All518 independent jobs and Release
+pass with454 native replacements. All four roots have generated dispatch and
+wrapper entries. The exact production bridges also pass the native archive.
+This is a local checkpoint; main and the normal build remain unchanged.
