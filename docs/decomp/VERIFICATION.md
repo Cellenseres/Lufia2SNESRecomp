@@ -204,3 +204,44 @@ flags and call frames. The review found no AI markers in these bodies.
 integrated jobs and the Release build pass with 389 standalone replacements.
 Every new binding has a generated dispatch call. Main and the normal build
 remain unchanged; this is an isolated local checkpoint.
+
+
+## World object visibility and its original list caller
+
+`$86:E295` is verified through RTS for native mode, PB86, M0X0, DP0,
+S no higher than `$1FFC`, and a data bank mapping low work RAM. The record
+start X must be at most `$1FF1`, and list start Y at most `$1FD2`. These limits
+keep all record reads and both output fields in RAM. Record, list, camera,
+counter and caller-frame aliases preserve their original order and rewritten
+RTS destinations. Entries outside this contract retain the original entry.
+
+`$86:E287` is verified through RTS for the original updater's caller:
+native PB86/M0X0/DP0, work-RAM DB, X=`$1469`, Y=`$124F`, S=`$1F00..$1FFC`,
+and 1..21 objects in DP `$22`. The ROM updater initializes exactly 21 objects;
+binary and decimal pointer advances keep these records clear of child frames.
+A zero counter wraps on its first DEC; it is not an empty list. Unsupported
+counts retain the original code. This contract closes the whole loop, including
+its child JSR/RTS frames, rather than using a synthetic iteration cap.
+
+The consumer reads the two counter bytes in explicit low/high order before
+materializing a caller frame. Nine count-guard cases check exactly these two
+RAM reads, their byte values and the resulting open-bus high byte. All CPU
+registers/status and WRAM remain unchanged. The other 57 guard cases require
+no memory reads or writes. All 66 cases cover three host-return modes; no
+comparison was relaxed. General ROM comparisons still check CPU, all WRAM,
+ordered writes and hardware reads. The list matrix includes banks 00/7E/7F/86.
+
+- visibleobject: 66,624 cases, 40,272 native, 26,352 entry handoffs
+- visiblelist: 33,856 cases, 32,768 native, 1,088 entry handoffs
+
+All 25 broken bridges are detected: return frame, overflow, PB, stack, DP,
+emulation, widths, work-RAM bank, record/list bounds or starts, and count
+bounds. The bodies retain readable box calculations and the original forward
+loop, with CPU helpers only for observable flags and frames. No AI markers
+were found. Parent ProjectObjects and UpdateObjects screens have no hard
+mismatches but remain draft, with budgets and explicit child handoffs.
+
+25 of 95 feature routines are verified, with 70 draft. All 518 independent
+integrated jobs and the Release build pass with 391 standalone replacements.
+Both new bindings have generated dispatch calls. Main and the normal build
+remain unchanged; this is an isolated local checkpoint.
