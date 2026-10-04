@@ -3696,3 +3696,164 @@ static RecompReturn ActorBridgeRamBufferCopy(
 RecompReturn Lufia2DecompBridge_00057D(CpuState *cpu) {
     return ActorBridgeRamBufferCopy(cpu, ((uint32_t)cpu->PB << 16) | 0x057du, Lufia2RamBlockMove);
 }
+
+/* Preserve ordered hardware accesses and the original saved frames. */
+static RecompReturn ActorBridgeNmiScrollUploads(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction execute_uploads) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation ||
+        cpu->PB != 0x80u ||
+        cpu->S > 0x1ffcu ||
+        cpu->S < 0x1f04u || cpu->D != 0u || !(cpu->DB < 0x40u || (cpu->DB >= 0x80u && cpu->DB < 0xc0u)))
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = execute_uploads(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_8087A7(CpuState *cpu) {
+    return ActorBridgeNmiScrollUploads(cpu, 0x8087a7u, Lufia2NmiScrollAndUploads);
+}
+
+/* Preserve ordered hardware accesses and the original saved frames. */
+static RecompReturn ActorBridgeNmiTilemapUploads(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction execute_uploads) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation ||
+        cpu->PB != 0x80u ||
+        cpu->S > 0x1ffcu ||
+        cpu->S < 0x1f02u || cpu->D != 0u || !(cpu->DB < 0x40u || (cpu->DB >= 0x80u && cpu->DB < 0xc0u)) || !cpu->m_flag || cpu->x_flag)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = execute_uploads(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_8087FC(CpuState *cpu) {
+    return ActorBridgeNmiTilemapUploads(cpu, 0x8087fcu, Lufia2NmiTilemapUploads);
+}
+
+/* Preserve ordered hardware accesses and the original saved frames. */
+static RecompReturn ActorBridgeBattleScaleColor(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction scale_color) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation ||
+        cpu->PB != 0x81u ||
+        cpu->S > 0x1ffcu ||
+        cpu->S < 0x1f00u || cpu->D != 0u || !(cpu->DB < 0x40u || (cpu->DB >= 0x80u && cpu->DB < 0xc0u)) || cpu->x_flag)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = scale_color(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_81B3F8(CpuState *cpu) {
+    return ActorBridgeBattleScaleColor(cpu, 0x81b3f8u, Lufia2BattleScaleColor);
+}
+
+/* Preserve ordered hardware accesses and the original saved frames. */
+static RecompReturn ActorBridgeBattlePaletteFade(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction fade_palette) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation ||
+        cpu->PB != 0x81u ||
+        cpu->S > 0x1ffcu ||
+        cpu->S < 0x1f02u || cpu->D != 0u || !(cpu->DB < 0x40u || (cpu->DB >= 0x80u && cpu->DB < 0xc0u)) || !cpu->m_flag || cpu->x_flag)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    if (ActorBridgeRead(cpu, 0x11u) > 15u)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = fade_palette(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_81B396(CpuState *cpu) {
+    return ActorBridgeBattlePaletteFade(cpu, 0x81b396u, Lufia2BattlePaletteBrightness);
+}
+
+/* Fill the tile block with the original stride and return frame. */
+static RecompReturn ActorBridgeMenuTileBlock(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction fill_block) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation ||
+        cpu->PB != 0x82u ||
+        cpu->S > 0x1ffcu ||
+        cpu->S < 0x1f02u || cpu->D != 0u || cpu->m_flag || cpu->x_flag)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = fill_block(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_8280A5(CpuState *cpu) {
+    return ActorBridgeMenuTileBlock(cpu, 0x8280a5u, Lufia2MenuTileBlockFill);
+}
+
+/* Sort the bounded visible list in descending order, retaining stable object references. */
+static RecompReturn ActorBridgeVisibleSort(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction sort_visible) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->S > 0x1ffcu ||
+        cpu->S < 0x1f02u || cpu->m_flag || cpu->x_flag || cpu->D != 0u)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    ActorBridgeLoad(cpu, &state);
+    result = sort_visible(&memory, &state);
+    if (result.flow != LUFIA2_EXECUTION_RETURNED)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_86E686(CpuState *cpu) {
+    return ActorBridgeVisibleSort(cpu, 0x86e686u, Lufia2WorldMapSortVisible);
+}
