@@ -813,3 +813,42 @@ which corrupted all later cases; it now restores the outer reference.
 verification jobs and Release pass with 456 native replacements. Both roots
 have generated dispatch and wrapper entries. This checkpoint is local; main
 and the normal build remain unchanged.
+
+
+## NMI pad service and battle-effect frame yield
+
+$80:8703 uploads requested OAM/palette buffers and polls the automatic pad read
+before updating held/pressed buttons and repeat timers. Native calls require
+PB80, M8, DP0, S1F00..1FFC and hardware DB; either index width is restored
+with caller P. The consumer refuses LLE driving before any bus access because
+that context has no read-side beam progression. The two unchanged core
+functions confirm 25350 timer/beam states without new auto-read initiation
+(at most 66 reads), plus 76050 states with automatic initiation at the VBlank
+edge (at most 109 reads); 128 LLE reads
+leave timer and beam unchanged. This is a read-side core witness, not a full
+NMI scheduling or gameplay test. Repeat operand reads are sequenced in C.
+
+$81:9169 is now named Lufia2BattleEffectYield: it saves the next stream pointer,
+reloads the slot timer, PLX-discards the opcode JSR frame and RTS-returns to the
+dispatcher exit at $81:8C59. It does not resume at the next opcode. The bridge
+follows the generated non-local return routing: compiled ancestor, interpreter
+owner, direct paired bounce, or dispatch. Native entries require PB81,
+M8/X16, DP0 and S1F00..1FFA; decimal and DB are preserved as in the ROM.
+
+Actual-library comparisons: 8192 complete effect body/ABI cases and 8192 NMI
+cases (4663 native, 3529 unchanged entry fallbacks), no mismatch/partial or
+budget-limited NMI case. Forty-eight zero-bus CPU/context guards pass; nine
+effective preview errors fail cleanly. The generic NMI fixture still has 32
+cases with a static busy bit and no modeled progression; this generic screen
+is not the proof for this routine. The explicit per-side polling model and
+unchanged-core witness establish the polling contract.
+
+An additional 1536 directed effect body/ABI cases cover saved-register,
+opcode/dispatcher-frame and stream-pointer aliases plus long-index bank
+crossings at both stack edges. All match the original. The same run adds
+1536 NMI cases (870 native,666 entry fallbacks), with no mismatch or cap.
+
+92/95 additions are verified, with 3 draft and 458 native replacements.
+Actual production bridges, nine canonical controls, all 518 independent
+verification jobs and Release pass. Both generated dispatches are present.
+The checkpoint is local; main and the normal build remain unchanged.
