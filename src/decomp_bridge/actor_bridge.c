@@ -4208,3 +4208,59 @@ static RecompReturn ActorBridgeMenuSlotPalettes(
 RecompReturn Lufia2DecompBridge_86911F(CpuState *cpu) {
     return ActorBridgeMenuSlotPalettes(cpu, 0x86911fu, Lufia2MenuLoadSlotPalettes);
 }
+
+/* Whole world-object passes; semantic guards reject before any write. */
+static RecompReturn ActorBridgeWorldObjectParent(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction update_objects,
+    uint16_t minimum_stack, int accumulator_8, int rom_tables) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->x_flag ||
+        cpu->m_flag != accumulator_8 || cpu->_flag_D || cpu->D != 0u ||
+        !ActorBridgeWorldRamBank(cpu->DB) || cpu->S < minimum_stack ||
+        cpu->S > 0x1ffcu ||
+        (rom_tables && cpu->DB != 0x86u && cpu->DB != 0x06u))
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    ActorBridgeLoad(cpu, &state);
+    result = update_objects(&memory, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY && result.pc == entry_pc24)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY) {
+        cpu->PB = state.program_bank;
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    }
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_86E430(CpuState *cpu) {
+    return ActorBridgeWorldObjectParent(
+        cpu, 0x86e430u, Lufia2WorldMapAssignSlot, 0x1f00u, 0, 0);
+}
+
+RecompReturn Lufia2DecompBridge_86E3D2(CpuState *cpu) {
+    return ActorBridgeWorldObjectParent(
+        cpu, 0x86e3d2u, Lufia2WorldMapDrawObjectByKind, 0x1f04u, 0, 0);
+}
+
+RecompReturn Lufia2DecompBridge_86E3AB(CpuState *cpu) {
+    return ActorBridgeWorldObjectParent(
+        cpu, 0x86e3abu, Lufia2WorldMapDrawObjects, 0x1f08u, 0, 0);
+}
+
+RecompReturn Lufia2DecompBridge_86E2D2(CpuState *cpu) {
+    return ActorBridgeWorldObjectParent(
+        cpu, 0x86e2d2u, Lufia2WorldMapProjectObjects, 0x1f00u, 0, 0);
+}
+
+RecompReturn Lufia2DecompBridge_86E1B9(CpuState *cpu) {
+    return ActorBridgeWorldObjectParent(
+        cpu, 0x86e1b9u, Lufia2WorldMapUpdateObjects, 0x1f10u, 1, 1);
+}
