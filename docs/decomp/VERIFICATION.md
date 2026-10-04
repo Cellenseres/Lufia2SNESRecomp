@@ -636,3 +636,41 @@ correctly leaves the second guard effective. No recomp hook is swallowed.
 verification jobs and the Release build pass with 439 standalone native
 replacements. All six roots have actual generated dispatch entries. This is
 an isolated local checkpoint; main and the normal build are unchanged.
+
+
+## Complete world-object parent passes
+
+$86:E430, $E3D2, $E3AB, $E2D2 and $E1B9 now have complete native
+contracts. Each accepts its documented fixed-record domain and otherwise
+hands off at the unchanged entry without CPU changes or memory writes.
+All nested drawing, sorting, projection and slot-user passes finish natively
+inside that domain. The per-frame root owns the whole sequence, including
+sprite clearing and shared pattern allocation; no wait loop is bypassed.
+
+The five ABI matrices contain 25920 cases (6072 native comparisons and
+19848 unchanged-entry fallbacks), with no mismatch, partial completion
+or inconclusive original run. The 4096-state families cover coordinate
+edges, tilted/plain views, shared and distinct patterns, inactive unknown
+kinds, flag combinations, both RAM banks, ROM-bank aliases, stack limits
+and invalid counters. CPU, all WRAM and ordered bus effects are compared.
+150 explicit guards additionally verify the live host-return states with
+zero bus accesses. Twelve source/bridge controls detect altered user counts,
+sprite counts, list/projection strides, camera position, wrong root return
+frames and damaged last-user guards. Only clean diagnostic exits count.
+
+The $C0-indexed last-user table uses direct-page bank zero, while $1365 is
+absolute in DB. A damaged last-user pointer can overwrite a nested return
+frame; it is rejected before writes. Update restricts DB to $86/$06 because
+its pool tables are ROM absolute reads, while its inactive records need no
+kind validation. The header records individual stack and payload contracts.
+All executed children stay in bank $86, which has no consumer hook points.
+
+The image parents $86:9022/$8F6F and field parent $80:F821 also preserve
+the original accumulator, indexes and flags at child-entry handoffs. Twelve
+before/after ROM witnesses detect the old mistakes and match the repairs.
+They remain draft: exact partial handoff is not a whole-function proof.
+
+78 of 95 feature additions are verified and 17 remain draft. All 518
+independent jobs and the Release build pass with 444 native replacements.
+All five roots have actual generated dispatch and wrapper entries. This is
+an isolated local checkpoint; main and the normal build are unchanged.
