@@ -567,3 +567,34 @@ them are caught. No consumer hook lies inside these routines.
 64 of 95 feature routines are verified, with 31 draft. The integrated 518-job
 verification and Release build must pass before the staged selection is a
 green checkpoint. Main and the normal build remain unchanged.
+
+
+## Battle actor sprite and world animations
+
+Three further roots are selected: the battle actor sprite $81:8EEA and the
+world animation start $86:E0B9 and step $86:E11F. The sprite and start
+bodies were already exact. The step inlines the start and the frame-record
+lookup with their JSR frames. Its object writes use DP,X addressing; with a
+non-zero direct page they can land on that nested frame, and the original
+then returns elsewhere. Seed 2299999 (DP $0A86, S $1F00) shows this: the
+original runs away while the old C returned normally. The step now requires
+DP0 and S $1F00..$1FFC before any access; other entries keep the original.
+
+The sprite profile covers all 64 records, every sprite kind, screen edges on
+both axes, list cursors on the stack and wrapping the bank, four direct
+pages, data banks and stacks, decimal mode and carry; both the drawn and the
+skipped exit occur. The animation profile covers all 22 objects and
+out-of-table indices, ROM and RAM tables, every timer class, loop and
+follow-up endings, and direct pages and stacks inside and outside the
+contract.
+
+The actual-library ABI matrices pass 101568 cases: 80400 native
+comparisons and 21168 unchanged entry fallbacks. 29 bridge,
+guard and profile-wide source controls are caught, including the nested
+frame witness. The shared production bridges repeat the matrices with
+identical counts, and nine further controls against them are caught. No
+consumer hook lies inside these routines.
+
+67 of 95 feature routines are verified, with 28 draft. The integrated 518-job
+verification and Release build must pass before the staged selection is a
+green checkpoint. Main and the normal build remain unchanged.
