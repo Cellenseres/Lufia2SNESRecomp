@@ -245,3 +245,33 @@ mismatches but remain draft, with budgets and explicit child handoffs.
 integrated jobs and the Release build pass with 391 standalone replacements.
 Both new bindings have generated dispatch calls. Main and the normal build
 remain unchanged; this is an isolated local checkpoint.
+
+
+## World perspective row builders
+
+The four sign variants at $86:A9B0, AA5B, AB0E and ABC1 are verified
+through RTS for their original plane caller: native PB86/M0X0/DP0/DB86,
+Y=$0382 or $01C1, and 1..112 rows in DP $26. The consumer accepts stack
+pointers up to $1FFC, including the parent's child frame at $1EFC.
+Unsupported entries retain original execution before any writes.
+
+Each row preserves reciprocal reads, multiplier accesses, forward output
+order, decimal arithmetic, counter RMW order, flags and caller-frame aliases.
+The 16-bit read at $4217 includes the joypad byte at $4218; its full value
+is retained in X. The source uses shared, readable calculations for the
+four quadrants and memory callbacks for observable hardware accesses.
+
+The actual bridges pass 200960 cases: 196608 native ROM comparisons and
+4352 entry handoffs. Their matrices cover factors, angles, subtraction steps,
+row counts, both bands, decimal mode and overlapping return frames.
+132 guard fixtures cover three host-return modes. Count guards check the
+exact two low/high RAM reads and resulting open-bus byte; CPU registers,
+status and WRAM remain unchanged. Other guards require no accesses.
+All 48 deliberately broken bridges are detected. The complete parent plane
+matrix still passes all 262144 ROM comparisons after the row contracts.
+
+29 of 95 feature routines are verified, with 66 draft. All 518 independent
+integrated jobs and the Release build pass with 395 standalone replacements.
+All four bindings have generated dispatch calls. The current row library also
+passes 16384 native parent ABI cases and 24 parent guards. Main and the normal
+build remain unchanged; this is an isolated local checkpoint.
