@@ -4357,3 +4357,55 @@ RecompReturn Lufia2DecompBridge_8280CA(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_82838F(CpuState *cpu) {
     return ActorBridgeMenuWaitParent(cpu, 0x82838fu, Lufia2MenuClearLayers, 0);
 }
+
+typedef Lufia2ExecutionResult (*MenuUploadParent)(
+    const Lufia2Memory *, Lufia2CpuState *, Lufia2PushedChildCall, void *);
+
+
+static RecompReturn ActorBridgeMenuUploadParent(
+    CpuState *cpu, uint32_t entry, MenuUploadParent upload,
+    unsigned return_size, unsigned minimum_stack, int word_entry) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+    ActorPushedCall call;
+
+    if (cpu->emulation || cpu->PB != entry >> 16 || cpu->x_flag ||
+        cpu->_flag_D || cpu->D != 0u || cpu->S < minimum_stack ||
+        cpu->S > 0x1ffcu || (!word_entry && !cpu->m_flag))
+        return ActorBridgeFallback(cpu, &frame, entry);
+    frame = ActorBridgeEnter(cpu);
+    call.cpu = cpu;
+    call.frame = frame;
+    call.unwound = RECOMP_RETURN_NORMAL;
+    ActorBridgeLoad(cpu, &state);
+    result = upload(&memory, &state, ActorBridgePushedChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY && result.pc == entry)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    ActorBridgeStore(cpu, &state);
+    cpu->PB = state.program_bank;
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return ActorBridgeReturn(cpu, &frame, return_size, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_828044(CpuState *cpu) {
+    return ActorBridgeMenuUploadParent(cpu, 0x828044u, Lufia2MenuQueueVideoWrite, 3u, 0x1f04u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_868DD7(CpuState *cpu) {
+    return ActorBridgeMenuUploadParent(cpu, 0x868dd7u, Lufia2MenuScreenSetup, 3u, 0x1f04u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_869022(CpuState *cpu) {
+    return ActorBridgeMenuUploadParent(cpu, 0x869022u, Lufia2MenuLoadImageGrid, 3u, 0x1f10u, 1);
+}
+
+RecompReturn Lufia2DecompBridge_868F6F(CpuState *cpu) {
+    return ActorBridgeMenuUploadParent(cpu, 0x868f6fu, Lufia2MenuLoadImageSet, 3u, 0x1f10u, 0);
+}
