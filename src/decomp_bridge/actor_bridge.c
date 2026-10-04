@@ -3857,3 +3857,128 @@ static RecompReturn ActorBridgeVisibleSort(
 RecompReturn Lufia2DecompBridge_86E686(CpuState *cpu) {
     return ActorBridgeVisibleSort(cpu, 0x86e686u, Lufia2WorldMapSortVisible);
 }
+
+/* Banks that map the CPU registers and low WRAM. */
+static int ActorBridgeSystemBank(uint8_t bank) {
+    return bank < 0x40u || (bank >= 0x80u && bank < 0xc0u);
+}
+
+/* Slide corrections: M8, DP0, Y <= $0800, low-WRAM DB. */
+static RecompReturn ActorBridgeMenuSlideCorrection(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction correct_slide) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x82u || !cpu->m_flag || cpu->D != 0u ||
+        cpu->S < 0x1f00u || cpu->S > 0x1ffcu || cpu->Y > 0x0800u ||
+        !(ActorBridgeSystemBank(cpu->DB) || cpu->DB == 0x7eu))
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = correct_slide(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_828AD8(CpuState *cpu) {
+    return ActorBridgeMenuSlideCorrection(cpu, 0x828ad8u, Lufia2MenuSlideCorrectX);
+}
+
+RecompReturn Lufia2DecompBridge_828AE9(CpuState *cpu) {
+    return ActorBridgeMenuSlideCorrection(cpu, 0x828ae9u, Lufia2MenuSlideCorrectY);
+}
+
+/* Colour tables through the WRAM port: M8/X16, JSL frame. */
+static RecompReturn ActorBridgeBattleColors(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction load_colors,
+    int needs_system_bank) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x85u || !cpu->m_flag || cpu->x_flag ||
+        cpu->S < 0x1f02u || cpu->S > 0x1ffcu ||
+        (needs_system_bank && !ActorBridgeSystemBank(cpu->DB)))
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = load_colors(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_858AAF(CpuState *cpu) {
+    return ActorBridgeBattleColors(cpu, 0x858aafu, Lufia2BattleColorsInit, 1);
+}
+
+RecompReturn Lufia2DecompBridge_858AF4(CpuState *cpu) {
+    return ActorBridgeBattleColors(cpu, 0x858af4u, Lufia2BattleColorsParty, 0);
+}
+
+RecompReturn Lufia2DecompBridge_858B22(CpuState *cpu) {
+    return ActorBridgeBattleColors(cpu, 0x858b22u, Lufia2BattleColorsMonster, 0);
+}
+
+/* Reads a WRAM word low byte first, as the guarded routine does. */
+static uint16_t ActorBridgeReadWord(CpuState *cpu, uint32_t address) {
+    const uint8_t low = ActorBridgeRead(cpu, address);
+
+    return (uint16_t)(low | ((uint16_t)ActorBridgeRead(cpu, address + 1u) << 8));
+}
+
+/* World sprites: M16/X16, DP0, bounded counter and object record. */
+static RecompReturn ActorBridgeWorldSprite(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction build_sprite,
+    uint16_t lowest_stack, uint16_t counter_limit, int reads_object) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->m_flag || cpu->x_flag ||
+        cpu->D != 0u || cpu->S < lowest_stack || cpu->S > 0x1ffcu ||
+        !(ActorBridgeSystemBank(cpu->DB) || cpu->DB == 0x7eu))
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    if (ActorBridgeReadWord(cpu, ((uint32_t)cpu->DB << 16) | 0x1467u) > counter_limit)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    if (reads_object) {
+        const uint16_t object = ActorBridgeReadWord(cpu, 0x02u);
+
+        if (object < 0x1000u || object > 0x1e00u)
+            return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    }
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = build_sprite(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_86E555(CpuState *cpu) {
+    return ActorBridgeWorldSprite(
+        cpu, 0x86e555u, Lufia2WorldMapDrawSpritePair, 0x1f04u, 126u, 1);
+}
+
+RecompReturn Lufia2DecompBridge_86E5BB(CpuState *cpu) {
+    return ActorBridgeWorldSprite(
+        cpu, 0x86e5bbu, Lufia2WorldMapStoreHighBits, 0x1f02u, 127u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_86E479(CpuState *cpu) {
+    return ActorBridgeWorldSprite(
+        cpu, 0x86e479u, Lufia2WorldMapDrawSprite, 0x1f02u, 127u, 1);
+}
+
+RecompReturn Lufia2DecompBridge_86E4E7(CpuState *cpu) {
+    return ActorBridgeWorldSprite(
+        cpu, 0x86e4e7u, Lufia2WorldMapDrawSmallSprite, 0x1f02u, 127u, 1);
+}
