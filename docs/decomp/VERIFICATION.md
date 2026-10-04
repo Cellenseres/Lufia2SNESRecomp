@@ -418,3 +418,55 @@ condition. Native dispatch counts are measured separately from semantic passes.
 integrated jobs and the Release build pass with 407 standalone replacements.
 All six new bindings have generated dispatch calls. Main and the normal
 build remain unchanged; this is an isolated local checkpoint.
+
+
+## Image rows and shared RAM copy
+
+$86:9009 copies 256 bytes, $86:906A copies 128 bytes and advances both
+pointers, and $86:8FF6 copies two rows separated by a $200-byte target
+stride. The 128-byte routine previously used binary arithmetic for two
+ADC operations even when the entry decimal flag was set. A valid RAM-stub
+state (index77, seed1142049) exposes the source-pointer mismatch at WRAM
+$08; final CPU flags alone miss it. Both increments now use decimal-aware
+arithmetic. Source and target reads are explicitly sequenced, retaining
+the original bus order rather than depending on C argument evaluation.
+
+The row contract is X16, DP=0, DB in a first-bank WRAM mirror, prepared
+MVN/RTS bytes at $057D/$0580, and S=$1F04..$1FFC. The 256-byte row needs
+M8 and target=$2000..$FF00; the 128-byte row accepts either accumulator
+width and target=$2000..$FF80. The two-row block accepts either width,
+S=$1F08..$1FFC and target=$2000..$FD00. All three retain decimal mode,
+saved frames, operand-bank writes, forward overlap behavior and RTS state.
+Native bridges additionally require non-emulation mode and PB=$86.
+Unsupported entry states hand off before any writes or CPU changes.
+
+$00:057D identifies the RAM MVN/RTS kernel prepared by the original game.
+Its complete buffer contract accepts X16, either accumulator width, any
+DP/DB, S=$1F00..$1FFC, code in low-RAM banks, destination=$7E/$7F and
+Y >= $2000 with Y+A <= $FFFF. A remains a 16-bit byte counter even in M8.
+The byte loop retains forward copies and the original bank-operand reads;
+it leaves A=$FFFF, advanced X/Y, destination DB and unchanged status flags.
+The bounded output keeps live RAM code, scratch and caller frames intact.
+Other states keep the original entry. Real field-map loading calls it in
+PB=$83 and menu copying calls it in PB=$86.
+
+The consumer binding uses dispatch_addresses for those two execution banks,
+with one canonical semantic function and no duplicate alias implementations.
+The bridge's fallback and RTS PC inherit PB. Manifest validation preserves
+the verified-status gate and rejects conflicting, duplicate, malformed or
+undeclared aliases. Eleven portable manifest tests pass; the configured
+SNESRecomp emitter separately produces all eight bank/width forwarding shims.
+
+The four actual-library ABI proofs pass 49408 cases: 28240 native ROM
+comparisons and 21168 unchanged original-entry handoffs. Profiles cover
+decimal flags, register widths, banks, pointer boundaries, overlapping
+payloads and counts up to 57344 bytes. All 132 rejection fixtures verify
+CPU/WRAM, read sequence, read values and open bus. Twenty-eight deliberately
+broken source/bridge controls are caught, including decimal arithmetic,
+copy counts, destination bank, strides and return frames.
+
+45 of 95 feature routines are verified, with 50 draft. All 518 independent
+integrated jobs and the Release build pass with 411 canonical standalone
+replacements. The RAM kernel has actual dispatch in both PB83 and PB86;
+all four copy roots have generated calls. Main and the normal build remain
+unchanged; this is an isolated local checkpoint.

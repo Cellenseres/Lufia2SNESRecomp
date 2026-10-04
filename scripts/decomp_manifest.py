@@ -46,6 +46,7 @@ class Binding:
     address: str
     bridge: str
     allow_draft: bool
+    dispatch_addresses: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -69,7 +70,7 @@ def _load_basic_toml(text: str, path: Path) -> dict:
     """Parse the intentionally small metadata schema on Python 3.10.
 
     Full TOML is used when tomllib/tomli is available. The fallback accepts
-    top-level scalar keys plus arrays of tables, which is the complete schema
+    top-level scalar keys, one-line string arrays and arrays of tables, the schema
     used by functions.toml and decomp_bindings.toml.
     """
     document: dict = {}
@@ -89,6 +90,10 @@ def _load_basic_toml(text: str, path: Path) -> dict:
         key, raw_value = assignment.groups()
         if raw_value.startswith('"') and raw_value.endswith('"'):
             value = json.loads(raw_value)
+        elif raw_value.startswith("[") and raw_value.endswith("]"):
+            value = json.loads(raw_value)
+            if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+                raise ValueError(f"{path}:{line_number}: expected a string array")
         elif re.fullmatch(r"[+-]?[0-9]+", raw_value):
             value = int(raw_value, 10)
         elif raw_value in {"true", "false"}:
@@ -185,7 +190,17 @@ def load_bindings(path: Path) -> list[Binding]:
             raise ManifestError(f"{path}: duplicate bridge symbol {bridge}")
         addresses.add(address)
         bridges.add(bridge)
-        bindings.append(Binding(address, bridge, allow_draft))
+        raw_dispatch = record.get("dispatch_addresses")
+        dispatch_addresses: tuple[str, ...] = ()
+        if raw_dispatch is not None:
+            if not isinstance(raw_dispatch, list) or not raw_dispatch:
+                raise ManifestError(f"{context}: dispatch_addresses must be a nonempty array")
+            dispatch_addresses = tuple(_format_address(item, context) for item in raw_dispatch)
+            if len(set(dispatch_addresses)) != len(dispatch_addresses):
+                raise ManifestError(f"{context}: duplicate dispatch address")
+            if any(item[3:] != address[3:] for item in dispatch_addresses):
+                raise ManifestError(f"{context}: dispatch addresses must retain the entry PC")
+        bindings.append(Binding(address, bridge, allow_draft, dispatch_addresses))
     return sorted(bindings, key=lambda item: item.address)
 
 
@@ -325,6 +340,7 @@ def generate(
     binding_by_address = {item.address: item for item in bindings}
     cfg_by_bank = {item.bank: item for item in cfg_files}
 
+    dispatch_owner: dict[str, str] = {}
     selected: list[tuple[Function, Binding]] = []
     function_report: list[dict] = []
     for function in functions:
@@ -342,17 +358,29 @@ def generate(
             )
         )
         if is_selected:
-            if function.address in hand_hle:
-                path, symbol = hand_hle[function.address]
-                raise ManifestError(
-                    f"{function.address}: selected replacement conflicts with "
-                    f"hand-authored hle_func {symbol} in {path}"
-                )
-            bank = function.address[:2]
-            if bank not in cfg_by_bank:
-                raise ManifestError(
-                    f"{function.address}: no source cfg declares bank {bank}"
-                )
+            for dispatch_address in binding.dispatch_addresses or (function.address,):
+                if dispatch_address != function.address and dispatch_address in function_by_address:
+                    raise ManifestError(
+                        f"{function.address}: dispatch address {dispatch_address} "
+                        "belongs to another semantic function"
+                    )
+                if dispatch_address in hand_hle:
+                    path, symbol = hand_hle[dispatch_address]
+                    raise ManifestError(
+                        f"{dispatch_address}: selected replacement conflicts with "
+                        f"hand-authored hle_func {symbol} in {path}"
+                    )
+                bank = dispatch_address[:2]
+                if bank not in cfg_by_bank:
+                    raise ManifestError(
+                        f"{dispatch_address}: no source cfg declares bank {bank}"
+                    )
+                if dispatch_address in dispatch_owner:
+                    raise ManifestError(
+                        f"{dispatch_address}: selected dispatch already belongs to "
+                        f"{dispatch_owner[dispatch_address]}"
+                    )
+                dispatch_owner[dispatch_address] = function.address
             selected.append((function, binding))
 
         if function.status == "verified" and binding is None:
@@ -382,9 +410,10 @@ def generate(
 
     generated_by_bank: dict[str, list[str]] = {}
     for function, binding in selected:
-        generated_by_bank.setdefault(function.address[:2], []).append(
-            f"hle_func {function.address[3:]} {binding.bridge}"
-        )
+        for dispatch_address in binding.dispatch_addresses or (function.address,):
+            generated_by_bank.setdefault(dispatch_address[:2], []).append(
+                f"hle_func {dispatch_address[3:]} {binding.bridge}"
+            )
 
     out_dir.mkdir(parents=True, exist_ok=True)
     for stale in sorted(out_dir.glob("*.cfg")):
@@ -416,6 +445,8 @@ def generate(
                 "bridge": binding.bridge,
                 "name": function.name,
                 "status": function.status,
+                **({"dispatch_addresses": list(binding.dispatch_addresses)}
+                   if binding.dispatch_addresses else {}),
             }
             for function, binding in selected
         ],

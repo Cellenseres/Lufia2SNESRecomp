@@ -3596,3 +3596,103 @@ static RecompReturn ActorBridgeBattleCircleWindow(
 RecompReturn Lufia2DecompBridge_85B208(CpuState *cpu) {
     return ActorBridgeBattleCircleWindow(cpu, 0x85b208u, Lufia2BattleCircleWindow);
 }
+
+/* Copy an image buffer while keeping live code and return frames intact. */
+static RecompReturn ActorBridgeMenuImageRow256(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction copy_buffer) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->S > 0x1ffcu || cpu->S < 0x1f04u || cpu->x_flag || cpu->D != 0u || !cpu->m_flag)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    ActorBridgeLoad(cpu, &state);
+    result = copy_buffer(&memory, &state);
+    if (result.flow != LUFIA2_EXECUTION_RETURNED)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_869009(CpuState *cpu) {
+    return ActorBridgeMenuImageRow256(cpu, 0x869009u, Lufia2MenuCopyImageRow256);
+}
+
+/* Copy an image buffer while keeping live code and return frames intact. */
+static RecompReturn ActorBridgeMenuImageRow128(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction copy_buffer) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->S > 0x1ffcu || cpu->S < 0x1f04u || cpu->x_flag || cpu->D != 0u)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    ActorBridgeLoad(cpu, &state);
+    result = copy_buffer(&memory, &state);
+    if (result.flow != LUFIA2_EXECUTION_RETURNED)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_86906A(CpuState *cpu) {
+    return ActorBridgeMenuImageRow128(cpu, 0x86906au, Lufia2MenuCopyImageRow128);
+}
+
+/* Copy an image buffer while keeping live code and return frames intact. */
+static RecompReturn ActorBridgeMenuImageBlock(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction copy_buffer) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->S > 0x1ffcu || cpu->S < 0x1f08u || cpu->x_flag || cpu->D != 0u)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    ActorBridgeLoad(cpu, &state);
+    result = copy_buffer(&memory, &state);
+    if (result.flow != LUFIA2_EXECUTION_RETURNED)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_868FF6(CpuState *cpu) {
+    return ActorBridgeMenuImageBlock(cpu, 0x868ff6u, Lufia2MenuCopyImageBlock);
+}
+
+/* Copy an image buffer while keeping live code and return frames intact. */
+static RecompReturn ActorBridgeRamBufferCopy(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction copy_buffer) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || (cpu->PB != 0x83u && cpu->PB != 0x86u) || cpu->S > 0x1ffcu || cpu->S < 0x1f00u || cpu->x_flag)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    ActorBridgeLoad(cpu, &state);
+    result = copy_buffer(&memory, &state);
+    if (result.flow != LUFIA2_EXECUTION_RETURNED)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_00057D(CpuState *cpu) {
+    return ActorBridgeRamBufferCopy(cpu, ((uint32_t)cpu->PB << 16) | 0x057du, Lufia2RamBlockMove);
+}
