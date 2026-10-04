@@ -4039,3 +4039,57 @@ RecompReturn Lufia2DecompBridge_859790(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_85972E(CpuState *cpu) {
     return ActorBridgeBattleTiles(cpu, 0x85972eu, Lufia2BattleTileGridEntry, 0, 3);
 }
+
+/* One battle actor sprite: M16/X16, JSR frame. */
+static RecompReturn ActorBridgeBattleActorSprite(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction append_sprite) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x81u || cpu->S > 0x1ffcu ||
+        cpu->m_flag || cpu->x_flag)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = append_sprite(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_818EEA(CpuState *cpu) {
+    return ActorBridgeBattleActorSprite(cpu, 0x818eeau, Lufia2BattleActorSprite);
+}
+
+/* World animations: M8/X16; stepping also needs DP0 and S $1F00..$1FFC. */
+static RecompReturn ActorBridgeWorldAnimation(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction animate,
+    int needs_caller_frame) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->S > 0x1ffcu ||
+        !cpu->m_flag || cpu->x_flag ||
+        (needs_caller_frame && (cpu->D != 0u || cpu->S < 0x1f00u)))
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = animate(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_86E0B9(CpuState *cpu) {
+    return ActorBridgeWorldAnimation(cpu, 0x86e0b9u, Lufia2WorldMapStartAnimation, 0);
+}
+
+RecompReturn Lufia2DecompBridge_86E11F(CpuState *cpu) {
+    return ActorBridgeWorldAnimation(cpu, 0x86e11fu, Lufia2WorldMapStepAnimations, 1);
+}
