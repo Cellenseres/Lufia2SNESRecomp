@@ -4309,3 +4309,51 @@ RecompReturn Lufia2DecompBridge_858D2E(CpuState *cpu) {
     return ActorBridgeBattleRenderParent(cpu, 0x858d2eu,
         Lufia2BattlePartyTilemapEntry, 0x1f00u, 0);
 }
+
+/* Native tile work with the original frame-wait child. */
+typedef Lufia2ExecutionResult (*MenuWaitParent)(
+    const Lufia2Memory *, Lufia2CpuState *, Lufia2PushedChildCall, void *);
+
+
+static RecompReturn ActorBridgeMenuWaitParent(
+    CpuState *cpu, uint32_t entry, MenuWaitParent draw, int rectangle) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+    ActorPushedCall call;
+
+    if (cpu->emulation || cpu->PB != 0x82u || cpu->x_flag || cpu->_flag_D ||
+        cpu->D != 0u || cpu->S < 0x1f04u || cpu->S > 0x1ffcu ||
+        (rectangle && (cpu->m_flag || !(cpu->X & 0xffu) ||
+        (cpu->X & 0xffu) > 32u || !(cpu->X >> 8) || (cpu->X >> 8) > 32u)))
+        return ActorBridgeFallback(cpu, &frame, entry);
+    frame = ActorBridgeEnter(cpu);
+    call.cpu = cpu;
+    call.frame = frame;
+    call.unwound = RECOMP_RETURN_NORMAL;
+    ActorBridgeLoad(cpu, &state);
+    result = draw(&memory, &state, ActorBridgePushedChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY && result.pc == entry)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return ActorBridgeReturn(cpu, &frame, 2u, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_828069(CpuState *cpu) {
+    return ActorBridgeMenuWaitParent(cpu, 0x828069u, Lufia2MenuTileGridFill, 0);
+}
+
+RecompReturn Lufia2DecompBridge_8280CA(CpuState *cpu) {
+    return ActorBridgeMenuWaitParent(cpu, 0x8280cau, Lufia2MenuRecolorRect, 1);
+}
+
+RecompReturn Lufia2DecompBridge_82838F(CpuState *cpu) {
+    return ActorBridgeMenuWaitParent(cpu, 0x82838fu, Lufia2MenuClearLayers, 0);
+}
