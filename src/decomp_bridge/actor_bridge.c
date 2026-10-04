@@ -3202,3 +3202,70 @@ static RecompReturn ActorBridgeEffectVelocity(
 RecompReturn Lufia2DecompBridge_81A598(CpuState *cpu) {
     return ActorBridgeEffectVelocity(cpu, 0x81a598u, Lufia2BattleEffectVelocity);
 }
+
+/* Test world objects against the screen rectangle. */
+static int ActorBridgeWorldRamBank(uint8_t bank) {
+    return bank < 0x40u || bank == 0x7eu || bank == 0x7fu ||
+        (bank >= 0x80u && bank < 0xc0u);
+}
+
+static RecompReturn ActorBridgeVisibleObject(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction test_visibility) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->S > 0x1ffcu || cpu->D != 0u ||
+        !ActorBridgeWorldRamBank(cpu->DB) ||
+        cpu->m_flag || cpu->x_flag ||
+        cpu->X > 0x1ff1u || cpu->Y > 0x1fd2u)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = test_visibility(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_86E295(CpuState *cpu) {
+    return ActorBridgeVisibleObject(cpu, 0x86e295u, Lufia2WorldMapTestObject);
+}
+
+/* Test world objects against the screen rectangle. */
+static RecompReturn ActorBridgeVisibleList(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction test_visibility) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->S > 0x1ffcu || cpu->D != 0u ||
+        !ActorBridgeWorldRamBank(cpu->DB) ||
+        cpu->m_flag || cpu->x_flag ||
+        cpu->X != 0x1469u || cpu->Y != 0x124fu ||
+        cpu->S < 0x1f00u)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    /* The original updater starts at $1469/$124F with at most 21 objects.
+     * Reject damaged counters before materializing a caller frame. */
+    {
+        const uint8_t low = ActorBridgeRead(cpu, 0x22u);
+        const uint8_t high = ActorBridgeRead(cpu, 0x23u);
+        const uint16_t count = (uint16_t)(low | ((uint16_t)high << 8));
+        if (count == 0u || count > 21u)
+            return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    }
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = test_visibility(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_86E287(CpuState *cpu) {
+    return ActorBridgeVisibleList(cpu, 0x86e287u, Lufia2WorldMapTestObjects);
+}
