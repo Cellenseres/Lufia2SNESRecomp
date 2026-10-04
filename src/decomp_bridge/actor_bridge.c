@@ -4093,3 +4093,118 @@ RecompReturn Lufia2DecompBridge_86E0B9(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_86E11F(CpuState *cpu) {
     return ActorBridgeWorldAnimation(cpu, 0x86e11fu, Lufia2WorldMapStepAnimations, 1);
 }
+
+/* Battle actor lists; a rewritten child return continues in the original. */
+static RecompReturn ActorBridgeBattleActorLists(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction build_lists) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x81u || cpu->S > 0x1ffcu ||
+        !cpu->m_flag || cpu->x_flag || cpu->_flag_D)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = build_lists(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY) {
+        cpu->PB = state.program_bank;
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    }
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_818E92(CpuState *cpu) {
+    return ActorBridgeBattleActorLists(cpu, 0x818e92u, Lufia2BattleActorSprites);
+}
+
+/* Battle OAM groups: M8/X16, DP0, S $1F00..$1FFC, JSL frame. */
+static RecompReturn ActorBridgeBattleOamGroup(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction draw_group) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x85u || !cpu->m_flag || cpu->x_flag ||
+        cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    ActorBridgeLoad(cpu, &state);
+    result = draw_group(&memory, &state);
+    /* The OAM span check reads before any write. */
+    if (result.flow != LUFIA2_EXECUTION_RETURNED)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_858B4B(CpuState *cpu) {
+    return ActorBridgeBattleOamGroup(cpu, 0x858b4bu, Lufia2BattleSpriteRecordsEntry);
+}
+
+RecompReturn Lufia2DecompBridge_858BC0(CpuState *cpu) {
+    return ActorBridgeBattleOamGroup(cpu, 0x858bc0u, Lufia2BattleSpriteSingleEntry);
+}
+
+RecompReturn Lufia2DecompBridge_858C27(CpuState *cpu) {
+    return ActorBridgeBattleOamGroup(cpu, 0x858c27u, Lufia2BattleSpriteMarkersEntry);
+}
+
+/* Battle drift records: M8/X16, binary mode, S $1F00..$1FFC. */
+static RecompReturn ActorBridgeBattleDrift(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction drift_records) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x85u || !cpu->m_flag || cpu->x_flag ||
+        cpu->_flag_D || cpu->S < 0x1f00u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = drift_records(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_85894A(CpuState *cpu) {
+    return ActorBridgeBattleDrift(cpu, 0x85894au, Lufia2BattleDriftRecords);
+}
+
+/* Slot palettes: X16, DP0, S $1F00..$1FFC, count 1..7. */
+static RecompReturn ActorBridgeMenuSlotPalettes(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction load_palettes) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->x_flag || cpu->D != 0u ||
+        cpu->S < 0x1f00u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    ActorBridgeLoad(cpu, &state);
+    result = load_palettes(&memory, &state);
+    /* The count check reads before any write. */
+    if (result.flow != LUFIA2_EXECUTION_RETURNED)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_86911F(CpuState *cpu) {
+    return ActorBridgeMenuSlotPalettes(cpu, 0x86911fu, Lufia2MenuLoadSlotPalettes);
+}
