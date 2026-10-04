@@ -163,3 +163,44 @@ The first run hit three 120-second timeouts; the complete rerun with two jobs
 passes the unchanged plan and time limits. The private verifier CMake module
 accepts LUFIA2_DECOMP_VERIFY_JOBS (1-16, default 4). This is an isolated repair
 checkpoint, not a main rollout.
+
+
+## Scene tracks, view origin and battle velocities
+
+Four complete return contracts are verified: `$86:94D4` steps the five scene
+tracks, `$86:A791` calculates the screen origin, `$85:DD63` calculates signed
+angle velocities, and `$81:A598` transfers these velocities to an effect slot.
+The first two and the effect routine return through RTS; the angle routine
+returns through RTL. The bridges retain the original return-frame sizes.
+
+All four require native mode, the original program bank, DP0 and a caller
+stack no higher than `$1FFC`. Tracks accept either accumulator width and X16;
+the others require M8/X16. Tracks and view origin additionally require a data
+bank that maps the low work-RAM window. The velocity routine requires
+`S=$1F00..$1FFC`; its effect caller requires `$1F03..$1FFC`, reserving the
+three-byte child frame. Unsupported entries hand off before memory access.
+All decimal modes are preserved. Velocity calculation uses the already
+verified sine, cosine and multiplication semantics and their original frames.
+
+The matrices exercise all 256 angles, 16 speed edges, timer/script endings,
+coordinate edges, banks, widths and decimal modes. Effect slots also overlap
+scratch bytes and caller return frames; forward staging and final writes keep
+the ROM ordering. CPU, all WRAM, ordered writes and hardware reads are compared
+through the actual native bridges. Guarded cases are unchanged entry handoffs,
+not original-ROM execution claims.
+
+- scenetracks: 33,856 cases, 33,616 native, 240 unchanged handoffs
+- sceneview: 33,856 cases, 12,928 native, 20,928 unchanged handoffs
+- velocity: 37,952 cases, 34,064 native, 3,888 unchanged handoffs
+- effectvelocity: 33,856 cases, 33,552 native, 304 unchanged handoffs
+
+81 extra guard cases cover three host-return modes. All 35 deliberately broken
+bridges are detected: return-frame size, overflow, entry bank, stack bounds,
+DP, emulation, width and work-RAM bank checks. Bodies use typed values, named
+work fields and arithmetic helpers; CPU-state operations retain observable
+flags and call frames. The review found no AI markers in these bodies.
+
+23 of 95 feature routines are verified, with 72 draft. All 518 independent
+integrated jobs and the Release build pass with 389 standalone replacements.
+Every new binding has a generated dispatch call. Main and the normal build
+remain unchanged; this is an isolated local checkpoint.
