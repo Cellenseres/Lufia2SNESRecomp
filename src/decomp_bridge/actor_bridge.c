@@ -4264,3 +4264,48 @@ RecompReturn Lufia2DecompBridge_86E1B9(CpuState *cpu) {
     return ActorBridgeWorldObjectParent(
         cpu, 0x86e1b9u, Lufia2WorldMapUpdateObjects, 0x1f10u, 1, 1);
 }
+
+/* Complete party render passes and their frame-setup parent. */
+static RecompReturn ActorBridgeBattleRenderParent(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction render,
+    uint16_t minimum_stack, int needs_mmio_bank) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+    const uint8_t bank = cpu->DB;
+
+    if (cpu->emulation || cpu->PB != 0x85u || !cpu->m_flag || cpu->x_flag ||
+        cpu->_flag_D || cpu->D != 0u || cpu->S < minimum_stack ||
+        cpu->S > 0x1ffcu || (needs_mmio_bank &&
+        !(bank < 0x40u || (bank >= 0x80u && bank < 0xc0u))))
+        return ActorBridgeFallback(cpu, &frame, entry);
+    ActorBridgeLoad(cpu, &state);
+    result = render(&memory, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY && result.pc == entry)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY) {
+        cpu->PB = state.program_bank;
+        return interp_tier_dispatch_tail(cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    }
+    return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_858A39(CpuState *cpu) {
+    return ActorBridgeBattleRenderParent(cpu, 0x858a39u,
+        Lufia2BattleFrameSetup, 0x1f10u, 1);
+}
+
+RecompReturn Lufia2DecompBridge_858C98(CpuState *cpu) {
+    return ActorBridgeBattleRenderParent(cpu, 0x858c98u,
+        Lufia2BattleSpritePartyEntry, 0x1f00u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_858D2E(CpuState *cpu) {
+    return ActorBridgeBattleRenderParent(cpu, 0x858d2eu,
+        Lufia2BattlePartyTilemapEntry, 0x1f00u, 0);
+}
