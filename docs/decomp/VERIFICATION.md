@@ -275,3 +275,49 @@ integrated jobs and the Release build pass with 395 standalone replacements.
 All four bindings have generated dispatch calls. The current row library also
 passes 16384 native parent ABI cases and 24 parent guards. Main and the normal
 build remain unchanged; this is an isolated local checkpoint.
+
+
+## Finite product, ripple and packed field attributes
+
+$86:A583 is verified through RTS for M8/X16, native PB86 and S<=1FFC,
+with any DP/DB. The body retains both hardware products, scratch aliases,
+decimal ADC and the first product in X. $85:A736 is verified through RTS
+for M8/X16, native PB85, S<=1FFC and a low-WRAM byte at uint16(DP+$33).
+It fills exactly 32 ripple bytes, preserving X, bank restoration, flags,
+phase arithmetic and stack aliases, including wrapped stacks.
+
+$80:ED0E is verified through RTL for native PB80, DP0, S=1F00..1FFC,
+any entry widths/DB and a nonzero rounded dimension product. It leaves
+M8/X16. A readable four-cell group loop replaces the instruction-shaped
+body. It retains multiplier accesses, packed-byte and field scratch writes,
+pointer carries, attribute merge order, the original decimal rounding and
+final registers/flags. Zero count means 65536 groups in the original;
+that entry retains original execution before any writes. The count guard
+reads layout/width/height RAM only. The bridge checks source flow before
+capturing return bytes; supported output cannot reach the 1Fxx caller frame.
+Three zero-count guard fixtures check those exact reads, values and open-bus
+byte. Other guards require no accesses. CPU registers/status and WRAM stay
+unchanged on rejection. The verifier raises only this root's reference budget
+to 2097152 instructions to cover valid large maps; no comparison is relaxed.
+
+The three actual bridges pass 107200 cases: 90279 native ROM comparisons,
+16921 entry handoffs, 51 extra guard cases and 27 detected bridge/source
+mutants. Field matrices cover 4096 dimension/target/width/decimal states,
+including 255x255 cells, plus all 256 packed bytes against four old attribute
+patterns (1024 cases). An initially ineffective bad-shift control now uses
+a populated large map and fails correctly. Native counts are measured by
+actual dispatch, not inferred from semantic pass totals.
+
+Low-stack regression found a genuine shared wave defect: at SP0, the PHA
+used to select bank85 targets ROM, so PLB may read another bank. The memory
+view now follows the bank actually pulled; the wave pattern uses its original
+absolute indexed address rather than a fixed long bank85 address. Three
+existing wave builders and RippleRow are corrected. The four existing wave
+bindings pass 6400 actual-ABI cases (5632 native,768 handoffs), including
+2048 low-stack cases, plus 60 guard fixtures. Seven controls restoring either
+bad bank assumption fail against the ROM. Normal-stack behavior is preserved.
+
+32 of 95 feature routines are verified, with 63 draft. All 518 independent
+integrated jobs and the Release build pass with 398 standalone replacements.
+The three new bindings have generated dispatch calls. Main and the normal
+build remain unchanged; this is an isolated local checkpoint.

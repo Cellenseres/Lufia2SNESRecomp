@@ -3314,3 +3314,78 @@ RecompReturn Lufia2DecompBridge_86AB0E(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_86ABC1(CpuState *cpu) {
     return ActorBridgeWorldRows(cpu, 0x86abc1u, Lufia2WorldPlaneRows3);
 }
+
+/* Preserve the original hardware product, scratch writes and arithmetic flags. */
+static RecompReturn ActorBridgeWorldProduct(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction multiply) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->S > 0x1ffcu ||
+        !cpu->m_flag || cpu->x_flag)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = multiply(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_86A583(CpuState *cpu) {
+    return ActorBridgeWorldProduct(cpu, 0x86a583u, Lufia2WorldProduct16By8);
+}
+
+/* Build the 32 ripple bytes and preserve the original caller frame. */
+static RecompReturn ActorBridgeBattleRippleRow(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction build_ripple) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x85u || cpu->S > 0x1ffcu ||
+        !cpu->m_flag || cpu->x_flag || (uint16_t)(cpu->D + 0x33u) >= 0x2000u)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = build_ripple(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_85A736(CpuState *cpu) {
+    return ActorBridgeBattleRippleRow(cpu, 0x85a736u, Lufia2BattleRippleRow);
+}
+
+/* Unpack four attributes per source byte with the original hardware product. */
+static RecompReturn ActorBridgePackedAttributes(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction unpack_attributes) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x80u || cpu->S > 0x1ffcu ||
+        cpu->S < 0x1f00u || cpu->D != 0u)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    ActorBridgeLoad(cpu, &state);
+    result = unpack_attributes(&memory, &state);
+    if (result.flow != LUFIA2_EXECUTION_RETURNED)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    /* Supported output cannot reach the caller's 1Fxx return frame. */
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_80ED0E(CpuState *cpu) {
+    return ActorBridgePackedAttributes(cpu, 0x80ed0eu, Lufia2FieldUnpackAttributes);
+}
