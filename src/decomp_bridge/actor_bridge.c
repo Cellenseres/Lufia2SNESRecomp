@@ -3098,3 +3098,107 @@ static RecompReturn ActorBridgePartyStatCopy(
 RecompReturn Lufia2DecompBridge_81F481(CpuState *cpu) {
     return ActorBridgePartyStatCopy(cpu, 0x81f481u, Lufia2PartyStatTotalsOfCopy);
 }
+
+/* Step the five scene scripts, preserving their end-of-script carry. */
+static int ActorBridgeSceneRamBank(uint8_t bank) {
+    return bank < 0x40u || bank == 0x7eu || bank == 0x7fu ||
+        (bank >= 0x80u && bank < 0xc0u);
+}
+
+static RecompReturn ActorBridgeSceneTracks(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction step_tracks) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->S > 0x1ffcu || cpu->D != 0u ||
+        !ActorBridgeSceneRamBank(cpu->DB) || cpu->x_flag)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = step_tracks(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_8694D4(CpuState *cpu) {
+    return ActorBridgeSceneTracks(cpu, 0x8694d4u, Lufia2SceneTrackStep);
+}
+
+/* Derive scene scroll and screen coordinates from the camera origin. */
+static RecompReturn ActorBridgeSceneView(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction calculate_origin) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x86u || cpu->S > 0x1ffcu || cpu->D != 0u ||
+        !ActorBridgeSceneRamBank(cpu->DB) ||
+        !cpu->m_flag || cpu->x_flag)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = calculate_origin(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_86A791(CpuState *cpu) {
+    return ActorBridgeSceneView(cpu, 0x86a791u, Lufia2SceneViewOrigin);
+}
+
+/* Combine the signed angle components with the battle speed. */
+static RecompReturn ActorBridgeBattleVelocity(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction calculate_velocity) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x85u || cpu->S > 0x1ffcu || cpu->D != 0u ||
+        !cpu->m_flag || cpu->x_flag ||
+        cpu->S < 0x1f00u)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = calculate_velocity(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_85DD63(CpuState *cpu) {
+    return ActorBridgeBattleVelocity(cpu, 0x85dd63u, Lufia2BattleVelocityOfAngle);
+}
+
+/* Stage effect parameters around the original three-byte velocity call. */
+static RecompReturn ActorBridgeEffectVelocity(
+    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction calculate_velocity) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->PB != 0x81u || cpu->S > 0x1ffcu || cpu->D != 0u ||
+        !cpu->m_flag || cpu->x_flag ||
+        cpu->S < 0x1f03u)
+        return ActorBridgeFallback(cpu, &frame, entry_pc24);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = calculate_velocity(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_81A598(CpuState *cpu) {
+    return ActorBridgeEffectVelocity(cpu, 0x81a598u, Lufia2BattleEffectVelocity);
+}
