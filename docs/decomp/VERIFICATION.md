@@ -710,3 +710,33 @@ parent and children. This is an instruction count, not a speedup estimate.
 independent jobs and Release pass with447 native replacements. All three
 roots have actual generated dispatch and wrapper entries. This is an
 isolated local checkpoint; main and the normal build are unchanged.
+
+
+## Menu tile parents and original frame waits
+
+$82:838F, $82:8069 and $82:80CA implement their complete parent contracts.
+The tile work is native; the required child callback executes the original
+$82:93C2 frame wait on the already-pushed JSR frame. A returned child restores
+the exact parent tail, including the rectangle's REP $20. An unwound child
+propagates its live CPU and unwind depth without a stale state restore.
+No native loop assumes a completed frame or clears an upload request.
+
+All three require PB $82, X16, DP0, binary arithmetic and S $1F04..$1FFC.
+The rectangle additionally requires M16 and each dimension in 1..32.
+Missing children and unsupported entries hand off unchanged before writes.
+The old partial entry bodies are private drawing helpers; public names and
+headers describe the complete callback APIs. The consumer keeps the existing
+original wait/yield service, including its generated M1X0 dispatch entry.
+
+19200 full original-ROM comparisons and 19200 preview ABI comparisons cover
+all 1..32 rectangle shapes, widths, flags, positions, palette values, counter
+wrap, DB aliases and rejected dimensions/stack/DP/decimal states. Another
+87 live-state entry guards have zero bus accesses. Each independent ABI run
+also checks 15 redirects/unwinds:135 total. Eight deliberate source/bridge
+errors are detected cleanly. The symmetric counter increment is a synthetic
+environment for differential execution, not a full NMI or gameplay test.
+
+84/95 additions are verified,11 remain draft. All518 independent jobs and
+Release pass with450 native replacements. The three roots have actual dispatch
+and wrapper entries; their exact production bridges pass against the native
+archive. This is a local checkpoint; main and the normal build are unchanged.
