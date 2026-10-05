@@ -61,6 +61,7 @@
 #include "lufia2_battle.h"
 #include "lufia2_build_identity.h"
 #include "lufia2_battle_widescreen.h"
+#include "lufia2_battle_effects.h"
 #include "lufia2_map_load.h"
 #include "lufia2_equip_names.h"
 #include "lufia2_spell_price.h"
@@ -1675,10 +1676,9 @@ static void ComposeFrom(const uint8_t *pixels, bool include_rewind,
     }
 
     uint8_t margin_background;
-    /* Inspect again at composition: callback/background may have changed
-       since PrepareVideoFrame. Never retain an outgoing Battle asset. */
+    /* Recheck the battle owner before applying art. */
     const Lufia2BattleState battle = Lufia2BattleInspect(g_ram);
-    if (g_ws_active &&
+    if (g_ws_active && !Lufia2BattleEffectsActive(g_ppu) &&
         Lufia2BattleWidescreenMargin(
             &battle, g_ppu, &margin_background)) {
         Lufia2MarginAssetApply(
@@ -1989,6 +1989,7 @@ static void PrepareVideoFrame(void) {
         s_held_video_layout = layout;
     }
     bool finalize_map_widescreen = false;
+    Lufia2BattleEffectsPrepare(g_ppu, false, 0, 0);
     switch (layout) {
     case LUFIA2_VIDEO_WORLD_MAP:
         Lufia2DeactivateMapWidescreen();
@@ -2011,7 +2012,14 @@ static void PrepareVideoFrame(void) {
 
     case LUFIA2_VIDEO_BATTLE:
         Lufia2DeactivateMapWidescreen();
-        PpuSetExtraSpaceCentered(g_ppu, (uint8_t)g_ws_extra);
+        if (Lufia2BattleEffectsPrepare(
+                g_ppu, g_ws_active, (unsigned)s_frame_width, SNES_HEIGHT)) {
+            PpuSetExtraSpace(g_ppu, (uint8_t)g_ws_extra);
+            /* Extend scene crops; preserve finite name windows. */
+            PpuSetWidescreenWindowExpansion(g_ppu, 0x3fu, 0x02u);
+        } else {
+            PpuSetExtraSpaceCentered(g_ppu, (uint8_t)g_ws_extra);
+        }
         break;
 
     case LUFIA2_VIDEO_REGULAR_MAP:
@@ -2867,6 +2875,7 @@ int main(int argc, char **argv) {
     RtlWriteSram();
     snes_rewind_shutdown();
     Lufia2SavestateMenuShutdown();
+    Lufia2BattleEffectsShutdown();
     Lufia2MarginAssetsShutdown();
 
     if (s_audio_stream) {
