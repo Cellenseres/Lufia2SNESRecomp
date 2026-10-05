@@ -204,6 +204,13 @@ whole game pixels in this mode). The game-owned skin in
 `src/lufia2_overlay_ui.c` supplies a replaceable bitmap font, nine-slice panel
 texture, colours and spacing; the shared presenter remains game-neutral.
 
+On desktop, Mode 1 battle backgrounds sample their native picture and authored
+side margins in one coordinate space. Heat shimmer, mosaic, colour math and
+monochrome palette flashes therefore reach the margins. The battle HUD and
+original sprite viewport remain centred; a separate magic tilemap can extend
+across the wide screen. Individual sprite spells retain their original geometry.
+`LUFIA2_BATTLE_WIDE_EFFECTS=0` restores the previous margin compositor for comparison.
+
 An optional external panel override can be placed beside the executable as
 `assets/img/lufia2_menu_panel.tga`. Put `left top right bottom tile`
 source-pixel margins in the adjacent `lufia2_menu_panel.9slice`; `tile` makes

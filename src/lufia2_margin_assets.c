@@ -47,6 +47,13 @@ static void ReportFailure(uint32_t asset_id, const char *reason) {
             (unsigned)asset_id, reason);
 }
 
+bool Lufia2MarginAssetFind(Lufia2MarginScene scene, uint8_t scene_id,
+                         SnesRecompMarginAsset *asset) {
+    if (!asset || (!s_attempted && !LoadOnce()) || !s_pack.data)
+        return false;
+    return snesrecomp_margin_asset_find(&s_pack, AssetId(scene, scene_id), asset);
+}
+
 bool Lufia2MarginAssetApply(
     Lufia2MarginScene scene, uint8_t scene_id,
     uint8_t *frame, size_t width, size_t height,

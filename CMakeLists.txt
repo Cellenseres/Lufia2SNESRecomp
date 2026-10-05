@@ -483,6 +483,7 @@ set(LUFIA2_HOST_SOURCES
     src/lufia2_ui_assets.c
     src/lufia2_msu_driver.c
     src/lufia2_ppu_capture.c
+    src/lufia2_battle_effects.c
     src/lufia2_room_data.c
     src/lufia2_intro_margins.c
     src/lufia2_intro_trees.c
@@ -659,6 +660,26 @@ target_link_libraries(Lufia2Recomp PRIVATE
 lufia2_add_decomp_bridge(Lufia2Recomp "${SNESRECOMP_ROOT}")
 
 lufia2_target_config_overlay(Lufia2Recomp "${SNESRECOMP_ROOT}")
+
+if(NOT VITA)
+    add_executable(Lufia2BattleEffectsTest EXCLUDE_FROM_ALL
+        scripts/tests/battle_effects.c
+        src/lufia2_battle_effects.c src/lufia2_battle.c
+        src/lufia2_battle_widescreen.c src/lufia2_video_handoff.c
+        "${SNESRECOMP_ROOT}/runner/src/snes/ws_shadow.c")
+    target_include_directories(Lufia2BattleEffectsTest PRIVATE
+        "${CMAKE_BINARY_DIR}/generated/lufia2-ppu-fixes/snes"
+        "${CMAKE_SOURCE_DIR}/src" "${SNESRECOMP_ROOT}/runner/src"
+        "${SNESRECOMP_ROOT}/runner/src/snes")
+    target_link_libraries(Lufia2BattleEffectsTest PRIVATE snesrecomp_platform)
+    lufia2_target_msvc_ppu(Lufia2BattleEffectsTest "${SNESRECOMP_ROOT}")
+    if(MSVC)
+        target_compile_options(Lufia2BattleEffectsTest PRIVATE /UNDEBUG /Gy)
+        target_link_options(Lufia2BattleEffectsTest PRIVATE /OPT:REF)
+    else()
+        target_compile_options(Lufia2BattleEffectsTest PRIVATE -UNDEBUG)
+    endif()
+endif()
 snesrecomp_platform_target_glsl_presets(Lufia2Recomp)
 
 set(RECOMP_UI_ENABLE_MODS OFF CACHE BOOL "" FORCE)

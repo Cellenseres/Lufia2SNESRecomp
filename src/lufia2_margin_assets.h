@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include "snesrecomp_platform/margin_pack.h"
 
 typedef enum Lufia2MarginScene {
     LUFIA2_MARGIN_SCENE_INTRO = 0,
@@ -16,5 +17,9 @@ bool Lufia2MarginAssetApply(
     unsigned brightness);
 
 void Lufia2MarginAssetsShutdown(void);
+
+/* Borrowed asset; valid until shutdown. */
+bool Lufia2MarginAssetFind(Lufia2MarginScene scene, uint8_t scene_id,
+                         SnesRecompMarginAsset *asset);
 
 #endif

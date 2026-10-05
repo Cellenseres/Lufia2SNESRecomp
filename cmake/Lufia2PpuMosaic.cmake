@@ -87,13 +87,15 @@ function(lufia2_prepare_ppu_mosaic_overlay sources_var core_root)
     file(READ "${_original}" _source)
     lufia2_fix_ppu_4bpp_mosaic_palette(_source)
     lufia2_fix_ppu_profile_timer(_source)
+    include("${CMAKE_SOURCE_DIR}/cmake/Lufia2BattleEffects.cmake")
+    lufia2_ppu_battle_effects(_source)
 
     set(_directory "${CMAKE_BINARY_DIR}/generated/lufia2-ppu-fixes/snes")
     set(_overlay "${_directory}/ppu.c")
     file(MAKE_DIRECTORY "${_directory}")
     file(WRITE "${_overlay}" "${_source}")
     set_source_files_properties("${_overlay}" PROPERTIES INCLUDE_DIRECTORIES
-        "${core_root}/runner/src/snes;${core_root}/runner/src")
+        "${core_root}/runner/src/snes;${core_root}/runner/src;${CMAKE_SOURCE_DIR}/src")
 
     set(_sources "${${sources_var}}")
     list(FIND _sources "${_original}" _index)
