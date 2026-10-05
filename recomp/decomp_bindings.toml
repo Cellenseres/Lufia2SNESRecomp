@@ -1845,3 +1845,29 @@ bridge = "Lufia2DecompBridge_828720"
 [[binding]]
 address = "82:8B08"
 bridge = "Lufia2DecompBridge_828B08"
+
+# Battle effect video commands
+
+[[binding]]
+address = "81:963A"
+bridge = "Lufia2DecompBridge_81963A"
+
+[[binding]]
+address = "81:9653"
+bridge = "Lufia2DecompBridge_819653"
+
+[[binding]]
+address = "81:9999"
+bridge = "Lufia2DecompBridge_819999"
+
+[[binding]]
+address = "81:99A5"
+bridge = "Lufia2DecompBridge_8199A5"
+
+[[binding]]
+address = "81:99B0"
+bridge = "Lufia2DecompBridge_8199B0"
+
+[[binding]]
+address = "81:9AB1"
+bridge = "Lufia2DecompBridge_819AB1"
