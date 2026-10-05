@@ -4011,6 +4011,39 @@ RecompReturn Lufia2DecompBridge_81953F(CpuState *cpu) {
     return ActorBridgeEffectOpcode(cpu, 0x81953fu, Lufia2BattleEffectRepeat);
 }
 
+/* Video operands require DP0 and the battle stack. */
+static RecompReturn ActorBridgeEffectVideo(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction command) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (cpu->D != 0u || cpu->S < 0x1f00u)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    return ActorBridgeEffectOpcode(cpu, entry, command);
+}
+
+RecompReturn Lufia2DecompBridge_81963A(CpuState *cpu) {
+    return ActorBridgeEffectVideo(cpu, 0x81963au, Lufia2BattleEffectVideoRegister);
+}
+
+RecompReturn Lufia2DecompBridge_819653(CpuState *cpu) {
+    return ActorBridgeEffectVideo(cpu, 0x819653u, Lufia2BattleEffectBg3Map);
+}
+
+RecompReturn Lufia2DecompBridge_8199A5(CpuState *cpu) {
+    return ActorBridgeEffectVideo(cpu, 0x8199a5u, Lufia2BattleEffectBackgroundRelease);
+}
+
+RecompReturn Lufia2DecompBridge_819999(CpuState *cpu) {
+    return ActorBridgeEffectVideo(cpu, 0x819999u, Lufia2BattleEffectBackgroundRequest);
+}
+
+RecompReturn Lufia2DecompBridge_8199B0(CpuState *cpu) {
+    return ActorBridgeEffectVideo(cpu, 0x8199b0u, Lufia2BattleEffectBackgroundCopy);
+}
+
+RecompReturn Lufia2DecompBridge_819AB1(CpuState *cpu) {
+    return ActorBridgeEffectVideo(cpu, 0x819ab1u, Lufia2BattleEffectWindowBand);
+}
+
 /* Battle tile ids: rows need M16/X16, the grid X16. */
 static RecompReturn ActorBridgeBattleTiles(
     CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction fill_tiles,
