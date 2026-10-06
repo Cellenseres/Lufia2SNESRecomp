@@ -4960,3 +4960,89 @@ RecompReturn Lufia2DecompBridge_81AA1B(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_81AA2E(CpuState *cpu) {
     return ActorBridgeActionPhase(cpu, 0x81aa2eu, Lufia2BattleItemAction, 3u);
 }
+
+static RecompReturn ActorBridgeActionRecord(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction lookup) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->m_flag || cpu->x_flag || cpu->_flag_D ||
+        cpu->PB != 0x81u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = lookup(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 3u, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_81AAD0(CpuState *cpu) {
+    return ActorBridgeActionPhase(cpu, 0x81aad0u, Lufia2BattleDefendAction, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_81AB07(CpuState *cpu) {
+    return ActorBridgeActionPhase(cpu, 0x81ab07u, Lufia2BattleContinueAction, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_81AF7A(CpuState *cpu) {
+    return ActorBridgeActionPhase(cpu, 0x81af7au, Lufia2BattleBeginUncostedSpellAction, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_81AF89(CpuState *cpu) {
+    return ActorBridgeActionPhase(cpu, 0x81af89u, Lufia2BattleUncostedSpellAction, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_81AF37(CpuState *cpu) {
+    return ActorBridgeActionPhase(cpu, 0x81af37u, Lufia2BattleFollowupAction, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_81AD8D(CpuState *cpu) {
+    return ActorBridgeActionPhase(cpu, 0x81ad8du, Lufia2BattleWaitAction, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_81AEE1(CpuState *cpu) {
+    return ActorBridgeActionPhase(cpu, 0x81aee1u, Lufia2BattleWaitLongAction, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_81AA73(CpuState *cpu) {
+    return ActorBridgeActionPhase(cpu, 0x81aa73u, Lufia2BattleRepeatActionEffects, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_81F45E(CpuState *cpu) {
+    return ActorBridgeActionRecord(cpu, 0x81f45eu, Lufia2IpRecordPointer);
+}
+
+RecompReturn Lufia2DecompBridge_81F46B(CpuState *cpu) {
+    return ActorBridgeActionRecord(cpu, 0x81f46bu, Lufia2IpNamePointer);
+}
+
+RecompReturn Lufia2DecompBridge_81F476(CpuState *cpu) {
+    return ActorBridgeActionRecord(cpu, 0x81f476u, Lufia2CapsuleActionRecordPointer);
+}
+
+RecompReturn Lufia2DecompBridge_81AB0C(CpuState *cpu) {
+    return ActorBridgeActionPhase(cpu, 0x81ab0cu, Lufia2BattleIpAction, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_81AD3B(CpuState *cpu) {
+    return ActorBridgeActionPhase(cpu, 0x81ad3bu, Lufia2BattleCapsuleAction, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_81AE0F(CpuState *cpu) {
+    return ActorBridgeActionPhase(cpu, 0x81ae0fu, Lufia2BattleAlternateAttackAction, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_81AB94(CpuState *cpu) {
+    return ActorBridgeActionPhase(cpu, 0x81ab94u, Lufia2BattleCollectiveAction, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_81AC72(CpuState *cpu) {
+    return ActorBridgeActionPhase(cpu, 0x81ac72u, Lufia2BattleAction07, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_81A832(CpuState *cpu) {
+    return ActorBridgeActionPhase(cpu, 0x81a832u, Lufia2BattleDispatchAction, 3u);
+}
