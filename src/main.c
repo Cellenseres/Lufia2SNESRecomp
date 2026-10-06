@@ -44,6 +44,8 @@
 #include "desktop/display_aspect.h"
 #include "lufia2_map_names.h"
 #include "lufia2_overlay_ui.h"
+#include "lufia2_battle_ui.h"
+#include "lufia2_menu_ui.h"
 #include "lufia2_savestate_menu.h"
 #include "lufia2_ui_assets.h"
 
@@ -1101,6 +1103,25 @@ static void SDLCALL AudioStreamCallback(void *userdata,
     SDL_PutAudioStreamData(stream, s_audio_scratch, additional_amount);
 }
 
+static void UiLayoutPath(char *path, size_t size, const char *environment,
+                         const char *asset) {
+    const char *override = getenv(environment);
+    if (override && *override)
+        snprintf(path, size, "%s", override);
+    else if (!snesrecomp_exe_dir_path(asset, path, size))
+        snprintf(path, size, "%s", asset);
+}
+
+static void InitPresentationOverrides(const uint8_t *rom, size_t size) {
+    char path[1024];
+    Lufia2BattleEffectsInit(rom, size);
+    UiLayoutPath(path, sizeof path, "LUFIA2_BATTLE_UI_LAYOUT", "assets/ui/battle_layout.l2ui");
+    Lufia2BattleUiInit(path, getenv("LUFIA2_BATTLE_UI_PREVIEW"));
+    UiLayoutPath(path, sizeof path, "LUFIA2_MENU_UI_LAYOUT", "assets/ui/menu_layout.l2ui");
+    Lufia2MenuUiInit(rom, size, path, getenv("LUFIA2_MENU_UI_PREVIEW"));
+    Lufia2SetNmiVideoObserver(Lufia2MenuUiLatchSprites);
+}
+
 static bool InitVideo(void) {
     int scale = g_config.window_scale
         ? g_config.window_scale : DEFAULT_WINDOW_SCALE;
@@ -1693,6 +1714,13 @@ static void ComposeFrom(const uint8_t *pixels, bool include_rewind,
             (unsigned)s_frame_width, SNES_HEIGHT, 1u);
     }
 
+    if (!include_rewind) {
+        Lufia2BattleUiCompose(s_present_pixels, (unsigned)s_frame_width,
+                              SNES_HEIGHT, authoritative);
+        Lufia2MenuUiCompose(s_present_pixels, (unsigned)s_frame_width,
+                           SNES_HEIGHT, authoritative);
+    }
+
     if (authoritative && !include_rewind) {
         snes_rewind_note_framebuffer(
             (const uint32_t *)s_present_pixels,
@@ -1990,6 +2018,7 @@ static void PrepareVideoFrame(void) {
     }
     bool finalize_map_widescreen = false;
     Lufia2BattleEffectsPrepare(g_ppu, false, 0, 0);
+    Lufia2MenuUiReset(g_ppu);
     switch (layout) {
     case LUFIA2_VIDEO_WORLD_MAP:
         Lufia2DeactivateMapWidescreen();
@@ -2066,6 +2095,7 @@ static void PrepareVideoFrame(void) {
         PpuSetWidescreenLayerClamp(
             g_ppu, LUFIA2_MENU_CLAMP_LAYER_MASK);
         Lufia2UiMarginsMenu(g_ppu);
+        Lufia2MenuUiPrepare(g_ppu, g_config.widescreen != 0, (unsigned)s_frame_width);
         break;
 
     case LUFIA2_VIDEO_CENTERED:
@@ -2324,6 +2354,7 @@ static void InvalidateDerivedHostState(bool reset_rewind) {
         snesrecomp_present_timeline_reset(
             &s_present_timeline, snesrecomp_now_us());
     Lufia2MapLoadStateChanged();
+    Lufia2BattleUiReset();
     Lufia2MapWidescreenStateChanged();
     Lufia2Mode7SubstepStateChanged();
     Lufia2IntroMode7WorldStateChanged();
@@ -2608,6 +2639,7 @@ int main(int argc, char **argv) {
         Lufia2UiAssetsDestroy(&rom_panel);
     }
     Lufia2IntroMode7WorldInit(rom_data, rom_size);
+    InitPresentationOverrides(rom_data, rom_size);
     if (!Lufia2MapNamesInit(rom_data, rom_size))
         fprintf(stderr, "[savestate] map names unavailable; ids only.\n");
 
@@ -2791,6 +2823,7 @@ int main(int argc, char **argv) {
             PpuBeginDrawing(
                 g_ppu, s_pixels, (size_t)s_frame_width * 4, ppu_flags);
             Lufia2DrawPpuFrame();
+            Lufia2BattleUiFinish(s_pixels, (size_t)s_frame_width * 4);
             Lufia2InterpNoteFrame(ppu_flags);
             Lufia2EndMapRenderOverlay(g_ppu);
             L2CaptureFrameEnd();

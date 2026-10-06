@@ -140,7 +140,8 @@ Lufia2VideoLayout Lufia2SelectVideoLayoutObserved(
     const bool pattern_menu =
         PPU_mode(ppu) == 1 &&
         ppu->screenEnabled[0] == 0x1f &&
-        ppu->screenEnabled[1] == 0 &&
+        (ppu->screenEnabled[1] == 0 ||
+         (ppu->screenEnabled[1] == 4 && ppu->cgwsel == 2 && ppu->cgadsub == 0x10)) &&
         ppu->bgTileAdr == 0x6644 &&
         (ppu->bgXsc[1] & 3) == 0 &&
         ppu->hScroll[1] == 0 && ppu->vScroll[1] == 0;

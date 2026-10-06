@@ -2,10 +2,21 @@
 
 #include "snes/ppu.h"
 
+void Lufia2BattleEffectsInit(const uint8_t *rom, size_t size);
 /* Presentation only; guest state stays unchanged. */
 bool Lufia2BattleEffectsPrepare(Ppu *ppu, bool wide,
                                unsigned width, unsigned height);
 bool Lufia2BattleEffectsActive(const Ppu *ppu);
+bool Lufia2BattleEffectsPlane(const Ppu *ppu, unsigned layer);
+bool Lufia2BattleEffectsBackground(const Ppu *ppu);
+bool Lufia2BattleEffectsSprite(const Ppu *ppu, unsigned slot);
+void Lufia2BattleEffectsBeginSprites(void);
+void Lufia2BattleEffectsSpritePixel(int x, bool effect);
+bool Lufia2BattleEffectsSpriteVisible(const Ppu *ppu, int x);
+bool Lufia2BattleEffectsSpriteMargins(Ppu *ppu, const uint16_t *vram, unsigned line);
+typedef void Lufia2BattleEffectsLineRenderer(Ppu *ppu, unsigned line);
+void Lufia2BattleEffectsHudLine(Ppu *ppu, unsigned line,
+                               Lufia2BattleEffectsLineRenderer *draw);
 void Lufia2BattleEffectsBeginLine(const Ppu *ppu);
 void Lufia2BattleEffectsMargin(Ppu *ppu, PpuPixelPrioBufs *background,
                               unsigned y, bool sub, int left, int right,
