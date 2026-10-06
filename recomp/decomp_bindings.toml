@@ -1905,3 +1905,9 @@ bridge = "Lufia2DecompBridge_8191AD"
 [[binding]]
 address = "81:895E"
 bridge = "Lufia2DecompBridge_81895E"
+
+# Field scene actors
+
+[[binding]]
+address = "83:A76D"
+bridge = "Lufia2DecompBridge_83A76D"
