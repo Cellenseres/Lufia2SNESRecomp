@@ -1871,3 +1871,37 @@ bridge = "Lufia2DecompBridge_8199B0"
 [[binding]]
 address = "81:9AB1"
 bridge = "Lufia2DecompBridge_819AB1"
+
+# Battle effect graphics and control
+
+[[binding]]
+address = "81:99D0"
+bridge = "Lufia2DecompBridge_8199D0"
+
+[[binding]]
+address = "81:9A12"
+bridge = "Lufia2DecompBridge_819A12"
+
+[[binding]]
+address = "81:915B"
+bridge = "Lufia2DecompBridge_81915B"
+
+[[binding]]
+address = "81:917F"
+bridge = "Lufia2DecompBridge_81917F"
+
+[[binding]]
+address = "81:918F"
+bridge = "Lufia2DecompBridge_81918F"
+
+[[binding]]
+address = "81:9198"
+bridge = "Lufia2DecompBridge_819198"
+
+[[binding]]
+address = "81:91AD"
+bridge = "Lufia2DecompBridge_8191AD"
+
+[[binding]]
+address = "81:895E"
+bridge = "Lufia2DecompBridge_81895E"
