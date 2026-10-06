@@ -8,6 +8,7 @@ bool Lufia2BattleEffectsPrepare(Ppu *ppu, bool wide,
                                unsigned width, unsigned height);
 bool Lufia2BattleEffectsActive(const Ppu *ppu);
 bool Lufia2BattleEffectsPlane(const Ppu *ppu, unsigned layer);
+bool Lufia2BattleEffectsPlaneCleared(const Ppu *ppu, unsigned layer);
 bool Lufia2BattleEffectsBackground(const Ppu *ppu);
 bool Lufia2BattleEffectsSprite(const Ppu *ppu, unsigned slot);
 void Lufia2BattleEffectsBeginSprites(void);
