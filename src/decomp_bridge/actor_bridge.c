@@ -4000,6 +4000,9 @@ static RecompReturn ActorBridgeEffectOpcode(
     ActorBridgeLoad(cpu, &state);
     result = run_opcode(&memory, &state);
     ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
     return ActorBridgeReturn(cpu, &frame, 2, result.pc);
 }
 
@@ -4807,4 +4810,49 @@ RecompReturn Lufia2DecompBridge_83ACB7(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_83AD23(CpuState *cpu) {
     return ActorBridgeFieldSession(
         cpu, 0x83ad23u, Lufia2FieldResumeSessionSetup);
+}
+
+static RecompReturn ActorBridgeEffectSlot(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction command, uint16_t minimum) {
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+
+    if (!ActorBridgeSupported(cpu, 0, 0) || cpu->PB != 0x81u ||
+        cpu->D != 0u || cpu->S < minimum || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    return ActorBridgeWholeM1X16(cpu, entry, command, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_818F91(CpuState *cpu) {
+    return ActorBridgeEffectSlot(cpu, 0x818f91u, Lufia2BattleEffectFindActorSlot, 0x1f00u);
+}
+RecompReturn Lufia2DecompBridge_818FAB(CpuState *cpu) {
+    return ActorBridgeEffectSlot(cpu, 0x818fabu, Lufia2BattleEffectFindScriptSlot, 0x1f00u);
+}
+RecompReturn Lufia2DecompBridge_818FC5(CpuState *cpu) {
+    return ActorBridgeEffectSlot(cpu, 0x818fc5u, Lufia2BattleEffectSpawnActor, 0x1f02u);
+}
+RecompReturn Lufia2DecompBridge_81905B(CpuState *cpu) {
+    return ActorBridgeEffectSlot(cpu, 0x81905bu, Lufia2BattleEffectSpawnMovingActor, 0x1f02u);
+}
+RecompReturn Lufia2DecompBridge_8190DF(CpuState *cpu) {
+    return ActorBridgeEffectSlot(cpu, 0x8190dfu, Lufia2BattleEffectSpawnScript, 0x1f02u);
+}
+RecompReturn Lufia2DecompBridge_8191F2(CpuState *cpu) {
+    return ActorBridgeEffectSlot(cpu, 0x8191f2u, Lufia2BattleEffectSpawnScriptAt, 0x1f02u);
+}
+RecompReturn Lufia2DecompBridge_81929E(CpuState *cpu) {
+    return ActorBridgeEffectSlot(cpu, 0x81929eu, Lufia2BattleEffectSpawnActorAt, 0x1f02u);
+}
+RecompReturn Lufia2DecompBridge_81920F(CpuState *cpu) {
+    return ActorBridgeEffectSlot(cpu, 0x81920fu, Lufia2BattleEffectSpawnScriptsForTargets, 0x1f04u);
+}
+
+RecompReturn Lufia2DecompBridge_8191B7(CpuState *cpu) {
+    return ActorBridgeEffectVideo(cpu, 0x8191b7u, Lufia2BattleEffectBranchIfField);
+}
+RecompReturn Lufia2DecompBridge_8194CA(CpuState *cpu) {
+    return ActorBridgeEffectVideo(cpu, 0x8194cau, Lufia2BattleEffectSelectPortraitStream);
+}
+RecompReturn Lufia2DecompBridge_819BA3(CpuState *cpu) {
+    return ActorBridgeEffectVideo(cpu, 0x819ba3u, Lufia2BattleEffectSkipArgument);
 }
