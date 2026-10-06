@@ -54,10 +54,16 @@ static uint8_t s_last_layout[LUFIA2_UI_LAYOUT_HEADER_BYTES + MAX_RECORDS * LUFIA
 static size_t s_last_layout_size;
 enum { SPRITE_STATE_START = 0x11d8, SPRITE_STATE_END = 0x1509 };
 static uint8_t s_latched_sprites[SPRITE_STATE_END - SPRITE_STATE_START];
+static uint8_t s_previous_sprites[SPRITE_STATE_END - SPRITE_STATE_START];
 static bool s_latched_valid;
 static bool s_latched_available;
+static bool s_previous_available;
 static const uint8_t *s_sprite_state;
-static bool s_object_latched[LUFIA2_MENU_UI_MAX_OBJECTS];
+static uint8_t s_object_snapshot[LUFIA2_MENU_UI_MAX_OBJECTS];
+
+static const uint8_t *SpriteSnapshot(unsigned snapshot) {
+    return snapshot == 2 ? s_previous_sprites : snapshot == 1 ? s_latched_sprites : NULL;
+}
 
 static uint32_t HashSceneWord(uint32_t hash, unsigned value) {
     for (unsigned i = 0; i < 4; ++i) hash = (hash ^ (uint8_t)(value >> (i * 8))) * 16777619u;
@@ -113,10 +119,16 @@ static bool MatchSprites(const Ppu *ppu, const uint8_t *state) {
     return first != 0;
 }
 void Lufia2MenuUiLatchSprites(const Ppu *ppu) {
+    s_previous_available = s_latched_available;
+    if (s_previous_available)
+        memcpy(s_previous_sprites, s_latched_sprites, sizeof s_previous_sprites);
     s_latched_valid = s_latched_available = false;
     if (!s_rom || !ppu || PPU_mode(ppu) != 1 ||
-        PPU_bgTileAdr(ppu, 0) != 0x4000 || PPU_bgTileAdr(ppu, 2) != 0x6000) return;
-    /* NMI has uploaded OAM; the guest has not yet prepared its next animation. */
+        PPU_bgTileAdr(ppu, 0) != 0x4000 || PPU_bgTileAdr(ppu, 2) != 0x6000) {
+        s_previous_available = false;
+        return;
+    }
+    /* Effect coordinates can advance before their next OAM upload. */
     memcpy(s_latched_sprites, g_ram + SPRITE_STATE_START, sizeof s_latched_sprites);
     s_latched_available = true;
     s_latched_valid = MatchSprites(ppu, s_latched_sprites);
@@ -345,7 +357,7 @@ static unsigned PartyMemberForSlot(unsigned slot) {
 static void CollectSprites(const Ppu *ppu) {
     const uint8_t *state = s_latched_valid && MatchSprites(ppu, s_latched_sprites) ? s_latched_sprites : NULL;
     s_sprite_state = state;
-    memset(s_object_latched, 0, sizeof s_object_latched);
+    memset(s_object_snapshot, 0, sizeof s_object_snapshot);
     memset(s_oam_slot, 255, sizeof s_oam_slot);
     unsigned first = 0;
     /* $86:8BF5 emits these two slot ranges. */
@@ -356,14 +368,33 @@ static void CollectSprites(const Ppu *ppu) {
         unsigned count = SpriteByte(state, 0x11d8 + slot) ? SpritePieces(state, slot, &frame) : 0;
         bool available = first + count <= 128;
         if (available) for (unsigned p = 0; p < count; ++p) available &= s_oam_slot[first + p] == 255;
-        if (!available || !SpriteMatches(ppu, state, slot, frame, first, count)) {
+        if (available && !SpriteMatches(ppu, state, slot, frame, first, count)) {
+            /* Prefer the original slot order over matching elsewhere. */
+            for (unsigned snapshot = 0; snapshot < 3; ++snapshot) {
+                if ((snapshot == 1 && !s_latched_available) ||
+                    (snapshot == 2 && !s_previous_available)) continue;
+                const uint8_t *candidate = SpriteSnapshot(snapshot);
+                if (!SpriteByte(candidate, 0x11d8 + slot)) continue;
+                uint32_t candidate_frame;
+                unsigned pieces = SpritePieces(candidate, slot, &candidate_frame);
+                if (!pieces || first + pieces > 128) continue;
+                bool free = true;
+                for (unsigned p = 0; p < pieces; ++p) free &= s_oam_slot[first + p] == 255;
+                if (!free || !SpriteMatches(ppu, candidate, slot, candidate_frame, first, pieces)) continue;
+                count = pieces; frame = candidate_frame; s_sprite_state = candidate;
+                break;
+            }
+        }
+        if (!available || !SpriteMatches(ppu, s_sprite_state, slot, frame, first, count)) {
             /* One advanced/unmatched effect must not discard every later
              * portrait. Recover only a unique, complete original OAM run;
              * ambiguous or unknown pieces retain their original rendering. */
             int found = -1; unsigned found_count = 0; const uint8_t *found_state = NULL;
             bool ambiguous = false;
-            for (unsigned snapshot = 0; snapshot < (s_latched_available ? 2u : 1u); ++snapshot) {
-                const uint8_t *candidate = snapshot ? s_latched_sprites : NULL;
+            for (unsigned snapshot = 0; snapshot < 3; ++snapshot) {
+                if ((snapshot == 1 && !s_latched_available) ||
+                    (snapshot == 2 && !s_previous_available)) continue;
+                const uint8_t *candidate = SpriteSnapshot(snapshot);
                 if (!SpriteByte(candidate, 0x11d8 + slot)) continue;
                 uint32_t candidate_frame;
                 unsigned pieces = SpritePieces(candidate, slot, &candidate_frame);
@@ -402,7 +433,7 @@ static void CollectSprites(const Ppu *ppu) {
         unsigned kind = slot >= 5 && slot <= 10 ? CURSOR : SPRITE;
         int index = AddObject(0x30000000u | slot, kind, left, top, right - left, bottom - top, slot);
         if (index < 0) continue;
-        s_object_latched[index] = s_sprite_state != NULL;
+        s_object_snapshot[index] = s_sprite_state == s_previous_sprites ? 2 : s_sprite_state != NULL;
         Lufia2MenuUiObject *o = &s_objects[index];
         unsigned best_area = UINT32_MAX;
         for (unsigned i = 0; i < (unsigned)index; ++i) {
@@ -571,7 +602,7 @@ void Lufia2MenuUiInit(const uint8_t *rom, size_t size, const char *layout, const
     snprintf(s_layout_path, sizeof s_layout_path, "%s", layout ? layout : "");
     snprintf(s_preview_path, sizeof s_preview_path, "%s", preview ? preview : "");
     s_layout_count = 0; s_frames = 0; s_active = false; s_last_layout_size = 0;
-    s_latched_valid = s_latched_available = false; s_sprite_state = NULL;
+    s_latched_valid = s_latched_available = s_previous_available = false; s_sprite_state = NULL;
 }
 void Lufia2MenuUiReset(Ppu *ppu) {
     s_active = false; s_rows = 0; s_move_highlight = false;
@@ -809,7 +840,7 @@ static int SourceLayoutY(const Lufia2MenuUiObject *o) {
 static void ResolveCursorPoint(unsigned index, MenuDestination *target, unsigned depth) {
     const Lufia2MenuUiObject *o = &s_objects[index];
     if (o->kind != CURSOR || o->slot < 5 || o->slot > 10) return;
-    const uint8_t *state = s_object_latched[index] ? s_latched_sprites : NULL;
+    const uint8_t *state = SpriteSnapshot(s_object_snapshot[index]);
     unsigned cursor = o->slot - 5;
     for (unsigned grid = 0; grid < 36; ++grid) {
         uint32_t base = 0xa6f518u + grid * 7;
