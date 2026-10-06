@@ -11,6 +11,13 @@
 extern uint8_t g_ram[];
 enum {
     BATTLE_EFFECT_SCRIPTS = 0x1bec,
+    EFFECT_CLEANUP_REQUEST = 0x15b3,
+    EFFECT_CLEAR_BUFFER = 0x3000,
+    EFFECT_CLEAR_BYTES = 0x0800,
+    EFFECT_CLEAR_MAP = 0x0800,
+    EFFECT_UPLOAD_QUEUE = 0x1a8f,
+    EFFECT_UPLOAD_COUNT = 16,
+    EFFECT_UPLOAD_STRIDE = 6,
     EFFECT_ACTOR_FIRST = 0x54b7,
     EFFECT_ACTOR_COUNT = 64,
     EFFECT_ACTOR_STRIDE = 0x2d,
@@ -52,6 +59,7 @@ static unsigned s_center_right;
 static uint8_t s_background;
 static bool s_loaded;
 static bool s_active;
+static bool s_effect_clear_pending;
 static bool s_uniform_palette;
 static unsigned s_palette_colour;
 /* Transparent pixels retain their palette colour. */
@@ -156,11 +164,33 @@ static bool LoadArt(uint8_t id, unsigned width, unsigned height) {
     return true;
 }
 
+static bool PendingEffectClear(void) {
+    if (g_ram[BATTLE_EFFECT_SCRIPTS] ||
+        g_ram[EFFECT_CLEANUP_REQUEST] != 1u)
+        return false;
+    for (unsigned slot = 0; slot < EFFECT_UPLOAD_COUNT; ++slot) {
+        const uint8_t *upload = g_ram + EFFECT_UPLOAD_QUEUE +
+            slot * EFFECT_UPLOAD_STRIDE;
+        if ((upload[0] | (upload[1] << 8)) != EFFECT_CLEAR_BYTES ||
+            (upload[2] | (upload[3] << 8)) != EFFECT_CLEAR_BUFFER ||
+            (upload[4] | (upload[5] << 8)) != EFFECT_CLEAR_MAP)
+            continue;
+        for (unsigned byte = 0; byte < EFFECT_CLEAR_BYTES; ++byte)
+            if (g_ram[EFFECT_CLEAR_BUFFER + byte])
+                return false;
+        return true;
+    }
+    return false;
+}
+
 bool Lufia2BattleEffectsPrepare(Ppu *ppu, bool wide,
                                unsigned width, unsigned height) {
     const char *enabled = getenv("LUFIA2_BATTLE_WIDE_EFFECTS");
     uint8_t id;
     const Lufia2BattleState battle = Lufia2BattleInspect(g_ram);
+    s_effect_clear_pending = battle.active && battle.display_ready &&
+        ppu && PPU_mode(ppu) == 1 && !PPU_forcedBlank(ppu) &&
+        PendingEffectClear();
     s_active = wide && !(enabled && strcmp(enabled, "0") == 0) &&
         Lufia2BattleWidescreenMargin(&battle, ppu, &id) &&
         PPU_mode(ppu) == 1 && LoadArt(id, width, height);
@@ -182,6 +212,14 @@ bool Lufia2BattleEffectsPlane(const Ppu *ppu, unsigned layer) {
     /* Effect uploads target these four maps. */
     const unsigned map = PPU_bgTilemapAdr(ppu, layer);
     return map >= 0x0800u && map <= 0x1400u;
+}
+
+bool Lufia2BattleEffectsPlaneCleared(const Ppu *ppu, unsigned layer) {
+    /* Skip cleared effects until their queued VRAM update. */
+    return s_effect_clear_pending && ppu && layer == 2u &&
+        PPU_mode(ppu) == 1 &&
+        PPU_bgTilemapAdr(ppu, layer) == EFFECT_CLEAR_MAP &&
+        PPU_bgTileAdr(ppu, layer) == 0x1000u;
 }
 
 bool Lufia2BattleEffectsBackground(const Ppu *ppu) {
@@ -731,5 +769,6 @@ void Lufia2BattleEffectsShutdown(void) {
     s_art_palette = NULL;
     s_palettes_valid = false;
     s_loaded = s_active = false;
+    s_effect_clear_pending = false;
     Lufia2BattleEffectsBeginLine(NULL);
 }

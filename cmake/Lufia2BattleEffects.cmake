@@ -81,6 +81,8 @@ function(lufia2_ppu_battle_effects source_var)
                                           uint y, bool sub,
                                           uint layer, PpuZbufType zhi,
                                           PpuZbufType zlo, bool mosaic) {
+  if (Lufia2BattleEffectsPlaneCleared(ppu, layer))
+    return;
   /* Effect planes share one continuous tilemap. */
   if (Lufia2BattleEffectsPlane(ppu, layer) && ppu->wsBg3WidenY != 1) {
     uint8_t saved = ppu->wsBg3WidenY;
