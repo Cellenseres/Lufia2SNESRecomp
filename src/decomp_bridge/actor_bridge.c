@@ -4627,6 +4627,34 @@ RecompReturn Lufia2DecompBridge_8191AD(CpuState *cpu) {
     return ActorBridgeEffectVideo(cpu, 0x8191adu, Lufia2BattleEffectRepeatJump);
 }
 
+RecompReturn Lufia2DecompBridge_8194EB(CpuState *cpu) {
+    return ActorBridgeEffectVideo(cpu, 0x8194ebu, Lufia2BattleEffectLoopStart);
+}
+
+RecompReturn Lufia2DecompBridge_819500(CpuState *cpu) {
+    return ActorBridgeEffectVideo(cpu, 0x819500u, Lufia2BattleEffectLoopStart2);
+}
+
+RecompReturn Lufia2DecompBridge_819515(CpuState *cpu) {
+    return ActorBridgeEffectVideo(cpu, 0x819515u, Lufia2BattleEffectLoopStart3);
+}
+
+RecompReturn Lufia2DecompBridge_81952A(CpuState *cpu) {
+    return ActorBridgeEffectVideo(cpu, 0x81952au, Lufia2BattleEffectLoopStart4);
+}
+
+RecompReturn Lufia2DecompBridge_819553(CpuState *cpu) {
+    return ActorBridgeEffectVideo(cpu, 0x819553u, Lufia2BattleEffectLoopNext2);
+}
+
+RecompReturn Lufia2DecompBridge_819567(CpuState *cpu) {
+    return ActorBridgeEffectVideo(cpu, 0x819567u, Lufia2BattleEffectLoopNext3);
+}
+
+RecompReturn Lufia2DecompBridge_81957B(CpuState *cpu) {
+    return ActorBridgeEffectVideo(cpu, 0x81957bu, Lufia2BattleEffectLoopNext4);
+}
+
 static uint8_t ActorBridgeEffectEngineChild(
     void *context, Lufia2CpuState *state, uint32_t target,
     uint32_t site, uint8_t frame_size) {
