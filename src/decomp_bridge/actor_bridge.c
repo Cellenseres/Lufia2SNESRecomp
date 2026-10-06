@@ -4744,3 +4744,39 @@ RecompReturn Lufia2DecompBridge_83A76D(CpuState *cpu) {
             cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
     return ActorBridgeReturn(cpu, &frame, 2u, result.pc);
 }
+
+static RecompReturn ActorBridgeFieldSession(
+    CpuState *cpu, uint32_t entry, FieldObjectTransition run) {
+    const ActorBridgeFrame frame = {
+        cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (cpu->emulation || cpu->_flag_D || cpu->PB != 0x83u || cpu->D ||
+        (cpu->DB != 0u && cpu->DB != 0x7eu && cpu->DB != 0x83u) ||
+        cpu->S < 0x1f10u || cpu->S > 0x1fffu ||
+        (entry == 0x83ad23u && (!cpu->m_flag || cpu->x_flag)))
+        return ActorBridgeFallback(cpu, &frame, entry);
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    ActorPushedCall call = {cpu, frame, RECOMP_RETURN_NORMAL};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result = run(
+        &memory, &state, ActorBridgeSceneChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    cpu->PB = state.program_bank;
+    /* Session roots enter the field system without returning. */
+    return interp_tier_dispatch_tail(
+        cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+}
+
+RecompReturn Lufia2DecompBridge_83ACB7(CpuState *cpu) {
+    return ActorBridgeFieldSession(
+        cpu, 0x83acb7u, Lufia2FieldBeginSessionSetup);
+}
+
+RecompReturn Lufia2DecompBridge_83AD23(CpuState *cpu) {
+    return ActorBridgeFieldSession(
+        cpu, 0x83ad23u, Lufia2FieldResumeSessionSetup);
+}
