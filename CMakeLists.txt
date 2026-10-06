@@ -484,6 +484,8 @@ set(LUFIA2_HOST_SOURCES
     src/lufia2_msu_driver.c
     src/lufia2_ppu_capture.c
     src/lufia2_battle_effects.c
+    src/lufia2_battle_ui.c
+    src/lufia2_menu_ui.c
     src/lufia2_room_data.c
     src/lufia2_intro_margins.c
     src/lufia2_intro_trees.c
@@ -664,8 +666,8 @@ lufia2_target_config_overlay(Lufia2Recomp "${SNESRECOMP_ROOT}")
 if(NOT VITA)
     add_executable(Lufia2BattleEffectsTest EXCLUDE_FROM_ALL
         scripts/tests/battle_effects.c
-        src/lufia2_battle_effects.c src/lufia2_battle.c
-        src/lufia2_battle_widescreen.c src/lufia2_video_handoff.c
+        src/lufia2_battle_effects.c src/lufia2_battle_ui.c src/lufia2_menu_ui.c src/lufia2_battle.c
+        src/lufia2_battle_widescreen.c src/lufia2_video_handoff.c src/lufia2_video_policy.c
         "${SNESRECOMP_ROOT}/runner/src/snes/ws_shadow.c")
     target_include_directories(Lufia2BattleEffectsTest PRIVATE
         "${CMAKE_BINARY_DIR}/generated/lufia2-ppu-fixes/snes"
@@ -711,6 +713,16 @@ add_custom_command(TARGET Lufia2Recomp POST_BUILD
     COMMAND "${CMAKE_COMMAND}" -E copy_directory
         "${CMAKE_SOURCE_DIR}/assets/shaders"
         "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/shaders"
+)
+
+# UI presets contain geometry; original graphics come from the local ROM.
+add_custom_command(TARGET Lufia2Recomp POST_BUILD
+    COMMAND "${CMAKE_COMMAND}" -E make_directory
+        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/ui"
+    COMMAND "${CMAKE_COMMAND}" -E copy_if_different
+        "${CMAKE_SOURCE_DIR}/assets/ui/battle_layout.l2ui"
+        "${CMAKE_SOURCE_DIR}/assets/ui/menu_layout.l2ui"
+        "$<TARGET_FILE_DIR:Lufia2Recomp>/assets/ui"
 )
 
 # Intro margins use their existing compositor.

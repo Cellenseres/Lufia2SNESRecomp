@@ -38,6 +38,7 @@ extern int snes_frame_counter;
 extern bool g_fail;
 
 static bool s_started;
+static Lufia2NmiVideoObserver *s_nmi_video_observer;
 static uint32_t s_resume_pc = LUFIA2_RESET_PC;
 static bool s_last_boundary_was_wai;
 static uint64_t s_boundaries;
@@ -48,6 +49,10 @@ static bool s_line_regs_valid;
 static uint32_t s_raster_memory_flags;
 static bool s_loaded_execution_valid;
 static bool s_loaded_msu_valid;
+
+void Lufia2SetNmiVideoObserver(Lufia2NmiVideoObserver *observer) {
+    s_nmi_video_observer = observer;
+}
 
 void Lufia2SaveExecutionState(SaveLoadInfo *sli) {
     RtlSaveExecutionState(sli);
@@ -213,6 +218,7 @@ void Lufia2RunOneFrame(void) {
         if (!Lufia2RunInterrupt(LUFIA2_NMI_PC))
             return;
         s_nmis++;
+        if (s_nmi_video_observer) s_nmi_video_observer(g_ppu);
     }
 
     (void)Lufia2RunToBoundary(s_resume_pc);
