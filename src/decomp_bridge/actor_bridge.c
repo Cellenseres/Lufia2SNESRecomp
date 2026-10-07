@@ -7366,3 +7366,19 @@ RecompReturn Lufia2DecompBridge_81BDC8(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu, 0x81bdc8u, Lufia2BattleMirrorSpriteBlockFar, 3u);
 }
+
+RecompReturn Lufia2DecompBridge_80F5ED(CpuState *cpu) {
+    if (cpu->PB != 0x80u || cpu->x_flag || cpu->m_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x80f5edu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x80f5edu, Lufia2FieldRenderMetatileColumn, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_80F64E(CpuState *cpu) {
+    if (cpu->PB != 0x80u || cpu->x_flag || cpu->m_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x80f64eu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x80f64eu, Lufia2FieldRenderMetatileRow, 2u);
+}
