@@ -7342,3 +7342,27 @@ RecompReturn Lufia2DecompBridge_82C3F8(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu, 0x82c3f8u, Lufia2CapsuleLoadSavedStats, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_85DD19(CpuState *cpu) {
+    if (cpu->PB != 0x85u || !cpu->m_flag || cpu->x_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x85dd19u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x85dd19u, Lufia2BattleRandomizeTurnPriority, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_81BDCC(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->x_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x81bdccu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x81bdccu, Lufia2BattleMirrorSpriteBlock, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_81BDC8(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->x_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x81bdc8u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x81bdc8u, Lufia2BattleMirrorSpriteBlockFar, 3u);
+}
