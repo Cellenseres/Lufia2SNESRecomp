@@ -5396,3 +5396,36 @@ RecompReturn Lufia2DecompBridge_80CE5C(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_80CE7E(CpuState *cpu) {
     return ActorBridgeEventObjectRegion(cpu, 0x80ce7eu, Lufia2FieldReadObjectRegionArea, 2u);
 }
+
+static RecompReturn ActorBridgeActorEventHelper(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction helper) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (cpu->emulation || !cpu->m_flag || cpu->x_flag || cpu->_flag_D ||
+        cpu->PB != 0x83u || cpu->D || cpu->S < 0x1f00u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    return ActorBridgeRunWhole(cpu, entry, helper, 2u, 4);
+}
+RecompReturn Lufia2DecompBridge_83C0EF(CpuState *cpu) {
+    return ActorBridgeActorEventHelper(cpu, 0x83c0efu, Lufia2FieldProbeLeaderPosition);
+}
+RecompReturn Lufia2DecompBridge_83C0FA(CpuState *cpu) {
+    return ActorBridgeActorEventHelper(cpu, 0x83c0fau, Lufia2FieldAcknowledgeControlChange);
+}
+RecompReturn Lufia2DecompBridge_83F0BC(CpuState *cpu) {
+    return ActorBridgeActorEventHelper(cpu, 0x83f0bcu, Lufia2FieldSetFollowingObjectDrawFlags);
+}
+
+static RecompReturn ActorBridgeObjectReleaseHelper(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction helper, uint8_t frame_size) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (cpu->emulation || !cpu->m_flag || cpu->x_flag || cpu->_flag_D ||
+        cpu->PB != 0x83u || cpu->D || cpu->S < 0x1f04u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    return ActorBridgeRunWhole(cpu, entry, helper, frame_size, 4);
+}
+RecompReturn Lufia2DecompBridge_83EF6E(CpuState *cpu) {
+    return ActorBridgeObjectReleaseHelper(cpu, 0x83ef6eu, Lufia2ObjectWakeMatchingPosition, 2u);
+}
+RecompReturn Lufia2DecompBridge_83F205(CpuState *cpu) {
+    return ActorBridgeObjectReleaseHelper(cpu, 0x83f205u, Lufia2ObjectRemoveSlot, 3u);
+}
