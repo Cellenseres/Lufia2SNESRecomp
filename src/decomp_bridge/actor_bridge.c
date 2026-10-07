@@ -5429,3 +5429,78 @@ RecompReturn Lufia2DecompBridge_83EF6E(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_83F205(CpuState *cpu) {
     return ActorBridgeObjectReleaseHelper(cpu, 0x83f205u, Lufia2ObjectRemoveSlot, 3u);
 }
+
+static RecompReturn ActorBridgeSceneRecordHelper(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction helper,
+    bool byte_input, uint8_t return_frame) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (cpu->emulation || cpu->m_flag != byte_input || cpu->x_flag || cpu->_flag_D ||
+        cpu->PB != 0x80u || cpu->D ||
+        cpu->S < (return_frame==3u?0x1f10u:0x1f00u) || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    return ActorBridgeRunWhole(cpu, entry, helper, return_frame, byte_input ? 4 : 2);
+}
+RecompReturn Lufia2DecompBridge_80C0D0(CpuState *cpu) {
+    return ActorBridgeSceneRecordHelper(cpu, 0x80c0d0u, Lufia2SceneScriptReadWord, true, 2u);
+}
+RecompReturn Lufia2DecompBridge_80C102(CpuState *cpu) {
+    return ActorBridgeSceneRecordHelper(cpu, 0x80c102u, Lufia2SceneScriptSeekRelative, false, 2u);
+}
+RecompReturn Lufia2DecompBridge_80C12E(CpuState *cpu) {
+    return ActorBridgeSceneRecordHelper(cpu, 0x80c12eu, Lufia2SceneScriptFindRecord, true, 3u);
+}
+
+static RecompReturn ActorBridgeEventControlHelper(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction helper, uint8_t return_frame) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (cpu->emulation || !cpu->m_flag || cpu->x_flag || cpu->_flag_D ||
+        cpu->PB != 0x83u || cpu->D ||
+        cpu->S < (return_frame==3u?0x1f30u:0x1f00u) || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    return ActorBridgeRunWhole(cpu, entry, helper, return_frame, 4);
+}
+RecompReturn Lufia2DecompBridge_83BB76(CpuState *cpu) {
+    return ActorBridgeEventControlHelper(cpu, 0x83bb76u, Lufia2FieldPrepareEventControl, 2u);
+}
+RecompReturn Lufia2DecompBridge_83B727(CpuState *cpu) {
+    return ActorBridgeEventControlHelper(cpu, 0x83b727u, Lufia2FieldBeginEventControl, 3u);
+}
+
+static RecompReturn ActorBridgeObjectCollision(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction helper,
+    uint8_t return_frame, uint16_t minimum_stack) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (cpu->emulation || !cpu->m_flag || cpu->x_flag || cpu->_flag_D ||
+        cpu->PB != (uint8_t)(entry >> 16) || cpu->D ||
+        cpu->S < minimum_stack || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    return ActorBridgeRunWhole(cpu, entry, helper, return_frame, 4);
+}
+
+RecompReturn Lufia2DecompBridge_83BAC2(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x83bac2u, Lufia2FieldFindActorAtProbe, 2u, 0x1f00u);
+}
+
+RecompReturn Lufia2DecompBridge_83DF87(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x83df87u, Lufia2ActorSpawnFromId, 3u, 0x1f10u);
+}
+
+RecompReturn Lufia2DecompBridge_83F4B4(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x83f4b4u, Lufia2FieldApplyObjectRecord, 2u, 0x1f40u);
+}
+
+RecompReturn Lufia2DecompBridge_80BFE7(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x80bfe7u, Lufia2SceneScriptSelectRecord, 3u, 0x1f20u);
+}
+
+RecompReturn Lufia2DecompBridge_83F435(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x83f435u, Lufia2FieldSetPendingProbePosition, 2u, 0x1f00u);
+}
+
+RecompReturn Lufia2DecompBridge_83EC4F(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x83ec4fu, Lufia2ObjectStartInteractionEvent, 2u, 0x1f30u);
+}
+
+RecompReturn Lufia2DecompBridge_83ECDE(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x83ecdeu, Lufia2ObjectAllocateSpriteResources, 2u, 0x1f10u);
+}
