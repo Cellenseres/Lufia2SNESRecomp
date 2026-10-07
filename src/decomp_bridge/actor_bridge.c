@@ -5046,3 +5046,73 @@ RecompReturn Lufia2DecompBridge_81AC72(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_81A832(CpuState *cpu) {
     return ActorBridgeActionPhase(cpu, 0x81a832u, Lufia2BattleDispatchAction, 3u);
 }
+
+static RecompReturn ActorBridgeCoordinateMath(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction helper,
+    uint8_t return_size, int word_entry) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || (word_entry ? cpu->m_flag : !cpu->m_flag) ||
+        cpu->x_flag || cpu->_flag_D ||
+        cpu->PB != 0x83u || cpu->D || cpu->S < 0x1f00u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = helper(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, return_size, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_83FC8B(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83fc8bu,
+        Lufia2ObjectFinePositionToProbe, 2u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83FCB4(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83fcb4u,
+        Lufia2ObjectScaleFinePosition, 2u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83F988(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83f988u,
+        Lufia2MapProbeTileHeight, 2u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83F9F2(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83f9f2u,
+        Lufia2MapProbeCellOffset, 2u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83F9EE(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83f9eeu,
+        Lufia2MapCellOffsetLong, 3u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83F9B6(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83f9b6u,
+        Lufia2MapPackedAttributeCell, 2u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83F9A5(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83f9a5u,
+        Lufia2FieldObjectAttributeCellLong, 3u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83F9A9(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83f9a9u,
+        Lufia2MapPackedAttributeCellLong, 3u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83E60E(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83e60eu,
+        Lufia2ObjectInterpolateCoordinate, 2u, 1);
+}
+
+RecompReturn Lufia2DecompBridge_83E6AA(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83e6aau,
+        Lufia2ObjectApproachCoordinate, 2u, 1);
+}
