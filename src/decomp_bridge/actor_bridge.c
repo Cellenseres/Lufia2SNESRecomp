@@ -7638,3 +7638,11 @@ RecompReturn Lufia2DecompBridge_83BA76(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu, 0x83ba76u, Lufia2FieldProbeTalkBlocked, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_83B8BF(CpuState *cpu) {
+    if (cpu->PB != 0x83u || !cpu->m_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x83b8bfu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x83b8bfu, Lufia2FieldProbeActorContact, 2u);
+}
