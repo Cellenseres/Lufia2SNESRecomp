@@ -5116,3 +5116,132 @@ RecompReturn Lufia2DecompBridge_83E6AA(CpuState *cpu) {
     return ActorBridgeCoordinateMath(cpu, 0x83e6aau,
         Lufia2ObjectApproachCoordinate, 2u, 1);
 }
+
+RecompReturn Lufia2DecompBridge_83FB2E(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83fb2eu,
+        Lufia2FieldProbeObjectAttributes, 3u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83FB51(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83fb51u,
+        Lufia2FieldProbeObjectState, 3u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83FB61(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83fb61u,
+        Lufia2FieldProbeObjectProperties, 2u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83FB8B(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83fb8bu,
+        Lufia2FieldPendingObjectState, 2u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83FB9B(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83fb9bu,
+        Lufia2FieldFindPendingObjectLong, 3u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83FBF1(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83fbf1u,
+        Lufia2FieldReadProbeAttribute, 2u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83FBFE(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83fbfeu,
+        Lufia2FieldClearPendingOccupancy, 2u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83FC3C(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83fc3cu,
+        Lufia2FieldFindSpecialActor, 2u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83FC56(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83fc56u,
+        Lufia2FieldProbeInputAllowed, 2u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83FC69(CpuState *cpu) {
+    return ActorBridgeCoordinateMath(cpu, 0x83fc69u,
+        Lufia2FieldUpdateProbeAction, 2u, 0);
+}
+
+static RecompReturn ActorBridgeProbeDirection(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction helper) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu, ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+    const uint8_t direction = (uint8_t)cpu->A;
+
+    if (cpu->emulation || !cpu->m_flag || cpu->x_flag || cpu->_flag_D ||
+        cpu->PB != 0x83u || cpu->D || cpu->S < 0x1f04u || cpu->S > 0x1ffcu ||
+        (entry == 0x83fbbdu && (direction > 6u || (direction & 1u))))
+        return ActorBridgeFallback(cpu, &frame, entry);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = helper(&memory, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY && result.pc == entry)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return ActorBridgeReturn(cpu, &frame, 2u, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_83FBBD(CpuState *cpu) {
+    return ActorBridgeProbeDirection(cpu, 0x83fbbdu,
+        Lufia2FieldProbeDirectionBlocked);
+}
+
+RecompReturn Lufia2DecompBridge_83F49A(CpuState *cpu) {
+    return ActorBridgeProbeDirection(cpu, 0x83f49au,
+        Lufia2FieldSaveProbePosition);
+}
+
+RecompReturn Lufia2DecompBridge_83F4A7(CpuState *cpu) {
+    return ActorBridgeProbeDirection(cpu, 0x83f4a7u,
+        Lufia2FieldRestoreProbePosition);
+}
+
+RecompReturn Lufia2DecompBridge_83EC5F(CpuState *cpu) {
+    return ActorBridgeProbeDirection(cpu, 0x83ec5fu,
+        Lufia2ObjectProbeNextTile);
+}
+
+
+static RecompReturn ActorBridgeSpriteResource(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction helper, uint8_t return_size) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu, ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || !cpu->m_flag || !cpu->x_flag || cpu->_flag_D ||
+        cpu->PB != 0x83u || cpu->D || cpu->S < 0x1f04u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = helper(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, return_size, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_83AB4F(CpuState *cpu) {
+    return ActorBridgeSpriteResource(cpu, 0x83ab4fu,
+        Lufia2ActorSetRecordOffsets, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_83ABCC(CpuState *cpu) {
+    return ActorBridgeSpriteResource(cpu, 0x83abccu,
+        Lufia2SpriteReleaseAllocation, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_83ABE9(CpuState *cpu) {
+    return ActorBridgeSpriteResource(cpu, 0x83abe9u,
+        Lufia2SpriteComputeVramBase, 3u);
+}
