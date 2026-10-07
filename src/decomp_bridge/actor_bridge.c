@@ -5358,3 +5358,41 @@ RecompReturn Lufia2DecompBridge_80E7FA(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_80E7DF(CpuState *cpu) {
     return ActorBridgeEventTrigger(cpu, 0x80e7dfu, Lufia2FieldStartPositionEvent);
 }
+
+static RecompReturn ActorBridgeEventObjectRegion(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction helper, uint8_t return_size) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (cpu->emulation || !cpu->m_flag || cpu->x_flag || cpu->_flag_D ||
+        cpu->PB != 0x80u || cpu->D || cpu->S < 0x1f20u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    return ActorBridgeRunWhole(cpu, entry, helper, return_size, 4);
+}
+RecompReturn Lufia2DecompBridge_80D0AC(CpuState *cpu) {
+    return ActorBridgeEventObjectRegion(cpu, 0x80d0acu, Lufia2FieldPrepareObjectRegion, 2u);
+}
+RecompReturn Lufia2DecompBridge_80D112(CpuState *cpu) {
+    return ActorBridgeEventObjectRegion(cpu, 0x80d112u, Lufia2FieldCopyEventObjectRegion, 2u);
+}
+RecompReturn Lufia2DecompBridge_80D1E1(CpuState *cpu) {
+    return ActorBridgeEventObjectRegion(cpu, 0x80d1e1u, Lufia2FieldRemoveRegionObjects, 3u);
+}
+RecompReturn Lufia2DecompBridge_80D19F(CpuState *cpu) {
+    return ActorBridgeEventObjectRegion(cpu, 0x80d19fu, Lufia2FieldRestoreRegionObjects, 3u);
+}
+RecompReturn Lufia2DecompBridge_80D0BA(CpuState *cpu) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (cpu->S < 0x1f40u)
+        return ActorBridgeFallback(cpu, &frame, 0x80d0bau);
+    return ActorBridgeEventObjectRegion(cpu, 0x80d0bau, Lufia2FieldUpdateEventObjectRegion, 2u);
+}
+RecompReturn Lufia2DecompBridge_80D077(CpuState *cpu) {
+    return ActorBridgeEventObjectRegion(cpu, 0x80d077u, Lufia2FieldReadObjectRegionPosition, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_80CE5C(CpuState *cpu) {
+    return ActorBridgeEventObjectRegion(cpu, 0x80ce5cu, Lufia2FieldReadObjectRegionDestination, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_80CE7E(CpuState *cpu) {
+    return ActorBridgeEventObjectRegion(cpu, 0x80ce7eu, Lufia2FieldReadObjectRegionArea, 2u);
+}
