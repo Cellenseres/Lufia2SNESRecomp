@@ -6990,3 +6990,11 @@ RecompReturn Lufia2DecompBridge_82A711(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu,0x82a711u,Lufia2MenuRunListSelection,2u);
 }
+
+RecompReturn Lufia2DecompBridge_80882E(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x80882eu, Lufia2UploadTilemapBlock, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_80884F(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x80884fu, Lufia2StartListedDma, 2u);
+}
