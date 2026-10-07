@@ -5596,3 +5596,144 @@ RecompReturn Lufia2DecompBridge_8EC34F(CpuState *cpu) {
     return ActorBridgeObjectCollision(cpu, 0x8ec34fu,
         Lufia2FieldResolveObjectCondition, 3u, 0x1f20u);
 }
+
+typedef Lufia2ExecutionResult (*ActorSoundDriverFunction)(
+    const Lufia2Memory *, Lufia2CpuState *, Lufia2PushedChildCall, void *);
+
+static RecompReturn ActorBridgeSoundDriver(
+    CpuState *cpu, uint32_t entry, ActorSoundDriverFunction run, uint8_t frame_size) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    ActorPushedCall call = {cpu, frame, RECOMP_RETURN_NORMAL};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+    if (cpu->emulation || cpu->_flag_D)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    ActorBridgeLoad(cpu, &state);
+    result = run(&memory, &state, ActorBridgePushedChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return ActorBridgeReturn(cpu, &frame, frame_size, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_809554(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x809554u, Lufia2PlaySoundResource, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_80956A(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x80956au, Lufia2SendUncheckedSoundCommand, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_80957D(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x80957du, Lufia2LoadSoundResource, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8095D2(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x8095d2u, Lufia2SoundDriverRequest05, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_8095DF(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x8095dfu, Lufia2SoundDriverRead1E, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_8095F0(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x8095f0u, Lufia2SoundDriverRead0F, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_809612(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x809612u, Lufia2SoundDriverWrite0C, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_809623(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x809623u, Lufia2SoundDriverWrite0D, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_809634(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x809634u, Lufia2SoundDriverRead18, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_809644(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x809644u, Lufia2SoundDriverWrite09, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_809655(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x809655u, Lufia2SoundDriverWrite1A, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_80966F(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x80966fu, Lufia2SoundDriverWrite1B, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_809685(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x809685u, Lufia2SoundDriverRequest15, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_80969F(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x80969fu, Lufia2PrepareSongResource, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_8096CC(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x8096ccu, Lufia2SoundDriverWrite0A, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_8096DD(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x8096ddu, Lufia2SoundDriverWriteComplement10, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_8096F2(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x8096f2u, Lufia2SoundDriverRead08, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_8096B9(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x8096b9u, Lufia2WaitSoundDriverFlagsClear, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_809703(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x809703u, Lufia2InitializeSoundResourceTable, 2u);
+}
+
+static RecompReturn ActorBridgeSoundLeaf(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction run, uint8_t frame_size) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    if (cpu->emulation)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result = run(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return ActorBridgeReturn(cpu, &frame, frame_size, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_8099F4(CpuState *cpu) {
+    return ActorBridgeSoundLeaf(cpu, 0x8099f4u, Lufia2WriteSoundTransferMarker, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8097DA(CpuState *cpu) {
+    return ActorBridgeSoundLeaf(cpu, 0x8097dau, Lufia2AdvanceSoundSourceBank, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8099B2(CpuState *cpu) {
+    return ActorBridgeSoundLeaf(cpu, 0x8099b2u, Lufia2CheckSoundDriverSignature, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_8099CA(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x8099cau, Lufia2SoundDriverWrite1F, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_8099D8(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x8099d8u, Lufia2SoundDriverWrite20, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_8099E6(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x8099e6u, Lufia2SoundDriverWrite21, 3u);
+}
