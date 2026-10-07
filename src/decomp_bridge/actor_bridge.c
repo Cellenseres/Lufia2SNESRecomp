@@ -5737,3 +5737,20 @@ RecompReturn Lufia2DecompBridge_8099D8(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_8099E6(CpuState *cpu) {
     return ActorBridgeSoundDriver(cpu, 0x8099e6u, Lufia2SoundDriverWrite21, 3u);
 }
+
+
+RecompReturn Lufia2DecompBridge_809747(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x809747u, Lufia2BeginQueuedSoundResource, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_809786(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x809786u, Lufia2UpdateSoundResourceQueue, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_809886(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x809886u, Lufia2UploadSoundResourceSlot, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_809528(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x809528u, Lufia2SoundDriverRequest03, 3u);
+}
