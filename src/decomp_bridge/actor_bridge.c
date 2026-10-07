@@ -6686,3 +6686,19 @@ RecompReturn Lufia2DecompBridge_8089D0(CpuState *cpu) {
     }
     return ActorBridgeWholeAnyWidth(cpu, 0x8089d0u, Lufia2MenuAppendNumberDigit, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_80C825(CpuState *cpu) {
+    if (cpu->PB != 0x80u || cpu->D) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x80c825u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x80c825u, Lufia2TextUpdateSceneLabel, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_80C8D5(CpuState *cpu) {
+    if (cpu->PB != 0x80u || cpu->D || !cpu->m_flag || cpu->x_flag) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x80c8d5u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x80c8d5u, Lufia2TextRenderSceneLabel, 3u);
+}
