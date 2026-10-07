@@ -5754,3 +5754,72 @@ RecompReturn Lufia2DecompBridge_809886(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_809528(CpuState *cpu) {
     return ActorBridgeSoundDriver(cpu, 0x809528u, Lufia2SoundDriverRequest03, 3u);
 }
+
+
+typedef Lufia2ExecutionResult (*ActorAnimationFunction)(
+    const Lufia2Memory *, Lufia2CpuState *, Lufia2PushedChildCall, void *);
+
+static RecompReturn ActorBridgeObjectAnimation(
+    CpuState *cpu, uint32_t entry, ActorAnimationFunction run) {
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (!ActorBridgeSupported(cpu, 0, 0) || cpu->PB != 0x83u || cpu->D ||
+        cpu->S < 0x1f40u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    if ((entry == 0x83888cu || entry == 0x8388d9u) && cpu->DB != 0x7fu)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    const ActorBridgeFrame active = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    ActorPushedCall call = {cpu, active, RECOMP_RETURN_NORMAL};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result =
+        run(&memory, &state, ActorBridgePushedChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, active.entry_s, active.hrv);
+    return ActorBridgeReturn(cpu, &active, 2u, result.pc);
+}
+
+RecompReturn Lufia2DecompBridge_838927(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x838927u, Lufia2FieldSaveAnimationRegion, 2u, 0x1f20u);
+}
+
+RecompReturn Lufia2DecompBridge_83894C(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x83894cu, Lufia2FieldRestoreAnimationRegion, 2u, 0x1f20u);
+}
+
+RecompReturn Lufia2DecompBridge_838971(CpuState *cpu) {
+    return ActorBridgeObjectAnimation(cpu, 0x838971u, Lufia2FieldRedrawAnimatedRegion);
+}
+
+RecompReturn Lufia2DecompBridge_83881D(CpuState *cpu) {
+    return ActorBridgeObjectAnimation(cpu, 0x83881du, Lufia2FieldQueueObjectControlSound);
+}
+
+RecompReturn Lufia2DecompBridge_83888C(CpuState *cpu) {
+    return ActorBridgeObjectAnimation(cpu, 0x83888cu, Lufia2FieldCloseAnimatedRegion);
+}
+
+RecompReturn Lufia2DecompBridge_8388D9(CpuState *cpu) {
+    return ActorBridgeObjectAnimation(cpu, 0x8388d9u, Lufia2FieldOpenAnimatedRegion);
+}
+
+RecompReturn Lufia2DecompBridge_83873F(CpuState *cpu) {
+    return ActorBridgeObjectAnimation(cpu, 0x83873fu, Lufia2FieldApplyInitialObjectRegion);
+}
+
+RecompReturn Lufia2DecompBridge_838761(CpuState *cpu) {
+    return ActorBridgeObjectAnimation(cpu, 0x838761u, Lufia2FieldApplyAlternateObjectRegion);
+}
+
+RecompReturn Lufia2DecompBridge_838783(CpuState *cpu) {
+    return ActorBridgeObjectAnimation(cpu, 0x838783u, Lufia2FieldAnimateObjectAction);
+}
+
+RecompReturn Lufia2DecompBridge_8387CC(CpuState *cpu) {
+    return ActorBridgeObjectAnimation(cpu, 0x8387ccu, Lufia2FieldAnimateObjectControl);
+}
