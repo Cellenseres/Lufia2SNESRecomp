@@ -6566,3 +6566,11 @@ RecompReturn Lufia2DecompBridge_859532(CpuState *cpu) {
     }
     return ActorBridgeWholeAnyWidth(cpu, 0x859532u, Lufia2BattleLoadStatusMessage, 3u);
 }
+
+RecompReturn Lufia2DecompBridge_85C4F1(CpuState *cpu) {
+    if (cpu->PB != 0x85u || cpu->D) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x85c4f1u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x85c4f1u, Lufia2BattleExpandActionMessage, 3u);
+}
