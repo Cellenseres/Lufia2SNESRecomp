@@ -7526,3 +7526,19 @@ RecompReturn Lufia2DecompBridge_8EBBA8(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu, 0x8ebba8u, Lufia2FieldTakeSpriteSelectionButtons, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_82CE52(CpuState *cpu) {
+    if (cpu->PB != 0x82u || !cpu->m_flag || cpu->x_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x82ce52u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x82ce52u, Lufia2CapsuleBuildLevelExperience, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82CEAB(CpuState *cpu) {
+    if (cpu->PB != 0x82u || !cpu->m_flag || cpu->x_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x82ceabu);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x82ceabu, Lufia2CapsuleAdvanceExperienceStep, 2u);
+}
