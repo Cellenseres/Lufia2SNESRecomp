@@ -5343,3 +5343,18 @@ RecompReturn Lufia2DecompBridge_83F750(CpuState *cpu) {
     return ActorBridgeCoordinateMath(cpu, 0x83f750u,
         Lufia2FieldSetObjectTiles, 3u, 0);
 }
+
+static RecompReturn ActorBridgeEventTrigger(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction helper) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (cpu->emulation || !cpu->m_flag || cpu->x_flag || cpu->_flag_D ||
+        cpu->PB != 0x80u || cpu->D || cpu->S < 0x1f10u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    return ActorBridgeRunWhole(cpu, entry, helper, 3u, 4);
+}
+RecompReturn Lufia2DecompBridge_80E7FA(CpuState *cpu) {
+    return ActorBridgeEventTrigger(cpu, 0x80e7fau, Lufia2FieldStartEventAtProbe);
+}
+RecompReturn Lufia2DecompBridge_80E7DF(CpuState *cpu) {
+    return ActorBridgeEventTrigger(cpu, 0x80e7dfu, Lufia2FieldStartPositionEvent);
+}
