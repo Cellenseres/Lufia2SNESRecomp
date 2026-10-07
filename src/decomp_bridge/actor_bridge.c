@@ -5216,14 +5216,14 @@ RecompReturn Lufia2DecompBridge_83EC5F(CpuState *cpu) {
 
 
 static RecompReturn ActorBridgeSpriteResource(
-    CpuState *cpu, uint32_t entry, ActorWholeFunction helper, uint8_t return_size) {
+    CpuState *cpu, uint32_t entry, ActorWholeFunction helper, uint8_t return_size, uint8_t allow_x16) {
     ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
     const Lufia2Memory memory = {
         ActorBridgeRead, ActorBridgeWrite, cpu, ActorBridgeExecutionCheckpoint, cpu};
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
 
-    if (cpu->emulation || !cpu->m_flag || !cpu->x_flag || cpu->_flag_D ||
+    if (cpu->emulation || !cpu->m_flag || (!allow_x16 && !cpu->x_flag) || cpu->_flag_D ||
         cpu->PB != 0x83u || cpu->D || cpu->S < 0x1f04u || cpu->S > 0x1ffcu)
         return ActorBridgeFallback(cpu, &frame, entry);
     frame = ActorBridgeEnter(cpu);
@@ -5235,17 +5235,17 @@ static RecompReturn ActorBridgeSpriteResource(
 
 RecompReturn Lufia2DecompBridge_83AB4F(CpuState *cpu) {
     return ActorBridgeSpriteResource(cpu, 0x83ab4fu,
-        Lufia2ActorSetRecordOffsets, 3u);
+        Lufia2ActorSetRecordOffsets, 3u, 1u);
 }
 
 RecompReturn Lufia2DecompBridge_83ABCC(CpuState *cpu) {
     return ActorBridgeSpriteResource(cpu, 0x83abccu,
-        Lufia2SpriteReleaseAllocation, 3u);
+        Lufia2SpriteReleaseAllocation, 3u, 0u);
 }
 
 RecompReturn Lufia2DecompBridge_83ABE9(CpuState *cpu) {
     return ActorBridgeSpriteResource(cpu, 0x83abe9u,
-        Lufia2SpriteComputeVramBase, 3u);
+        Lufia2SpriteComputeVramBase, 3u, 0u);
 }
 
 RecompReturn Lufia2DecompBridge_83AB7C(CpuState *cpu) {
