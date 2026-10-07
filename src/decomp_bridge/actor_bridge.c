@@ -5852,3 +5852,15 @@ RecompReturn Lufia2DecompBridge_83898E(CpuState *cpu) {
     return ActorBridgeObjectCollision(cpu, 0x83898eu,
         Lufia2FieldFlagAnimationRow, 2u, 0x1f20u);
 }
+
+RecompReturn Lufia2DecompBridge_809911(CpuState *cpu) {
+    if (cpu->x_flag) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x809911u);
+    }
+    return ActorBridgeSoundDriver(cpu, 0x809911u, Lufia2UploadSoundPayload, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_809A0A(CpuState *cpu) {
+    return ActorBridgeWholeAnyWidth(cpu, 0x809a0au, Lufia2WaitSoundDriverReply, 2u);
+}
