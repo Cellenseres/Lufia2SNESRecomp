@@ -5245,3 +5245,101 @@ RecompReturn Lufia2DecompBridge_83ABE9(CpuState *cpu) {
     return ActorBridgeSpriteResource(cpu, 0x83abe9u,
         Lufia2SpriteComputeVramBase, 3u);
 }
+
+RecompReturn Lufia2DecompBridge_83AB7C(CpuState *cpu) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu, ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || !cpu->m_flag || !cpu->x_flag || cpu->_flag_D ||
+        cpu->PB != 0x83u || cpu->D || cpu->S < 0x1f04u || cpu->S > 0x1ffcu ||
+        !(cpu->A & 0xffu))
+        return ActorBridgeFallback(cpu, &frame, 0x83ab7cu);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = Lufia2SpriteReserveAllocation(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 3u, result.pc);
+}
+
+static RecompReturn ActorBridgeEventMapState(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction helper, uint8_t return_size) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu, ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || !cpu->m_flag || cpu->x_flag || cpu->_flag_D ||
+        cpu->PB != 0x80u || cpu->D || cpu->S < 0x1f04u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = helper(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, return_size, result.pc);
+}
+RecompReturn Lufia2DecompBridge_80D136(CpuState *cpu) {
+    return ActorBridgeEventMapState(cpu, 0x80d136u,
+        Lufia2FieldSaveObjectRegion, 2u);
+}
+RecompReturn Lufia2DecompBridge_80D15B(CpuState *cpu) {
+    return ActorBridgeEventMapState(cpu, 0x80d15bu,
+        Lufia2FieldRestoreObjectRegion, 2u);
+}
+RecompReturn Lufia2DecompBridge_80D18C(CpuState *cpu) {
+    return ActorBridgeEventMapState(cpu, 0x80d18cu,
+        Lufia2FieldNormalizeObjectOrigin, 2u);
+}
+RecompReturn Lufia2DecompBridge_80D227(CpuState *cpu) {
+    return ActorBridgeEventMapState(cpu, 0x80d227u,
+        Lufia2FieldMarkRegionObjects, 3u);
+}
+
+static RecompReturn ActorBridgeFieldRecordSearch(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction helper, uint8_t return_size) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu, ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || !cpu->m_flag || cpu->x_flag || cpu->_flag_D ||
+        cpu->PB != 0x83u || cpu->D || cpu->S < 0x1f04u || cpu->S > 0x1ffcu || !cpu->Y)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    frame = ActorBridgeEnter(cpu);
+    ActorBridgeLoad(cpu, &state);
+    result = helper(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, return_size, result.pc);
+}
+RecompReturn Lufia2DecompBridge_83B851(CpuState *cpu) {
+    return ActorBridgeFieldRecordSearch(cpu, 0x83b851u,
+        Lufia2FieldFindPointRecord, 3u);
+}
+RecompReturn Lufia2DecompBridge_83B882(CpuState *cpu) {
+    return ActorBridgeFieldRecordSearch(cpu, 0x83b882u,
+        Lufia2FieldFindRectangleRecord, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83F442(CpuState *cpu) {
+    if (cpu->S < 0x1f04u || cpu->S > 0x1ffcu) {
+        ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+
+        return ActorBridgeFallback(cpu, &frame, 0x83f442u);
+    }
+    return ActorBridgeCoordinateMath(cpu, 0x83f442u,
+        Lufia2FieldClearObjectAttributes, 3u, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83F750(CpuState *cpu) {
+    if (cpu->S < 0x1f04u || cpu->S > 0x1ffcu) {
+        ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+
+        return ActorBridgeFallback(cpu, &frame, 0x83f750u);
+    }
+    return ActorBridgeCoordinateMath(cpu, 0x83f750u,
+        Lufia2FieldSetObjectTiles, 3u, 0);
+}
