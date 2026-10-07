@@ -2593,3 +2593,11 @@ bridge = "Lufia2DecompBridge_8387CC"
 [[binding]]
 address = "83:898E"
 bridge = "Lufia2DecompBridge_83898E"
+
+[[binding]]
+address = "80:9911"
+bridge = "Lufia2DecompBridge_809911"
+
+[[binding]]
+address = "80:9A0A"
+bridge = "Lufia2DecompBridge_809A0A"
