@@ -6638,3 +6638,51 @@ RecompReturn Lufia2DecompBridge_86E709(CpuState *cpu) {
     }
     return ActorBridgeWholeAnyWidth(cpu, 0x86e709u, Lufia2WorldMapIndexObjectRecord, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_80C9C0(CpuState *cpu) {
+    if (cpu->PB != 0x80u || cpu->x_flag || cpu->D) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x80c9c0u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x80c9c0u, Lufia2TextExpandSceneString, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_80C7C2(CpuState *cpu) {
+    if (cpu->PB != 0x80u || !cpu->m_flag || cpu->D) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x80c7c2u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x80c7c2u, Lufia2TextDrawSceneGlyph, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_80C5DD(CpuState *cpu) {
+    if (cpu->PB != 0x80u || cpu->x_flag || cpu->D) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x80c5ddu);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x80c5ddu, Lufia2TextWriteSceneWindowRow, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_80C61D(CpuState *cpu) {
+    if (cpu->PB != 0x80u) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x80c61du);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x80c61du, Lufia2TextClearUploadRows, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8089AA(CpuState *cpu) {
+    if (cpu->PB != 0x80u || !cpu->m_flag || cpu->x_flag || cpu->D) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8089aau);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x8089aau, Lufia2MenuFormatNumberDigits, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8089D0(CpuState *cpu) {
+    if (cpu->PB != 0x80u || !cpu->m_flag || cpu->x_flag) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8089d0u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x8089d0u, Lufia2MenuAppendNumberDigit, 2u);
+}
