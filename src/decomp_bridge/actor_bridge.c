@@ -5504,3 +5504,33 @@ RecompReturn Lufia2DecompBridge_83EC4F(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_83ECDE(CpuState *cpu) {
     return ActorBridgeObjectCollision(cpu, 0x83ecdeu, Lufia2ObjectAllocateSpriteResources, 2u, 0x1f10u);
 }
+
+RecompReturn Lufia2DecompBridge_83C079(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x83c079u,
+        Lufia2FieldCanPushObject, 3u, 0x1f30u);
+}
+
+RecompReturn Lufia2DecompBridge_83C108(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x83c108u,
+        Lufia2FieldClaimActor, 3u, 0x1f10u);
+}
+
+RecompReturn Lufia2DecompBridge_80DCDA(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x80dcdau,
+        Lufia2FieldPushPendingObject, 3u, 0x1f50u);
+}
+
+RecompReturn Lufia2DecompBridge_80EA47(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x80ea47u,
+        Lufia2FieldSaveActorSlot, 2u, 0x1f00u);
+}
+
+RecompReturn Lufia2DecompBridge_80EA50(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x80ea50u,
+        Lufia2FieldRestoreActorSlot, 2u, 0x1f10u);
+}
+
+RecompReturn Lufia2DecompBridge_83E033(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x83e033u,
+        Lufia2FieldSetObjectDrawFlags, 3u, 0x1f00u);
+}
