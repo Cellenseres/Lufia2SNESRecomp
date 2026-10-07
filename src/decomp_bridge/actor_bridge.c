@@ -5864,3 +5864,23 @@ RecompReturn Lufia2DecompBridge_809911(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_809A0A(CpuState *cpu) {
     return ActorBridgeWholeAnyWidth(cpu, 0x809a0au, Lufia2WaitSoundDriverReply, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_809945(CpuState *cpu) {
+    if (!cpu->m_flag || cpu->x_flag) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x809945u);
+    }
+    return ActorBridgeSoundDriver(cpu, 0x809945u, Lufia2SendSoundPayload, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8098A5(CpuState *cpu) {
+    return ActorBridgeSoundDriver(cpu, 0x8098a5u, Lufia2SendSoundResourceHeader, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8097E5(CpuState *cpu) {
+    if (!cpu->m_flag || cpu->x_flag) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8097e5u);
+    }
+    return ActorBridgeSoundDriver(cpu, 0x8097e5u, Lufia2SendQueuedSoundChunk, 2u);
+}
