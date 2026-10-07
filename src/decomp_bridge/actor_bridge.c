@@ -7590,3 +7590,51 @@ RecompReturn Lufia2DecompBridge_82F6D4(CpuState *cpu) {
     }
     return ActorBridgeWholeAnyWidth(cpu, 0x82f6d4u, Lufia2PartyClearPrimaryModifiers, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_83BA06(CpuState *cpu) {
+    if (cpu->PB != 0x83u || !cpu->m_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x83ba06u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x83ba06u, Lufia2FieldProbeTalkTarget, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83BA5C(CpuState *cpu) {
+    if (cpu->PB != 0x83u || !cpu->m_flag || cpu->x_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x83ba5cu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x83ba5cu, Lufia2FieldProbeTalkDown, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83BA80(CpuState *cpu) {
+    if (cpu->PB != 0x83u || !cpu->m_flag || cpu->x_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x83ba80u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x83ba80u, Lufia2FieldProbeTalkLeft, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83BA96(CpuState *cpu) {
+    if (cpu->PB != 0x83u || !cpu->m_flag || cpu->x_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x83ba96u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x83ba96u, Lufia2FieldProbeTalkUp, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83BAAC(CpuState *cpu) {
+    if (cpu->PB != 0x83u || !cpu->m_flag || cpu->x_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x83baacu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x83baacu, Lufia2FieldProbeTalkRight, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83BA76(CpuState *cpu) {
+    if (cpu->PB != 0x83u || !cpu->m_flag || cpu->x_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x83ba76u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x83ba76u, Lufia2FieldProbeTalkBlocked, 2u);
+}
