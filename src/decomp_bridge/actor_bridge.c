@@ -5534,3 +5534,65 @@ RecompReturn Lufia2DecompBridge_83E033(CpuState *cpu) {
     return ActorBridgeObjectCollision(cpu, 0x83e033u,
         Lufia2FieldSetObjectDrawFlags, 3u, 0x1f00u);
 }
+
+RecompReturn Lufia2DecompBridge_8099FD(CpuState *cpu) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    if (cpu->emulation)
+        return ActorBridgeFallback(cpu, &frame, 0x8099fdu);
+    ActorBridgeLoad(cpu, &state);
+    Lufia2ExecutionResult result = Lufia2WriteSoundDriverMode(&memory, &state);
+    ActorBridgeStore(cpu, &state);
+    return ActorBridgeReturn(cpu, &frame, 2u, result.pc);
+}
+
+static Lufia2ExecutionResult ActorBridgeSoundCommand(
+    const Lufia2Memory *memory, Lufia2CpuState *state,
+    Lufia2PushedChildCall child, Lufia2MusicCheckpoint checkpoint,
+    void *context) {
+    (void)checkpoint;
+    return Lufia2SendSoundCommand(memory, state, child, context);
+}
+
+static Lufia2ExecutionResult ActorBridgeImmediateSound(
+    const Lufia2Memory *memory, Lufia2CpuState *state,
+    Lufia2PushedChildCall child, Lufia2MusicCheckpoint checkpoint,
+    void *context) {
+    (void)checkpoint;
+    return Lufia2SendImmediateSound(memory, state, child, context);
+}
+
+RecompReturn Lufia2DecompBridge_80953B(CpuState *cpu) {
+    return ActorBridgeMusic(cpu, 0x80953bu, ActorBridgeSoundCommand, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_848775(CpuState *cpu) {
+    return ActorBridgeMusic(cpu, 0x848775u, ActorBridgeImmediateSound, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_8387A3(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x8387a3u,
+        Lufia2FieldLoadObjectActionHeader, 3u, 0x1f20u);
+}
+
+RecompReturn Lufia2DecompBridge_838848(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x838848u,
+        Lufia2FieldLoadObjectControlHeader, 2u, 0x1f20u);
+}
+
+RecompReturn Lufia2DecompBridge_838874(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x838874u,
+        Lufia2FieldLoadObjectRegionHeader, 3u, 0x1f20u);
+}
+
+RecompReturn Lufia2DecompBridge_8EC338(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x8ec338u,
+        Lufia2FieldSelectObjectCondition, 3u, 0x1f20u);
+}
+
+RecompReturn Lufia2DecompBridge_8EC34F(CpuState *cpu) {
+    return ActorBridgeObjectCollision(cpu, 0x8ec34fu,
+        Lufia2FieldResolveObjectCondition, 3u, 0x1f20u);
+}
