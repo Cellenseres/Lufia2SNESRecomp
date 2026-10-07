@@ -7542,3 +7542,19 @@ RecompReturn Lufia2DecompBridge_82CEAB(CpuState *cpu) {
     }
     return ActorBridgeWholeAnyWidth(cpu, 0x82ceabu, Lufia2CapsuleAdvanceExperienceStep, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_80E8E2(CpuState *cpu) {
+    if (cpu->PB != 0x80u || cpu->m_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x80e8e2u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x80e8e2u, Lufia2FieldPublishEventPointer, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8691FE(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8691feu);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x8691feu, Lufia2WorldMapCellCenter, 2u);
+}
