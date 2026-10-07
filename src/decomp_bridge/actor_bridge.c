@@ -950,7 +950,7 @@ RecompReturn Lufia2DecompBridge_8378(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_8CDA(CpuState *cpu) {
-    return ActorBridgeWholeM1X16(cpu, 0x868cdau, Lufia2SpriteSetTable, 3);
+    return ActorBridgeWhole(cpu, 0x868cdau, Lufia2SpriteSetTable, 3);
 }
 
 RecompReturn Lufia2DecompBridge_8CF5(CpuState *cpu) {
@@ -6949,4 +6949,44 @@ RecompReturn Lufia2DecompBridge_8293F6(CpuState *cpu) {
         return ActorBridgeFallback(cpu, &frame, 0x8293f6u);
     }
     return ActorBridgeSceneOwners(cpu, 0x8293f6u, Lufia2MenuPrepareDisplayText, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8289BC(CpuState *cpu) {
+    if (cpu->PB != 0x82u || !cpu->m_flag || cpu->x_flag) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu,&frame,0x8289bcu);
+    }
+    return ActorBridgeSceneOwners(cpu,0x8289bcu,Lufia2MenuReplaceCursor,2u);
+}
+
+RecompReturn Lufia2DecompBridge_829C10(CpuState *cpu) {
+    if (cpu->PB != 0x82u || !cpu->m_flag || cpu->x_flag) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu,&frame,0x829c10u);
+    }
+    return ActorBridgeSceneOwners(cpu,0x829c10u,Lufia2MenuInitializeListScroll,2u);
+}
+
+RecompReturn Lufia2DecompBridge_829B51(CpuState *cpu) {
+    if (cpu->PB != 0x82u || !cpu->m_flag || cpu->x_flag) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu,&frame,0x829b51u);
+    }
+    return ActorBridgeSceneOwners(cpu,0x829b51u,Lufia2MenuBuildListWindows,2u);
+}
+
+RecompReturn Lufia2DecompBridge_82A658(CpuState *cpu) {
+    if (cpu->PB != 0x82u || !cpu->m_flag || cpu->x_flag) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu,&frame,0x82a658u);
+    }
+    return ActorBridgeSceneOwners(cpu,0x82a658u,Lufia2MenuRunListInput,2u);
+}
+
+RecompReturn Lufia2DecompBridge_82A711(CpuState *cpu) {
+    if (cpu->PB != 0x82u || !cpu->m_flag || cpu->x_flag) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu,&frame,0x82a711u);
+    }
+    return ActorBridgeSceneOwners(cpu,0x82a711u,Lufia2MenuRunListSelection,2u);
 }
