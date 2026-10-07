@@ -7558,3 +7558,11 @@ RecompReturn Lufia2DecompBridge_8691FE(CpuState *cpu) {
     }
     return ActorBridgeWholeAnyWidth(cpu, 0x8691feu, Lufia2WorldMapCellCenter, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_86CDF5(CpuState *cpu) {
+    if (cpu->PB != 0x86u || !cpu->m_flag || cpu->x_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86cdf5u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x86cdf5u, Lufia2WorldMapBindResourcePointers, 2u);
+}
