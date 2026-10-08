@@ -7885,3 +7885,19 @@ RecompReturn Lufia2DecompBridge_86CBF0(CpuState *cpu) {
     }
     return ActorBridgeWholeAnyWidth(cpu, 0x86cbf0u, Lufia2WorldMapBuildSkylineHdma, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_86A913(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->m_flag || cpu->x_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86a913u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x86a913u, Lufia2WorldMapProjectTiltDistance, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_86A956(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->m_flag || cpu->x_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86a956u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x86a956u, Lufia2WorldMapProjectTiltReciprocal, 2u);
+}
