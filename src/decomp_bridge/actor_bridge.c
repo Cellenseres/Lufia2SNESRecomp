@@ -7821,3 +7821,11 @@ RecompReturn Lufia2DecompBridge_86ACFE(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu, 0x86acfeu, Lufia2WorldMapStreamColumn, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_80F6C6(CpuState *cpu) {
+    if (cpu->PB != 0x80u || cpu->m_flag || cpu->x_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x80f6c6u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x80f6c6u, Lufia2FieldRenderRowBuffers, 2u);
+}
