@@ -40,6 +40,7 @@ bool Lufia2CapturePpuRasterEffects(
     uint8_t *mosaic,
     size_t line_count);
 uint32_t Lufia2PpuRasterMemoryFlags(void);
+const uint16_t *Lufia2PpuRasterCgram(void);
 
 /* Guest boundary at which the next frame resumes. This is observation only;
  * it does not redirect or otherwise alter guest execution. */

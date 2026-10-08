@@ -45,6 +45,7 @@ static uint64_t s_boundaries;
 static uint64_t s_nmis;
 static uint64_t s_irqs;
 static uint8_t s_line_regs[225][PPU_SAVESTATE_REGS_SIZE];
+static uint16_t s_line_cgram[225][SNES_PPU_CGRAM_ENTRIES];
 static bool s_line_regs_valid;
 static uint32_t s_raster_memory_flags;
 static bool s_loaded_execution_valid;
@@ -108,9 +109,13 @@ uint32_t Lufia2PpuRasterMemoryFlags(void) {
     return s_raster_memory_flags;
 }
 
-/* Match SimpleHdma_DoLine's register sequence. Register-only writes are
- * represented by s_line_regs; memory-port writes are not reconstructible from
- * the frame-end VRAM/CGRAM/OAM snapshots and therefore force fallback. */
+const uint16_t *Lufia2PpuRasterCgram(void) {
+    return s_line_regs_valid &&
+        (s_raster_memory_flags & SNES_PPU_RASTER_MEMORY_CGRAM)
+        ? s_line_cgram[1] : NULL;
+}
+
+/* CGRAM has scanline history; other memory ports require fallback. */
 static uint32_t Lufia2HdmaMemoryFlags(void) {
     static const uint8_t offsets[8][4] = {
         {0,0,0,0}, {0,1,0,1}, {0,0,0,0}, {0,0,1,1},
@@ -129,7 +134,7 @@ static uint32_t Lufia2HdmaMemoryFlags(void) {
                 (g_dma->channel[ch].bAdr + offsets[mode][j]) & 255u;
             if (reg == 0x18u || reg == 0x19u)
                 flags |= SNES_PPU_RASTER_MEMORY_VRAM;
-            else if (reg == 0x22u)
+            else if (reg == 0x21u || reg == 0x22u)
                 flags |= SNES_PPU_RASTER_MEMORY_CGRAM;
             else if (reg == 0x04u)
                 flags |= SNES_PPU_RASTER_MEMORY_OAM;
@@ -255,6 +260,9 @@ void Lufia2DrawPpuFrame(void) {
     for (int line = 0; line <= 224; line++) {
         memcpy(s_line_regs[line], &g_ppu->inidisp,
                PPU_SAVESTATE_REGS_SIZE);
+        if (s_raster_memory_flags & SNES_PPU_RASTER_MEMORY_CGRAM)
+            memcpy(s_line_cgram[line], g_ppu->cgram,
+                   sizeof s_line_cgram[line]);
         ppu_runLine(g_ppu, line);
 
         for (int ch = 0; ch < 8; ch++)
