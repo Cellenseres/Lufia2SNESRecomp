@@ -8610,3 +8610,43 @@ RecompReturn Lufia2DecompBridge_81A676(CpuState *cpu) {
     }
     return ActorBridgeWholeAnyWidth(cpu, 0x81a676u, Lufia2BattleEffectSpawnCenteredScript, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_81A1EC(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x81a1ecu);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x81a1ecu, Lufia2BattleEffectClearDrawDirty, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_81A1F5(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x81a1f5u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x81a1f5u, Lufia2BattleEffectClearTarget, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_81A567(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x81a567u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x81a567u, Lufia2BattleEffectSetDrawVariantThree, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_81A588(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x81a588u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x81a588u, Lufia2BattleEffectUseThirdDrawParameter, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_81A696(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x81a696u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x81a696u, Lufia2BattleEffectClearBackgroundUploadRequest, 2u);
+}
