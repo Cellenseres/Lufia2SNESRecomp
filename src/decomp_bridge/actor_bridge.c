@@ -9015,3 +9015,18 @@ RecompReturn Lufia2DecompBridge_8184FC(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu,0x8184fcu,Lufia2BattleAddEncounterEnemy,2u);
 }
+
+RecompReturn Lufia2DecompBridge_8181E6(CpuState *cpu) {
+    if(cpu->PB!=0x81u||!cpu->m_flag||cpu->x_flag||cpu->D||cpu->S<0x1f16u||cpu->S>0x1ffcu) {
+        const ActorBridgeFrame frame=ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu,&frame,0x8181e6u);
+    }
+    return ActorBridgeSceneOwners(cpu,0x8181e6u,Lufia2BattleLoadEncounter,2u);
+}
+RecompReturn Lufia2DecompBridge_85DE8E(CpuState *cpu) {
+    if(cpu->PB!=0x85u||!cpu->m_flag||cpu->x_flag||cpu->S<0x1f00u||cpu->S>0x1ffbu) {
+        const ActorBridgeFrame frame=ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu,&frame,0x85de8eu);
+    }
+    return ActorBridgeWholeAnyWidth(cpu,0x85de8eu,Lufia2BattleClearEnemySpriteSlots,3u);
+}
