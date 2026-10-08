@@ -8394,3 +8394,59 @@ RecompReturn Lufia2DecompBridge_81A655(CpuState *cpu) {
     }
     return ActorBridgeWholeAnyWidth(cpu, 0x81a655u, Lufia2BattleEffectSetDelayTwenty, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_81A03A(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x81a03au);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x81a03au, Lufia2BattleEffectOffsetBaseAngle, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_81A04E(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x81a04eu);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x81a04eu, Lufia2BattleEffectRotateAngle, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_81A295(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x81a295u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x81a295u, Lufia2BattleEffectSetVelocityWords, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_81A35E(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x81a35eu);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x81a35eu, Lufia2BattleEffectSetDrawAttributes, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_81A373(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x81a373u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x81a373u, Lufia2BattleEffectSetDrawValue, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_81A388(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x81a388u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x81a388u, Lufia2BattleEffectSetDrawMode, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_81A3D4(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x81a3d4u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x81a3d4u, Lufia2BattleEffectSetDrawFlag, 2u);
+}
