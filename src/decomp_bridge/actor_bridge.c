@@ -8890,3 +8890,11 @@ RecompReturn Lufia2DecompBridge_81BBE0(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu,0x81bbe0u,Lufia2BattleUpdateSlotPortraitStatus,2u);
 }
+
+RecompReturn Lufia2DecompBridge_81BC55(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f0au || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame=ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu,&frame,0x81bc55u);
+    }
+    return ActorBridgeSceneOwners(cpu,0x81bc55u,Lufia2BattleLoadCapsuleGraphics,2u);
+}
