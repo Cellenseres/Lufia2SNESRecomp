@@ -8117,3 +8117,16 @@ RecompReturn Lufia2DecompBridge_82C482(CpuState *cpu) {
     }
     return ActorBridgeWholeAnyWidth(cpu, 0x82c482u, Lufia2CapsuleGetStatusAddress, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_8283EB(CpuState *cpu) {
+    const unsigned columns = cpu->X >> 8;
+    const unsigned rows = cpu->X & 0xffu;
+    if (cpu->PB != 0x82u || cpu->m_flag || cpu->x_flag || cpu->D != 0u ||
+        cpu->S < 0x1f00u || cpu->S > 0x1ffcu ||
+        (cpu->A & 1u) || cpu->A >= 0x0800u || !columns || !rows ||
+        ((cpu->A & 0x3fu) >> 1) + columns > 32u || (cpu->A >> 6) + rows > 32u) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8283ebu);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x8283ebu, Lufia2MenuClearTileRectangle, 2u);
+}
