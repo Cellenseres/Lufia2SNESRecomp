@@ -8706,3 +8706,19 @@ RecompReturn Lufia2DecompBridge_819935(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu, 0x819935u, Lufia2BattleEffectAdjustPaletteBrightness, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_85920E(CpuState *cpu) {
+    if (cpu->PB != 0x85u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x85920eu);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x85920eu, Lufia2BattleTogglePartyTargetState, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_85922D(CpuState *cpu) {
+    if (cpu->PB != 0x85u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x85922du);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x85922du, Lufia2BattleToggleSpecialTargetState, 3u);
+}
