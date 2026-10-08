@@ -164,6 +164,8 @@ bool Lufia2CapturePpuFrame(SnesPpuFrameCapture *out,
     memset(out, 0, sizeof *out);
     out->vram = g_ppu->vram;
     out->cgram = g_ppu->cgram;
+    out->cgram_lines = Lufia2PpuRasterCgram();
+    out->cgram_line_count = out->cgram_lines ? LUFIA2_PPU_VISIBLE_LINES : 0u;
     out->oam = g_ppu->oam;
     out->high_oam = g_ppu->highOam;
     out->bands = bands;
