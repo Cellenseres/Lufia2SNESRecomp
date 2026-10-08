@@ -7950,3 +7950,12 @@ RecompReturn Lufia2DecompBridge_86A03B(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu, 0x86a03bu, Lufia2WorldMapStepPaletteColors, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_86CCFC(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->DB != 0x86u || cpu->D || !cpu->m_flag || cpu->x_flag ||
+        cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86ccfcu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x86ccfcu, Lufia2WorldMapLoadResourceBlocks, 2u);
+}
