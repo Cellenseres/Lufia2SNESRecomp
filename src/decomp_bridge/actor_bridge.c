@@ -7789,3 +7789,35 @@ RecompReturn Lufia2DecompBridge_8197A5(CpuState *cpu) {
     }
     return ActorBridgeWholeAnyWidth(cpu, 0x8197a5u, Lufia2BattleEffectSetBg1Scroll, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_86ADEE(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->m_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86adeeu);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x86adeeu, Lufia2WorldMapBuildCellOffset, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_86AE05(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->m_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86ae05u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x86ae05u, Lufia2WorldMapBuildBlockPointer, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_86AC6C(CpuState *cpu) {
+    if (cpu->PB != 0x86u || !cpu->m_flag || cpu->x_flag || cpu->D || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86ac6cu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x86ac6cu, Lufia2WorldMapStreamRow, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_86ACFE(CpuState *cpu) {
+    if (cpu->PB != 0x86u || !cpu->m_flag || cpu->x_flag || cpu->D || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86acfeu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x86acfeu, Lufia2WorldMapStreamColumn, 2u);
+}
