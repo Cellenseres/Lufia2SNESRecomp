@@ -8037,3 +8037,11 @@ RecompReturn Lufia2DecompBridge_85DB6D(CpuState *cpu) {
     }
     return ActorBridgeWholeAnyWidth(cpu, 0x85db6du, Lufia2SystemDivideVectorMagnitude, 3u);
 }
+
+RecompReturn Lufia2DecompBridge_85DAC7(CpuState *cpu) {
+    if (cpu->PB != 0x85u || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x85dac7u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x85dac7u, Lufia2SystemCalculateVectorAngle, 3u);
+}
