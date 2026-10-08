@@ -8826,3 +8826,11 @@ RecompReturn Lufia2DecompBridge_81A2B0(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu,0x81a2b0u,Lufia2BattleEffectSpawnVectorActor,2u);
 }
+
+RecompReturn Lufia2DecompBridge_819F8B(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f02u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame=ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu,&frame,0x819f8bu);
+    }
+    return ActorBridgeSceneOwners(cpu,0x819f8bu,Lufia2BattleEffectSendConditionalSound,2u);
+}
