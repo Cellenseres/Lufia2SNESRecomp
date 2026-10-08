@@ -9000,3 +9000,18 @@ RecompReturn Lufia2DecompBridge_85EEA1(CpuState *cpu) {
     }
     return ActorBridgeWholeAnyWidth(cpu, 0x85eea1u, Lufia2BattleStoreRemainingEncounter, 3u);
 }
+RecompReturn Lufia2DecompBridge_81839F(CpuState *cpu) {
+    if(cpu->PB!=0x81u||!cpu->m_flag||cpu->D!=0u||cpu->S<0x1f10u||cpu->S>0x1ffcu) {
+        const ActorBridgeFrame frame=ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu,&frame,0x81839fu);
+    }
+    return ActorBridgeSceneOwners(cpu,0x81839fu,Lufia2BattleGenerateEncounterRecord,2u);
+}
+
+RecompReturn Lufia2DecompBridge_8184FC(CpuState *cpu) {
+    if(cpu->PB!=0x81u||!cpu->m_flag || !cpu->x_flag||cpu->D!=0u||cpu->S<0x1f0au||cpu->S>0x1ffcu) {
+        const ActorBridgeFrame frame=ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu,&frame,0x8184fcu);
+    }
+    return ActorBridgeSceneOwners(cpu,0x8184fcu,Lufia2BattleAddEncounterEnemy,2u);
+}
