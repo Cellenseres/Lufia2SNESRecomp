@@ -7993,3 +7993,11 @@ RecompReturn Lufia2DecompBridge_81E877(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu, 0x81e877u, Lufia2BattleBuildAlternateNameTiles, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_819BBE(CpuState *cpu) {
+    if (cpu->PB != 0x81u || !cpu->m_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x819bbeu);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x819bbeu, Lufia2BattleEffectMoveTarget, 2u);
+}
