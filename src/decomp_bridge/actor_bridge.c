@@ -7934,3 +7934,19 @@ RecompReturn Lufia2DecompBridge_86AE4D(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu, 0x86ae4du, Lufia2WorldMapCopyFlaggedBlocks, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_86A0A2(CpuState *cpu) {
+    if (cpu->PB != 0x86u || !cpu->m_flag || cpu->x_flag || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86a0a2u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x86a0a2u, Lufia2WorldMapQueuePaletteTransfer, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_86A03B(CpuState *cpu) {
+    if (cpu->PB != 0x86u || !cpu->m_flag || cpu->x_flag || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86a03bu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x86a03bu, Lufia2WorldMapStepPaletteColors, 2u);
+}
