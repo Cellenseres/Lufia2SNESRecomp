@@ -8109,3 +8109,11 @@ RecompReturn Lufia2DecompBridge_82C554(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu, 0x82C554u, Lufia2CapsuleChooseMenuItem, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_82C482(CpuState *cpu) {
+    if (cpu->PB != 0x82u || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x82c482u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x82c482u, Lufia2CapsuleGetStatusAddress, 2u);
+}
