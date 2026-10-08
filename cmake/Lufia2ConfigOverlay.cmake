@@ -39,6 +39,20 @@ function(lufia2_target_config_overlay target snesrecomp_root)
     endif()
     string(REPLACE "${_old}" "${_new}" _patched "${_source}")
 
+    set(_section_old [=[
+  if (StringEqualsNoCase(s, "[Rewind]"))
+]=])
+    set(_section_new [=[
+  if (StringEqualsNoCase(s, "[Lufia2Features]"))
+    return 9;
+  if (StringEqualsNoCase(s, "[Rewind]"))
+]=])
+    string(FIND "${_patched}" "${_section_old}" _anchor)
+    if(_anchor EQUAL -1)
+        message(FATAL_ERROR "The pinned mmx_config.c section context changed")
+    endif()
+    string(REPLACE "${_section_old}" "${_section_new}" _patched "${_patched}")
+
     set(_overlay_dir "${CMAKE_BINARY_DIR}/generated/lufia2-config")
     set(_overlay "${_overlay_dir}/mmx_config.c")
     file(MAKE_DIRECTORY "${_overlay_dir}")

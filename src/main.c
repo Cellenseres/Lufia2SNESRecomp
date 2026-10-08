@@ -67,6 +67,7 @@
 #include "lufia2_map_load.h"
 #include "lufia2_equip_names.h"
 #include "lufia2_spell_price.h"
+#include "patches/lufia2_sound_menu.h"
 #include "lufia2_play_time.h"
 #include "lufia2_party_limits.h"
 #include "lufia2_drop_text.h"
@@ -511,6 +512,9 @@ static bool EnsureDefaultConfig(const char *path) {
         "AudioChannels = 2\n"
         "AudioSamples = 512\n"
         "\n"
+        "[Lufia2Features]\n"
+        "FixSoundMenu = 1\n"
+        "\n"
         "[GamepadMap]\n"
         "EnableGamepad1 = true\n"
         "EnableGamepad2 = false\n"
@@ -772,6 +776,8 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
 
     ParseConfigFile("config.ini");
     LoadVisualConfig("config.ini");
+    Lufia2SoundMenuSetFixEnabled(ReadIniBool(
+        "config.ini", "Lufia2Features", "FixSoundMenu", true));
     if (!EnsureDefaultPlatformConfig("platform.ini")) {
         fprintf(stderr,
             "[config] warning: could not create platform.ini\n");
@@ -874,6 +880,10 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
 
     host_report_breadcrumb("launcher: action=%d rom=%s",
         action, rom_path[0] ? rom_path : "(none)");
+
+    if (action != RECOMP_LAUNCHER_RESULT_UNAVAILABLE)
+        PersistInt("Lufia2Features", "FixSoundMenu",
+            Lufia2SoundMenuFixEnabled() ? 1 : 0);
 
     if (action == RECOMP_LAUNCHER_RESULT_QUIT)
         return false;
@@ -2699,6 +2709,8 @@ int main(int argc, char **argv) {
     Lufia2PlayTimeInstall();
     Lufia2PartyLimitsInstall();
     Lufia2SpellPriceInstall();
+    if (!Lufia2SoundMenuInstall(rom_data, rom_size))
+        fprintf(stderr, "[sound-menu] unsupported ROM; fix inactive\n");
     Lufia2DropTextInstall();
     Lufia2CaveEggsInstall();
     Lufia2CaveStairsInstall();
