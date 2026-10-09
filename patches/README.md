@@ -70,3 +70,26 @@ the original path and print a diagnostic.
 - `../cmake/Lufia2NativePatches.cmake`: the bridge seam.
 - `../cmake/Lufia2QuiescenceIndex.cmake`, `../cmake/Lufia2DmaHostFastForward.cmake`:
   the pinned core overlays.
+
+## Shared runtime cost reductions
+
+`LUFIA2_ENABLE_LOGO_WAIT_FASTFORWARD` batches the original `$80:8084`
+`LDA $6A / BNE` NMI wait within the existing frame-wait deadline contract.
+It requires `LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD` and checks the original
+ROM bytes, CPU mode, interrupts, bus timing, observers and opcode hooks.
+Complete pairs retain CPU/master clocks, DRAM refresh and APU synchronization.
+The helper is `src/lufia2_logo_wait.h`; the consumer seam is
+`cmake/Lufia2LogoWait.cmake`. No semantic decomp routine is changed.
+
+`LUFIA2_ENABLE_PPU_PIXEL_CACHE` caches RGB conversion for software-rendered
+scanline regions without colour math or active battle art. The helper in
+`src/lufia2_ppu_palette.h` rechecks all CGRAM entries and brightness after
+line callbacks. `cmake/Lufia2PpuPixelCosts.cmake` integrates it with the shared
+PPU overlay and Vita's CPU fallback; GXM composition stays in the Vita host.
+
+`LUFIA2_AUDIO_COUNTERS_ONLY` selects `COUNTERS` diagnostic retention before
+any platform imports the runner. SPC/DSP execution and the playback/MSU
+rings are unchanged. Disable this option and select
+`SNESRECOMP_AUDIO_TRACE_HISTORY=SMALL` or `FULL` to retain diagnostic history.
+These options default to on for Windows, Linux, Vita and 3DS. Frame/profile
+and observer restrictions still apply to the logo patch.

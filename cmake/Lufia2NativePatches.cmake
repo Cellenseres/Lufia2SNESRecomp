@@ -323,5 +323,7 @@ uint64_t lufia2_frame_wait_ff_site_pairs_count(unsigned site) {
     if(NOT _count EQUAL 1)
         message(FATAL_ERROR "Native patches expected exactly one interpreter bridge")
     endif()
+    include("${CMAKE_SOURCE_DIR}/cmake/Lufia2LogoWait.cmake")
+    lufia2_prepare_logo_wait(_result)
     set(${sources_var} "${_result}" PARENT_SCOPE)
 endfunction()
