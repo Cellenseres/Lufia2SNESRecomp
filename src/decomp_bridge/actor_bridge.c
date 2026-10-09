@@ -9984,3 +9984,13 @@ RecompReturn Lufia2DecompBridge_82EEC2(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu,0x82eec2u,Lufia2SaveDrawErasePrompt,2u);
 }
+
+RecompReturn Lufia2DecompBridge_8EE710(CpuState *cpu) {
+    if (cpu->PB != 0x8eu || !cpu->m_flag || cpu->x_flag || cpu->D != 0u ||
+        cpu->Y >= 6u || cpu->S < 0x1f00u || cpu->S > 0x1ffbu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8ee710u);
+    }
+    return ActorBridgeWholeAnyWidth(
+        cpu, 0x8ee710u, Lufia2MenuSaveSelectionState, 3u);
+}
