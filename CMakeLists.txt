@@ -7,6 +7,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include("${CMAKE_SOURCE_DIR}/cmake/Lufia2Decomp.cmake")
+include("${CMAKE_SOURCE_DIR}/cmake/Lufia2RuntimeCosts.cmake")
 
 option(LUFIA2_ENABLE_PERF_AUDIT "Finite Vita performance audit; no AOT promotion" OFF)
 if(LUFIA2_ENABLE_PERF_AUDIT AND NOT VITA)

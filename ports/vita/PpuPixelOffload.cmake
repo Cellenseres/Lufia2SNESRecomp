@@ -6,6 +6,8 @@ function(lufia2_prepare_ppu_pixel_offload sources_var core_root)
     set(_original "${core_root}/runner/src/snes/ppu.c")
     file(READ "${_original}" _source)
     lufia2_fix_ppu_4bpp_mosaic_palette(_source)
+    include("${CMAKE_SOURCE_DIR}/cmake/Lufia2PpuPixelCosts.cmake")
+    lufia2_ppu_pixel_costs(_source)
     set(_old [=[
     if (ppu->renderFlags & kPpuRenderFlags_NewRenderer) {
       PPU_T0; PpuDrawWholeLine(ppu, line); PPU_ACC(g_ppu_sec_line_ms);
@@ -40,7 +42,7 @@ function(lufia2_prepare_ppu_pixel_offload sources_var core_root)
     set(_overlay "${_directory}/ppu.c")
     file(WRITE "${_overlay}" "${_patched}")
     set_source_files_properties("${_overlay}" PROPERTIES INCLUDE_DIRECTORIES
-        "${core_root}/runner/src/snes;${core_root}/runner/src")
+        "${core_root}/runner/src/snes;${core_root}/runner/src;${CMAKE_SOURCE_DIR}/src")
     set(_sources "${${sources_var}}")
     list(FIND _sources "${_original}" _index)
     if(_index EQUAL -1)

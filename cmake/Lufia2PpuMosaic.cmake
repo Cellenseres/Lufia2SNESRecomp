@@ -89,6 +89,8 @@ function(lufia2_prepare_ppu_mosaic_overlay sources_var core_root)
     lufia2_fix_ppu_profile_timer(_source)
     include("${CMAKE_SOURCE_DIR}/cmake/Lufia2BattleEffects.cmake")
     lufia2_ppu_battle_effects(_source)
+    include("${CMAKE_SOURCE_DIR}/cmake/Lufia2PpuPixelCosts.cmake")
+    lufia2_ppu_pixel_costs(_source)
 
     set(_directory "${CMAKE_BINARY_DIR}/generated/lufia2-ppu-fixes/snes")
     set(_overlay "${_directory}/ppu.c")
