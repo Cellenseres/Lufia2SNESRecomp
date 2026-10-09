@@ -9994,3 +9994,48 @@ RecompReturn Lufia2DecompBridge_8EE710(CpuState *cpu) {
     return ActorBridgeWholeAnyWidth(
         cpu, 0x8ee710u, Lufia2MenuSaveSelectionState, 3u);
 }
+
+RecompReturn Lufia2DecompBridge_8386EA(CpuState *cpu) {
+    if (cpu->PB != 0x83u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8386eau);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x8386eau, Lufia2FieldApplyObjectConditions, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_838728(CpuState *cpu) {
+    if (cpu->PB != 0x83u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x838728u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x838728u, Lufia2FieldApplySavedObjectControls, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_80EA5B(CpuState *cpu) {
+    if (cpu->PB != 0x80u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffbu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x80ea5bu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x80ea5bu, Lufia2FieldInitializePendingObjects, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_83B581(CpuState *cpu) {
+    if (cpu->PB != 0x83u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x83b581u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x83b581u, Lufia2FieldResetMapEventState, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8EE6EA(CpuState *cpu) {
+    if (cpu->PB != 0x8eu || !cpu->m_flag || cpu->x_flag || cpu->D != 0u ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffbu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8ee6eau);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x8ee6eau, Lufia2MenuResetSaveSelectionRecords, 3u);
+}
