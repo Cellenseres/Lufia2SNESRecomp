@@ -4497,3 +4497,71 @@ bridge = "Lufia2DecompBridge_829808"
 [[binding]]
 address = "82:F660"
 bridge = "Lufia2DecompBridge_82F660"
+
+[[binding]]
+address = "82:C443"
+bridge = "Lufia2DecompBridge_82C443"
+
+[[binding]]
+address = "82:C4A2"
+bridge = "Lufia2DecompBridge_82C4A2"
+
+[[binding]]
+address = "82:C4B3"
+bridge = "Lufia2DecompBridge_82C4B3"
+
+[[binding]]
+address = "82:CCFE"
+bridge = "Lufia2DecompBridge_82CCFE"
+
+[[binding]]
+address = "82:CD41"
+bridge = "Lufia2DecompBridge_82CD41"
+
+[[binding]]
+address = "82:FD3D"
+bridge = "Lufia2DecompBridge_82FD3D"
+
+[[binding]]
+address = "82:E75D"
+bridge = "Lufia2DecompBridge_82E75D"
+
+[[binding]]
+address = "82:E77C"
+bridge = "Lufia2DecompBridge_82E77C"
+
+[[binding]]
+address = "82:E78D"
+bridge = "Lufia2DecompBridge_82E78D"
+
+[[binding]]
+address = "82:E861"
+bridge = "Lufia2DecompBridge_82E861"
+
+[[binding]]
+address = "82:E87B"
+bridge = "Lufia2DecompBridge_82E87B"
+
+[[binding]]
+address = "82:E8B2"
+bridge = "Lufia2DecompBridge_82E8B2"
+
+[[binding]]
+address = "82:E7AA"
+bridge = "Lufia2DecompBridge_82E7AA"
+
+[[binding]]
+address = "82:E80C"
+bridge = "Lufia2DecompBridge_82E80C"
+
+[[binding]]
+address = "82:EBF2"
+bridge = "Lufia2DecompBridge_82EBF2"
+
+[[binding]]
+address = "82:B104"
+bridge = "Lufia2DecompBridge_82B104"
+
+[[binding]]
+address = "82:EEF2"
+bridge = "Lufia2DecompBridge_82EEF2"
