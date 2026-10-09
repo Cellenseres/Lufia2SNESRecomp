@@ -788,7 +788,14 @@ RecompReturn Lufia2DecompBridge_CEF6(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_ECDB(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x85ecdbu, Lufia2BattleVramQueueSlot, 3);
+    if (cpu->m_flag)
+        return ActorBridgeWhole(cpu, 0x85ecdbu, Lufia2BattleVramQueueSlot, 3);
+    if (cpu->PB != 0x85u || (cpu->DB != 0x81u && cpu->DB != 0x85u) || cpu->D != 0u ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffbu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x85ecdbu);
+    }
+    return ActorBridgeWholeM0X0(cpu, 0x85ecdbu, Lufia2BattleVramQueueSlot, 3);
 }
 
 RecompReturn Lufia2DecompBridge_99BF(CpuState *cpu) {
@@ -10100,4 +10107,15 @@ RecompReturn Lufia2DecompBridge_81E1B5(CpuState *cpu) {
         return ActorBridgeFallback(cpu, &frame, 0x81e1b5u);
     }
     return ActorBridgeSceneOwners(cpu, 0x81e1b5u, Lufia2BattleDrawPartyStatusDetail, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_81E308(CpuState *cpu) {
+    if (cpu->PB != 0x81u || cpu->D != 0u ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x81e308u);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x81e308u,
+        Lufia2BattleFillStatusGauge, 0, 2u,
+        BATTLE_BRIDGE_M1X0, 0, 0x7e, 0);
 }
