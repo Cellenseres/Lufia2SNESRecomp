@@ -11143,3 +11143,23 @@ RecompReturn Lufia2DecompBridge_8597D1(CpuState *cpu) {
         0, Lufia2BattlePrepareSpecialPartyGrid, 3u,
         BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
 }
+
+RecompReturn Lufia2DecompBridge_8592CE(CpuState *cpu) {
+    if (cpu->x_flag || cpu->PB != 0x85u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8592ceu);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x8592ceu,
+        0, Lufia2BattlePublishPartyAction, 3u,
+        BATTLE_BRIDGE_ANY_WIDTH, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_8592FF(CpuState *cpu) {
+    if (cpu->x_flag || cpu->PB != 0x85u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8592ffu);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x8592ffu,
+        0, Lufia2BattleQueueStagedPartyAction, 3u,
+        BATTLE_BRIDGE_ANY_WIDTH, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
