@@ -26,7 +26,7 @@ void Lufia2SoundMenuSetFixEnabled(bool enabled) {
     s_fix_enabled = enabled;
 }
 
-static void FixMusicTarget(CpuState *cpu, uint32_t pc24) {
+void Lufia2SoundMenuCorrectTarget(CpuState *cpu, uint32_t pc24) {
     if (!s_fix_enabled || !s_supported_rom || !cpu->ram ||
         (pc24 & 0x7fffffu) != (DISPATCH_TARGET_STORE & 0x7fffffu) ||
         (cpu->PB & 0x7fu) != 2u || cpu->emulation ||
@@ -56,6 +56,6 @@ bool Lufia2SoundMenuInstall(const uint8_t *rom, size_t size) {
         memcmp(rom + 0x13f4c, left_table, sizeof(left_table)) == 0 &&
         memcmp(rom + 0x10028, dispatch, sizeof(dispatch)) == 0;
     if (s_supported_rom)
-        interp_bridge_set_pre_opcode_hook(DISPATCH_TARGET_STORE, FixMusicTarget);
+        interp_bridge_set_pre_opcode_hook(DISPATCH_TARGET_STORE, Lufia2SoundMenuCorrectTarget);
     return s_supported_rom;
 }
