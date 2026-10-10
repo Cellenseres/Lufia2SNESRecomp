@@ -10424,3 +10424,35 @@ RecompReturn Lufia2DecompBridge_83A534(CpuState *cpu) {
     }
     return ActorBridgeWhole(cpu, 0x83a534u, Lufia2FieldWriteOamSquare, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_83AEB5(CpuState *cpu) {
+    if (cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x83aeb5u);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x83aeb5u, 0,
+        Lufia2FieldColourEffectsWithServices, 2u,
+        BATTLE_BRIDGE_ANY_WIDTH, 0, 0x83, 0);
+}
+
+RecompReturn Lufia2DecompBridge_848D54(CpuState *cpu) {
+    if (cpu->PB != 0x84u || (cpu->DB != 0x83u && cpu->DB != 0x84u) ||
+        cpu->D != 0u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x848d54u);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x848d54u,
+        0, Lufia2FieldScaleScenePalette, 3u,
+        BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_848E07(CpuState *cpu) {
+    if (cpu->PB != 0x84u || (cpu->DB != 0x83u && cpu->DB != 0x84u) ||
+        cpu->D != 0u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x848e07u);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x848e07u,
+        Lufia2FieldFadeScenePalette, 0, 3u,
+        BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
