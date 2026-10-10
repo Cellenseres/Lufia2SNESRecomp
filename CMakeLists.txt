@@ -664,6 +664,8 @@ target_link_libraries(Lufia2Recomp PRIVATE
 lufia2_add_decomp_bridge(Lufia2Recomp "${SNESRECOMP_ROOT}")
 
 lufia2_target_config_overlay(Lufia2Recomp "${SNESRECOMP_ROOT}")
+include("${CMAKE_SOURCE_DIR}/cmake/Lufia2SoundMenu.cmake")
+lufia2_target_sound_menu_patch(Lufia2Recomp)
 
 if(NOT VITA)
     add_executable(Lufia2BattleEffectsTest EXCLUDE_FROM_ALL
