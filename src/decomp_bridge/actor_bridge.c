@@ -11023,3 +11023,23 @@ RecompReturn Lufia2DecompBridge_83F559(CpuState *cpu) {
         0, Lufia2FieldRequestObjectAnimation, 3u,
         BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
 }
+
+RecompReturn Lufia2DecompBridge_8EB63B(CpuState *cpu) {
+    if (cpu->PB != 0x8eu || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8eb63bu);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x8eb63bu,
+        0, Lufia2FieldTryItemRegion, 3u,
+        BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_8EB760(CpuState *cpu) {
+    if (cpu->PB != 0x8eu || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8eb760u);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x8eb760u,
+        0, Lufia2FieldShowObjectItemNotice, 2u,
+        BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
