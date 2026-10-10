@@ -23,6 +23,11 @@ party corruption. The patch corrects the resolved pointer to `$BFAD` at
 sound update, redraw and timing continue normally. Both targets have the
 same N/Z result, so all flags, widths and stack effects are retained.
 
+The interpreter hook and compiled `$82:8028` dispatcher use the same guarded
+correction. A maintained CMake overlay inserts it before the compiled target
+store. Changed dispatcher code stops configuration instead of silently
+bypassing the fix. Generated source files remain untouched.
+
 The correction requires the exact supported dispatcher/table bytes, native
 M16/X16, DP0, the CONFIG left-table pointer `$BF51`, row offset 7 and the
 erroneous target `$B3AD`. Other rows, directions and callers are unchanged.
