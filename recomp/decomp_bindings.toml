@@ -5169,3 +5169,35 @@ bridge = "Lufia2DecompBridge_83BDFC"
 [[binding]]
 address = "83:D87D"
 bridge = "Lufia2DecompBridge_83D87D"
+
+[[binding]]
+address = "8E:BBAF"
+bridge = "Lufia2DecompBridge_8EBBAF"
+
+[[binding]]
+address = "83:C446"
+bridge = "Lufia2DecompBridge_83C446"
+
+[[binding]]
+address = "83:8674"
+bridge = "Lufia2DecompBridge_838674"
+
+[[binding]]
+address = "83:C246"
+bridge = "Lufia2DecompBridge_83C246"
+
+[[binding]]
+address = "80:AD57"
+bridge = "Lufia2DecompBridge_80AD57"
+
+[[binding]]
+address = "80:AD39"
+bridge = "Lufia2DecompBridge_80AD39"
+
+[[binding]]
+address = "80:C1DF"
+bridge = "Lufia2DecompBridge_80C1DF"
+
+[[binding]]
+address = "83:BB08"
+bridge = "Lufia2DecompBridge_83BB08"
