@@ -11512,3 +11512,20 @@ RecompReturn Lufia2DecompBridge_C1B4(CpuState *cpu) {
         0, Lufia2PlayerSlotStandardUpdateWithServices, 2u,
         BATTLE_BRIDGE_ANY_WIDTH, 1, BATTLE_BRIDGE_ANY_BANK, 0);
 }
+
+static RecompReturn ActorBridgeSoundStartup(CpuState *cpu, uint32_t entry,
+    ActorSoundDriverFunction run) {
+    if (cpu->emulation || cpu->_flag_D || cpu->PB != 0x80u ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = {
+            cpu->S, cpu->host_return_valid, 0xffffffffu};
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeSoundDriver(cpu, entry, run, 3u);
+}
+RecompReturn Lufia2DecompBridge_809383(CpuState *cpu) {
+    return ActorBridgeSoundStartup(cpu, 0x809383u, Lufia2InitializeBootSound);
+}
+RecompReturn Lufia2DecompBridge_8093D6(CpuState *cpu) {
+    return ActorBridgeSoundStartup(cpu, 0x8093d6u, Lufia2ResetSoundResources);
+}
