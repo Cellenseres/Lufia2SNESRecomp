@@ -882,10 +882,7 @@ RecompReturn Lufia2DecompBridge_ECF0(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x85ecf0u, Lufia2BattleFrameUpkeep, 3);
 }
 
-RecompReturn Lufia2DecompBridge_C1B4(CpuState *cpu) {
-    return ActorBridgeWhole(
-        cpu, 0x83c1b4u, Lufia2PlayerSlotStandardUpdate, 2);
-}
+
 
 /* S19 standalone contracts: M1X16, native mode, binary arithmetic. */
 RecompReturn Lufia2DecompBridge_F0A2(CpuState *cpu) {
@@ -5173,14 +5170,24 @@ RecompReturn Lufia2DecompBridge_83FC3C(CpuState *cpu) {
         Lufia2FieldFindSpecialActor, 2u, 0);
 }
 
+static RecompReturn ActorBridgePlayerInput(
+    CpuState *cpu, uint32_t entry, ActorWholeFunction helper) {
+    const ActorBridgeFrame frame = {
+        cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag ||
+        cpu->PB != 0x83u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, entry);
+    return ActorBridgeWholeAnyWidth(cpu, entry, helper, 2u);
+}
+
 RecompReturn Lufia2DecompBridge_83FC56(CpuState *cpu) {
-    return ActorBridgeCoordinateMath(cpu, 0x83fc56u,
-        Lufia2FieldProbeInputAllowed, 2u, 0);
+    return ActorBridgePlayerInput(cpu, 0x83fc56u,
+        Lufia2FieldProbeInputAllowed);
 }
 
 RecompReturn Lufia2DecompBridge_83FC69(CpuState *cpu) {
-    return ActorBridgeCoordinateMath(cpu, 0x83fc69u,
-        Lufia2FieldUpdateProbeAction, 2u, 0);
+    return ActorBridgePlayerInput(cpu, 0x83fc69u,
+        Lufia2FieldUpdateProbeAction);
 }
 
 static RecompReturn ActorBridgeProbeDirection(
@@ -11494,4 +11501,14 @@ RecompReturn Lufia2DecompBridge_83BB08(CpuState *cpu) {
     return ActorBridgeBattleEntry(cpu, 0x83bb08u,
         0, Lufia2FieldTryActorInteraction, 2u,
         BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_C1B4(CpuState *cpu) {
+    if (cpu->PB != 0x83u || !cpu->m_flag || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x83c1b4u);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x83c1b4u,
+        0, Lufia2PlayerSlotStandardUpdateWithServices, 2u,
+        BATTLE_BRIDGE_ANY_WIDTH, 1, BATTLE_BRIDGE_ANY_BANK, 0);
 }
