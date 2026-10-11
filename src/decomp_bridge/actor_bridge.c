@@ -11556,3 +11556,23 @@ RecompReturn Lufia2DecompBridge_83BFB4(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_83C375(CpuState *cpu) {
     return ActorBridgeFieldInteraction(cpu, 0x83c375u, Lufia2FieldHandleFacingCellAction, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_83BC28(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x83bc28u, Lufia2FieldCoordinatePlayerAction, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83BCC8(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x83bcc8u, Lufia2FieldHandlePlayerMovement, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83BF3E(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x83bf3eu, Lufia2FieldReleaseClaimedActor, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83C460(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x83c460u, Lufia2FieldOpenItemSelection, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83C01C(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x83c01cu, Lufia2FieldBeginObjectPush, 2u);
+}
