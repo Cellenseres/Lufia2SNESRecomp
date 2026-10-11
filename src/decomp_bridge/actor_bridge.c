@@ -11529,3 +11529,30 @@ RecompReturn Lufia2DecompBridge_809383(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_8093D6(CpuState *cpu) {
     return ActorBridgeSoundStartup(cpu, 0x8093d6u, Lufia2ResetSoundResources);
 }
+
+static RecompReturn ActorBridgeFieldInteraction(
+    CpuState *cpu, uint32_t entry, BattleControlFunction run, unsigned frame_size) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != (entry >> 16) || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeBattleEntry(cpu, entry, 0, run, frame_size,
+        BATTLE_BRIDGE_M1X0, 1, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_83BE90(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x83be90u, Lufia2FieldHandleLeaderAction, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_80E817(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x80e817u, Lufia2FieldStartFacingPointEvent, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_83BFB4(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x83bfb4u, Lufia2FieldClaimFacingActor, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83C375(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x83c375u, Lufia2FieldHandleFacingCellAction, 2u);
+}
