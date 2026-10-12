@@ -11576,3 +11576,39 @@ RecompReturn Lufia2DecompBridge_83C460(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_83C01C(CpuState *cpu) {
     return ActorBridgeFieldInteraction(cpu, 0x83c01cu, Lufia2FieldBeginObjectPush, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_84836A(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x84836au, Lufia2FieldUpdateItemSelection, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_84863E(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x84863eu, Lufia2FieldRotateSelectionMarker, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_848685(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x848685u, Lufia2FieldSetSelectionMosaic, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_84868C(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x84868cu, Lufia2FieldSetSelectionBlink, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_84869E(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x84869eu, Lufia2FieldResetSelectionBlink, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8486C0(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x8486c0u, Lufia2FieldReadSelectedItem, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8486D7(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x8486d7u, Lufia2FieldDrawSelectedItemName, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_848758(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x848758u, Lufia2FieldTakeSelectionHighButtons, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_84875F(CpuState *cpu) {
+    return ActorBridgeFieldInteraction(cpu, 0x84875fu, Lufia2FieldTakeSelectionLowButtons, 2u);
+}
