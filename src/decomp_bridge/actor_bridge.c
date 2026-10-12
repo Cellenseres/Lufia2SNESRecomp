@@ -11612,3 +11612,66 @@ RecompReturn Lufia2DecompBridge_848758(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_84875F(CpuState *cpu) {
     return ActorBridgeFieldInteraction(cpu, 0x84875fu, Lufia2FieldTakeSelectionLowButtons, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_86D35D(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86d35du);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x86d35du,
+        0, Lufia2WorldMapSetPlayerSong, 2u, BATTLE_BRIDGE_M1X0, 0, 0x86, 0);
+}
+
+RecompReturn Lufia2DecompBridge_86A1C5(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86a1c5u);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x86a1c5u,
+        0, Lufia2WorldMapActivateVehicle, 2u, BATTLE_BRIDGE_M1X0, 0, 0x86, 0);
+}
+
+RecompReturn Lufia2DecompBridge_86A1EC(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86a1ecu);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x86a1ecu,
+        0, Lufia2WorldMapRestorePlayerObject, 2u, BATTLE_BRIDGE_M1X0, 0, 0x86, 0);
+}
+
+RecompReturn Lufia2DecompBridge_8698C6(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8698c6u);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x8698c6u,
+        0, Lufia2WorldMapMovePlayerNorth, 2u, BATTLE_BRIDGE_M1X0, 0, 0x86, 0);
+}
+
+RecompReturn Lufia2DecompBridge_8698CD(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8698cdu);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x8698cdu,
+        0, Lufia2WorldMapMovePlayerWest, 2u, BATTLE_BRIDGE_M1X0, 0, 0x86, 0);
+}
+
+RecompReturn Lufia2DecompBridge_8698D4(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8698d4u);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x8698d4u,
+        0, Lufia2WorldMapMovePlayerSouth, 2u, BATTLE_BRIDGE_M1X0, 0, 0x86, 0);
+}
+
+RecompReturn Lufia2DecompBridge_8698DB(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8698dbu);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x8698dbu,
+        0, Lufia2WorldMapMovePlayerEast, 2u, BATTLE_BRIDGE_M1X0, 0, 0x86, 0);
+}
