@@ -4470,9 +4470,9 @@ RecompReturn Lufia2DecompBridge_8289FA(CpuState *cpu) {
 extern int cpu_resolve_ancestor_skip(uint16_t);
 extern int g_interp_apu_driving;
 
-/* This opcode discards its own call frame before returning to the dispatcher. */
-static RecompReturn ActorBridgeReturnPastCall(CpuState *cpu,
-    const ActorBridgeFrame *frame, uint32_t source) {
+/* Return skips its own guest call frame. */
+static RecompReturn ActorBridgeReturnPastFrame(CpuState *cpu,
+    const ActorBridgeFrame *frame, uint8_t frame_size, uint32_t source) {
     const uint16_t dispatch_stack = cpu->S;
     uint16_t low, high;
     uint32_t target;
@@ -4482,15 +4482,24 @@ static RecompReturn ActorBridgeReturnPastCall(CpuState *cpu,
     low = cpu_read8(cpu, 0, cpu->S);
     cpu->S = (uint16_t)(cpu->S + 1u);
     high = cpu_read8(cpu, 0, cpu->S);
+    if (frame_size == 3u) {
+        cpu->S = (uint16_t)(cpu->S + 1u);
+        cpu->PB = cpu_read8(cpu, 0, cpu->S);
+    }
     target = ((uint32_t)cpu->PB << 16) | (uint16_t)(((high << 8) | low) + 1u);
     ancestor = cpu_resolve_ancestor_skip(dispatch_stack);
     if (ancestor >= 0)
         return (RecompReturn)ancestor;
     if (interp_bridge_return_targets_owner(dispatch_stack, cpu->S))
         return interp_bridge_lle_yield_unwind(cpu, target);
-    if (interp_bridge_has_direct_paired_bounce())
+    if (frame_size == 3u || interp_bridge_has_direct_paired_bounce())
         return interp_tier_dispatch_rewritten_return(cpu, target, source);
     return cpu_dispatch_pc_from(cpu, target, (uint16_t)(frame->entry_s + 2u), source);
+}
+
+static RecompReturn ActorBridgeReturnPastCall(CpuState *cpu,
+    const ActorBridgeFrame *frame, uint32_t source) {
+    return ActorBridgeReturnPastFrame(cpu, frame, 2u, source);
 }
 
 RecompReturn Lufia2DecompBridge_819169(CpuState *cpu) {
@@ -12150,4 +12159,32 @@ RecompReturn Lufia2DecompBridge_86A2E7(CpuState *cpu) {
     }
     return ActorBridgeBattleEntry(cpu, 0x86a2e7u, 0, Lufia2WorldMapRunPairedObjectInput, 2u,
                                   BATTLE_BRIDGE_ANY_WIDTH, 0, 0x86, 0);
+}
+
+RecompReturn Lufia2DecompBridge_869E4F(CpuState *cpu) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    ActorPushedCall call;
+    Lufia2CpuState state;
+    Lufia2ExecutionResult result;
+
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x86u || cpu->DB != 0x86u || cpu->D != 0u ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, 0x869e4fu);
+    frame = ActorBridgeEnter(cpu);
+    call = (ActorPushedCall){cpu, frame, RECOMP_RETURN_NORMAL};
+    ActorBridgeLoad(cpu, &state);
+    result = Lufia2WorldMapApplyRegionRecord(&memory, &state,
+        ActorBridgePushedChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(cpu, result.pc, result.pc,
+            frame.entry_s, frame.hrv);
+    if (result.pc == 0x869ed8u)
+        return ActorBridgeReturnPastFrame(cpu, &frame, 3u, result.pc);
+    return ActorBridgeReturn(cpu, &frame, 2u, result.pc);
 }
