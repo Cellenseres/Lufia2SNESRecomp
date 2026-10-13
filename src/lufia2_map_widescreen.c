@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "lufia2_map_load.h"
@@ -1148,6 +1149,187 @@ void Lufia2FinalizeMapWidescreen(Ppu *ppu, int margin_pixels) {
     FillWideViewport(
         ppu, &s_map, s_room_active ? &s_room : NULL, margin_pixels,
         camera_x, camera_y);
+}
+
+/* ---- the field map, for other presentations of it ------------------- */
+
+enum {
+    /* Cell word, high byte. The game rewrites the room marks as the party
+       moves between rooms: both set hides the cell. */
+    LUFIA2_CELL_HIDDEN = 0x30,
+    /* The attribute grid the game derives from the map: one byte a cell. */
+    LUFIA2_ATTRIBUTES = 0x4000,
+    LUFIA2_ATTRIBUTE_ACTOR = 0x01,
+    LUFIA2_ATTRIBUTE_SOLID = 0x8a,
+    LUFIA2_ATTRIBUTE_TOP = 0x10,
+    LUFIA2_ATTRIBUTE_LEFT = 0x20,
+    LUFIA2_FIELD_SAMPLES_X = 28,
+    LUFIA2_FIELD_SAMPLES_Y = 26,
+};
+
+static Lufia2RuntimeMap s_field_map;
+static bool s_field_attributes;
+
+static bool FieldCell(int32_t cell_x, int32_t cell_y, uint32_t *cell) {
+    if (!s_field_map.data || cell_x < 0 || cell_y < 0 ||
+        cell_x >= (int32_t)s_field_map.width ||
+        cell_y >= (int32_t)s_field_map.height)
+        return false;
+    *cell = (uint32_t)(cell_y * (int32_t)s_field_map.width + cell_x);
+    return true;
+}
+
+/* The game draws the map again past each of its edges, so what is asked
+   about a tile out there is asked about the cell that shows there. */
+static uint32_t FieldCellAround(int32_t cell_x, int32_t cell_y) {
+    const int32_t wide = (int32_t)s_field_map.width;
+    const int32_t high = (int32_t)s_field_map.height;
+    cell_x %= wide;
+    cell_y %= high;
+    if (cell_x < 0) cell_x += wide;
+    if (cell_y < 0) cell_y += high;
+    return (uint32_t)(cell_y * wide + cell_x);
+}
+
+static uint8_t FieldAttributes(uint32_t cell) {
+    return s_field_attributes ? g_ram[LUFIA2_ATTRIBUTES + cell] : 0;
+}
+
+/* The game keeps the grid only while the field runs; a battle or a load
+   leaves other data there. It is trusted when its wall bits repeat the
+   map's own for every cell. */
+static bool FieldAttributesAreCurrent(void) {
+    if (s_field_map.cell_count > 0x10000u - LUFIA2_ATTRIBUTES)
+        return false;
+    for (uint32_t cell = 0; cell < s_field_map.cell_count; cell++) {
+        const uint8_t flags = MapEntry(&s_field_map, 1, cell)[1];
+        const uint8_t attributes = g_ram[LUFIA2_ATTRIBUTES + cell];
+        if (((flags & LUFIA2_COLLISION_TOP) != 0) !=
+                ((attributes & LUFIA2_ATTRIBUTE_TOP) != 0) ||
+            ((flags & LUFIA2_COLLISION_LEFT) != 0) !=
+                ((attributes & LUFIA2_ATTRIBUTE_LEFT) != 0))
+            return false;
+    }
+    return true;
+}
+
+/* The game's own rule, which explains every tile of the screen: a hidden
+   cell is drawn as the lower layer's first cell, which every map with rooms
+   keeps as its filler. The authored rooms the widescreen margins go by fill
+   the void differently, so they are not consulted here. */
+uint16_t Lufia2FieldMapTile(int bg, int32_t map_tile_x, int32_t map_tile_y) {
+    int logical_layer = bg == 0 ? 1 : 0;
+    uint16_t entry = 0;
+    if (!s_field_map.data)
+        return 0;
+    uint32_t cell = FieldCellAround(map_tile_x >> 1, map_tile_y >> 1);
+    if ((MapEntry(&s_field_map, logical_layer, cell)[1] &
+         LUFIA2_CELL_HIDDEN) == LUFIA2_CELL_HIDDEN) {
+        logical_layer = 0;
+        cell = 0;
+    }
+    (void)ResolveCellTile(
+        &s_field_map, logical_layer, cell, (uint32_t)map_tile_x & 1u,
+        (uint32_t)map_tile_y & 1u, &entry);
+    return entry;
+}
+
+uint16_t Lufia2FieldMapBlock(int bg, int32_t cell_x, int32_t cell_y) {
+    if (!s_field_map.data)
+        return UINT16_MAX;
+    return MapBlockIndex(&s_field_map, bg == 0 ? 1 : 0,
+                         FieldCellAround(cell_x, cell_y));
+}
+
+bool Lufia2FieldMapHidden(int32_t cell_x, int32_t cell_y) {
+    if (!s_field_map.data)
+        return true;
+    const uint32_t cell = FieldCellAround(cell_x, cell_y);
+    return (MapEntry(&s_field_map, 1, cell)[1] & LUFIA2_CELL_HIDDEN) ==
+        LUFIA2_CELL_HIDDEN;
+}
+
+bool Lufia2FieldMapOccupied(int32_t cell_x, int32_t cell_y) {
+    uint32_t cell;
+    return FieldCell(cell_x, cell_y, &cell) &&
+        (FieldAttributes(cell) & LUFIA2_ATTRIBUTE_ACTOR) != 0;
+}
+
+bool Lufia2FieldMapOpenRight(int32_t cell_x, int32_t cell_y) {
+    uint32_t cell, neighbor;
+    return FieldCell(cell_x, cell_y, &cell) &&
+        FieldCell(cell_x + 1, cell_y, &neighbor) &&
+        !((FieldAttributes(cell) | FieldAttributes(neighbor)) &
+          LUFIA2_ATTRIBUTE_SOLID) &&
+        CollisionAllowsStep(
+            &s_field_map, (uint16_t)cell, (uint16_t)neighbor,
+            LUFIA2_DIRECTION_RIGHT);
+}
+
+bool Lufia2FieldMapOpenDown(int32_t cell_x, int32_t cell_y) {
+    uint32_t cell, neighbor;
+    return FieldCell(cell_x, cell_y, &cell) &&
+        FieldCell(cell_x, cell_y + 1, &neighbor) &&
+        !((FieldAttributes(cell) | FieldAttributes(neighbor)) &
+          LUFIA2_ATTRIBUTE_SOLID) &&
+        CollisionAllowsStep(
+            &s_field_map, (uint16_t)cell, (uint16_t)neighbor,
+            LUFIA2_DIRECTION_DOWN);
+}
+
+bool Lufia2FieldMapRead(const Ppu *ppu, Lufia2FieldMap *field) {
+    memset(field, 0, sizeof *field);
+    s_field_map.data = NULL;
+    /* The game names the next map the moment a door is touched, and fades
+       the old one out for some frames before it loads anything. Until the
+       loader is at work the bank holds the map on the screen, and whether
+       it does is checked against the screen below. */
+    if (!ppu || Lufia2MapLoadRewriting() || !ReadRuntimeMap(&s_field_map)) {
+        s_field_map.data = NULL;
+        return false;
+    }
+
+    /* The scroll registers wrap; the player says which turn they are on. */
+    uint16_t player_x;
+    uint16_t player_y;
+    CurrentPlayerPosition(ppu, &s_field_map, &player_x, &player_y);
+    field->camera_x = UnwrapScroll(
+        (uint32_t)ppu->hScroll[0],
+        (int32_t)player_x - LUFIA2_NATIVE_WIDTH / 2);
+    field->camera_y = UnwrapScroll(
+        (uint32_t)ppu->vScroll[0],
+        (int32_t)player_y - LUFIA2_VISIBLE_HEIGHT / 2);
+    field->width = s_field_map.width;
+    field->height = s_field_map.height;
+
+    s_field_attributes = FieldAttributesAreCurrent();
+
+    /* The map has to explain the screen before it may continue it. */
+    unsigned checked = 0;
+    unsigned matched = 0;
+    for (int bg = 0; bg < 2; bg++) {
+        const uint16_t map_base = (uint16_t)PPU_bgTilemapAdr(ppu, bg);
+        const int32_t tile_x0 = (field->camera_x >> 3) + 2;
+        const int32_t tile_y0 = ((field->camera_y + 1) >> 3) + 1;
+        for (int32_t dy = 0; dy < LUFIA2_FIELD_SAMPLES_Y; dy += 2) {
+            for (int32_t dx = 0; dx < LUFIA2_FIELD_SAMPLES_X; dx += 2) {
+                const int32_t tile_x = tile_x0 + dx;
+                const int32_t tile_y = tile_y0 + dy;
+                const uint16_t address = (uint16_t)(
+                    map_base + (((uint32_t)tile_y & 31u) << 5) +
+                    ((uint32_t)tile_x & 31u));
+                checked++;
+                if (ppu->vram[address & 0x7fffu] ==
+                    Lufia2FieldMapTile(bg, tile_x, tile_y))
+                    matched++;
+            }
+        }
+    }
+    if (matched * 100u < checked * LUFIA2_NATIVE_MATCH_PERCENT) {
+        s_field_map.data = NULL;
+        return false;
+    }
+    return true;
 }
 
 bool Lufia2MapWidescreenWorldPointIsVisible(uint16_t x, uint16_t y) {

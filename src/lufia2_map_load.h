@@ -18,6 +18,10 @@ void Lufia2MapLoadFrame(void);
  * map has not been committed by the loader yet. */
 bool Lufia2MapLoadInProgress(void);
 
+/* True only while the loader is at work on bank $7F. Before that, with the
+ * next map already selected, the bank still holds the map on the screen. */
+bool Lufia2MapLoadRewriting(void);
+
 /* Increments once per completed load. Consumers cache map-derived state per
  * value and re-read bank $7F when it changes. */
 uint32_t Lufia2MapLoadGeneration(void);

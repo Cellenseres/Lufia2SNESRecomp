@@ -100,6 +100,10 @@ bool Lufia2MapLoadInProgress(void) {
         (MapFieldIsPending() && s_pending_frames <= LUFIA2_MAX_PENDING_FRAMES);
 }
 
+bool Lufia2MapLoadRewriting(void) {
+    return s_loading;
+}
+
 uint32_t Lufia2MapLoadGeneration(void) {
     return s_generation;
 }

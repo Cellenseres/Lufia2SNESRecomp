@@ -16,7 +16,9 @@ extern uint8_t g_ram[0x20000];
  *   tables      three entries at $86:CE32, picked by $09EA; +9/+11 the
  *               big-block pointer and bank, +12/+14 the block pointer and bank
  *   big block   bigblock[id * 8 + quadrant * 2], quadrants TL TR BL BR
- *   block       block[id * 5 + 0/1/2/3], tiles TL BL TR BR
+ *   block       block[id * 5 + 0/1/2/3], tiles TL BL TR BR; block[id * 5 + 4]
+ *               its terrain class ($00 land, $20 forest, $30 sea, $40
+ *               mountain), kept for presentation only
  *   ring        torus aligned: ring tile (rx, ry) always holds the world tile
  *               congruent to (rx, ry) modulo 128
  *
@@ -34,6 +36,9 @@ enum {
     WORLD_TILE_WIDTH = 512u,
     WORLD_TILE_HEIGHT = 512u,
     WORLD_TILE_COUNT = WORLD_TILE_WIDTH * WORLD_TILE_HEIGHT,
+    WORLD_BLOCK_WIDTH = WORLD_BIG_WIDTH * 2u,
+    WORLD_BLOCK_HEIGHT = WORLD_BIG_HEIGHT * 2u,
+    WORLD_BLOCK_COUNT = WORLD_BLOCK_WIDTH * WORLD_BLOCK_HEIGHT,
     WORLD_PIXEL_SIZE = WORLD_TILE_WIDTH * 8u,
     WORLD_FIXED_WRAP = WORLD_PIXEL_SIZE * 256u,
 
@@ -86,6 +91,7 @@ static const uint8_t *s_rom;
 static size_t s_rom_size;
 
 static uint8_t s_world_tiles[WORLD_TILE_COUNT];
+static uint8_t s_world_terrain[WORLD_BLOCK_COUNT];
 static uint64_t s_world_signature;
 static unsigned s_world_entry;
 static bool s_world_valid;
@@ -217,9 +223,12 @@ static bool BuildWorldTiles(unsigned entry, uint64_t signature) {
                 const unsigned block_y = quadrant >> 1u;
                 const uint8_t *block;
 
-                if (block_offset + 4u > tables.block_span)
+                if (block_offset + BLOCK_STRIDE > tables.block_span)
                     return false;
                 block = s_rom + tables.block_base + block_offset;
+                s_world_terrain[(size_t)(big_y * 2u + block_y) *
+                                    WORLD_BLOCK_WIDTH +
+                                big_x * 2u + block_x] = block[4];
 
                 /* Block bytes are TL, BL, TR, BR. */
                 for (unsigned tile_y = 0; tile_y < 2u; tile_y++) {
@@ -605,6 +614,15 @@ Lufia2IntroMode7WorldStatus Lufia2IntroMode7WorldPrepare(
     world_source->width_tiles = WORLD_TILE_WIDTH;
     world_source->height_tiles = WORLD_TILE_HEIGHT;
     return LUFIA2_INTRO_WORLD_READY;
+}
+
+const uint8_t *Lufia2IntroMode7WorldTerrain(unsigned *width_blocks,
+                                            unsigned *height_blocks) {
+    if (!s_world_valid)
+        return NULL;
+    if (width_blocks) *width_blocks = WORLD_BLOCK_WIDTH;
+    if (height_blocks) *height_blocks = WORLD_BLOCK_HEIGHT;
+    return s_world_terrain;
 }
 
 const char *Lufia2IntroMode7WorldStatusName(
