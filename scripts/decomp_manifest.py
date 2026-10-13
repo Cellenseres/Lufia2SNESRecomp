@@ -150,7 +150,7 @@ def load_functions(path: Path) -> list[Function]:
         status = _require_string(record, "status", context)
         if entry_mx not in {"M0X0", "M0X1", "M1X0", "M1X1"}:
             raise ManifestError(f"{context}: invalid entry_mx {entry_mx!r}")
-        if exit_mx not in {"M0X0", "M0X1", "M1X0", "M1X1"}:
+        if exit_mx not in {"M0X0", "M0X1", "M1X0", "M1X1", "dynamic"}:
             raise ManifestError(f"{context}: invalid exit_mx {exit_mx!r}")
         if status not in STATUSES:
             raise ManifestError(f"{context}: invalid status {status!r}")
