@@ -12313,3 +12313,13 @@ RecompReturn Lufia2DecompBridge_869ADB(CpuState *cpu) {
     return ActorBridgeBattleEntry(cpu,0x869adbu,NULL,
         Lufia2WorldMapMaybeOpenMenu,2u,BATTLE_BRIDGE_ANY_WIDTH,0,0x86,0);
 }
+
+RecompReturn Lufia2DecompBridge_86919E(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x86u || cpu->D || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
+        return ActorBridgeFallback(cpu,&frame,0x86919eu);
+    }
+    return ActorBridgeBattleEntry(cpu,0x86919eu,NULL,
+        Lufia2WorldMapRunSession,3u,BATTLE_BRIDGE_ANY_WIDTH,0,-1,0);
+}
