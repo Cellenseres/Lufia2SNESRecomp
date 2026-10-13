@@ -11979,3 +11979,47 @@ RecompReturn Lufia2DecompBridge_8590BC(CpuState *cpu) {
                                   BATTLE_BRIDGE_ANY_WIDTH, 1, BATTLE_BRIDGE_ANY_BANK,
                                   0);
 }
+
+RecompReturn Lufia2DecompBridge_869BCA(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x86u || cpu->DB != 0x86u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+        return ActorBridgeFallback(cpu, &frame, 0x869bcau);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x869bcau, 0, Lufia2WorldMapApplyEntryPosition, 2u,
+                                  BATTLE_BRIDGE_ANY_WIDTH, 0, 0x86, 0);
+}
+
+RecompReturn Lufia2DecompBridge_869F55(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x86u || cpu->DB != 0x86u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+        return ActorBridgeFallback(cpu, &frame, 0x869f55u);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x869f55u, 0, Lufia2WorldMapRunScene03, 2u,
+                                  BATTLE_BRIDGE_ANY_WIDTH, 0, 0x86, 0);
+}
+
+RecompReturn Lufia2DecompBridge_869F5C(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x86u || cpu->DB != 0x86u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+        return ActorBridgeFallback(cpu, &frame, 0x869f5cu);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x869f5cu, 0, Lufia2WorldMapRunScene06, 2u,
+                                  BATTLE_BRIDGE_ANY_WIDTH, 0, 0x86, 0);
+}
+
+RecompReturn Lufia2DecompBridge_8696BC(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x86u || cpu->DB != 0x86u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+        return ActorBridgeFallback(cpu, &frame, 0x8696bcu);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x8696bcu, 0, Lufia2WorldMapHandleSceneInput, 2u,
+                                  BATTLE_BRIDGE_ANY_WIDTH, 0, 0x86, 0);
+}
