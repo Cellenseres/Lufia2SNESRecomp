@@ -12221,3 +12221,51 @@ RecompReturn Lufia2DecompBridge_869758(CpuState *cpu) {
     return ActorBridgeBattleEntry(cpu, 0x869758u, NULL,
         Lufia2WorldMapMaybeReadPlayerInput, 2u, BATTLE_BRIDGE_ANY_WIDTH, 0, 0x86, 0);
 }
+
+RecompReturn Lufia2DecompBridge_86D34A(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x86u || cpu->DB != 0x86u || cpu->D != 0u ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+        return ActorBridgeFallback(cpu, &frame, 0x86d34au);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x86d34au, NULL,
+        Lufia2WorldMapRestoreEncounterScene, 2u, BATTLE_BRIDGE_ANY_WIDTH, 0, 0x86, 0);
+}
+
+RecompReturn Lufia2DecompBridge_869DD6(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x86u || cpu->DB != 0x86u || cpu->D != 0u ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+        return ActorBridgeFallback(cpu, &frame, 0x869dd6u);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x869dd6u, NULL,
+        Lufia2WorldMapAnimateEncounterTransition, 2u, BATTLE_BRIDGE_ANY_WIDTH, 0, 0x86, 0);
+}
+
+RecompReturn Lufia2DecompBridge_869C71(CpuState *cpu) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x86u || cpu->DB != 0x86u || cpu->D != 0u ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, 0x869c71u);
+
+    frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    ActorPushedCall call = {cpu, frame, RECOMP_RETURN_NORMAL};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    Lufia2ExecutionResult result = Lufia2WorldMapCheckEncounter(&memory, &state,
+        ActorBridgePushedChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY) {
+        cpu->PB = state.program_bank;
+        return interp_tier_dispatch_tail(cpu, result.pc, result.pc,
+            frame.entry_s, frame.hrv);
+    }
+    return ActorBridgeReturn(cpu, &frame, 2u, result.pc);
+}
