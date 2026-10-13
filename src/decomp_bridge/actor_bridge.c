@@ -12269,3 +12269,47 @@ RecompReturn Lufia2DecompBridge_869C71(CpuState *cpu) {
     }
     return ActorBridgeReturn(cpu, &frame, 2u, result.pc);
 }
+
+RecompReturn Lufia2DecompBridge_869B91(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x86u || cpu->DB != 0x86u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
+        return ActorBridgeFallback(cpu,&frame,0x869b91u);
+    }
+    return ActorBridgeBattleEntry(cpu,0x869b91u,NULL,
+        Lufia2WorldMapAnimateMenuReturn,2u,BATTLE_BRIDGE_ANY_WIDTH,0,0x86,0);
+}
+
+RecompReturn Lufia2DecompBridge_869BBE(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x86u || cpu->DB != 0x86u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
+        return ActorBridgeFallback(cpu,&frame,0x869bbeu);
+    }
+    return ActorBridgeBattleEntry(cpu,0x869bbeu,NULL,
+        Lufia2WorldMapClearPlayerScenePosition,2u,BATTLE_BRIDGE_ANY_WIDTH,0,0x86,0);
+}
+
+RecompReturn Lufia2DecompBridge_869B30(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x86u || cpu->DB != 0x86u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
+        return ActorBridgeFallback(cpu,&frame,0x869b30u);
+    }
+    return ActorBridgeBattleEntry(cpu,0x869b30u,NULL,
+        Lufia2WorldMapApplyMenuReturnTransition,2u,BATTLE_BRIDGE_ANY_WIDTH,0,0x86,0);
+}
+
+RecompReturn Lufia2DecompBridge_869ADB(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x86u || cpu->DB != 0x86u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
+        return ActorBridgeFallback(cpu,&frame,0x869adbu);
+    }
+    return ActorBridgeBattleEntry(cpu,0x869adbu,NULL,
+        Lufia2WorldMapMaybeOpenMenu,2u,BATTLE_BRIDGE_ANY_WIDTH,0,0x86,0);
+}
