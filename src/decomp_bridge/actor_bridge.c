@@ -12441,3 +12441,12 @@ RecompReturn Lufia2DecompBridge_8080E1(CpuState *cpu) {
         return ActorBridgeFallback(cpu,&frame,0x8080e1u);
     return ActorBridgeWholeAnyWidth(cpu,0x8080e1u,Lufia2InitializeRuntimeDefaults,2u);
 }
+
+RecompReturn Lufia2DecompBridge_8091DF(CpuState *cpu) {
+    const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || !cpu->x_flag ||
+        cpu->PB != 0x80u || cpu->DB != 0x80u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffdu)
+        return ActorBridgeFallback(cpu,&frame,0x8091dfu);
+    return ActorBridgeSceneOwners(cpu,0x8091dfu,Lufia2InitializeStartupImage,2u);
+}
