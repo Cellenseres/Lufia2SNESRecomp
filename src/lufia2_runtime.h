@@ -18,6 +18,7 @@ typedef void Lufia2NmiVideoObserver(const struct Ppu *ppu);
 extern const RtlGameInfo kLufia2GameInfo;
 
 void Lufia2RunOneFrame(void);
+void Lufia2ResetRuntime(void);
 /* Observe uploaded OAM before the guest prepares the next animation frame. */
 void Lufia2SetNmiVideoObserver(Lufia2NmiVideoObserver *observer);
 void Lufia2DrawPpuFrame(void);

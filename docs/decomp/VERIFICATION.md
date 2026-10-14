@@ -26,18 +26,30 @@ Cold-boot comparisons isolate the native `$80:8117` selection introduced by
 guest waits at `$80:9A0F/$80:9A13`. Interpreting only `$80:8117` restores the
 intro; switching the other startup bindings alone does not.
 
-The consumer keeps `Lufia2DecompBridge_808117` as an unconditional transfer to
-the original interpreter, including direct generated callers. Its semantic C
-implementation remains unchanged. Its function-level verification does not
-establish complete boot DMA, NMI or clock correctness. The precise runtime
-mechanism remains unproven; re-enabling native execution requires a complete
-cold-boot regression comparison.
+The semantic C produces the original CPU, WRAM, VRAM and palette state.
+The failure is in runtime bootstrap: the APU's guest-clock mapping is invalid
+until the first scheduled port write, and `apu_runToGuestCycle` consequently
+does not advance it. Interpreted startup happens to supply relative SPC time;
+native initialization exposes the missing mapping. At the same return PC,
+the original reaches IPL-ready `$AA/$BB`, while the failing native path still
+has zero output ports. Matching the CPU clock counters alone does not fix it.
 
-A private 1,500-frame cold boot using the production objects and the actual
-consumer bridge reaches the visible intro. All recorded observations through
-frame 900 match the working original-video control. No input, SRAM files or
-manual gameplay are involved. This is a consumer fallback repair, not a new
-semantic verification or a proof of the former native path's timing.
+The runtime now anchors the fresh APU timeline before the first guest
+instruction. It writes no ports, skips no SPC instructions and inserts no
+delay. Native `$80:8117` selection is restored; its semantic C is unchanged.
+Cold and hardware-reset hooks reset the frame adapter, retaining monotonic
+CPU clocks on reset. Loaded execution states keep their existing time mapping.
+
+The normal Release builds. Private production-object tests cover three
+1,500-frame starts (cold, reset, new session), both logos, visible intro and
+real audio. They observe zero interpreted `$80:8117..8210` instructions.
+Ninety snapshot-replay frames match CPU, WRAM, PPU, APU and picture hashes.
+Removing only the clock initialization reproduces both logos followed by the
+missing intro and silent audio. An additional 1,500-frame original-video
+control passes with the corrected runtime. The headless reset fixture supplies
+the legacy SpcPlayer reset hook; the actual SPC700 and DSP execute normally.
+No SRAM files or manual gameplay are involved. These are runtime regression
+checks, not a claim that native and interpreted startup have identical cycles.
 
 ## Field reload runtime regression
 

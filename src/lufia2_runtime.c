@@ -15,6 +15,7 @@
 #include "snes/snes.h"
 #include "snes/ppu.h"
 #include "snes/dma.h"
+#include "snes/apu.h"
 #include "snes/interp_bridge.h"
 #include "lufia2_msu_driver.h"
 #include "lufia2_log.h"
@@ -36,6 +37,8 @@ extern uint8 g_snesrecomp_last_hdmaen;
 extern Snes *g_snes;
 extern int snes_frame_counter;
 extern bool g_fail;
+extern void RtlApuLock(void);
+extern void RtlApuUnlock(void);
 
 static bool s_started;
 static Lufia2NmiVideoObserver *s_nmi_video_observer;
@@ -50,6 +53,33 @@ static bool s_line_regs_valid;
 static uint32_t s_raster_memory_flags;
 static bool s_loaded_execution_valid;
 static bool s_loaded_msu_valid;
+
+void Lufia2ResetRuntime(void) {
+    s_started = false;
+    s_resume_pc = LUFIA2_RESET_PC;
+    s_last_boundary_was_wai = false;
+    s_boundaries = 0;
+    s_nmis = 0;
+    s_irqs = 0;
+    s_line_regs_valid = false;
+    s_raster_memory_flags = 0;
+    s_loaded_execution_valid = false;
+    s_loaded_msu_valid = false;
+}
+
+static void Lufia2BeginAudioClock(void) {
+    RtlApuLock();
+    Apu *apu = g_snes->apu;
+    if (!apu->portTimeValid) {
+        /* Fresh guest time starts before any port writes. */
+        apu->portGuestAnchor = 0;
+        apu->portTargetAnchor = apu->portClock;
+        apu->portLastGuest = 0;
+        apu->portLastTarget = apu->portClock;
+        apu->portTimeValid = true;
+    }
+    RtlApuUnlock();
+}
 
 void Lufia2SetNmiVideoObserver(Lufia2NmiVideoObserver *observer) {
     s_nmi_video_observer = observer;
@@ -203,7 +233,13 @@ static bool Lufia2RunInterrupt(uint32_t vector_pc) {
 void Lufia2RunOneFrame(void) {
     if (!s_started) {
         /* Start from the ROM reset vector through the LLE scheduler. */
+        const uint64_t master_cycles = g_cpu.master_cycles;
+        const uint64_t cpu_cycles = g_cpu.cycles;
         cpu_state_init(&g_cpu, g_ram);
+        g_cpu.master_cycles = master_cycles;
+        g_cpu.coprocessor_master_cycles = master_cycles;
+        g_cpu.cycles = cpu_cycles;
+        Lufia2BeginAudioClock();
         s_started = true;
 #if defined(LUFIA2_ENABLE_NATIVE_WAIT) || defined(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD) || \
     defined(LUFIA2_ENABLE_ACTOR_EARLY_RETURN)

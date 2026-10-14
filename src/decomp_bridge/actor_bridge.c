@@ -12428,8 +12428,10 @@ RecompReturn Lufia2DecompBridge_82A4BE(CpuState *cpu) {
 
 RecompReturn Lufia2DecompBridge_808117(CpuState *cpu) {
     const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
-    /* Preserve the working original startup path. */
-    return ActorBridgeFallback(cpu,&frame,0x808117u);
+    if (cpu->emulation || cpu->_flag_D || cpu->PB != 0x80u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffdu)
+        return ActorBridgeFallback(cpu,&frame,0x808117u);
+    return ActorBridgeWholeAnyWidth(cpu,0x808117u,Lufia2SystemInitializeVideoMemory,2u);
 }
 
 RecompReturn Lufia2DecompBridge_8080E1(CpuState *cpu) {
