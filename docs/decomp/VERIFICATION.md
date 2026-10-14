@@ -69,6 +69,17 @@ The headless reset fixture retains the legacy SpcPlayer init hook described
 above. Synthetic SRAM is confined to the tests; no real save files or
 manual gameplay are involved. Cycle-identical execution is not claimed.
 
+## Boot controller integration
+
+Verified `$80:8035/$80:8281` remain unbound because original JML arrivals
+retain interpreter ownership. Native `$80:80D3` preserves the exact RAM clear.
+Portable contracts, adapter models, child/stack/bus tests and fault controls
+pass. The shared 1,836-job regression, strict portable C11 and Release pass.
+Three production-object cold/reset/new-session boots show both logos, intro
+and real audio with zero original RAM-clear/save-validation/video instructions.
+The original startup owner remains active; ninety snapshot replay hashes match.
+The legacy SpcPlayer reset fixture remains the same as the earlier boot probe.
+
 ## Field reload runtime regression
 
 In-game bisect identified the complete `$83:85DC` native binding as the cause
