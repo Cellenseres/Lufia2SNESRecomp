@@ -385,9 +385,6 @@ RecompReturn Lufia2DecompBridge_BB93(CpuState *cpu) {
     return ActorBridgeReturn(cpu, &frame, 3, result.pc);
 }
 
-RecompReturn Lufia2DecompBridge_81C6(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x8381c6u, Lufia2FieldTriggerUpdate, 2);
-}
 
 RecompReturn Lufia2DecompBridge_E03E(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x83e03eu, Lufia2ObjectSlotsUpdate, 2);
@@ -419,9 +416,6 @@ RecompReturn Lufia2DecompBridge_9C72(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x809c72u, Lufia2FieldEventTick, 3);
 }
 
-RecompReturn Lufia2DecompBridge_CBAE(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x80cbaeu, Lufia2FieldEventTimerTick, 3);
-}
 
 RecompReturn Lufia2DecompBridge_A9BA(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x83a9bau, Lufia2ActorLoadSprite, 3);
@@ -12585,7 +12579,7 @@ RecompReturn Lufia2DecompBridge_86D378(CpuState *cpu) {
                                   2u);
 }
 
-static uint8_t ActorBridgeDiagnosticsChild(
+static uint8_t ActorBridgeOwnedChild(
     void *context, Lufia2CpuState *state, uint32_t target,
     uint32_t site, uint8_t frame_size) {
     ActorPushedCall *call = (ActorPushedCall *)context;
@@ -12600,7 +12594,7 @@ static uint8_t ActorBridgeDiagnosticsChild(
     return ActorBridgePushedChild(context, state, target, site, frame_size);
 }
 
-static RecompReturn ActorBridgeDiagnostics(
+static RecompReturn ActorBridgeOwnedCalls(
     CpuState *cpu, ActorSceneOwnersFunction run, uint8_t frame_size) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
@@ -12609,7 +12603,7 @@ static RecompReturn ActorBridgeDiagnostics(
     Lufia2CpuState state;
     ActorBridgeLoad(cpu, &state);
     const Lufia2ExecutionResult result =
-        run(&memory, &state, ActorBridgeDiagnosticsChild, &call);
+        run(&memory, &state, ActorBridgeOwnedChild, &call);
     if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
         return (RecompReturn)((int)call.unwound - 1);
     ActorBridgeStore(cpu, &state);
@@ -12626,7 +12620,7 @@ RecompReturn Lufia2DecompBridge_858045(CpuState *cpu) {
         const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
         return ActorBridgeFallback(cpu, &frame, 0x858045u);
     }
-    return ActorBridgeDiagnostics(cpu, Lufia2FieldDiagnosticsRunMenu, 3u);
+    return ActorBridgeOwnedCalls(cpu, Lufia2FieldDiagnosticsRunMenu, 3u);
 }
 
 RecompReturn Lufia2DecompBridge_858415(CpuState *cpu) {
@@ -12635,7 +12629,7 @@ RecompReturn Lufia2DecompBridge_858415(CpuState *cpu) {
         const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
         return ActorBridgeFallback(cpu, &frame, 0x858415u);
     }
-    return ActorBridgeDiagnostics(cpu, Lufia2FieldDiagnosticsShowMessage, 3u);
+    return ActorBridgeOwnedCalls(cpu, Lufia2FieldDiagnosticsShowMessage, 3u);
 }
 
 RecompReturn Lufia2DecompBridge_858322(CpuState *cpu) {
@@ -12644,5 +12638,32 @@ RecompReturn Lufia2DecompBridge_858322(CpuState *cpu) {
         const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
         return ActorBridgeFallback(cpu, &frame, 0x858322u);
     }
-    return ActorBridgeDiagnostics(cpu, Lufia2FieldDiagnosticsSaveMenu, 2u);
+    return ActorBridgeOwnedCalls(cpu, Lufia2FieldDiagnosticsSaveMenu, 2u);
+}
+
+static uint8_t ActorBridgeFieldServicesAvailable(
+    const CpuState *cpu, uint32_t entry, uint8_t frame_size,
+    uint32_t child) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->D ||
+        cpu->PB != (uint8_t)(entry >> 16) || cpu->S < 0x1f20u ||
+        cpu->S > (uint16_t)(0x1fffu - frame_size))
+        return 0u;
+    CpuState profile = *cpu;
+    profile.m_flag = 1u;
+    profile.x_flag = 0u;
+    profile.PB = (uint8_t)(child >> 16);
+    cpu_mirrors_to_p(&profile);
+    return (uint8_t)cpu_dispatch_has_entry(&profile, child);
+}
+
+RecompReturn Lufia2DecompBridge_CBAE(CpuState *cpu) {
+    if (ActorBridgeFieldServicesAvailable(cpu, 0x80cbaeu, 3u, 0x80cc26u))
+        return ActorBridgeOwnedCalls(cpu, Lufia2FieldEventTimerTickWithServices, 3u);
+    return ActorBridgeWhole(cpu, 0x80cbaeu, Lufia2FieldEventTimerTick, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_81C6(CpuState *cpu) {
+    if (ActorBridgeFieldServicesAvailable(cpu, 0x8381c6u, 2u, 0x80cbaeu))
+        return ActorBridgeOwnedCalls(cpu, Lufia2FieldTriggerUpdateWithServices, 2u);
+    return ActorBridgeWhole(cpu, 0x8381c6u, Lufia2FieldTriggerUpdate, 2u);
 }

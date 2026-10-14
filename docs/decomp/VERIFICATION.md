@@ -123,6 +123,26 @@ instructions natively, then preserves the original continuation at `$85:8348`
 for the remaining 29. This is an explicit existing-callee fallback; full native
 save-menu execution is not claimed.
 
+## Field/event caller service integration
+
+Existing `$80:CBAE` and `$83:81C6` adapters select the complete redraw and
+trigger service paths when their original child profile is available.
+The lookup uses the child's M1X0 profile. Other existing entry contexts
+retain the legacy APIs; both trigger APIs share one semantic core.
+The scoped owner helper publishes continuation banks and transfers missing
+children with their original pushed frames. Existing VM handoffs remain
+unchanged, including the PB85/DB91/X8743 diagnostic-message call.
+
+20,480 direct, 20,480 owner-helper and 20,480 canonical-adapter states,
+32,768 legacy regressions, 512 actual VM message handoffs, all sixteen
+child sites, 1,024 compositions and 18,432 C++ guards pass. Seven ROM,
+five actual-C and five adapter faults are detected. All 1,877 shared jobs,
+strict portable C11 and Release pass. Three production caller pairs retain
+CPU/full WRAM with zero interpreted native-parent instructions. Boot,
+reset, intro, audio and ninety snapshot replay hashes remain green.
+Explicit child services and synthetic states are not complete gameplay
+or cycle-equality evidence. No new function or binding count is claimed.
+
 ## Field reload runtime regression
 
 In-game bisect identified the complete `$83:85DC` native binding as the cause
