@@ -88,6 +88,15 @@ CPU/full-WRAM/ordered-bus comparisons, original-child compositions, all-site
 handoffs, production ABI, guards and negative controls pass in the shared
 1,836-job regression. Live field/NMI timing is not claimed by synthetic waits.
 
+## World sound caller integration
+
+Native `$86:D378` reuses the existing sound-command child while preserving
+the distinct JSL child and RTS caller frames. Field/world direct and actual
+bridge matrices each pass 10,496 states, with 384 original-child compositions
+and all five call-site boundaries. Integrated-source and bridge-frame faults
+are detected. Full 1,836-job regression, C++ consumers, strict C11 and normal
+Release pass; original APU waits remain explicit test services.
+
 ## Field reload runtime regression
 
 In-game bisect identified the complete `$83:85DC` native binding as the cause

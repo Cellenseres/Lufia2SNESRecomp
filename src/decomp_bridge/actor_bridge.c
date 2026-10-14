@@ -12576,3 +12576,11 @@ RecompReturn Lufia2DecompBridge_838E4C(CpuState *cpu) {
     return ActorBridgeSceneOwners(cpu, 0x838e4cu, Lufia2FieldPublishRedrawnLayers,
                                   3u);
 }
+RecompReturn Lufia2DecompBridge_86D378(CpuState *cpu) {
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (cpu->emulation || cpu->_flag_D || cpu->PB != 0x86u || cpu->D || !cpu->m_flag ||
+        cpu->x_flag || cpu->S < 0x1f20u || cpu->S > 0x1ffdu)
+        return ActorBridgeFallback(cpu, &frame, 0x86d378u);
+    return ActorBridgeSceneOwners(cpu, 0x86d378u, Lufia2WorldMapSendSoundCommand,
+                                  2u);
+}
