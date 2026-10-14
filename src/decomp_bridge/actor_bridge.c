@@ -102,7 +102,9 @@ static void ActorBridgeExecutionCheckpoint(
     const uint8_t semantic_bank = state->program_bank;
     ActorBridgeStore(cpu, state);
     cpu->PB = (uint8_t)(pc >> 16);
-    if (pc == 0x81f4e2u)
+    if (pc == 0x82803du)
+        Lufia2DecompMenuDispatch(cpu, pc);
+    else if (pc == 0x81f4e2u)
         Lufia2DecompPartyStatsDerived(cpu, pc);
     else if (pc == 0x81f576u)
         Lufia2DecompPartyStatTotals(cpu, pc);
@@ -12389,4 +12391,20 @@ RecompReturn Lufia2DecompBridge_859419(CpuState *cpu) {
         (cpu->DB > 0x3fu && (cpu->DB < 0x80u || cpu->DB > 0xbfu)))
         return ActorBridgeFallback(cpu,&frame,0x859419u);
     return ActorBridgeWholeM1X16(cpu,0x859419u,Lufia2BattleReversePartyOrder,3u);
+}
+
+RecompReturn Lufia2DecompBridge_828028(CpuState *cpu) {
+    const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
+    if (cpu->emulation || cpu->_flag_D || cpu->x_flag || cpu->PB != 0x82u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu,&frame,0x828028u);
+    return ActorBridgeWholeX16(cpu,0x828028u,Lufia2MenuDispatchInlineTable,2u);
+}
+
+RecompReturn Lufia2DecompBridge_82E8CB(CpuState *cpu) {
+    const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
+    if (cpu->emulation || cpu->_flag_D || cpu->x_flag || cpu->PB != 0x82u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu,&frame,0x82e8cbu);
+    return ActorBridgeWholeX16(cpu,0x82e8cbu,Lufia2MenuDispatchSaveMode,2u);
 }

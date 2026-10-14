@@ -3,6 +3,7 @@
 #include <string.h>
 
 #include "cpu_state.h"
+#include "decomp_bridge/host_events.h"
 #include "snes/interp_bridge.h"
 
 enum {
@@ -55,6 +56,7 @@ bool Lufia2SoundMenuInstall(const uint8_t *rom, size_t size) {
     s_supported_rom = rom && size == 2621440u &&
         memcmp(rom + 0x13f4c, left_table, sizeof(left_table)) == 0 &&
         memcmp(rom + 0x10028, dispatch, sizeof(dispatch)) == 0;
+    Lufia2DecompSetMenuDispatchEvent(Lufia2SoundMenuCorrectTarget);
     if (s_supported_rom)
         interp_bridge_set_pre_opcode_hook(DISPATCH_TARGET_STORE, Lufia2SoundMenuCorrectTarget);
     return s_supported_rom;

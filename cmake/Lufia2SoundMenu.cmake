@@ -22,6 +22,13 @@ function(lufia2_target_sound_menu_patch target)
             string(LENGTH "${_tail}" _end)
         endif()
         string(SUBSTRING "${_tail}" 0 ${_end} _body)
+        string(FIND "${_body}"
+            "RecompReturn _r = Lufia2DecompBridge_828028(cpu);" _native_dispatch)
+        if(NOT _native_dispatch EQUAL -1)
+            list(APPEND _patched_sources "${_input}")
+            math(EXPR _count "${_count} + 1")
+            continue()
+        endif()
         set(_store [=[
     uint16 _v9 = cpu_read_a16(cpu);
     cpu_write16(cpu, 0x00, (uint16)(cpu->D + 0x0060), _v9);

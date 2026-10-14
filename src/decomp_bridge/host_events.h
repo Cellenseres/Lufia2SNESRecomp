@@ -136,4 +136,8 @@ int Lufia2DecompAddCaveDefeatResetEvent(Lufia2DecompCaveDefeatEvent callback);
 void Lufia2DecompRemoveCaveDefeatResetEvent(Lufia2DecompCaveDefeatEvent callback);
 void Lufia2DecompCaveDefeatReset(CpuState *cpu, uint32_t pc);
 
+typedef void (*Lufia2DecompMenuDispatchEvent)(CpuState *, uint32_t);
+void Lufia2DecompSetMenuDispatchEvent(Lufia2DecompMenuDispatchEvent callback);
+void Lufia2DecompMenuDispatch(CpuState *cpu, uint32_t pc);
+
 #endif
