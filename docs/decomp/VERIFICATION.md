@@ -1,3 +1,10 @@
+## Original prompt-counter bus read
+
+The text prompt INC/CMP sequence reads the elapsed byte twice in the ROM.
+The decomp retains the comparison read. Original-ROM CPU/full-WRAM/ordered
+bus fixtures detect removal of that read. This is a literal reconstruction
+correction, with no original-game patch or new binding.
+
 # Semantic Decomp Verification
 
 A function is `verified` only when its complete stated entry and exit contract
