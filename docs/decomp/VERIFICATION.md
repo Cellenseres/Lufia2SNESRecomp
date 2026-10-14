@@ -97,6 +97,32 @@ and all five call-site boundaries. Integrated-source and bridge-frame faults
 are detected. Full 1,836-job regression, C++ consumers, strict C11 and normal
 Release pass; original APU waits remain explicit test services.
 
+## Diagnostic menu controller integration
+
+Native `$85:8045/$85:8322/$85:8415` preserve all 62 child sites and original
+JSR/JSL/RTS/RTL contracts. The message routine accepts the event caller's
+16-bit text pointer. Missing native children retain their pushed frames and
+transfer to the owning interpreter through a diagnostics-specific adapter;
+the original `$85:851C` wait remains unbound. A successful load explicitly
+publishes its bank and original stack reset before the field-session tail.
+
+15,360 direct states, 7,168 actual-adapter states, all 379 own instructions,
+1,984 missing-entry handoffs, boundaries, redirects, guards, 988 compositions
+and 40,960 C++ guard calls pass. Direct matrices compare CPU/full WRAM and
+ordered bus; save cases also compare SRAM. Recursive native-child tests
+compare ordered MMIO. Eight ROM/eight actual-C/five adapter faults are caught.
+All 1,859 shared jobs, strict C11 and Release pass. Three production-object
+original/native prefixes match CPU/full WRAM at the original wait; three
+boot/reset/session runs retain logos, intro, audio and ninety replay hashes.
+Synthetic button/frame/save services do not claim complete menu gameplay or
+cycle equality. No real save files are accessed by these fixtures.
+
+In the save-prefix fixture, the existing `$80:905F` guard rejects caller DB85
+because its supported consumer profile is DB7E. The new parent executes 15
+instructions natively, then preserves the original continuation at `$85:8348`
+for the remaining 29. This is an explicit existing-callee fallback; full native
+save-menu execution is not claimed.
+
 ## Field reload runtime regression
 
 In-game bisect identified the complete `$83:85DC` native binding as the cause
