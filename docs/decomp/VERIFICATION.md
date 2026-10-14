@@ -1,3 +1,29 @@
+## Default-record bank mirrors
+
+The existing native entries 81:EC35/EC56/ED35 now accept the original low-WRAM
+mirror banks 00..3F/80..BF as well as their previously supported DB7E. Their
+portable C and child-call ownership remain unchanged. The consumer shares
+the existing system-bank predicate; the remaining 127 banks keep the fallback.
+
+The boot caller actually enters with DB83. Over 4,680 boot/reset/new-session
+frames, interpreted instructions in this family fall from 18,696 to 9. Those
+nine are the original ED30/ED34/EC40 continuations, three per initialization.
+No scheduler, clock or child-fallback policy is changed to suppress them.
+
+Verification: 29,670 original-ROM states plus 29,670 actual adapter states across
+all 129 admitted banks; 42,615 redirect probes; 69,120 unsupported-state guards.
+CPU/full WRAM, MMIO and own-span bus ordering agree. Forty-two production
+original/native pairs agree at the literal caller wait with actual generated
+dispatch and children. Real audio and ninety snapshot replay frames pass.
+Two bridge-policy and three memory-only ROM faults are detected. Normal
+Release and the full 1,943-job regression pass. No functions or bindings added.
+
+The semantic library is unchanged from the accepted title checkpoint.
+Six historical guard fixtures are rebuilt for the newly admitted DB00;
+the historical fixture-source availability limitation remains. No clean
+rebuild of all historical fixtures, whole-game coverage or timing equality
+is claimed.
+
 ## Native title record and tile helpers
 
 Three original title entries now have portable C and native selection:

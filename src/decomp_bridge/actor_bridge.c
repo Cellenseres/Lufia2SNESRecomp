@@ -9304,8 +9304,12 @@ RecompReturn Lufia2DecompBridge_82994E(CpuState *cpu) {
 }
 
 
+static int ActorBridgeDefaultRecordBankSupported(uint8_t bank) {
+    return bank == 0x7eu || ActorBridgeSystemBank(bank);
+}
+
 RecompReturn Lufia2DecompBridge_81EC56(CpuState *cpu) {
-    if (cpu->PB != 0x81u || cpu->DB != 0x7eu || !cpu->m_flag || cpu->x_flag ||
+    if (cpu->PB != 0x81u || !ActorBridgeDefaultRecordBankSupported(cpu->DB) || !cpu->m_flag || cpu->x_flag ||
         cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
         return ActorBridgeFallback(cpu, &frame, 0x81ec56u);
@@ -9315,7 +9319,7 @@ RecompReturn Lufia2DecompBridge_81EC56(CpuState *cpu) {
 
 
 RecompReturn Lufia2DecompBridge_81ED35(CpuState *cpu) {
-    if (cpu->PB != 0x81u || cpu->DB != 0x7eu || !cpu->m_flag || cpu->x_flag ||
+    if (cpu->PB != 0x81u || !ActorBridgeDefaultRecordBankSupported(cpu->DB) || !cpu->m_flag || cpu->x_flag ||
         cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
         return ActorBridgeFallback(cpu, &frame, 0x81ed35u);
@@ -9324,7 +9328,7 @@ RecompReturn Lufia2DecompBridge_81ED35(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_81EC35(CpuState *cpu) {
-    if (cpu->PB != 0x81u || cpu->DB != 0x7eu || !cpu->m_flag || cpu->x_flag ||
+    if (cpu->PB != 0x81u || !ActorBridgeDefaultRecordBankSupported(cpu->DB) || !cpu->m_flag || cpu->x_flag ||
         cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
         return ActorBridgeFallback(cpu, &frame, 0x81ec35u);
