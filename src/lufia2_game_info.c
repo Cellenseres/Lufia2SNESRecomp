@@ -2,7 +2,7 @@
 
 const RtlGameInfo kLufia2GameInfo = {
     .title = "lufia2",
-    .initialize = NULL,
+    .initialize = &Lufia2ResetRuntime,
     .run_frame = &Lufia2RunOneFrame,
     .draw_ppu_frame = &Lufia2DrawPpuFrame,
     .save_name_prefix = "lufia2",
@@ -11,4 +11,5 @@ const RtlGameInfo kLufia2GameInfo = {
     .on_state_loaded = &Lufia2ApplyExecutionState,
     .session_reset = NULL,
     .minimum_state_version = 9,
+    .hardware_reset = &Lufia2ResetRuntime,
 };
