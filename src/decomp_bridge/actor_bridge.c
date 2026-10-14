@@ -9375,7 +9375,7 @@ RecompReturn Lufia2DecompBridge_82E998(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_80905F(CpuState *cpu) {
-    if (cpu->PB != 0x80u || cpu->DB != 0x7eu || !cpu->m_flag || cpu->x_flag ||
+    if (cpu->PB != 0x80u || !cpu->m_flag || cpu->x_flag ||
         cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
         return ActorBridgeFallback(cpu, &frame, 0x80905fu);
