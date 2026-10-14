@@ -1,3 +1,37 @@
+## Shared battle session exit
+
+The DB97 `$84:9B3E` adapter uses the existing owned-child helper and
+nonlocal return policy. The restored outer stack must survive return;
+ordinary dispatch would restore the wrong inner frame. The actual SDK
+owner and a deliberately wrong policy distinguish these behaviors.
+
+All 127 other previously admitted data-bank profiles keep the legacy
+preview contract. Guards, all thirteen child sites, missing entries,
+unwinds, redirects and actual-source fault controls are covered. The
+original frame-wait boundary remains interpreter-owned. There is no new
+`$81:8855` binding, duplicate body or whole-game performance claim.
+
+The combined batch passes 18 actual-library jobs, all 1,928 shared jobs,
+strict C11, C++ guards and normal Release. Two production prefix pairs
+match CPU/full WRAM at `$85:EC98`; the native parents execute zero own
+interpreted instructions there. Three boot/reset/session runs retain
+logos, intro, real audio and ninety snapshot replay hashes. Controlled
+child completion tests do not establish complete battle gameplay/timing.
+
+Historical verifier sources are partly absent from this workspace. Their
+hashed reference and adapter objects are retained and relinked against the
+current semantic library. The eighteen new fixtures compile the current
+public semantic and bridge sources. This is an incremental regression run;
+no clean-source rebuild of those historical fixtures is claimed.
+
+The first full run found one obsolete palette-fade fixture guard. It
+expected M1X1 rejection after an earlier verified extension admitted that
+mode. A separate fixture retains both M0 guards and compares 16,384 ROM
+states across both supported X widths. Reinstating the old C restriction
+fails the new positive matrix. The entire 1,928-job matrix was rerun with
+the repaired fixture; the failed first run remains archived. No palette
+semantics or runtime selection changed in this batch.
+
 ## Battle entry byte-clear correction
 
 The decomp retains the original SEP20 at `$81:8828`. Its absence cleared

@@ -6149,6 +6149,9 @@ RecompReturn Lufia2DecompBridge_83FCD1(CpuState *cpu) {
 typedef Lufia2ExecutionResult (*ActorSceneOwnersFunction)(
     const Lufia2Memory *, Lufia2CpuState *, Lufia2PushedChildCall, void *);
 
+static RecompReturn ActorBridgeBattleSessionCalls(
+    CpuState *cpu, ActorSceneOwnersFunction run);
+
 static RecompReturn ActorBridgeSceneOwners(
     CpuState *cpu, uint32_t entry, ActorSceneOwnersFunction run,
     uint8_t frame_size) {
@@ -12493,6 +12496,8 @@ RecompReturn Lufia2DecompBridge_849B3E(CpuState *cpu) {
         cpu->PB != 0x84u || cpu->D || cpu->S < 0x1f20u || cpu->S > 0x1ffcu ||
         !(bank < 0x40u || (bank >= 0x80u && bank < 0xc0u)))
         return ActorBridgeFallback(cpu,&fallback_frame,0x849b3eu);
+    if (bank == 0x97u)
+        return ActorBridgeBattleSessionCalls(cpu, Lufia2BattleRunSpritePreviewWithExit);
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {ActorBridgeRead,ActorBridgeWrite,cpu,
         ActorBridgeExecutionCheckpoint,cpu};
@@ -12682,4 +12687,24 @@ RecompReturn Lufia2DecompBridge_80C21A(CpuState *cpu) {
         return ActorBridgeFallback(cpu, &frame, 0x80c21au);
     }
     return ActorBridgeOwnedCalls(cpu, Lufia2FieldTextWindowTimer, 2u);
+}
+
+static RecompReturn ActorBridgeBattleSessionCalls(CpuState *cpu,
+                                                  ActorSceneOwnersFunction run) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+                                 ActorBridgeExecutionCheckpoint, cpu};
+    ActorPushedCall call = {cpu, frame, RECOMP_RETURN_NORMAL};
+    Lufia2CpuState state = {0};
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result =
+        run(&memory, &state, ActorBridgeOwnedChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    cpu->PB = state.program_bank;
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(cpu, result.pc, result.pc, frame.entry_s,
+                                         frame.hrv);
+    return ActorBridgeReturnPastFrame(cpu, &frame, 3u, result.pc);
 }
