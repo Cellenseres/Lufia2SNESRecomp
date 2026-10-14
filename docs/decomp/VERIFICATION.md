@@ -1,3 +1,12 @@
+## Battle entry byte-clear correction
+
+The decomp retains the original SEP20 at `$81:8828`. Its absence cleared
+two additional bytes in C. The 1,024-state original-ROM full-entry comparison
+and a fault control detect the discrepancy. CPU, full WRAM and ordered bus
+agree with the correction, including the old entry API. The combined
+session-exit integration passes all 1,928 shared jobs and normal Release.
+No original-game patch, new entry or runtime binding is introduced.
+
 ## Save-flag consumer data banks
 
 `$80:905F` reads save flags with long addressing; its native address resolver
