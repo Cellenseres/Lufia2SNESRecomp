@@ -12323,3 +12323,43 @@ RecompReturn Lufia2DecompBridge_86919E(CpuState *cpu) {
     return ActorBridgeBattleEntry(cpu,0x86919eu,NULL,
         Lufia2WorldMapRunSession,3u,BATTLE_BRIDGE_ANY_WIDTH,0,-1,0);
 }
+
+RecompReturn Lufia2DecompBridge_8384E1(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || cpu->PB != 0x83u ||
+        cpu->DB != 0x83u || cpu->D || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
+        return ActorBridgeFallback(cpu,&frame,0x8384e1u);
+    }
+    return ActorBridgeBattleEntry(cpu,0x8384e1u,NULL,
+        Lufia2FieldRunMapTransition,2u,BATTLE_BRIDGE_ANY_WIDTH,0,0x83,0);
+}
+
+RecompReturn Lufia2DecompBridge_8EB28F(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->PB != 0x8eu ||
+        cpu->DB != 0x83u || cpu->D || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
+        return ActorBridgeFallback(cpu,&frame,0x8eb28fu);
+    }
+    return ActorBridgeBattleEntry(cpu,0x8eb28fu,NULL,
+        Lufia2FieldSwitchDisplayScene,3u,BATTLE_BRIDGE_ANY_WIDTH,0,0x83,0);
+}
+
+RecompReturn Lufia2DecompBridge_838000(CpuState *cpu) {
+    const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
+    if (cpu->emulation || cpu->_flag_D || cpu->PB != 0x83u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1fffu)
+        return ActorBridgeFallback(cpu,&frame,0x838000u);
+    const Lufia2Memory memory = {
+        ActorBridgeRead,ActorBridgeWrite,cpu,ActorBridgeExecutionCheckpoint,cpu};
+    ActorPushedCall call = {cpu,frame,RECOMP_RETURN_NORMAL};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu,&state);
+    const Lufia2ExecutionResult result = Lufia2FieldRunLoop(
+        &memory,&state,ActorBridgeSceneChild,&call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound-1);
+    ActorBridgeStore(cpu,&state);
+    cpu->PB = state.program_bank;
+    return interp_tier_dispatch_tail(
+        cpu,result.pc,result.pc,frame.entry_s,frame.hrv);
+}
