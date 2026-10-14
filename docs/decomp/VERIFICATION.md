@@ -1,3 +1,24 @@
+## Save-flag consumer data banks
+
+`$80:905F` reads save flags with long addressing; its native address resolver
+also has no DB-relative access. The adapter now accepts every data bank
+while retaining its original M1X0, DP0, native-mode, decimal, PB and stack
+guards. The original semantic C and function/binding counts are unchanged.
+
+65,536 ROM states, 65,536 actual-adapter states and 65,536 native-resolver
+compositions cover all 256 data banks and all 256 file-index bytes. CPU,
+full WRAM, SRAM and ordered bus agree. The adapter's other guards pass
+6,144 cases. Restoring the old DB restriction fails the actual-source proof
+and reproduces the diagnostic save caller's 29 interpreted instructions.
+
+Three production diagnostic caller pairs match CPU/full WRAM at the same
+original wait edge; their own native instruction fallbacks are zero. The
+reference save fixture executes one original CMP to align the wait edge;
+no PC masking or cycle equality is claimed. Full 1,910 jobs, strict C11,
+normal Release and 4,680 boot/reset/intro/audio/replay frames pass. A field
+helper formatting cleanup preserves every C token. No full diagnostic
+gameplay or whole-game performance claim is made.
+
 ## Field menu/window service integration
 
 Native `$83:83A0` retains the three menu children and original nonreturn
