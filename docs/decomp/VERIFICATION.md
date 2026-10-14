@@ -80,6 +80,14 @@ and real audio with zero original RAM-clear/save-validation/video instructions.
 The original startup owner remains active; ninety snapshot replay hashes match.
 The legacy SpcPlayer reset fixture remains the same as the earlier boot probe.
 
+## Field publication integration
+
+Native `$80:FBCE/$83:8E4C` preserve attribute masking, first-layer indexing,
+zero-count underflow, blanking, layer publication and original frame waits.
+CPU/full-WRAM/ordered-bus comparisons, original-child compositions, all-site
+handoffs, production ABI, guards and negative controls pass in the shared
+1,836-job regression. Live field/NMI timing is not claimed by synthetic waits.
+
 ## Field reload runtime regression
 
 In-game bisect identified the complete `$83:85DC` native binding as the cause
