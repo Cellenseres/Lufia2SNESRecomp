@@ -12417,3 +12417,11 @@ RecompReturn Lufia2DecompBridge_85EAEF(CpuState *cpu) {
     return ActorBridgeBattleEntry(cpu,0x85eaefu,NULL,
         Lufia2BattleFadeSpecialExit,3u,BATTLE_BRIDGE_M1X0,0,-1,0);
 }
+
+RecompReturn Lufia2DecompBridge_82A4BE(CpuState *cpu) {
+    const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
+    if (cpu->emulation || cpu->_flag_D || cpu->x_flag || cpu->PB != 0x82u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu,&frame,0x82a4beu);
+    return ActorBridgeWholeX16(cpu,0x82a4beu,Lufia2MenuDispatchMainSelection,2u);
+}
