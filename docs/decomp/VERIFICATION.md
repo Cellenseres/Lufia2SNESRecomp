@@ -1,3 +1,35 @@
+## Native title record and tile helpers
+
+Three original title entries now have portable C and native selection:
+`$86:8637` finds the first active sprite record, `$86:8655` copies nineteen
+ROM-backed bytes, and `$86:8740` copies word rows with the original stride.
+The existing particle-stride helper is shared; the earlier title C remains
+unchanged. The seventy-five thirteen-byte records and the bank-relative
+current-object pointer are catalogued in WRAM. No ROM data is embedded.
+
+The first two entries require M1X0, DP0 and binary arithmetic. The row
+copier is reached with M0X0, supports all four width combinations, and
+restores status/data bank from the live stack. Its exit width is dynamic.
+Aliases between source, destination, counters and return frames retain
+their original effects. Zero dimensions retain the original loops. The
+4,096-word host budget hands off exactly before the next original load.
+
+Verification covers 279,616 original-ROM states and 279,616 actual adapter
+states, CPU/full WRAM/ordered bus, 35,328 consumer guards and 394,750 C++
+guard calls. Twenty-five altered return targets and 157 exact budget
+boundaries pass. Seven C, four bridge and eight memory-only ROM faults
+are detected. All six new jobs, all 1,934 shared jobs, strict C11 across
+429 units and normal Release pass. Actual generated selections execute
+all three entries natively during 4,680 boot/reset/intro/audio frames and
+ninety snapshot replays, with zero own interpreted instructions.
+
+The historical regression run retains 1,592 hashed reference/adapter
+object graphs relinked against the current library; 194 old fixture
+source paths are absent. The repaired fade fixture and eighteen recent
+battle fixtures are rebuilt from accepted sources. No clean rebuild of
+all historical fixture sources is claimed. The boot sample establishes
+neither whole-game coverage nor original/native timing or cycle equality.
+
 ## Shared battle session exit
 
 The DB97 `$84:9B3E` adapter uses the existing owned-child helper and

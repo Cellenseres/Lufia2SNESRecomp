@@ -12708,3 +12708,30 @@ static RecompReturn ActorBridgeBattleSessionCalls(CpuState *cpu,
                                          frame.hrv);
     return ActorBridgeReturnPastFrame(cpu, &frame, 3u, result.pc);
 }
+
+RecompReturn Lufia2DecompBridge_868637(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x86u || cpu->D || cpu->S < 0x1f20u || cpu->S > 0x1ffdu) {
+        const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+        return ActorBridgeFallback(cpu, &frame, 0x868637u);
+    }
+    return ActorBridgeWhole(cpu, 0x868637u, Lufia2TitleFindActiveSprite, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_868655(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x86u || cpu->D || cpu->S < 0x1f20u || cpu->S > 0x1ffdu) {
+        const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+        return ActorBridgeFallback(cpu, &frame, 0x868655u);
+    }
+    return ActorBridgeWhole(cpu, 0x868655u, Lufia2TitleCopyRecord, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_868740(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || cpu->PB != 0x86u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffdu) {
+        const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+        return ActorBridgeFallback(cpu, &frame, 0x868740u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x868740u, Lufia2TitleCopyTileRows, 2u);
+}
