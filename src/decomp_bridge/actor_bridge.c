@@ -12381,3 +12381,12 @@ RecompReturn Lufia2DecompBridge_83FAFA(CpuState*cpu){
   return ActorBridgeFallback(cpu,&frame,0x83fafau);
  return ActorBridgeWholeM1X16(cpu,0x83fafau,Lufia2ActorExtendSignedByte,2u);
 }
+
+RecompReturn Lufia2DecompBridge_859419(CpuState *cpu) {
+    const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
+    if (!ActorBridgeSupported(cpu,0,0) || cpu->PB != 0x85u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu ||
+        (cpu->DB > 0x3fu && (cpu->DB < 0x80u || cpu->DB > 0xbfu)))
+        return ActorBridgeFallback(cpu,&frame,0x859419u);
+    return ActorBridgeWholeM1X16(cpu,0x859419u,Lufia2BattleReversePartyOrder,3u);
+}
