@@ -51,6 +51,24 @@ the legacy SpcPlayer reset hook; the actual SPC700 and DSP execute normally.
 No SRAM files or manual gameplay are involved. These are runtime regression
 checks, not a claim that native and interpreted startup have identical cycles.
 
+## Save validation integration
+
+Native `$80:9037` and `$80:90E5` preserve the four-file validation pass,
+original checksum comparison, invalid-file clearing and saved CPU status.
+17,408 direct and 17,408 production-bridge cases compare CPU, complete
+WRAM/SRAM and ordered bus accesses, including all sixteen invalid-file
+masks. Original-child and native-child compositions reuse existing save
+implementations. Boundary, guard, redirect, C++ and fault-control checks pass.
+
+The joint 1,820-job suite, strict portable C11 and normal Release pass.
+Three 1,500-frame production boots (cold, hardware reset, new session)
+reach both logos and the intro with real audio; neither save validation
+nor video initialization executes original interpreted instructions.
+Ninety snapshot replay frames match CPU/WRAM/PPU/APU/picture hashes.
+The headless reset fixture retains the legacy SpcPlayer init hook described
+above. Synthetic SRAM is confined to the tests; no real save files or
+manual gameplay are involved. Cycle-identical execution is not claimed.
+
 ## Field reload runtime regression
 
 In-game bisect identified the complete `$83:85DC` native binding as the cause

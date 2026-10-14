@@ -12531,3 +12531,23 @@ RecompReturn Lufia2DecompBridge_80911C(CpuState *cpu) {
         return ActorBridgeFallback(cpu,&frame,0x80911cu);
     return ActorBridgeSceneOwners(cpu,0x80911cu,Lufia2ClearGameFile,2u);
 }
+
+RecompReturn Lufia2DecompBridge_8090E5(CpuState *cpu) {
+    const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
+    const uint8_t bank = cpu->DB;
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x80u || cpu->D || cpu->S < 0x1f20u || cpu->S > 0x1ffdu ||
+        !(bank < 0x40u || (bank >= 0x80u && bank < 0xc0u)))
+        return ActorBridgeFallback(cpu,&frame,0x8090e5u);
+    return ActorBridgeSceneOwners(cpu,0x8090e5u,Lufia2ValidateSaveFileChecksum,2u);
+}
+
+RecompReturn Lufia2DecompBridge_809037(CpuState *cpu) {
+    const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
+    const uint8_t bank = cpu->DB;
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || !cpu->x_flag ||
+        cpu->PB != 0x80u || cpu->D || cpu->S < 0x1f20u || cpu->S > 0x1ffcu ||
+        !(bank < 0x40u || (bank >= 0x80u && bank < 0xc0u)))
+        return ActorBridgeFallback(cpu,&frame,0x809037u);
+    return ActorBridgeSceneOwners(cpu,0x809037u,Lufia2ValidateSaveFiles,3u);
+}
