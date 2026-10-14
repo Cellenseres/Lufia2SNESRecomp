@@ -12425,3 +12425,11 @@ RecompReturn Lufia2DecompBridge_82A4BE(CpuState *cpu) {
         return ActorBridgeFallback(cpu,&frame,0x82a4beu);
     return ActorBridgeWholeX16(cpu,0x82a4beu,Lufia2MenuDispatchMainSelection,2u);
 }
+
+RecompReturn Lufia2DecompBridge_808117(CpuState *cpu) {
+    const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
+    if (cpu->emulation || cpu->_flag_D || cpu->PB != 0x80u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffdu)
+        return ActorBridgeFallback(cpu,&frame,0x808117u);
+    return ActorBridgeWholeAnyWidth(cpu,0x808117u,Lufia2SystemInitializeVideoMemory,2u);
+}
