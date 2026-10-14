@@ -12559,3 +12559,20 @@ RecompReturn Lufia2DecompBridge_8080D3(CpuState *cpu) {
         return ActorBridgeFallback(cpu, &frame, 0x8080d3u);
     return ActorBridgeWholeAnyWidth(cpu, 0x8080d3u, Lufia2ClearStartupWorkRam, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_80FBCE(CpuState *cpu) {
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (cpu->emulation || cpu->_flag_D || cpu->PB != 0x80u || cpu->D || !cpu->m_flag ||
+        cpu->x_flag || cpu->S < 0x1f20u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, 0x80fbceu);
+    return ActorBridgeSceneOwners(cpu, 0x80fbceu,
+                                  Lufia2FieldClearCellFlagsAndPublish, 3u);
+}
+RecompReturn Lufia2DecompBridge_838E4C(CpuState *cpu) {
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (cpu->emulation || cpu->_flag_D || cpu->PB != 0x83u || cpu->D || !cpu->m_flag ||
+        cpu->x_flag || cpu->S < 0x1f20u || cpu->S > 0x1ffcu)
+        return ActorBridgeFallback(cpu, &frame, 0x838e4cu);
+    return ActorBridgeSceneOwners(cpu, 0x838e4cu, Lufia2FieldPublishRedrawnLayers,
+                                  3u);
+}
