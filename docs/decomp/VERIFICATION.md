@@ -19,6 +19,26 @@ does not by itself promote a function to `verified`.
 A later change can split these by subsystem, keeping the runtime ABI covered
 by the existing tests.
 
+## Intro startup runtime regression
+
+Cold-boot comparisons isolate the native `$80:8117` selection introduced by
+`64004ed`: both logos appear, then the screen remains forced blank while the
+guest waits at `$80:9A0F/$80:9A13`. Interpreting only `$80:8117` restores the
+intro; switching the other startup bindings alone does not.
+
+The consumer keeps `Lufia2DecompBridge_808117` as an unconditional transfer to
+the original interpreter, including direct generated callers. Its semantic C
+implementation remains unchanged. Its function-level verification does not
+establish complete boot DMA, NMI or clock correctness. The precise runtime
+mechanism remains unproven; re-enabling native execution requires a complete
+cold-boot regression comparison.
+
+A private 1,500-frame cold boot using the production objects and the actual
+consumer bridge reaches the visible intro. All recorded observations through
+frame 900 match the working original-video control. No input, SRAM files or
+manual gameplay are involved. This is a consumer fallback repair, not a new
+semantic verification or a proof of the former native path's timing.
+
 ## Field reload runtime regression
 
 In-game bisect identified the complete `$83:85DC` native binding as the cause
