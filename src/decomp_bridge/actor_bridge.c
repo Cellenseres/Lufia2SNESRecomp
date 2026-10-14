@@ -412,9 +412,6 @@ RecompReturn Lufia2DecompBridge_AEB5(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x83aeb5u, Lufia2FieldColourEffects, 2);
 }
 
-RecompReturn Lufia2DecompBridge_9C72(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x809c72u, Lufia2FieldEventTick, 3);
-}
 
 
 RecompReturn Lufia2DecompBridge_A9BA(CpuState *cpu) {
@@ -798,9 +795,6 @@ RecompReturn Lufia2DecompBridge_99BF(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x8699bfu, Lufia2WorldMapStreamEdges, 2);
 }
 
-RecompReturn Lufia2DecompBridge_83A0(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x8383a0u, Lufia2FieldMenuRequest, 2);
-}
 
 RecompReturn Lufia2DecompBridge_867B(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x83867bu, Lufia2FieldTakeButtons, 2);
@@ -12643,27 +12637,49 @@ RecompReturn Lufia2DecompBridge_858322(CpuState *cpu) {
 
 static uint8_t ActorBridgeFieldServicesAvailable(
     const CpuState *cpu, uint32_t entry, uint8_t frame_size,
-    uint32_t child) {
+    uint32_t child, uint8_t child_index_8_bit) {
     if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->D ||
         cpu->PB != (uint8_t)(entry >> 16) || cpu->S < 0x1f20u ||
         cpu->S > (uint16_t)(0x1fffu - frame_size))
         return 0u;
     CpuState profile = *cpu;
     profile.m_flag = 1u;
-    profile.x_flag = 0u;
+    profile.x_flag = child_index_8_bit;
     profile.PB = (uint8_t)(child >> 16);
     cpu_mirrors_to_p(&profile);
     return (uint8_t)cpu_dispatch_has_entry(&profile, child);
 }
 
 RecompReturn Lufia2DecompBridge_CBAE(CpuState *cpu) {
-    if (ActorBridgeFieldServicesAvailable(cpu, 0x80cbaeu, 3u, 0x80cc26u))
+    if (ActorBridgeFieldServicesAvailable(cpu, 0x80cbaeu, 3u, 0x80cc26u, 0u))
         return ActorBridgeOwnedCalls(cpu, Lufia2FieldEventTimerTickWithServices, 3u);
     return ActorBridgeWhole(cpu, 0x80cbaeu, Lufia2FieldEventTimerTick, 3u);
 }
 
 RecompReturn Lufia2DecompBridge_81C6(CpuState *cpu) {
-    if (ActorBridgeFieldServicesAvailable(cpu, 0x8381c6u, 2u, 0x80cbaeu))
+    if (ActorBridgeFieldServicesAvailable(cpu, 0x8381c6u, 2u, 0x80cbaeu, 0u))
         return ActorBridgeOwnedCalls(cpu, Lufia2FieldTriggerUpdateWithServices, 2u);
     return ActorBridgeWhole(cpu, 0x8381c6u, Lufia2FieldTriggerUpdate, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83A0(CpuState *cpu) {
+    if (cpu->x_flag &&
+        ActorBridgeFieldServicesAvailable(cpu, 0x8383a0u, 2u, 0x83afeau, 1u))
+        return ActorBridgeOwnedCalls(cpu, Lufia2FieldMenuRequestWithServices, 2u);
+    return ActorBridgeWhole(cpu, 0x8383a0u, Lufia2FieldMenuRequest, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_9C72(CpuState *cpu) {
+    if (ActorBridgeFieldServicesAvailable(cpu, 0x809c72u, 3u, 0x848000u, cpu->x_flag))
+        return ActorBridgeOwnedCalls(cpu, Lufia2FieldEventTickWithServices, 3u);
+    return ActorBridgeWhole(cpu, 0x809c72u, Lufia2FieldEventTick, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_80C21A(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->PB != 0x80u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffdu) {
+        const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+        return ActorBridgeFallback(cpu, &frame, 0x80c21au);
+    }
+    return ActorBridgeOwnedCalls(cpu, Lufia2FieldTextWindowTimer, 2u);
 }

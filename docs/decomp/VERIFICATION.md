@@ -1,3 +1,20 @@
+## Field menu/window service integration
+
+Native `$83:83A0` retains the three menu children and original nonreturn
+stack-reset tail. `$80:C21A` exposes the existing window-timer operation
+without copying its body. `$80:9C72` delegates its original children and
+reuses the text VM. Both index widths include the actual M1X1 field caller.
+Child lookups use live widths; legacy contexts retain their original APIs.
+Original word TRB byte ordering and the prompt's comparison read are kept.
+
+The combined batch passes 30 actual-library jobs, the full 1,907-job suite,
+strict portable C11, C++ consumers and original-ROM CPU/full-WRAM/ordered
+bus fixtures. Three ROM/five actual-C/seven adapter/lookup faults are caught.
+Five production caller pairs and boot/reset/intro/audio/replay checks pass.
+The menu fixture ends at the original frame wait; full menu gameplay and
+cycle equality are not claimed. Only the independent C21A timer adds a
+binding. Raw guard evidence does not narrow existing legacy entry profiles.
+
 ## Original prompt-counter bus read
 
 The text prompt INC/CMP sequence reads the elapsed byte twice in the ROM.
