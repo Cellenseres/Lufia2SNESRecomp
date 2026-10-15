@@ -1,3 +1,40 @@
+# Text menu and scene handoffs - 2026-10-15
+
+Seven additional script entries now use native caller code: map-change request,
+field menus, two item-reward pages and scripted battle. Existing fade, menu
+selection, field-value counting and encounter routines are reused. Their actual
+child frames and target banks remain intact. Menu selection keeps its82803D
+consumer checkpoint, including the complete CPU state at that instruction.
+
+One map-change handler completes natively. The other six caller prefixes retain
+explicit original continuations at open fade, menu or encounter children. Their
+post-menu tails remain original code and are not claimed as verified functions.
+An initial reconstruction included unreachable tails; those were removed before
+acceptance. In particular the sensitive full8385DC map reload is not inlined.
+No public entry, binding or complete-menu implementation is newly promoted.
+
+The shared checkpoint passes28672 direct original-ROM cases,7168 complete
+text-engine/production-ABI cases,6144 live child boundaries and65627 untouched
+unknown/unsupported guards. CPU/full WRAM, ordered data bus and reached menu
+checkpoints match. Seven ROM mutations are detected. A separate omission control
+removes only the menu checkpoint: CPU, WRAM and40 bus events still match while
+the hook-presence assertion fails, proving that the observer is meaningful.
+
+Existing engine source is exact after removing the added dispatch block;
+read-only bridge instrumentation reverses exactly to production. Names and
+proven WRAM constants were cleaned up with checked equivalent normalized tokens.
+After pruning unproved tails, the affected ROM/ABI cases and semantic compiler
+targets were checked again. Unchanged CLI/resource-format inputs reuse their
+passing GCC/Clang CLI checks. MSVC, GCC and Clang semantic-library checks pass.
+A fresh whole desktop build/full1965 regression is deferred: production bridge,
+public ABI, bindings and CFG roots are unchanged. The preceding Windows Release
+and runtime replay remain evidence for their respective earlier revisions.
+
+Totals remain1444 verified entries,1433 bindings and742 WRAM locations;444
+portable C units. Text entry recognition is180 unique handlers/182 of205 routes,
+with23 unique handlers remaining. Recognition includes explicit native prefixes
+and continuations; it is not complete opcode dependency closure or runtime load.
+
 # Item, equipment and party restoration callers - 2026-10-15
 
 Eight complete guarded ROM routines now handle party-status clearing, requested
