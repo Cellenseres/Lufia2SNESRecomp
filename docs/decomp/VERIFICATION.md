@@ -1497,3 +1497,27 @@ stack limits and literal DB-relative accesses. Their expanded DB admission
 has a shared24576-state original-ROM/ABI proof covering all data banks,
 including real DB83 calls. Counting broader caller contexts as new functions
 or new runtime bindings would be incorrect.
+
+## Text state and palette commands
+
+`tests/decomp_verify/lufia2_text_state_commands_verify.c` exercises13 new
+internal handlers reached through80:9CB8. Its184320 original-ROM states
+include all65536 byte pairs for subtraction in both binary and decimal
+modes, bank-crossing operands, all data banks, palette index wrapping and
+Mode7 MMIO. It compares CPU, full WRAM and exact ordered data-bus events.
+Another13312 complete text-engine/production-ABI states cover dispatcher
+integration and saved-status returns.65627 unsupported/unknown handler
+contexts leave CPU and memory untouched. Three ROM mutations are detected.
+
+The command module accepts M1/X16, DP0; relocated scratch can overlap guest
+return frames and stays in original execution. A late guard review added
+that explicit boundary, so affected positive/ABI/compiler checks were
+rerun on the final source instead of reusing the earlier module revision.
+Windows Release and GCC/Clang standalone/CLI checks are green. Full1965
+remains a prior baseline; unchanged unrelated suites were deferred.
+
+The7444-frame original-input replay has identical pictures/PPU state.
+Both new fade handlers also pass original-ROM comparisons at real calls.
+PCM hashes differ from frame3580, and the combined CPU/WRAM hash differs
+on one frame. The observer-free run reproduces these hashes exactly.
+These results do not establish cycle or audio-sample equality.
