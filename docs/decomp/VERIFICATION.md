@@ -1646,3 +1646,26 @@ Owner builds use `build/windows`. Agent integration builds must use
 outputs. Never run two builds or configurations in the same build directory.
 A missing object during concurrent compilation can be transient; inspect
 the active builds before deleting artifacts or changing linker settings.
+
+## Scene-control text commands
+
+`tests/decomp_verify/lufia2_text_scene_control_verify.c` covers23 new internal
+routes: object parameters/search/waits, actor facing, animation requests,
+camera/layer controls and color interpolation. One combined checkpoint passes
+94208 direct ROM states,23552 full-engine/production-ABI states, two direct
+and two engine search-budget continuations,65835 guards and six ROM faults.
+CPU, full WRAM and ordered data-bus events match. Existing script initialization
+and coordinate scaling are shared via internal exports, without body changes.
+
+The first18 direct groups were retained after correcting missing terminators
+in synthetic attribute lists. Only the remaining five groups ran afterward.
+New semantic-source formatting preserves C tokens; the fixture comparison
+joins adjacent C string literals. Windows Release in the independent agent
+build and GCC/Clang standalone/CLI checks pass once on the combined state.
+
+The7444-frame replay checks1495 actual text-body calls against ROM:1421
+returns and74 boundaries match CPU/full WRAM. It reaches B92C twice and B93D
+once. PPU/image hashes and43 pictures equal the prior native replay. Two
+CPU/WRAM frame hashes and4787 PCM hashes differ; no cycle/audio equality is
+claimed. Full1965-job regression remains deferred. Planned semantic commits
+share this final combined checkpoint, without separate intermediate retests.
