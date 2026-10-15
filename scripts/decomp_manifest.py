@@ -31,6 +31,13 @@ class ManifestError(ValueError):
     pass
 
 
+def write_if_changed(path: Path, text: str) -> None:
+    data = text.encode("utf-8")
+    if path.is_file() and path.read_bytes() == data:
+        return
+    path.write_bytes(data)
+
+
 @dataclass(frozen=True)
 class Function:
     address: str
@@ -416,15 +423,17 @@ def generate(
             )
 
     out_dir.mkdir(parents=True, exist_ok=True)
+    current_names = {cfg.path.name for cfg in cfg_files}
     for stale in sorted(out_dir.glob("*.cfg")):
-        stale.unlink()
+        if stale.name not in current_names:
+            stale.unlink()
     for cfg in cfg_files:
         output = cfg.text
         additions = sorted(generated_by_bank.get(cfg.bank, []))
         if additions:
             output = output.rstrip() + "\n\n# Generated verified decomp replacements.\n"
             output += "\n".join(additions) + "\n"
-        (out_dir / cfg.path.name).write_text(output, encoding="utf-8", newline="\n")
+        write_if_changed(out_dir / cfg.path.name, output)
 
     unmatched = [
         {"address": item.address, "bridge": item.bridge}
@@ -453,16 +462,10 @@ def generate(
         "unmatched_bindings": unmatched,
     }
     report_path.parent.mkdir(parents=True, exist_ok=True)
-    report_path.write_text(
-        json.dumps(report, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    write_if_changed(report_path, json.dumps(report, indent=2, sort_keys=True) + "\n")
     if text_report_path is not None:
         text_report_path.parent.mkdir(parents=True, exist_ok=True)
-        text_report_path.write_text(
-            render_text_report(report), encoding="utf-8", newline="\n"
-        )
+        write_if_changed(text_report_path, render_text_report(report))
     return report
 
 
