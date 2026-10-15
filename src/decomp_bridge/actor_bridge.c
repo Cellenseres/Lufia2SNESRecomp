@@ -12875,3 +12875,16 @@ RecompReturn Lufia2DecompBridge_83C110(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_83F6C6(CpuState *cpu) {
     return ActorBridgeWholeM1X16(cpu, 0x83f6c6u, Lufia2FieldSetupObjectActorSpriteFar, 3u);
 }
+
+RecompReturn Lufia2DecompBridge_80BF6F(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x80bf6fu, Lufia2FieldFindWindowActor, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_8EBAF6(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x8ebaf6u, 0, Lufia2FieldRevealActor, 3u,
+                                  BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_8EBB17(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x8ebb17u, Lufia2FieldHideActor, 3u);
+}

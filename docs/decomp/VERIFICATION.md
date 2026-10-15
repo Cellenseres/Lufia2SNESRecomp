@@ -1,3 +1,45 @@
+## Shared actor visibility and sprite callers - 2026-10-15
+
+80:BF6F FieldFindWindowActor reuses the existing lookup body. 8E:BAF6
+FieldRevealActor and8E:BB17 FieldHideActor share one state implementation with
+EventOpHideActor. Event $60/$61 keep their previous exact continuation; show
+still stops at8E:BB12 BEFORE the81:8351 frame. The public reveal function has
+the complete child-service contract throughBB16. 81:8351 generates a field
+encounter record, NOT graphics; its inner81:839F is already verified.
+No cloned lookup, party offsets, allocation or map-occupancy implementations.
+
+TextA8F8 replaces actor sprites through existing canonical children; ACA7
+reveals/marks the encounter actor and retains exact81:8351 handoffs. The
+original lookup-miss behavior and stale-slot use remain literal.
+
+28,672 direct ROM CPU/full128KiB WRAM/ordered-bus states across3 roots,2 text
+routes and2 affected event routes. 7,168 production-ABI/full-VM states, zero
+positive fallback; all four VM groups actually visit their original handlers.
+Additional128 child-unwind and256 wide/stack-alias slot states on each path:
+29,056 direct and7,552 ABI/edge cases total. 70 context guards plus203 other-ROM
+route guards on each fixture; ABI fixture covers42 production root guards,
+with28 internal guards and203 default-dispatch checks. Callback redirect probes
+cover the production service machinery. Eleven in-memory ROM controls detected,
+including all three RTL kinds and child actor-argument corruption. The latter
+keeps final CPU/WRAM/bus identical but fails the full child-entry CPU snapshot.
+
+MSVC isolated full Windows Release and GCC/Clang semantic libraries+metadata
+PASS. Unchanged CLI/resource-format inputs hash-match the prior green tests;
+reuse CLI checks. Full1965 regression deferred. Shared7444-frame replay passes
+all1495 direct ROM text-body CPU/fullWRAM pairs (1472 returns,23 boundaries).
+Text9DFA runs32 times andA8F8 twice in that replay. All43 pictures and allPPU
+hashes match previous native replay. CombinedCPU/WRAM raw hashes match7442
+frames; at7175/7385 only PC differs between CMP8293C8 andBEQ8293CA in the same
+unchanged menu polling loop. Isolating BF6F original restores both hashes.
+Focused byte snapshots prove equal WRAM; exact FNV inversion/reconstruction
+proves all other recorded CPU fields match. Raw2 differences remain recorded.
+PCM differs4399 frames, first2594; no cycle/audio parity claimed. Focus replays
+were justified by these concrete differences, not routine repeated regression.
+
+1449 verified entries /1438 bindings /743 WRAM names /448 portable units
+(447 semantic sources +CLI). Text192unique/194of205 routes,11 unique remain;
+native prefix recognition is not full opcode dependency closure.
+
 ## Text script/field caller batch - 2026-10-15
 
 Nine internal routes: 9DFA,9E83,9F10,A041,AC6A,BBEB,BDBB,BDCA,BD99.
