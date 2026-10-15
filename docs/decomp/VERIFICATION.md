@@ -1,3 +1,11 @@
+## Field helper formatting - 2026-10-15
+
+Field animation declarations and guard wrapping match the formatter. Exact
+C tokens and preprocessing directives are unchanged from full1965. GCC13
+and Clang18 standalone429-unit/tool builds plus nine CLI methods pass on
+the formatted source. The semantic regression was retained rather than
+repeated for whitespace. No bindings, CPU behavior or timing changed.
+
 ## Field caller admission and shared animation
 
 Real field callers enter83:8682 and83:AEB5 atS1FFD. Both are two-byte JSR
