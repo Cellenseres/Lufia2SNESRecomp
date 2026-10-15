@@ -1163,7 +1163,7 @@ static bool InitVideo(void) {
     config.frame_width = s_frame_width;
     config.frame_height = SNES_HEIGHT;
     config.window_scale = scale;
-    config.vsync = s_vsync_enabled;
+    config.vsync = s_vsync_enabled && !s_turbo && !g_config.disable_frame_delay;
     SnesDisplayAspect_GetPixelAspect(
         SnesDisplayAspect_Clamp(g_config.display_aspect),
         &config.pixel_aspect_numerator,
@@ -2216,9 +2216,23 @@ static void ResizeWindow(int delta) {
 
 static void HandleHostCommand(int cmd, bool pressed) {
     if (cmd == kKeys_Turbo) {
+        if (s_turbo == pressed)
+            return;
         s_turbo = pressed;
         RtlAudioSetFastForward(s_turbo);
         snes_osd_set_turbo(s_turbo ? 1 : 0);
+        if (s_presenter &&
+                snesrecomp_presenter_vsync_state(s_presenter) !=
+                    SNESRECOMP_VSYNC_UNSUPPORTED &&
+                !snesrecomp_presenter_set_vsync(s_presenter,
+                    s_vsync_enabled && !s_turbo &&
+                    !g_config.disable_frame_delay)) {
+            fprintf(stderr, "[video] could not update VSync for turbo: %s\n",
+                snesrecomp_presenter_last_error(s_presenter));
+        }
+        if (s_high_refresh)
+            snesrecomp_present_timeline_reset(
+                &s_present_timeline, snesrecomp_now_us());
         return;
     }
 
