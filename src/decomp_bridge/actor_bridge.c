@@ -656,6 +656,14 @@ RecompReturn Lufia2DecompBridge_F4ED(CpuState *cpu) {
     return ActorBridgeWholeM1X16(cpu, 0x81f4edu, Lufia2PartyStatTotals, 2);
 }
 
+RecompReturn Lufia2DecompBridge_F723(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x81f723u, Lufia2PartyAddMenuMember, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_F74F(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x81f74fu, Lufia2PartyRemoveMenuMember, 3u);
+}
+
 RecompReturn Lufia2DecompBridge_F78D(CpuState *cpu) {
     return ActorBridgeWholeM1X16(cpu, 0x81f78du, Lufia2PartyPointers, 2);
 }
