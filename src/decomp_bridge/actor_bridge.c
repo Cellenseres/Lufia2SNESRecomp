@@ -9043,6 +9043,16 @@ RecompReturn Lufia2DecompBridge_81839F(CpuState *cpu) {
     return ActorBridgeSceneOwners(cpu,0x81839fu,Lufia2BattleGenerateEncounterRecord,2u);
 }
 
+RecompReturn Lufia2DecompBridge_818351(CpuState *cpu) {
+    if (cpu->S < 0x1f20u || cpu->S > 0x1ffcu || (uint8_t)cpu->A >= 32u) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x818351u);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x818351u, 0, Lufia2FieldGenerateEncounter,
+                                  3u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
 RecompReturn Lufia2DecompBridge_8184FC(CpuState *cpu) {
     if(cpu->PB!=0x81u||!cpu->m_flag || !cpu->x_flag||cpu->D!=0u||cpu->S<0x1f0au||cpu->S>0x1ffcu) {
         const ActorBridgeFrame frame=ActorBridgeEnter(cpu);

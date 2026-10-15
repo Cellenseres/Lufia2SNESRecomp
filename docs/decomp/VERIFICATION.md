@@ -1,3 +1,52 @@
+## Encounter callers and text rendering - 2026-10-15
+
+81:8351 FieldGenerateEncounter now selects map/Cave encounter records through
+the existing81:839F generator. It preserves original P/DB/fullA/X/Y, multiply
+MMIO and saved frames. Unsupported contexts and slots>=32 hand off before any
+changes; the original81:835E BRK remains intact. No duplicate generator, RNG,
+sprite or field-record algorithms. The complete child-service contract is
+verified and bound. New textAB51/BC55 compose those canonical children; ACA7
+can finish through the native encounter chain. Existing BC98 placement body
+is exported internally unchanged, with affected opcode68 verified throughVM.
+
+TextB7FE centers measured windows with original Mode7 writes. Text9EC8 selects
+font page3 and shares existing glyph/window completion via internal PRINT
+flow. No second renderer. Original carry, lookup misses and row-underflow
+behavior remain literal; no original bug was fixed in semantic C.
+
+28,672 direct original-ROM CPU/full128KiB WRAM/ordered-bus states:8,192 selector
+cases cover all256 map values and32 slots;4,096 each AB51,BC55,B7FE,9EC8,ACA7.
+14,336 productionABI/fullVM cases:8,192 selector and1,024 each six text groups,
+including affected68. Zero supported fallback. Actual original handler visits
+required; child-entry fullCPU snapshots check restored-state-hidden arguments.
+Additional128 child-unwind cases on each path and128 direct empty-window
+prefixes. Totals28,928 direct/edge and14,464 ABI/edge.308 guards each fixture:
+238 selector guards (224 invalid slots+14 contexts),70 internal contexts.
+Production callback machinery includes15 redirect probes. Eight in-memory ROM
+fault controls detected, including return opcode and restored child arguments.
+Open-window extended-glyph rows and zero-width centering prefixes covered;
+empty full-window underflow is retained, not collapsed or silently repaired.
+
+GCC/Clang warnings-as-errors semantic libraries+metadata PASS. Unchanged CLI
+linked inputs hash-match the preceding green CLI proof. Isolated Windows
+Release PASS; initial registry-denied MSBuild was rerun with appropriate host
+access, reusing generated analysis. No owner build/windows changes.
+Shared7444-frame cold/intro/field/menu replay:1495 original text CPU/fullWRAM
+pairs pass (1472 returns/23 boundaries). All CPU/WRAM,PPU andPCM frame hashes,
+all7444 pixel hashes and43 images identical to preceding native replay. New
+text routes were not visited. Selector hits are not claimed: its reported
+observer resets before menus. Synthetic ROM/ABI cases cover the new paths.
+This is not whole-game interpreter/cycle/audio equivalence.
+Full1965-job regression deferred on current sources, not reported green.
+
+1450 verified entries /1439 bindings /743 WRAM names /449 portable units
+(448 semantic sources+CLI). Text196unique/198of205 nominal routes recognized,
+seven unique remain:9DD4,A2E1,ABD0,BA39,BF08,BF09,BF0A. Four are originalBRK
+targets. Recognition includes earlier partial prefixes, not fullVMclosure.
+One combined checkpoint covers both planned semantic commits and consumer
+binding/gitlink; intermediate commits are not independently tested. Receipt:
+text-encounter-callers-next/ACCEPTANCE_RECEIPT.json. Foreign WIP and ROM intact.
+
 ## Shared actor visibility and sprite callers - 2026-10-15
 
 80:BF6F FieldFindWindowActor reuses the existing lookup body. 8E:BAF6
