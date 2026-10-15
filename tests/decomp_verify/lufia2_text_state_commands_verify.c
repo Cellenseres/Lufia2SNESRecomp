@@ -267,16 +267,21 @@ int main(int argc, char **argv) {
         ++guards;
     }
     for (unsigned command = 0; command < 13u; ++command) {
-        for (unsigned context = 0; context < 8u; ++context) {
+        for (unsigned context = 0; context < 14u; ++context) {
             Lufia2CpuState state = untouched;
             if (context == 0u)
                 state.accumulator_is_8_bit = 0;
             else if (context == 1u)
                 state.index_is_8_bit = 1;
-            else {
+            else if (context < 8u) {
                 static const uint16_t pages[] = {1u, 0xffu, 0x100u,
                     0xffffu, 0xffc0u, 0x1ecbu};
                 state.direct_page = pages[context - 2u];
+            } else if (context == 8u)
+                state.program_bank = 0;
+            else {
+                static const uint16_t stacks[] = {0u, 0x54u, 0x1f0fu, 0x1ffdu, 0xffffu};
+                state.stack = stacks[context - 9u];
             }
             Lufia2CpuState before = state;
             if (Lufia2TextExecuteStateCommand(&memory, &state, handlers[command]) ||
