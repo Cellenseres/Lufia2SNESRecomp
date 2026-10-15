@@ -16,7 +16,7 @@ static Trace original_trace, native_trace;
 static unsigned suite, number, exhaustive;
 static const uint16_t handlers[] = {0xa6aeu, 0xa709u, 0xa794u, 0xa99du, 0xafe7u,
                                     0xb005u, 0xa6e7u, 0xa6c2u, 0xa7bbu, 0xa71bu,
-                                    0xac8au, 0xacbdu, 0xace2u};
+                                    0xac8au, 0xacbdu, 0xace2u, 0xb0bdu, 0xb0c3u};
 static uint8_t lengths[4][256];
 static Trace *fetch_trace;
 static unsigned fetch_left;
@@ -330,7 +330,7 @@ int main(int argc, char **argv) {
 
     unsigned total = 0;
     if (argc != 3)
-        for (suite = 0; suite < 13u; ++suite) {
+        for (suite = 0; suite < 15u; ++suite) {
             if (selected_handler && handlers[suite] != selected_handler)
                 continue;
             for (number = 0; number < 4096u; ++number) {
@@ -358,10 +358,10 @@ int main(int argc, char **argv) {
     unsigned guards = 0;
     for (unsigned handler = 0; handler < 65536u; ++handler) {
         unsigned i = 0;
-        for (; i < 13u; ++i)
+        for (; i < 15u; ++i)
             if (handler == handlers[i])
                 break;
-        if (i < 13u)
+        if (i < 15u)
             continue;
         Lufia2CpuState state = untouched;
         if (Lufia2TextExecuteActorCommand(&memory, &state, (uint16_t)handler) ||
@@ -369,7 +369,7 @@ int main(int argc, char **argv) {
             return 1;
         ++guards;
     }
-    for (unsigned command = 0; command < 13u; ++command) {
+    for (unsigned command = 0; command < 15u; ++command) {
         for (unsigned context = 0; context < 14u; ++context) {
             Lufia2CpuState state = untouched;
             if (context == 0u)

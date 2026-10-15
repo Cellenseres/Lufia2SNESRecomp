@@ -1,3 +1,42 @@
+# Speaker, scene-cell and relative-position commands - 2026-10-15
+
+Fourteen additional internal text handlers are reconstructed: seven speaker
+presets, operand-selected speaker and speaker refresh, three scene-cell
+callers and two relative actor-position commands. The existing speaker
+updater is shared with wait-for-button; its143 operation tokens are unchanged.
+Speaker4/5 retain their original preset order. Signed offsets preserve the
+original byte flags while widening A, then add to16-bit fine coordinates.
+
+Scene cells use the existing80:C05C and80:BFAA C implementations. Successful
+and missing lookups preserve their exact original behavior. A65536-record
+search limit hands off at80:BFBC with all caller, status and bank frames
+still present. No decoder, actor lookup or positioning routine is duplicated.
+Native commands require their proven PB80/M1/X16/DP0/binary/stack context;
+other contexts retain the original handler. No public entry/binding is added.
+
+The shared checkpoint passes61440 actorROM cases,1024 affected eventBC
+cases,12288 sceneROM cases,three exact search-budget continuations and15360
+full-engine/productionABI cases. Those include2048 originalC2A1 window
+continuations.65731 actor and65575 scene guards leave unsupported states
+untouched. Three ROM faults are detected. Windows Release and GCC/Clang
+standalone/CLI/metadata pass once on this combined batch. Speaker formatting
+was checked by complete C-token identity; no redundant semantic rerun follows.
+
+A7444-frame replay compares1495 actual text-body calls with the ROM:
+1421 returns and74 boundaries match CPU/full WRAM. Field callers share this
+body; their canonical return9CB7 is compared at the original9DB2 RTL.
+Dispatcher9D3B visits use the native handled-opcode count before stopping;
+the initial first-visit checker was corrected against an isolated captured
+state. Game semantics needed no fix. The corrected observer produces exactly
+the same frame hashes as the earlier entry-only observer.
+
+All pictures and PPU hashes match the preceding native replay. Two combined
+CPU/WRAM frame hashes and4380PCM hashes differ; no cycle/audio equality is
+claimed. Full1965 remains an earlier baseline and is deferred here. Counts
+remain1434 verified entries,1423 bindings and742 WRAM locations, now433 C
+units. Direct text recognition reaches102 unique handlers/104 of205 routes;
+101 unique handlers remain. Recognition is not whole-VM completeness.
+
 # Actor placement and animation controls - 2026-10-15
 
 Four more internal text handlers now run in C:2F/A71B places an actor,
