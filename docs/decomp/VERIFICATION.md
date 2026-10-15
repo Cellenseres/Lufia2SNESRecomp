@@ -1,3 +1,40 @@
+## Scene sequence and world-owner callbacks - 2026-10-16
+
+BA39 callbacks BA69,BAC9 and BB94 now carry their complete original tails
+through the optional80:9CB8 child services. Scene/map/text reloads reuse existing
+children. BB94 preserves original A/X/Y/DB/P saves,operand-based world selection,
+child carry,field flags and restoration order. Uncertain86:AEB1/8E:B2EE/world
+owner internals remain explicit original services;no invented child semantics.
+All seven regular scene callbacks have reconstructed bodies with services.
+BA67 self-loop,BAED reset and out-of-table targets retain exact original
+continuations. No new metadata roots/bindings or whole-VM closure claim.
+
+Combined new+affected checkpoint:8192 direct and8192 productionABI states,
+CPU/full128KiBWRAM/ordered data bus and all child-entry snapshots. Eight fixture
+suites cover32 call occurrences and27 distinct sites;the world alternatives
+share five sites and differ at their selected world-call site.256 unwinds and512
+changed-child M/X/DP/decimal returns per path pass.480 production redirect
+probes (27 distinct sites),15 direct/18 ABI guards,512 legacy index/flag states
+and13 in-memory ROM fault controls pass,zero supported entry fallback.
+Tests execute canonical80:A368 against its actual original instructions;
+BF0B also runs actual instructions with explicitly synthetic counter changes.
+Other child internals are paired contracts. Saved Y/DB,carry and overflow are
+deliberately clobbered by new opaque children to exercise caller restoration.
+
+MSVC W4/WX,full isolated Windows Release,GCC/Clang semantic targets/metadata
+pass. CLI/resource dependency hashes remain unchanged and reuse recorded gates.
+Recovery proof is reused from text-scene-display-next:its engine,body,shared
+child helper and production bridge are byte-identical;its route returns before
+the modified scene dispatcher. No shared mutable state is introduced. The same
+combined-final-state checkpoint covers both planned commits;intermediate
+commits are not independently tested. Full1965 and live7444 replay deferred
+current revision,not reported as passing.1455 verified/1444 bindings/747 WRAM
+locations/454 portable units (453src plus CLI). No ROM/tools/foreign WIP staged.
+Fixture:tests/decomp_verify/lufia2_text_scene_owner_verify.c. Private reproduction
+text-scene-owner-next/build_direct.cmd andbuild_engine_abi.cmd; supported ROM
+plus --unwind,--returns,--guards;direct --indices and --fault are also available.
+Receipt:text-scene-owner-next/ACCEPTANCE_RECEIPT.json. No push.
+
 ## Scene display callback tails - 2026-10-16
 
 The optional80:9CB8 services path now completes BA39 callbacks BA97,BAA2 and
