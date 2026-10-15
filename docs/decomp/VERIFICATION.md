@@ -1,3 +1,35 @@
+# Text exits, audio callers and party rebuild - 2026-10-15
+
+Eleven more internal text handlers use C: six audio command callers, text exit,
+nonlocal field restart, window-state toggle, screen-effect reset and party actor
+rebuild. Existing native driver/immediate-sound helpers are reused. APU replies,
+song-loader hooks, music fade hooks and unknown scene children keep their exact
+original targets and pushed frames. Handler recognition includes these explicit
+continuations; it does not claim every audio child or continuation tail is native.
+No music root is inlined with a null consumer checkpoint.
+
+The original C11C actor-release body is shared with window closure. Reversing
+its name/return-argument change and removing the new dispatch block reproduces
+the previous complete engine source exactly. The existing prompt still supplies
+9CA5. Restart keeps the original S1FFF reset before JML83ACEF, without popping
+old text frames. Screen reset keeps its original long word writes and widths.
+
+The combined checkpoint passes45056 direct original-ROM states and11264
+complete text-engine/production-ABI states, including7452 exact continuations
+and no fallback. CPU/full WRAM/ordered data bus match.65679 pre-access guard
+states and six injected ROM faults pass. The eleven direct groups passed first;
+the harness selection was then narrowed to avoid routing unrelated existing
+party commands through the unknown-handler check. Only the open guards were
+rerun. No production semantic fix was required. Formatting preserves C tokens.
+
+Windows Release, GCC/Clang standalone, CLI and metadata checks pass once on
+the combined source. Full1965 and a fresh whole-game replay remain deferred;
+no result from the previous source is presented as a run of this revision.
+No public entries/bindings are added:1436 verified entries,1425 bindings and
+742 WRAM locations, with439 portable C units. Text recognition is161 unique
+handlers/163 of205 routes;42 unique handlers remain. These are dispatch counts,
+not complete-game coverage or runtime hit rates.
+
 # Party and inventory text commands - 2026-10-15
 
 Twelve additional internal text handlers execute in portable C: party membership,
