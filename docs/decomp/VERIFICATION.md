@@ -1,3 +1,33 @@
+## Combined field entry-width validation - 2026-10-15
+
+Four existing entries gain real caller modes:83:D3F7 and8E:B63B accept X8,
+84:8193 accepts its normalized four entry widths, and83:D350 uses its verified
+X8 prefix with an exact83:D38D interpreter continuation. The original F9D4
+width/stack quirk remains intact. No new functions or bindings are claimed.
+
+The combined actual-source ABI batch passes458752 original-ROM states and
+53376 semantic/runtime guard states. D350 includes4685 exact handoffs and
+28083 returns. Existing direct mode proofs are reused for unchanged semantic
+bodies; eight prior width faults remain detected and two new primary-action
+fault controls detect a missing handoff and an in-memory ROM-prefix change.
+Only affected failed guard fixtures were retried; seven passing jobs were
+retained unchanged. The failures were link-recipe/expected-count issues.
+
+Standalone GCC13/Clang18 library/tool/CLI/metadata gates and normal Windows
+Release pass. Actual production6814-frame input replay matches every prior
+three-mode native CPU/full-WRAM, PPU, PCM and pixel hash, with456 native D350,
+46 graphics-upload and421 item-region entries and zero own interpreted hits.
+D350 now directly includes secondary installation, so its separate entry has
+zero dispatch hits. The existing47-frame fade offset versus original admission
+is retained; native dispatch is not claimed cycle/audio equivalent to ROM.
+
+Full1965 is the prior baseline, not a regression run on this revision. Under
+the owner's updated cadence, these localized entry changes share affected
+checks and do not trigger another complete regression. The next broad full
+run must replace legacy unsupported-mode expectations for D350/8193 and the
+three action/region guard fixtures with their new positive/negative coverage.
+Private evidence: field-width-public-next/checks.json and runtime-comparison.json.
+
 ## Standalone verification evidence correction - 2026-10-15
 
 The local field-admission and formatting standalone repeat receipts were
@@ -12,10 +42,14 @@ replacement invokes WSL commands directly, without generated shell scripts.
 The original receipts remain historical evidence, superseded for these
 standalone claims by the corrected run. No remote CI result is claimed.
 
-Compiler build directories are reused for incremental checks. The full ROM
-regression remains required once per complete semantic batch; larger related
-batches amortize it. A private timing wrapper records each original verifier
-job without changing its arguments, timeout, result or test selection.
+Compiler build directories are reused for incremental checks. The owner's
+updated cadence is defined in AGENTS.md: related changes share one affected-test
+checkpoint and may produce several atomic commits. Full ROM regression is
+reserved for substantial decompilation batches, broad shared changes or evidence
+of wider regression, rather than each small slice or commit. A private timing
+wrapper records each original verifier job without changing its arguments,
+timeout, result or test selection. Reports identify the combined tested revision
+and distinguish checks run, reused and deferred.
 
 ## Field helper formatting - 2026-10-15
 
