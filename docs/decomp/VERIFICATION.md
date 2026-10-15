@@ -1,3 +1,48 @@
+# Scene rendering and tile-text callers - 2026-10-15
+
+Eight additional internal text handlers use existing native scene-pair lookup,
+object copying, layer/attribute rendering and text-buffer clearing. Three share
+the original rectangle setup. The two tile-text writers retain their ROM-backed
+ASCII-indexed tables, byte arithmetic, separate row writes and16-bit cursor wrap.
+Original NMI-register addressing, upload requests and frame waits stay literal.
+Unknown upload/action children retain their actual targets and live frames.
+
+C093 already exists as Lufia2SceneReadActorPair; the new text adapter reuses it
+and the existing BFAA callback. No coordinate lookup, tile copier or renderer is
+duplicated. Removing the added helper/dispatch block reproduces the preceding
+scene-command/engine sources exactly. A4096-character host quantum hands back
+at B137/B1C2 without changing original state or terminating the guest loop.
+
+A shared checkpoint passes32768 direct original-ROM cases and8192 full
+text-engine/production-ABI cases, including3584 exact child continuations and
+no fallback. Three additional direct and three ABI cases prove exact65536-record
+header and4096-character continuations.65640 pre-access guards and eight injected
+ROM faults pass. CPU/full WRAM/ordered data-bus events match. An FF-ID fixture
+initially read unseeded bytes after its sentinel and produced zero-sized copy
+loops; valid trailing record data fixed the fixture. Original FF comparison
+precedence remains unchanged. Formatting preserves C tokens.
+
+The shared MSVC semantic-library, GCC/Clang standalone, CLI and metadata checks
+pass. A fresh7444-frame production replay covers the combined three text batches:
+1495 actual text-body calls match original CPU/full WRAM, with1438 returns and
+57 boundaries. CPU/WRAM and PPU/image hashes match the prior native replay on
+all7444 frames; all43 pictures match.2475 PCM hashes differ beginning at4970;
+no cycle/audio parity is claimed. Actual newly recorded commands are A29C once
+and B07823 times. This route does not reach the eight render/tile handlers;
+their evidence remains the synthetic ROM/ABI cases above. The probe links the
+fresh semantic library with unchanged isolated consumer/core objects, without
+rebuilding the entire desktop UI.
+
+Compiler and broader runtime results are recorded in the consumer acceptance
+receipt. A new whole desktop Release/full1965 regression is deferred: generated
+CFGs, metadata, bindings and production bridges are unchanged. Necessary MSVC
+semantic-library and production-ABI checks share this checkpoint. No individual
+intermediate-commit or reused whole-game result is claimed as a new full run.
+Totals remain1436 verified entries,1425 bindings and742 WRAM locations, with
+441 portable C units. Text recognition is169 unique handlers/171 of205 routes;
+34 unique handlers remain. Recognition includes explicit continuations and
+is not whole-VM completeness or current runtime coverage.
+
 # Text exits, audio callers and party rebuild - 2026-10-15
 
 Eleven more internal text handlers use C: six audio command callers, text exit,
