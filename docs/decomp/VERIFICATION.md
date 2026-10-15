@@ -1,3 +1,43 @@
+# Auxiliary actor slots and object-sprite far entry - 2026-10-15
+
+Two complete guarded entries now prepare auxiliary actor slots and call the
+existing object-sprite builder through its original far wrapper. The text
+object-actor command uses those same entries. Slot setup shares the existing
+record-offset and fine-position routines. Palette copying, sprite tables and
+object appearance remain in the already verified83F6CA implementation.
+An experimental duplicate of that existing entry was removed before testing.
+
+The far wrapper consumes the actual near return bytes. If original writes
+change that return, it hands back at the resulting original address with the
+correct stack. Eight direct and eight production-ABI cases prove both low- and
+high-byte changes at two stack positions; a control suppressing that handoff
+fails immediately. Bank-zero sprite writes remain bank-zero in the reused
+builder, separately from DB-relative slot setup.
+
+The shared checkpoint passes16384 direct ROM states and4096 production-ABI/ROM
+states across the two new roots, existing sprite builder and text caller. The
+text engine retains384 exact child boundaries, with no fallback.46 direct and
+15 production guards preserve rejected states. Five ROM mutation controls cover
+sprite values, banks, operand bias and both RTL return kinds. Existing actor,
+graphics and text-field source is exact outside the additions. The initial
+palette/near-entry candidate was already verified; no duplicate API/body/binding
+or new guard is added to that existing routine.
+
+MSVC Windows Release, GCC/Clang standalone, CLI and metadata checks pass once
+on the combined source. A fresh production replay checks the combined recent
+item/equipment, text-menu and actor batches. All1495 actual whole-text calls
+match original CPU/full WRAM, with1439 returns and56 boundaries. All7444 frame
+CPU/WRAM and PPU/image hashes match the preceding native replay, and all43
+pictures match. The newly supported map-change command is reached once; other
+new entries retain their synthetic proof scope.4787 PCM hashes differ beginning
+at frame2656, so cycle/audio parity is not claimed. Cold boot reaches all seven
+expected scene states. A new full1965-job regression remains deferred.
+
+Totals:1446 verified entries,1435 native bindings,742 WRAM locations and445
+portable C units. Text entry recognition is181 unique handlers/183 of205 routes;
+22 unique handlers remain. Recognition includes guarded continuations and
+native prefixes, not complete VM dependency closure or measured ROM coverage.
+
 # Text menu and scene handoffs - 2026-10-15
 
 Seven additional script entries now use native caller code: map-change request,

@@ -12867,3 +12867,11 @@ RecompReturn Lufia2DecompBridge_82FC97(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_82FCC7(CpuState *cpu) {
     return ActorBridgeWholeM0X0(cpu, 0x82fcc7u, Lufia2ItemDecrementPackedCount, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_83C110(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x83c110u, Lufia2ActorPrepareAuxiliarySlot, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_83F6C6(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x83f6c6u, Lufia2FieldSetupObjectActorSpriteFar, 3u);
+}
