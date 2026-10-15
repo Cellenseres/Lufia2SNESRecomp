@@ -1,3 +1,46 @@
+# Item, equipment and party restoration callers - 2026-10-15
+
+Eight complete guarded ROM routines now handle party-status clearing, requested
+item removal, possession flags, packed inventory subtraction and equipment-count
+nibbles. Four text commands share these routines and the existing party restore
+and equipment-slot helpers. The previously verified82FAA0 quantity-increase
+routine is reused; its experimental duplicate was removed before integration.
+
+Possession bits,96 inventory words and packed equipment-count nibbles remain
+separate formats. Original missing-item return asymmetry, wrapping subtraction,
+neighbor-nibble pollution on underflow, saturation flags and empty equipment
+counting stay literal. Equipment addresses are reread through(dp2A),Y for each
+access. Four byte shifts retain four separate read/modify/write bus operations.
+The new fixed-byte direct-page shift leaves every previous CPU helper unchanged.
+
+The guarded M0/X16 item routines require binary arithmetic, DP0 and bounded
+stacks; quantity subtraction accepts even inventory offsets below192. Equipment
+clearing accepts member IDs0..6 after low-byte masking. Party-status clearing
+uses the original four record pointers, M1/X16 and unrestricted DP/DB. Rejected
+states retain the original entry; nested callers retain their actual frames.
+
+One shared checkpoint passes139264 original-ROM CPU/full-WRAM/ordered-bus cases,
+including32768 cases for the reused quantity-increase routine and4096 byte-shift
+cases. Production bridges/full text engine pass13312 additional ROM cases with
+no fallback.153 direct and62 production-ABI guards pass, as do256 exact nested
+continuations and12 injected ROM-fault controls. An initial guard expectation
+omitted resume_pc; correcting the fixture required no semantic change. Private
+ABI observation initially selected an older helper header; pinning its intended
+header restored exact semantic-bus comparisons without changing production code.
+
+GCC and Clang warning-clean standalone builds and resource-CLI tests pass.
+Generated metadata lists were refreshed; only that outstanding documentation
+check was repeated. The consumer receipt records the isolated Windows Release
+checkpoint. Existing helper tokens and read-only bridge-observation identity
+are checked. Formatting and comment placement preserve compiler tokens.
+
+Totals:1444 verified entries,1433 native bindings,742 WRAM locations and443
+portable C units. Text recognition is173 unique handlers/175 of205 routes,
+with30 unique handlers remaining. Recognition includes exact continuations;
+it is not full VM dependency closure or measured runtime coverage. A new full
+1965-job regression is deferred; the prior7444-frame replay remains evidence
+for its earlier combined revision, not a newly run whole-game comparison.
+
 # Scene rendering and tile-text callers - 2026-10-15
 
 Eight additional internal text handlers use existing native scene-pair lookup,
