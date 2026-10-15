@@ -1,3 +1,39 @@
+## Native title projection and particle animation
+
+86:83F2 projects a title object and selects its depth; 86:856F advances
+its 24 particle slots. Both public entries reuse the existing workers.
+The old internal callers retain their unlimited depth search. The new
+projection boundary returns at 8502 or hands off exactly at 84F4 after 4096
+comparisons. The live CPU/stack/bus state is retained. Animation restores
+its live saved status;its exit widths can change through stack aliases.
+No private budget accessor or copied ROM tables enter the public API.
+
+Seven actual-source jobs cover 156,672 original-ROM states and 156,672 native
+adapter states, all 256 data banks, all 65,536 object/pool offsets and the full
+supported 1F20..1FFD stack range. CPU/full WRAM/MMIO and ordered reads/writes
+agree. Two additional 4096-comparison probes use synthetic table responses
+with original ROM instructions;they are not real-gameplay evidence.
+The private proof adds 8192 smaller-budget cases and 905 exact continuations.
+There are 27,648 unique adapter guards and 131,588 C++ guards. Nine C, two bridge
+and two memory-only ROM faults are detected with six positive baselines.
+Changed return targets are checked through known and unknown destinations.
+
+All 1964 regression jobs, strict C11 across 429 units and normal Release pass.
+Four actual generated-table original/native pairs agree at literal caller
+waits. Boot/reset/intro/real audio passes 4680 frames plus 90 replay frames.
+Projection is observed natively with zero own interpreted instructions.
+Animation may have zero boot hits because its native parent inlines it.
+Inlining also reduces child-binding hit counts;binding counts alone do
+not measure whole-game completeness or speedup.
+
+The regression relinks 1592 hashed historical object graphs and rebuilds
+the repaired fade, 18 battle, 6 prior title, 15 default-record, 7 title-object and
+7 geometry fixtures. 194 historical fixture-source paths remain unavailable;
+no complete clean-source historical rebuild is claimed. 1429 verified
+function addresses/names and 1423 bindings are unique; each function has
+exactly one archive definition. Six intentional timing/startup owners
+remain verified without runtime bindings.
+
 ## Native title geometry entry boundaries
 
 Four original entry contracts now reuse existing semantic implementations:
