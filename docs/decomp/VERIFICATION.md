@@ -1,3 +1,22 @@
+## Combined frame-wait contracts - 2026-10-15
+
+Five additional contracts at83:900C,8E:B550,86:8B48,86:974F and86:9748 share
+one original-ROM verifier: tests/decomp_verify/lufia2_frame_wait_verify.c.
+Its16756 cases compare CPU state, full WRAM and ordered data-bus events across
+all M/X modes, direct-page/saved-stack aliases, saved-status bit changes,
+high-byte counter changes, poll limits, zero-count wraps and child unwinds.
+There are16696 returns,48 exact continuations and12 explicit child unwinds.
+1276 unsupported-bank/null-child guards precede every bus access. Four injected
+faults cover the poll/count budgets, saved status and original-ROM input.
+
+The complete bounded execution contracts are verified; all five remain unbound.
+No wait is optimized away or scheduled on the host by semantic C. Original
+clock/NMI delivery and existing consumer wait patches are untouched. Archive
+symbols and metadata are unique for1434 functions;1423 bindings remain.
+Current GCC/Clang standalone/tool/CLI/metadata and Windows Release gates pass.
+Full1965 remains an older baseline; it was not repeated for unused additive
+APIs whose existing callers and runtime bindings are unchanged.
+
 ## Combined field entry-width validation - 2026-10-15
 
 Four existing entries gain real caller modes:83:D3F7 and8E:B63B accept X8,
