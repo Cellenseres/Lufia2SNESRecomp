@@ -1,3 +1,46 @@
+## Gold arithmetic and scene reload caller - 2026-10-15
+
+Windows Release passes for this combined source.7444-frame replay has1495
+original text CPU/fullWRAM pairs (1472returns/23boundaries),all green. All7444
+pixel hashes,PPU hashes and43 images equal prior0dda828. Seven whole-frame
+CPU/WRAM hashes differ only in the unchanged8293C8/8293CA wait PC and,four
+frames,its NMI-saved PC low byte at1FEC. Exact fingerprint reconstruction
+explains all seven;two also have direct prior full-WRAM byte comparisons.
+Two current runs reproduce every CPU/PPU/PCM fingerprint.146 raw PCM hashes
+differ from prior;audio/cycle timing parity remains open. No new-entry
+whole-run hit rate is claimed because observations reset before menus.
+Detailed evidence:gold-scene-callers-next/runtime-acceptance.json.
+
+80:BF12 GoldAdd and80:BF43 GoldSpend share the existing text arithmetic.
+No duplicate algorithm. Preserve the original two-part cap test and the
+subtraction/undo writes when spending fails, plus PHP/PLP and near frames.
+New public entries support PB80,M1X0,DP0,binary,stack1F20..1FFC and return
+atBF42/BF6E. The legacy text wrapper retains its previous behavior.
+80:A350 SceneReloadAndFadeIn sets DB80,writes FF separately to7FD0C2/C3,
+and calls canonical83:85DC,83:AFCD,80:A368 via exact far/far/near frames.
+All child returns/unwinds remain explicit. No unsafe inline text reload.
+The two reload bytes have a neutral name; further meaning is unproven.
+
+Shared original-ROM CPU/full128KiBWRAM/ordered-data-bus checkpoint:
+173056 direct and35072 productionABI/fullVM cases. Covers both gold roots,
+scene parent and affected text add/subtract routes. Each direct gold entry
+covers all65536 amounts plus16384 structured balance/cap/borrow/context
+states. Additional192 child unwinds per path cover all three scene sites;
+43 guards each comprise42 public contexts and one missing-service check.
+45 production redirect/nonlocal-return probes span all three child sites.
+Full child-entry CPU snapshots compared. Two scene children are opaque
+contract fixtures; third oracle executes original text-reset instructions.
+No new proof of opaque child internals or full-game completeness claimed.
+Ten in-memory ROM fault controls detected;zero supported entry fallback.
+MSVC W4/WX fixtures and GCC/Clang semantic targets/metadata pass. Unchanged
+linked CLI/resource inputs reuse the earlier recorded CLI gates. Full1965
+regression deferred. One final-source checkpoint spans the planned commits;
+intermediate commits are not independently tested.
+
+Catalogue83:858B is a suspect D8 table read into following code bytes,not
+an invented native entry. Its actual original dispatch edge stays visible.
+Receipt:gold-scene-callers-next/ACCEPTANCE_RECEIPT.json.
+
 ## Cave entry, party recovery and scene callbacks - 2026-10-15
 
 81:F5BD PartyRestoreVitals restores both values per eligible party member in

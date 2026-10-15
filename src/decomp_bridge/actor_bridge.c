@@ -12910,3 +12910,15 @@ RecompReturn Lufia2DecompBridge_8EBAF6(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_8EBB17(CpuState *cpu) {
     return ActorBridgeWholeM1X16(cpu, 0x8ebb17u, Lufia2FieldHideActor, 3u);
 }
+
+RecompReturn Lufia2DecompBridge_80BF12(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x80bf12u, Lufia2GoldAdd, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_80BF43(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x80bf43u, Lufia2GoldSpend, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_80A350(CpuState *cpu) {
+    return ActorBridgeSceneBootstrap(cpu, 0x80a350u, Lufia2SceneReloadAndFadeIn, 2u, true);
+}
