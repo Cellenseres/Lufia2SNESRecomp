@@ -12835,3 +12835,35 @@ RecompReturn Lufia2DecompBridge_86856F(CpuState *cpu) {
     }
     return ActorBridgeWhole(cpu, 0x86856fu, Lufia2TitleAnimateObjectParticles, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_81F629(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x81f629u, Lufia2PartyClearStatuses, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_82FD15(CpuState *cpu) {
+    return ActorBridgeWholeM0X0(cpu, 0x82fd15u, Lufia2PartyClearEquipment, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_82FA57(CpuState *cpu) {
+    return ActorBridgeWholeM0X0(cpu, 0x82fa57u, Lufia2ItemRemoveRequested, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_82FA77(CpuState *cpu) {
+    return ActorBridgeWholeM0X0(cpu, 0x82fa77u, Lufia2ItemClearRequestedPossession, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82FAD0(CpuState *cpu) {
+    return ActorBridgeWholeM0X0(cpu, 0x82fad0u, Lufia2ItemSubtractSlotQuantity, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82FCED(CpuState *cpu) {
+    return ActorBridgeWholeM0X0(cpu, 0x82fcedu, Lufia2ItemSelectPackedCount, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82FC97(CpuState *cpu) {
+    return ActorBridgeWholeM0X0(cpu, 0x82fc97u, Lufia2ItemIncrementPackedCount, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82FCC7(CpuState *cpu) {
+    return ActorBridgeWholeM0X0(cpu, 0x82fcc7u, Lufia2ItemDecrementPackedCount, 2u);
+}
