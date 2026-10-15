@@ -1478,3 +1478,22 @@ CPU, full WRAM and ordered bus events. A transfer is not a completed child.
 This proves the complete polling caller/service contract, not termination or
 complete reconstruction of the original text/sprite children. Three semantic
 error controls and1230 CPU/context guard cases independently exercise the proof.
+
+## Animated cursor movement ($82:89FA)
+
+`tests/decomp_verify/lufia2_menu_cursor_animation_verify.c` accepts the local
+US ROM path and optionally a128KiB WRAM capture path. Without a capture it
+constructs four animated sprite slots through original `$86:8CDA/8CF5` code.
+No preview file, game process or SRAM is required. It checks4352 ordinary
+returns, five changed-child context transfers, two bounded-loop transfers
+and two child unwinds against `interp816`; CPU/full WRAM, ordered write
+fingerprints and exact MMIO order must match. The clock callback advances
+on alternate `$0040` reads inside the original wait, not by omitting waits.
+The separate production-bridge fixture exercises the same observed caller
+contract and fifteen rewritten-return/nonlocal-return dispatch probes.
+
+The three existing menu callers `$82:9246/92F9/9971` retain their widths,
+stack limits and literal DB-relative accesses. Their expanded DB admission
+has a shared24576-state original-ROM/ABI proof covering all data banks,
+including real DB83 calls. Counting broader caller contexts as new functions
+or new runtime bindings would be incorrect.
