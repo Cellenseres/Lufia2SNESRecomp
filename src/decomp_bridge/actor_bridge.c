@@ -12942,3 +12942,63 @@ RecompReturn Lufia2DecompBridge_9CB8(CpuState *cpu) {
     }
     return ActorBridgeReturn(cpu, &frame, 3u, result.pc);
 }
+
+static RecompReturn ActorBridgeWorldSequence(CpuState *cpu, uint32_t entry,
+    BattleControlFunction function, unsigned frame_size, bool save_bank) {
+    if (cpu->PB != 0x86u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeBattleEntry(cpu, entry, 0, function, frame_size,
+        BATTLE_BRIDGE_M1X0, 0, save_bank ? BATTLE_BRIDGE_ANY_BANK : 0x86, 0);
+}
+
+RecompReturn Lufia2DecompBridge_86AEB1(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86aeb1u,
+        Lufia2WorldMapRunSceneSequence, 3u, true);
+}
+
+RecompReturn Lufia2DecompBridge_86D330(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86d330u,
+        Lufia2WorldMapFinishDisplayReset, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_869934(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x869934u,
+        Lufia2WorldMapRefreshObjectPose, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86AF3A(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86af3au,
+        Lufia2WorldMapRunSceneTrack0, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86AF88(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86af88u,
+        Lufia2WorldMapRunSceneTrack1, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86AF90(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86af90u,
+        Lufia2WorldMapRunSceneTrack2, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86AF98(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86af98u,
+        Lufia2WorldMapRunSceneTrack3, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86AFA0(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86afa0u,
+        Lufia2WorldMapRunSceneTrack4, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86AFA8(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86afa8u,
+        Lufia2WorldMapRunSceneTrack5, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86AF71(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86af71u,
+        Lufia2WorldMapUpdateSceneActor, 2u, false);
+}
