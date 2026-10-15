@@ -4,6 +4,7 @@
 #include "interp816.h"
 #include "snes_function_verify.h"
 #include "text/text_internal.h"
+#include "field/event_script_internal.h"
 
 typedef struct Trace {
     SnesVerifyBusEvent events[16384];
@@ -14,7 +15,8 @@ static SnesVerifyBus original, native;
 static Trace original_trace, native_trace;
 static unsigned suite, number, exhaustive;
 static const uint16_t handlers[] = {0xa6aeu, 0xa709u, 0xa794u, 0xa99du, 0xafe7u,
-                                    0xb005u, 0xa6e7u, 0xa6c2u, 0xa7bbu};
+                                    0xb005u, 0xa6e7u, 0xa6c2u, 0xa7bbu, 0xa71bu,
+                                    0xac8au, 0xacbdu, 0xace2u};
 static uint8_t lengths[4][256];
 static Trace *fetch_trace;
 static unsigned fetch_left;
@@ -28,7 +30,8 @@ static void observe(void *context, uint32_t address, uint8_t value, bool write) 
         return;
     }
     if (trace->count == 16384u) {
-        fputs("trace ceiling\n", stderr);
+        fprintf(stderr, "trace ceiling case%u side%s fetch%06X\n", number,
+                trace == &original_trace ? "original" : "native", fetch_address);
         exit(1);
     }
     trace->events[trace->count++] =
@@ -206,6 +209,68 @@ static int run(Interp816 *r) {
     }
     return 0;
 }
+static int run_event_move(Interp816 *r) {
+    Lufia2CpuState n;
+    seed(&n);
+    n.data_bank = number % 3u == 0u ? 0x7eu : number % 3u == 1u ? 0u : 0x7fu;
+    n.y = !n.data_bank ? 0x1000u : number % 4u == 0u ? 0xfffeu : 0x9000u;
+    uint8_t script_bank = n.data_bank ? n.data_bank : 0x7du;
+    native.wram[0x1d199u] = script_bank;
+    uint8_t bank = n.data_bank;
+    uint16_t y = n.y;
+    const uint8_t script[] = {(uint8_t)(number % 40u), (uint8_t)(0xe0u + number % 32u)};
+    for (unsigned i = 0; i < 2u; ++i) {
+        SnesVerifyBusPoke(&native, ((uint32_t)bank << 16) | y, script[i]);
+        if (++y < 0x8000u) {
+            bank = ++script_bank;
+            y = 0x8000u;
+        }
+    }
+    for (unsigned slot = 0; slot < 40u; ++slot) {
+        SnesVerifyBusPoke(&native, ((uint32_t)bank << 16) | (0x05fau + slot),
+                          (uint8_t)(slot + 0x4fu));
+        SnesVerifyBusPoke(&native, ((uint32_t)bank << 16) | (0x0622u + slot),
+                          (uint8_t)(number + slot));
+    }
+    for (unsigned point = 0; point < 32u; ++point) {
+        native.wram[0x1d1a3u + point] = (uint8_t)(number + point * 5u);
+        native.wram[0x1d1e3u + point] = (uint8_t)(number * 17u + point);
+    }
+    native.wram[0xf022u] = 0x80u;
+    native.wram[0xf023u] = 0u;
+    native.wram[0xf080u] = 0xffu;
+    memcpy(original.wram, native.wram, SNES_VERIFY_WRAM_SIZE);
+    reset_devices(&native);
+    reset_devices(&original);
+    original_trace.count = native_trace.count = 0;
+    load(r, &n, 0x80cea0u);
+    Lufia2Memory memory = {SnesVerifyBusRead, SnesVerifyBusWrite, &native, NULL, NULL};
+    EventRun event = {0};
+    uint32_t handoff = 0;
+    unsigned flow = Lufia2EventActorOpcode(&memory, &n, 0xcea0u, &event, &handoff);
+    if (flow != EVENT_OPCODE_NEXT) {
+        fprintf(stderr, "event move case%u flow%u handoff%06X\n", number, flow,
+                handoff);
+        return 1;
+    }
+    unsigned steps;
+    for (steps = 0; steps < 100000u; ++steps) {
+        if (SnesVerifyPc24(r) == 0x80cc35u)
+            break;
+        step(r);
+    }
+    Lufia2CpuState expected = n;
+    store(&expected, r);
+    if (steps == 100000u || memcmp(&expected, &n, sizeof n) ||
+        memcmp(original.wram, native.wram, SNES_VERIFY_WRAM_SIZE) || !same_trace()) {
+        fprintf(stderr, "event move case%u CPU%d WRAM%d traces%u/%u pc%06X\n", number,
+                memcmp(&expected, &n, sizeof n),
+                memcmp(original.wram, native.wram, SNES_VERIFY_WRAM_SIZE),
+                original_trace.count, native_trace.count, SnesVerifyPc24(r));
+        return 1;
+    }
+    return 0;
+}
 int g_interp_apu_driving;
 int main(int argc, char **argv) {
     uint8_t *rom;
@@ -265,7 +330,7 @@ int main(int argc, char **argv) {
 
     unsigned total = 0;
     if (argc != 3)
-        for (suite = 0; suite < 9u; ++suite) {
+        for (suite = 0; suite < 13u; ++suite) {
             if (selected_handler && handlers[suite] != selected_handler)
                 continue;
             for (number = 0; number < 4096u; ++number) {
@@ -277,6 +342,14 @@ int main(int argc, char **argv) {
                    handlers[suite]);
             fflush(stdout);
         }
+    if (argc != 3 && (!selected_handler || selected_handler == 0xcea0u)) {
+        for (number = 0; number < 1024u; ++number) {
+            if (run_event_move(r))
+                return 1;
+        }
+        puts("PASS affected event BC:1024 original-ROM CPU/full-WRAM/ordered-bus "
+             "states");
+    }
     exhaustive = 0;
     number = 0;
     Lufia2CpuState untouched;
@@ -285,10 +358,10 @@ int main(int argc, char **argv) {
     unsigned guards = 0;
     for (unsigned handler = 0; handler < 65536u; ++handler) {
         unsigned i = 0;
-        for (; i < 9u; ++i)
+        for (; i < 13u; ++i)
             if (handler == handlers[i])
                 break;
-        if (i < 9u)
+        if (i < 13u)
             continue;
         Lufia2CpuState state = untouched;
         if (Lufia2TextExecuteActorCommand(&memory, &state, (uint16_t)handler) ||
@@ -296,7 +369,7 @@ int main(int argc, char **argv) {
             return 1;
         ++guards;
     }
-    for (unsigned command = 0; command < 9u; ++command) {
+    for (unsigned command = 0; command < 13u; ++command) {
         for (unsigned context = 0; context < 14u; ++context) {
             Lufia2CpuState state = untouched;
             if (context == 0u)
