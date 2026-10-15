@@ -1628,3 +1628,21 @@ Both new fade handlers also pass original-ROM comparisons at real calls.
 PCM hashes differ from frame3580, and the combined CPU/WRAM hash differs
 on one frame. The observer-free run reproduces these hashes exactly.
 These results do not establish cycle or audio-sample equality.
+
+## Text field-effect callers
+
+`tests/decomp_verify/lufia2_text_field_commands_verify.c` covers thirteen
+internal commands through the existing text engine. The shared checkpoint
+compares 53248 direct ROM states, 13312 full-engine/production-ABI states,
+three direct and three engine search-budget continuations, and 65705 guards.
+CPU, all WRAM and ordered data-bus events are checked. Three in-memory ROM
+mutations prove sensitivity to spawn type, coordinate stores and action ID.
+Windows Release and standalone GCC/Clang/CLI pass on the combined source.
+A formatting-only pass preserves every C token. No new runtime replay or
+full 1965-job regression is claimed for this checkpoint.
+
+Owner builds use `build/windows`. Agent integration builds must use
+`build/windows-decomp-agent` with independent generated sources, objects and
+outputs. Never run two builds or configurations in the same build directory.
+A missing object during concurrent compilation can be transient; inspect
+the active builds before deleting artifacts or changing linker settings.
