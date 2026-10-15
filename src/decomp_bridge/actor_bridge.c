@@ -5849,7 +5849,7 @@ RecompReturn Lufia2DecompBridge_8387CC(CpuState *cpu) {
 static RecompReturn ActorBridgeAnimationSlots(CpuState *cpu) {
     const ActorBridgeFrame fallback = {cpu->S, cpu->host_return_valid, 0xffffffffu};
     if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->PB != 0x83u ||
-        cpu->D || cpu->S < 0x1f60u || cpu->S > 0x1ffcu)
+        cpu->D || cpu->S < 0x1f60u || cpu->S > 0x1ffdu)
         return ActorBridgeFallback(cpu, &fallback, 0x838682u);
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
@@ -10440,7 +10440,7 @@ RecompReturn Lufia2DecompBridge_83A534(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_83AEB5(CpuState *cpu) {
-    if (cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+    if (cpu->S < 0x1f20u || cpu->S > 0x1ffdu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
         return ActorBridgeFallback(cpu, &frame, 0x83aeb5u);
     }
