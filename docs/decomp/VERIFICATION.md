@@ -1,3 +1,40 @@
+## Scene display callback tails - 2026-10-16
+
+The optional80:9CB8 services path now completes BA39 callbacks BA97,BAA2 and
+BAF1 (both operand branches). Original fixed-graphics uploads,force-blank/NMI
+switches,two HDMA stream setups,scroll and speaker updates retain their order.
+All eleven child sites preserve pushed frames and exact continuations. Frame
+waits remain real original children. Existing verified graphics/upload children
+are reused through the consumer; no copied algorithms or new standalone roots.
+The shared index read,near frame and return/state test also serve the unchanged
+no-service API. Other BA39 callbacks remain explicit original prefixes.
+The child-call guard is shared with recovery without changing its contract.
+
+One combined final-state checkpoint:4096 direct and4096 productionABI scene
+states compare original CPU/full128KiBWRAM/ordered data bus (including MMIO)
+and every child-entry CPU/frame snapshot. Additional88 child unwinds and176
+changed-child M/X/DP/decimal returns per path cover all eleven call sites.
+165 production redirect probes cover all sites with zero supported fallback.
+15 direct and18 ABI guards pass.512 old-API cases cover every byte index and
+both field-state flags,including out-of-table targets and8-bit shift aliases.
+Six in-memory ROM faults are detected. The wait callback executes actual BF0B;
+other child internals use explicit paired contracts,not new internal proofs.
+
+Affected recovery rerun:512 direct/256 ABI complete states,424 unwinds each,
+112 changed returns each,16 fade stalls each,15/18 guards and105 redirects pass.
+MSVC W4/WX,full isolated Windows Release,GCC/Clang semantic targets/metadata
+pass. CLI/resource linked-input hashes remain identical to recorded green
+gates;those checks are reused. Full1965 and live7444-frame replay are deferred
+on this revision. The preceding recovery replay is historical evidence,not a
+new-source timing/frame acceptance claim. No original waits are optimized away.
+1455 verified/1444 bindings/747 WRAM names/454 portable units (453src plus CLI).
+The complete BA39 owner remains partial;three complete callback slices do not
+promote the other scene operations or imply complete VM closure/native hits.
+Fixture:tests/decomp_verify/lufia2_text_scene_display_verify.c. Reproduction:
+text-scene-display-next/build_direct.cmd andbuild_engine_abi.cmd; supported ROM
+argument plus --unwind,--returns,--guards;direct also --indices and --fault.
+Private receipt:text-scene-display-next/ACCEPTANCE_RECEIPT.json. No push.
+
 ## Recovery text command and child services - 2026-10-16
 
 80:A2E1 now composes its original seven child sites through the optional
