@@ -1,3 +1,22 @@
+## Standalone verification evidence correction - 2026-10-15
+
+The local field-admission and formatting standalone repeat receipts were
+invalid: CRLF shell scripts continued after failed commands and their final
+success text masked the failures. The earlier CI-repair compiler runs were
+valid. The semantic full1965 and Windows proofs are unaffected.
+
+Both standalone gates have now been rerun on the current formatted source
+with GCC13 and Clang18. Configure, strict library/tool build, resource CLI
+CTest and metadata validation each return a checked zero exit status. The
+replacement invokes WSL commands directly, without generated shell scripts.
+The original receipts remain historical evidence, superseded for these
+standalone claims by the corrected run. No remote CI result is claimed.
+
+Compiler build directories are reused for incremental checks. The full ROM
+regression remains required once per complete semantic batch; larger related
+batches amortize it. A private timing wrapper records each original verifier
+job without changing its arguments, timeout, result or test selection.
+
 ## Field helper formatting - 2026-10-15
 
 Field animation declarations and guard wrapping match the formatter. Exact
