@@ -1,3 +1,36 @@
+## Text script/field caller batch - 2026-10-15
+
+Nine internal routes: 9DFA,9E83,9F10,A041,AC6A,BBEB,BDBB,BDCA,BD99.
+Typing-tone/pause and packed script repeats retain byte overflow, bank crossings,
+original fetch/previous-byte frames, and flag effects. Choice-table setup enters
+the existing native window path. A041 reaches A3C6 with M0: preserve that exact
+boundary rather than reuse the M1-only goto reader. Shared helper unchanged.
+Field callers reuse canonical collected-choice, header lookup, area transition,
+edge tracing and layer publishing. Unknown children retain their original frames.
+BD99 keeps the title/menu checkpoint and stops before the original reload tail.
+AC6A/BDBB retain explicit unknown child boundaries; no complete UI claim.
+
+36,864 direct ROM CPU/full128KiB WRAM cases; 9,216 production ABI/full-engine
+cases, zero fallback. Full ordered data-bus comparison for eight routes;
+BDBB compares CPU/full WRAM, all writes and MMIO order. Its unchanged canonical
+tracer performs a host read-only WRAM preflight, excluded from read-bus identity.
+65,658 pre-access/unknown-handler guards; nine in-memory ROM faults detected.
+All result groups pass. Accepted results compose unchanged groups from staged
+checkpoint runs; failed fixture setup or changed dependency reruns only affected
+groups. Pause/repeat/window fixtures now contain valid terminal text; initial
+unbounded measurement and ambiguous repeated-stop states were fixture issues.
+
+MSVC Release semantic library + GCC/Clang semantic library and metadata PASS.
+Unchanged CLI/resource-format linked inputs hash-match the prior green tests;
+reuse those CLI checks. A final generated pause-counter name adds one otherwise
+unused macro; expanded C tokens are identical (naming-identity.json), so no
+repeated semantic proofs/compiler builds for that alias. Full GUI/full1965 and
+new gameplay replay deferred; prior7444-frame replay remains earlier evidence.
+
+1446 verified entries /1435 bindings /743 WRAM names /446 portable units
+(445 semantic sources +CLI). No new public promotion or binding. Text recognition
+190 unique /192 of205 routes,13 unique remain; not complete VM dependency closure.
+
 # Auxiliary actor slots and object-sprite far entry - 2026-10-15
 
 Two complete guarded entries now prepare auxiliary actor slots and call the
