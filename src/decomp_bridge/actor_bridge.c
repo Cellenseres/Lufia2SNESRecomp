@@ -13002,3 +13002,32 @@ RecompReturn Lufia2DecompBridge_86AF71(CpuState *cpu) {
     return ActorBridgeWorldSequence(cpu, 0x86af71u,
         Lufia2WorldMapUpdateSceneActor, 2u, false);
 }
+
+RecompReturn Lufia2DecompBridge_86C1D2(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86c1d2u,
+        Lufia2WorldMapRunSceneScript, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86C246(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86c246u,
+        Lufia2WorldMapStepSceneScript, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86C284(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86c284u,
+        Lufia2WorldMapStartSceneActors, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86C2AD(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86c2adu,
+        Lufia2WorldMapStartSceneActor, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86D385(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->DB != 0x86u || !cpu->m_flag ||
+        cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86d385u);
+    }
+    return ActorBridgeWhole(cpu, 0x86d385u, Lufia2WorldMapApplyFadeIn, 2u);
+}

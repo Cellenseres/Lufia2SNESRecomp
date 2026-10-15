@@ -1,3 +1,61 @@
+## World frame scripts and scene actor setup - 2026-10-16
+
+Five complete bank86 contracts are reconstructed and bound: C1D2 runs the
+scene frame script, C246 processes timed/default callbacks, C284/C2AD start
+five scene actors/the individual actor, and D385 applies the incoming fade
+control. D385 shares the existing D381/D37D fade writes. C1EC remains an
+internal loop, with no speculative standalone binding. Original child waits,
+conditional updates, plane suppression, carry/brightness exits, frame-counter
+wrap and exact child continuations are preserved.
+
+C246 reads 16-bit duration operands and masks their low byte. It retains
+16-bit cumulative wrap and the timed callback followed by the default callback.
+Original hand-pushed C271/C282 frames precede the indirect target reads. The
+callbacks land at C272/C283. Unknown callback bodies remain child services;
+returned unsupported contexts hand off at the original landing. Long host
+slices retain exact C1EC/C24D continuations instead of fast-forwarding waits.
+Metadata documents 1224/1226 reuse without overlapping existing memory entries.
+
+The combined seven-root checkpoint includes affected D381/D37D:25600 direct
+and12800 production-ABI original-ROM cases, CPU/full128KiB WRAM, ordered operand
+data accesses/MMIO and child-entry snapshots. Each path adds344 child unwinds
+and860 changed-child-return cases across repeated frames.49 semantic guards
+and98 additional consumer guards pass (ABI also repeats the49 semantic cases).
+330 production redirect probes cover all22 distinct child sites; zero supported
+entry fallback. Twelve in-memory ROM fault controls are caught. Timed records
+include zero duration, matches/misses and257/258-record cumulative wrap.
+The fixture changes only heap test data at86:F000; the ROM file stays intact.
+Canonical C246/C2AD compose with actual original callbacks/animation children;
+unknown frame-update internals are explicit paired contracts. Test stops match
+the repeated child ordinal and stack, not just a recurring PC.
+
+Strict MSVC, GCC/Clang semantic builds, promoted metadata and isolated Windows
+Release pass. Actual GCC/Clang resource CLI targets/tests pass. After the final
+scene readability cleanup, only semantic targets are rebuilt; unchanged CLI
+and resource-format dependencies reuse their recorded gate. Generation selects
+1459 bindings and emits20 actual wrappers for the five new entries. Metadata:
+1470 verified, zero drafts,748 WRAM locations,456 portable C units (455 library
+sources plus CLI). No unrelated shared CPU/ABI helpers changed.
+
+The production-runtime native/reference comparison denies only these five new
+bindings. All8296 recorded CPU-register/flag/resume, WRAM, PPU, pixel andPCM
+fingerprints match:7444 ordinary frames,240 menu-closing frames and612 real
+world-scene frames. Sixteen additional early-scene CPU/WRAM snapshots also
+match. Both runs finish without failure. Native entries rise from596 at the
+prior checkpoint to1784:593 C246 calls now invoke593 native AF71 callbacks,
+plus the C1D2 and D385 entries. The reference observer counts denied attempts
+separately; its1191 attempted entries include595 denied new entries. These are
+scenario observations, not whole-game coverage or complete VM/cycle parity.
+The script uses the authentic83:B471 field-text JSL and original BA39/BA69
+route, with five bytes in unused in-memory cart padding; no ROM file is edited.
+
+One shared final-state checkpoint covers both commits. Full1965 regression
+is deferred on this revision; no intermediate-commit or deferred-test pass
+claim. Fixture:tests/decomp_verify/lufia2_world_frame_script_verify.c. Private
+recipes/results:world-frame-script-next/build_direct.cmd,build_engine_abi.cmd,
+checks.json,compilers.json,compilers-semantic-final.json,runtime/comparison.json.
+No ROM, private tools or foreign WIP included. No push.
+
 ## World scene sequences and motion callbacks - 2026-10-16
 
 Ten complete bank86 entry contracts now have verified native bindings: AEB1,
