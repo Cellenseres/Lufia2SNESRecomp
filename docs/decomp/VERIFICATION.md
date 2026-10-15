@@ -1,3 +1,21 @@
+## Standalone CLI/CI repair - 2026-10-15
+
+Both Linux compiler jobs failed because battle_frame_setup.c omitted stddef.h
+for NULL; field_update.c had the same masked omission. The combined Linux gate
+also caught the new TitleObjectStep NULL call. All three files now own
+its standard header. No original-ROM semantics or runtime bindings changed.
+
+The combined current library and resource CLI build with GCC13.3 and Clang18.1
+under Wall/Wextra/Wpedantic/Werror, without forced verifier includes. Both
+CTest runs pass nine ROM-free CLI methods covering valid decoding, overlap,
+malformed input, declared bounds, exit status and unsupported ROM rejection.
+CI runs CTest with no-tests=error. Consumer builds gain no test/Python dependency.
+
+The preceding full1964 semantic regression remains green; it was not repeated
+for owning-header/build/test changes. Counts remain1429 verified/1423 selected
+bindings/742 WRAM locations/429 semantic C units. Remote CI was not triggered.
+Future semantic checkpoints also require these independent standalone gates.
+
 ## Native title projection and particle animation
 
 86:83F2 projects a title object and selects its depth; 86:856F advances
