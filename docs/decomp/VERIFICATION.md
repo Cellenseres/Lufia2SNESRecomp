@@ -1,3 +1,40 @@
+## Dialogue actor commands - 2026-10-15
+
+Nine additional internal handlers cover ten dialogue opcode routes inside
+80:9CB8: actor script requests, facing writes, object-record bindings,
+conditional actor starts, individual/aggregate motion waits, temporary
+script refresh and single/all actor script restarts. The complete actor
+lookup and script-pointer helpers are shared with existing reconstructed
+code. No duplicate public entry or runtime binding was added.
+
+The native boundary is PB80, M1/X16, DP0, binary arithmetic and
+S1F10..1FFC. The preceding state-command module gains the same bank/stack
+guards while retaining its proven decimal arithmetic. Other contexts
+continue through the original handler. Missing actors deliberately retain
+the original stale-slot behavior; ignored carry results are not repaired.
+Original call frames, script-byte wrapping, first-match exclusion mask,
+script selector restoration and9D00/9DB0 continuations remain observable.
+
+The shared checkpoint covers36864 direct original-ROM actor states,
+10240 complete engine/production-ABI cases,65653 actor guards and three
+detected ROM faults. Affected state-command coverage passes184320 ROM
+states and65705 guards. Seven unchanged actor groups retain their first
+passing proof; only the two script reload groups needed a CPU-bank fix
+and focused reruns. Full1965 is the older baseline and is deferred here.
+Windows Release and GCC/Clang standalone/CLI/metadata gates pass together.
+
+A7444-frame input-driven replay verifies eight actual command calls
+against original CPU/full WRAM. PPU state and all sampled pictures are
+identical to the preceding native baseline. One combinedCPU/WRAM hash
+and3765PCM hashes differ; this is not cycle/audio equality. The diagnostic
+interpreter PC is restored after each live check. Counts remain1434
+verified entries,1423 bindings and742 WRAM locations, now432 C units.
+The text table recognizes84 unique handlers across86/205 routes;
+119 unique handlers remain outside direct dispatch. These are route
+counts, not whole-game functionality or complete VM verification.
+
+Private evidence: `.agent/decomp/text-actor-command-next/`.
+
 ## Event and menu-buffer caller contexts - 2026-10-15
 
 Three existing entries gain observed caller contexts:83:C0EF/83:C0FA accept
