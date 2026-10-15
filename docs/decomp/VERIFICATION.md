@@ -1,3 +1,28 @@
+## Event and menu-buffer caller contexts - 2026-10-15
+
+Three existing entries gain observed caller contexts:83:C0EF/83:C0FA accept
+X8 and S1FFD;82:F660 accepts DB83 and other original data-bank reads. The
+indexed/BRK83:F0BC sibling retains its old width/stack restrictions. ROM bytes
+confirm the two leaves contain no index operations and the buffer source is
+absolute0100..11D7 followed by long copies. No algorithm or binding is added.
+
+Combined actual-source validation passes12288 ROM/ABI cases,9216 guards and
+two faults (wrong latch operation and the obsolete buffer-bank restriction).
+The copy fixture initially stopped at its20000-instruction ceiling; only that
+entry was retried with a sufficient limit. Leaf native-entry assertions were
+checked separately; the passing copy cases were retained. Build recipes and
+fixture limits were corrected without changing game semantics.
+
+Production6814-frame replay has1029 native position probes,35 native latch
+calls and one native copy; none reaches its own interpreted entry. The copy
+replaces23297 interpreter instructions in this trace.31 early-menu pictures
+are shifted to existing reference images one/two frames later; all match nearby
+reference content. The sampled confirm picture differs by phase. CPU/WRAM,
+PPU and PCM frame hashes differ, so timing/audio parity is explicitly unproven.
+Current Windows Release and standalone GCC/Clang/CLI/metadata pass. Full1965
+remains the older baseline under the owner's affected-batch cadence.
+Private evidence: field-event-admission-next, including retained DIFF results.
+
 ## Combined frame-wait contracts - 2026-10-15
 
 Five additional contracts at83:900C,8E:B550,86:8B48,86:974F and86:9748 share

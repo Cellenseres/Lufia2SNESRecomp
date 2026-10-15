@@ -5424,21 +5424,22 @@ RecompReturn Lufia2DecompBridge_80CE7E(CpuState *cpu) {
 }
 
 static RecompReturn ActorBridgeActorEventHelper(
-    CpuState *cpu, uint32_t entry, ActorWholeFunction helper) {
+    CpuState *cpu, uint32_t entry, ActorWholeFunction helper,
+    int allow_x8, uint16_t maximum_stack) {
     ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
-    if (cpu->emulation || !cpu->m_flag || cpu->x_flag || cpu->_flag_D ||
-        cpu->PB != 0x83u || cpu->D || cpu->S < 0x1f00u || cpu->S > 0x1ffcu)
+    if (cpu->emulation || !cpu->m_flag || (!allow_x8 && cpu->x_flag) || cpu->_flag_D ||
+        cpu->PB != 0x83u || cpu->D || cpu->S < 0x1f00u || cpu->S > maximum_stack)
         return ActorBridgeFallback(cpu, &frame, entry);
-    return ActorBridgeRunWhole(cpu, entry, helper, 2u, 4);
+    return ActorBridgeRunWhole(cpu, entry, helper, 2u, allow_x8 ? 0 : 4);
 }
 RecompReturn Lufia2DecompBridge_83C0EF(CpuState *cpu) {
-    return ActorBridgeActorEventHelper(cpu, 0x83c0efu, Lufia2FieldProbeLeaderPosition);
+    return ActorBridgeActorEventHelper(cpu, 0x83c0efu, Lufia2FieldProbeLeaderPosition, 1, 0x1ffdu);
 }
 RecompReturn Lufia2DecompBridge_83C0FA(CpuState *cpu) {
-    return ActorBridgeActorEventHelper(cpu, 0x83c0fau, Lufia2FieldAcknowledgeControlChange);
+    return ActorBridgeActorEventHelper(cpu, 0x83c0fau, Lufia2FieldAcknowledgeControlChange, 1, 0x1ffdu);
 }
 RecompReturn Lufia2DecompBridge_83F0BC(CpuState *cpu) {
-    return ActorBridgeActorEventHelper(cpu, 0x83f0bcu, Lufia2FieldSetFollowingObjectDrawFlags);
+    return ActorBridgeActorEventHelper(cpu, 0x83f0bcu, Lufia2FieldSetFollowingObjectDrawFlags, 0, 0x1ffcu);
 }
 
 static RecompReturn ActorBridgeObjectReleaseHelper(
@@ -9841,9 +9842,9 @@ RecompReturn Lufia2DecompBridge_829808(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_82F660(CpuState *cpu) {
-    if (cpu->PB != 0x82u || cpu->DB != 0x7eu || !cpu->m_flag ||
+    if (cpu->PB != 0x82u || !cpu->m_flag ||
             cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f10u ||
-            cpu->S > 0x1ffcu) {
+            cpu->S > 0x1ffdu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
         return ActorBridgeFallback(cpu, &frame, 0x82f660u);
     }
