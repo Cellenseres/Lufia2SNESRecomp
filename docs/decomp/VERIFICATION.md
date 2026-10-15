@@ -1,3 +1,48 @@
+## Recovery text command and child services - 2026-10-16
+
+80:A2E1 now composes its original seven child sites through the optional
+Lufia2TextEngineStepWithServices API and existing 80:9CB8 production binding.
+No new standalone binding or function promotion. The legacy no-service API
+retains its boundary contract. Canonical party recovery and gold spending are
+reused. Original C1/81 fade requests, bounded literal acknowledgement polls,
+100 loop waits and one final wait preserve CPU, frames and ordered bus access.
+Child unwinds retain live runtime state; cross-bank handoffs forward PB.
+All nominal non-BRK text targets are now recognized when services are supplied:
+199 unique targets /201 of205 table routes. Recognition does not prove full
+VM closure; partial handlers and original asynchronous continuations remain.
+
+Combined original-ROM checkpoint:512 direct and256 production-ABI recovery
+states;424 child-unwind cases per path,112 changed-child contexts per path,
+16 stalled-fade cases per path,15 direct and18 ABI guards. Each complete case
+compares CPU/full128KiBWRAM/ordered data bus and106 child-entry snapshots.
+105 production redirect probes cover all seven sites;zero supported fallback.
+10240 affected gold-text states and128 legacy cross-bank cases pass. Nine
+in-memory ROM faults and one missing-PB-forwarding source fault are detected.
+The frame-wait child executes actual original instructions in both paths;
+audio/background child internals use paired explicit contracts in this fixture.
+
+Real production-object integration:7444 ordinary frames match the accepted
+Gold checkpoint in every CPU/WRAM,PPU,PCM and pixel fingerprint;1495 original
+text CPU/full-WRAM pairs pass. A synthetic script in unused in-memory ROM
+padding, entered through actual83:B471 JSL, then exercises real NMI/APU recovery.
+Native and original configurations both finish after357 frames:eligible party
+healed,10000->9999 gold,recovery counter incremented,100+1 waits,no failures.
+The native entry yields at its first asynchronous child;the original tail
+completes. This is not proof that all101 frames now remain native, nor a cycle
+or audio parity claim for this injected sequence. The ROM file is unchanged.
+
+MSVC W4/WX,isolated Windows Release,GCC/Clang semantic targets and metadata
+checks pass. Linked CLI/resource sources match the previously recorded green
+gates and reuse those results. Full1965 regression is deferred on this revision.
+One combined final-state checkpoint covers the semantic and consumer commits;
+intermediate commits were not tested separately.1455 verified/1444 selected
+bindings/747 WRAM locations/453 portable units (452 semantic C plus CLI).
+Fixture:tests/decomp_verify/lufia2_text_recovery_verify.c. Private reproduction:
+text-recovery-caller-next/build_direct.cmd andbuild_engine_abi.cmd;run the
+binaries with the supported ROM and --unwind,--stalls,--returns,--guards;
+the ABI fixture also accepts --legacy-banks. No ROM/private tools committed.
+Receipt:text-recovery-caller-next/ACCEPTANCE_RECEIPT.json.
+
 ## Gold arithmetic and scene reload caller - 2026-10-15
 
 Windows Release passes for this combined source.7444-frame replay has1495

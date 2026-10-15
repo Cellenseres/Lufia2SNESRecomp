@@ -876,9 +876,6 @@ RecompReturn Lufia2DecompBridge_9EDD(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x869eddu, Lufia2WorldMapRegionSearch, 2);
 }
 
-RecompReturn Lufia2DecompBridge_9CB8(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x809cb8u, Lufia2TextEngineStep, 3);
-}
 
 RecompReturn Lufia2DecompBridge_8A2F(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x858a2fu, Lufia2BattleSprites, 3);
@@ -12921,4 +12918,27 @@ RecompReturn Lufia2DecompBridge_80BF43(CpuState *cpu) {
 
 RecompReturn Lufia2DecompBridge_80A350(CpuState *cpu) {
     return ActorBridgeSceneBootstrap(cpu, 0x80a350u, Lufia2SceneReloadAndFadeIn, 2u, true);
+}
+
+RecompReturn Lufia2DecompBridge_9CB8(CpuState *cpu) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {
+        ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    ActorPushedCall call = {cpu, frame, RECOMP_RETURN_NORMAL};
+    Lufia2CpuState state;
+    if (!ActorBridgeSupported(cpu, 1, 0))
+        return ActorBridgeFallback(cpu, &frame, 0x809cb8u);
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result = Lufia2TextEngineStepWithServices(
+        &memory, &state, ActorBridgePushedChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY) {
+        cpu->PB = state.program_bank;
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    }
+    return ActorBridgeReturn(cpu, &frame, 3u, result.pc);
 }
