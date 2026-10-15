@@ -632,6 +632,10 @@ RecompReturn Lufia2DecompBridge_F5ED(CpuState *cpu) {
     return ActorBridgeWholeM1X16(cpu, 0x81f5edu, Lufia2PartyRestore11, 3);
 }
 
+RecompReturn Lufia2DecompBridge_81F5BD(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x81f5bdu, Lufia2PartyRestoreVitals, 3u);
+}
+
 RecompReturn Lufia2DecompBridge_F60B(CpuState *cpu) {
     return ActorBridgeWholeM1X16(cpu, 0x81f60bu, Lufia2PartyRestore13, 3);
 }
@@ -2671,6 +2675,14 @@ RecompReturn Lufia2DecompBridge_848888(CpuState *cpu) {
     }
     return ActorBridgeObjectTransition(
         cpu, 0x848888u, Lufia2AncientCaveResetParty, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_84878A(CpuState *cpu) {
+    if (cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x84878au);
+    }
+    return ActorBridgeObjectTransition(cpu, 0x84878au, Lufia2AncientCaveEnter, 3u);
 }
 
 RecompReturn Lufia2DecompBridge_848B9C(CpuState *cpu) {

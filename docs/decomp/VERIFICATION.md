@@ -1,3 +1,57 @@
+## Cave entry, party recovery and scene callbacks - 2026-10-15
+
+81:F5BD PartyRestoreVitals restores both values per eligible party member in
+original order and increments the saturating recovery counter. Existing
+F5ED/F60B share the extended loop; their original single-field behavior stays
+verified. No duplicate restoration algorithms.84:878A AncientCaveEnter
+carries blue inventory/equipment, saves the84:8B20 ranges bytewise viaWMDATA
+and calls the already verified84:8888 reset through its exact near frame.
+Both new public entries have complete child/boundary contracts and bindings.
+Internal8862/886D helpers are documented through878A, not new public bindings.
+New WRAM names: recovery count0B59,Cave entry count0B6A and neutralE75D bytes.
+
+TextABD0 composes canonical Cave entry/reset/exit and preserves unknown child
+frames. Unreachable post-Cave tails were pruned; if a child can later finish,
+ABDD/ABE8 remain explicit original continuations. TextBA39 reads the actual
+indirect table and preserves all256 byte operands, including8-bit shift
+aliases. BB70 color-effect callback completes natively. BA67 self-loop,
+BAED reset and unknown fade/frame/map children retain exact original targets
+and live frames. Both text entries remain partial; no fullVMclosure claim.
+
+15360 direct original-ROM CPU/full128KiB WRAM/ordered-bus cases:4096 each
+new recovery and affectedF5ED/F60B,1024 each Cave entry/ABD0/BA39.4608 production
+ABI/fullVM cases:1024 each three party entries,256 each Cave entry/ABD0,
+1024 scene dispatch. Actual text-handler visits required; all byte operands,
+nonzero/high-bit parameters and both post-effect continuations covered.
+Additional64 child-unwind states each path:15424 direct/edge,4672 ABI/edge.
+253 guards each:22 new public-entry contexts,28 internal contexts,203 other
+actual ROM opcode routes. Zero supported entry fallback; intentional text
+child handoffs are retained. Full child-entry CPU snapshots and15 production
+redirect probes verify arguments, frames and nonlocal returns. Twelve in-memory
+ROM fault controls detected, including both RTL kinds and saturation/masks.
+
+Shared checkpoint composes unchanged four public groups fromdirect-final/
+abi-final with final ABD0/BA39 focused runs after fixture expansion. ABD0
+pruned-tail checks supersede its earlier runs; related library/compiler
+checks rerun incrementally. No claim that every intermediate source or planned
+commit was independently checked. The earlier PB handoff defect was fixed;
+ambiguous80:C0B7 stops require the independentBA44 near-return marker.
+
+MSVC direct/productionABI fixtures and GCC/Clang warnings-as-errors libraries
+and metadata PASS. Consumer manifest selects1441 verified bindings without
+drafts. Unchanged CLI/resource-format linked inputs match preceding green
+CLI checks. Full Windows GUI/Rust regeneration and new gameplay replay are
+DEFERRED to a larger integration checkpoint; latest full Release/replay is
+the preceding0dda828 consumer revision. Full1965-job regression also deferred
+current source. None is reported passing on this revision.
+
+1452 verified entries /1441 bindings /746 WRAM names /451 portable units
+(450 semantic sources+CLI). Text198unique/200of205 nominal routes recognized;
+remaining9DD4,A2E1,BF08,BF09,BF0A include four originalBRK targets. Prefix
+recognition is not dependency closure or a measured runtime hit rate.
+Foreign WIP/ROM intact; no owner build/windows changes. Receipt:
+text-cave-callbacks-next/ACCEPTANCE_RECEIPT.json. No push.
+
 ## Encounter callers and text rendering - 2026-10-15
 
 81:8351 FieldGenerateEncounter now selects map/Cave encounter records through
