@@ -1,3 +1,34 @@
+# Actor placement and animation controls - 2026-10-15
+
+Four more internal text handlers now run in C:2F/A71B places an actor,
+B6/AC8A writes its presentation flags, AF/ACBD sets the secondary timer
+and flag0736bit7, and B0/ACE2 clears both animation-control high bits.
+The first uses the existing filteredBF6F lookup; the other three use
+the existing rawBF92 lookup. Their different missing/excluded behavior
+and absolute-versus-long addressing remain literal.
+
+The already reconstructed80:A74D position routine is shared with eventBC.
+Its extracted body has409 identical C tokens after substituting the caller's
+return address. There is one implementation of fine/cell positioning,
+occupancy removal/restoration, script restart and per-actor flag changes.
+The new text caller and existing event caller preserve their actual frames.
+
+One affected checkpoint covers53248 directROM actor states across13
+handlers,1024 complete eventBC cases,4096 full text-engine/productionABI
+cases,65705 unknown/context guards and three detected ROM faults. The
+direct groups passed first; only malformed synthetic event banks and an
+unterminated list fixture needed correction. Retained passing groups were
+not rerun. No semantic implementation change followed those proofs.
+Windows Release and GCC/Clang standalone/CLI/metadata pass together.
+
+Full1965 and a new whole-game replay are deferred for a broader integration
+checkpoint. The preceding7444-frame replay belongs to the previous revision;
+it is not claimed as a run of this new revision. All new and affected
+boundaries are checked directly against original CPU/full WRAM/ordered bus.
+Counts remain1434 verified entries,1423 bindings,742 locations and432 C
+units. Direct text recognition is88 unique handlers across90/205 routes,
+with115 unique handlers remaining; this is not whole-VM completeness.
+
 ## Dialogue actor commands - 2026-10-15
 
 Nine additional internal handlers cover ten dialogue opcode routes inside
