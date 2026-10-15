@@ -1,3 +1,53 @@
+## World scene sequences and motion callbacks - 2026-10-16
+
+Ten complete bank86 entry contracts now have verified native bindings: AEB1,
+D330,9934,AF3A,AF88,AF90,AF98,AFA0,AFA8 and AF71. D330 and9934 expose shared
+tails of existing D32D/992B; they do not duplicate those algorithms. Six motion
+variants share one implementation. A357 and the new callbacks share the exact
+position-copy operation. AEB1 retains every 8-bit selector alias, all128 indirect
+table reads, original saves/restores, scene fields and child frames. Unknown
+callbacks and the C1D2 frame-script owner remain original child services.
+
+The combined checkpoint covers ten new and three affected roots:29696 direct
+and14848 production-ABI original-ROM cases, comparing CPU, full128KiB WRAM,
+ordered data accesses/MMIO and child-entry states. Each path adds304 unwind
+and620 changed-child-return cases.128 semantic and180 additional consumer guard
+cases pass; the ABI log also repeats the128 semantic guards.570 production
+redirect probes cover16 distinct call sites and38 root/site occurrences, with
+zero supported-entry fallback. Eleven in-memory ROM fault controls are caught.
+Canonical D330/9934 are composed with their actual original nested children;
+CDF5,D37D,D3A5,E0B9,E709,A2C6 also execute original instructions where valid.
+Other children use explicit paired contracts, not claims about their internals.
+
+MSVC W4/WX, GCC/Clang semantic builds, actual resource CLI targets/tests,
+metadata validation and isolated Windows Release pass. Generation selects1454
+bindings and emits four real dispatch witnesses for each new entry. Metadata
+contains1465 verified contracts, zero drafts,748 WRAM locations and455 portable
+C units (454 library sources plus CLI). Address1230 aliases the existing122E
+span rather than creating an overlapping memory entry.
+
+A private production-runtime replay compares all ten new bindings enabled versus
+denied. All7444 ordinary frames have identical CPU/WRAM,PPU,pixel andPCM hashes.
+An authentic field-text JSL invokes the original BA39/BA69 world-scene path with
+selector2 and an in-memory script in unused cart padding; no ROM file is changed.
+Both variants complete in612 frames. The native run replaces596 actual entries
+(AEB1,AF3A,D330 and593 pose refreshes); AF71 still executes593 original times
+under the original C1D2 owner. All852 closing-menu/scenario frames have identical
+PPU,pixel andPCM hashes. One scenario CPU/WRAM fingerprint differs; exact cycle
+or whole-scene CPU/WRAM equality is not claimed. Against the older recovery
+instrumented replay, all7444 pictures/PPU hashes also match, but5908 CPU/WRAM
+and5822 rawPCM hashes differ; that older harness is not a timing oracle for this
+revision. Seven diagnostic snapshots differ only in inactive stack bytes.
+
+One shared final-state checkpoint covers both commits, not independent tests of
+intermediate revisions. Full1965 regression is deferred on this revision: the
+13-root ROM/ABI union, compiler/CLI gates, full Release and runtime comparison
+cover this local world-scene batch. No unrelated semantic/ABI helpers changed.
+Fixture:tests/decomp_verify/lufia2_world_scene_sequence_verify.c. Private build
+recipes/results:world-scene-sequence-next/build_direct.cmd,build_engine_abi.cmd,
+checks.json,compilers.json,runtime/comparison.json. No ROM, tools or foreign WIP
+is included. No push.
+
 ## Scene sequence and world-owner callbacks - 2026-10-16
 
 BA39 callbacks BA69,BAC9 and BB94 now carry their complete original tails
