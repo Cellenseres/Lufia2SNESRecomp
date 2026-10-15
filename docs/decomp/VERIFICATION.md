@@ -1,3 +1,38 @@
+## Field caller admission and shared animation
+
+Real field callers enter83:8682 and83:AEB5 atS1FFD. Both are two-byte JSR
+frames with return bytes at1FFE/1FFF; the previous1FFC ceiling unnecessarily
+selected the interpreter. These two existing bindings now admit that frame.
+All other width/bank/DP/decimal/stack guards remain. JSL ceilings stay unchanged.
+
+The old animation continuation and complete eight-slot function now share one
+worker. The continuation stops before the child JSR, retaining the original
+PHX/stack and CPU state. Unsupported legacy M0 entry hands off before access;
+its verified ROM contract isM1. No function, binding or WRAM count increases.
+
+140288 direct and140288 ABI slot states include both X widths,256 banks,
+all256 slot byte values, all158 supported stack values, both child sites and
+legacy boundaries.132096 ABI calls select native with15 redirects.8192 colour
+states per direct/ABI suite execute5460 original child returns,45 redirects.
+11904 unsupported guards and six detected faults/three baselines pass.
+22 actual CPU/WRAM entry captures each replay directly and through the ABI.
+
+Current production passes3570 intro/field frames with zero own interpreted
+entries for both routines. CPU/fullWRAM, PPU/picture andPCM hashes match the
+private ROM-verified native candidate. All pictures match the old admission
+baseline. CPU/stack andPCM timing differ from that baseline; native dispatch
+is not cycle exact, and original/native timing or audio equality is not claimed.
+Original wait/startup timing owners remain unbound.
+
+Normal Windows Release, strict429-unit C11, GCC13/Clang18 standalone library
+and tool builds plus nine ROM-free CLI methods pass. Full1965 passes. Four
+stale admission fixtures are replaced by five actual current-source jobs;
+1588 unchanged-contract legacy object graphs relink the current library.
+Repaired fade,18 battle,6title,15default,7object,7geometry and7title-motion
+fixtures rebuild.194 historical fixture sources remain unavailable; this is
+not a complete clean-source historical rebuild.1429 metadata names/addresses,
+1423 bindings and both animation API archive definitions are unique.
+
 ## Standalone CLI/CI repair - 2026-10-15
 
 Both Linux compiler jobs failed because battle_frame_setup.c omitted stddef.h
