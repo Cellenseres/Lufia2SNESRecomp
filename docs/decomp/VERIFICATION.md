@@ -1,3 +1,69 @@
+## Native frame-return continuations — 2026-10-16
+
+Four complete register-restore tails now have portable semantic continuation
+APIs: 82:93CC PLP/PLA ends before 93CE RTS; 86:8B52 PLP/PLA before 8B54 RTS;
+86:9756 PLA before 9757 RTS; 86:8B6F PLP/PLX/PLY before 8B72 RTL. They belong
+to the existing verified menu/world frame-wait and sprite-frame parents.
+Original polling, frame changes and actual guest RTS/RTL remain unchanged.
+No new canonical function, ordinary binding, WRAM field or C unit is counted:
+1,574 verified functions, 1,559 ordinary bindings, 752 WRAM locations, 465 C
+units. Three wait parents remain ordinarily unbound; these four internal
+continuations are separately guarded desktop hooks, not whole-parent bindings.
+
+The producer requires canonical banks, native CPU mode, supported widths,
+WRAM stack limits, matching live beam/CPU clocks, no active IRQ/NMI or DMA,
+horizontal position at most 800 and at least 256 master clocks before the
+actual active boundary deadline. At most 160 clocks, including refresh, fit
+before the next HDMA/line boundary. Rejected contexts execute original code.
+The SDK deadline predicate is not queried speculatively: it mutates unwind
+state. The owning boundary runner exposes its actual deadline read-only.
+
+The first private replay exposed a real integration defect: skipping the
+interpreter's per-opcode dynamic-read progress checkpoints delayed APU flushes.
+At frame 8140 a sound acknowledgement needed one extra poll, eventually moving
+a frame boundary and changing PCM. The corrected consumer records progress
+per original pull instruction, preserves its exact clock/flush checkpoint and
+reconciles the interpreter's progress counters. Normal nested bridges retain
+their original threshold policy. The unchanged NMI clock adapter and original
+SDK files are reused; only the reviewed desktop generated bridge is extended.
+
+The shared original-ROM proof covers 65,536 semantic and 65,536 actual producer
+states, plus 2,048 actual RTS/RTL compositions through each path. CPU, full WRAM,
+ordered stack reads and each opcode's CPU/master costs match. There are 460,813
+semantic pre-access guards and 524,273 producer guards, including poisoned RAM,
+all stack/mode/bank rejects, DMA/interrupt/deadline cases and four admitted edge
+contexts. Another 524,288 cases compare exact bus-cache/progress/flush/counter
+behavior with warm, cold and mixed caches, both bridge modes and thresholds.
+Four heap-only ROM faults and three consumer/registry faults fail normally.
+
+Four additional hooks must not impose four comparisons on every interpreted
+opcode. A 4 KiB page bitmap skips only impossible registry pages; exact lookup,
+mirrors, replacement, capacity handling and callbacks stay unchanged. Its
+2,751,976 comparison queries include every 32,768-page position. A focused
+16,777,216-query benchmark measured7-hook lookup at 0.053 s versus 0.029 s filtered,
+and 11-hook lookup at 0.077 s versus 0.027 s filtered. These are lookup timings, not an
+end-to-end FPS claim. Original SDK sources and sound-poll kernels are untouched.
+
+The final automatic public-library replay covers 10,607 frames, all 53,037 raw
+CPU/WRAM/PPU/picture/PCM/stack/ordered-port records, every WRAM page and all
+CPU/master/coprocessor clocks exactly. Admissions are 12/1598/1124/945 for the
+four tails. Their 7,179 original opcodes become native: 5,262,671 interpreted
+instructions become 5,255,492 in this bounded scenario. This is not a whole-game
+coverage or speed percentage. The final link has no private semantic override.
+
+The maintained fixture independently composes 2,048 real returns against the
+public library and catches a ROM fault. Existing private semantic matrices are
+reused by token identity, not repeated merely after publication. The public
+CMake matrix covers 22 cases, including absent APIs, draft/missing/wrong parent
+contracts, other targets, disabled/reference profiles and malformed generated
+source. GCC/Clang and isolated Windows Release pass; both resource CLI binaries
+remain byte-identical and reuse their accepted CLI checks. No full semantic
+regression or unrelated owner build was run. Both commits share this combined
+checkpoint; intermediate revisions are not claimed independently tested.
+
+Fixture: tests/decomp_verify/lufia2_frame_returns_verify.c.
+Private evidence: frame-return-slices-next/ACCEPTANCE_RECEIPT.json.
+
 ## Event actor reveal continuation — 2026-10-16
 
 The existing event61 handler at 80:DDCC now delegates its original JSL
