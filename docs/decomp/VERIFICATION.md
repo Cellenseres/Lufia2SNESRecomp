@@ -1,3 +1,62 @@
+## Scene resources, palette and actor groups - 2026-10-16
+
+Fourteen complete bank86 entry contracts are reconstructed and bound: AFB2,
+AFE3, BF70/BFF5/C002/C00F/C041, C2B3, C582, 966C, BB8C, BF99, BBE6 and C08C.
+Five resource-scene variants share their actual BF7A tail, rather than duplicate
+algorithms. Group scenes reuse actor/track/frame-script children. Palette
+components saturate in original red/blue/green order; count zero retains256
+iterations. C2B3 preserves incoming SBC carry. Window records preserve aliased
+table writes and ADC carry. Palette MVN retains PHB/PLB and all register results.
+Graphics upload reads the decoder's returned DP fields and preserves DMA/NMI
+register order. Unknown children, including E84F, remain explicit services.
+
+The14-root checkpoint passes20480 direct and10240 production-ABI original-ROM
+cases, comparing CPU, all128KiB WRAM, ordered operand/MMIO data accesses and
+child-entry snapshots. Each path adds408 child unwinds and1020 changed returned
+contexts.137 semantic plus196 additional consumer guards pass; the ABI log also
+repeats137 semantic guards.765 production redirect probes cover23 distinct
+sites and51 root/site occurrences. No supported-entry fallback. Sixteen in-memory
+ROM faults are detected. Unchanged positive binaries/sources are sealed and
+reused for the subsequent edge/fault checkpoint, rather than rerun identically.
+First four positive profiles per parent compose canonical new children and the
+existing decompressor against actual original child instructions. Other child
+bodies use explicit paired contracts; their internals are not claimed here.
+
+Strict MSVC, GCC/Clang semantic builds, actual resource CLI targets/tests,
+metadata and isolated Windows Release pass.1484 verified contracts, zero drafts,
+1473 bindings,749 WRAM locations,458 portable C units (457 sources plus CLI).
+Generation emits56 actual wrappers for the14 new entries. Only one new memory
+span is added:1E50..1EC1 records. Existing7F field/actor storage reused for scene
+window/palette work is documented as aliases, without overlapping new entries.
+
+Three production scenes complete without failure, exercising eight new entry
+addresses. Ordinary7444-frame CPU/WRAM/PPU/pixel/PCM fingerprints match exactly.
+Selector0A takes448 frames on both paths and matches all688 recorded frames,
+including menu closure. Selector0B takes379 frames on both paths; PPU/pictures
+match all619 frames, while CPU/WRAM and rawPCM hashes differ in618/230 frames.
+Selector14 takes771 native versus772 reference frames. Both execute760 script
+steps. The reference has one additional black graphics-preparation picture;
+after aligning that sample, all remaining PPU/register/memory/pixel states and
+pictures match. No animation step is removed. Totals are9762/9763 frames.
+
+Native integration is not cycle-exact. A focused read-only snapshot pair keeps
+its8134-frame prefixes identical to the completed runs. CPU/full WRAM match at
+0A completion and the following field frame, but clocks differ by14. The next
+field frame reaches80:998B versus80:997D in the unchanged sound-payload sender;
+A/Y/P/N and scratch0060 reflect asynchronous upload progress. Generated HLE
+wrappers/generic bridges do not account the original instruction stream and
+use plain, unpaced bus accessors. Clock/loader differences are therefore an
+existing consumer timing limitation, not a claim of full runtime CPU/audio
+parity. No invented cycles/waits or semantic fixes were added to conceal them.
+
+One shared final-state checkpoint covers the semantic and consumer commits;
+intermediate commits are not independently tested. Full1965 regression is
+deferred on this local additive batch; no old CPU/ABI helper body changed.
+Fixture:tests/decomp_verify/lufia2_world_scene_resources_verify.c. Private
+recipes/results:world-scene-callbacks-next/build_direct.cmd,build_engine_abi.cmd,
+positive-receipt.json,checks.json,compilers.json,runtime/comparison.json and
+TIMING_REVIEW.md. No ROM/private tools/foreign WIP included. No push.
+
 ## World frame scripts and scene actor setup - 2026-10-16
 
 Five complete bank86 contracts are reconstructed and bound: C1D2 runs the
