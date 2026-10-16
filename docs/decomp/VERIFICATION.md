@@ -1,3 +1,51 @@
+## Window animation handlers and palette fade — 2026-10-16
+
+Thirteen complete entries: 86:B454/B47E/B4BE/B4F2/B508/B748/B7CF/B7D3/B7D5/
+B7DF/B7F7/B7FE/B350. They grow, rotate, contract and submit windows, animate
+three layered records, control the color pulse and repeat ten palette steps
+with forty original frame waits. Shared pulse/window tails have one C body;
+the prior WindowFrame prefix remains token-identical. No WRAM span was added.
+B7CF clears only the emission byte. B7D3 supplies ten; B7D5 is the actual
+parameter entry used by B748. B350 copies 7F:DC20 to 7E:0340, then publishes
+the original DMA fields. Original waits remain real in production.
+
+The shared 14-root checkpoint includes affected B1DE and its legitimate fourth
+sloped handler B4F2. It passes 33,280 direct and 16,640 actual production-ABI
+CPU/full-WRAM/ordered-bus/child-snapshot cases. Separate invalid-circle-index2
+routing checks pass 256 direct and 128 ABI cases using explicit opaque service
+boundaries; B5BB is not invented as a second circle handler. All 704 unwind and
+1,760 altered-return injections reach their boundary on each path. There are
+137 semantic plus 196 additional consumer guards, 390 redirects across 26
+entry/site contracts (22 distinct sites), and 28 detected in-memory ROM faults.
+
+Ordered-bus comparison caught one extra C read: B4C8's nonzero branch skips
+the B4D3 load. Only that contraction path was corrected. Two surviving rotation
+mutants exposed missing preincrement width30 and age62 seeds. Expanded only
+that root's positive boundaries; its 4,096 direct/2,048 ABI cases and three
+fault controls were rechecked. Other positive, guard, edge and probe inputs
+remain unchanged and their results are retained. No unchanged matrix was
+repeated. D378 and 974F are explicit isolated-test services on both sides;
+their timing/bodies are not claimed by caller checks. Formatting preserves
+C tokens. The old B454 prefix proof and repaired-root source/binary are sealed.
+
+Production transitions 0C/0E finish in 860/983 frames with 1,762 script steps.
+All 9,767 paired frames, including 7,444 ordinary and 480 closure frames, match
+CPU/WRAM/PPU/pixel hashes without alignment gaps. Ordinary and 0C PCM match;
+0E has 589 differing PCM hashes. Full cycle/audio parity is not claimed.
+All thirteen new bridges are reached. B748 has 447 native-bridge arrivals
+and three original arrivals; the latter remain counted without an additional
+dispatch diagnosis in this batch. No global dispatch/admission policy changed.
+Other new entries have zero original arrivals on the enabled path.
+
+Read-only bank-86 profiles: 0C falls from 106,434 to 54,984 instructions; 0E
+from 76,935 to 60,675. Combined: 183,369 to 115,659, or 67,710 fewer (36.93%).
+These are scoped interpreter counts, not whole-game coverage or FPS. Exact
+in-memory baselines are restored; no ROM/snapshot export. GCC/Clang semantic
+builds and actual resource-CLI tests, metadata and Windows Release pass; 52
+real wrappers. Counts: 1,563 verified, 1,552 bindings, 752 WRAM, 465 C units.
+Broad full regression was not rerun. Foreign WIP/ROM/owner build and the
+existing circle timing guard remain unchanged.
+
 ## Scene phases and particle ownership — 2026-10-16
 
 Seventeen complete entries: 86:B857/B954/B95B/B969/B97E/B9A3/B9E5/BA16/BA2C/
