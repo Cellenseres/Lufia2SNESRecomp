@@ -1,3 +1,36 @@
+## Scene particles, orbit and circle pulses — 2026-10-16
+
+Six complete contracts: 86:B51C/B56D, BC0F/BCA6 and BD9F/BDF6. They manage
+three spark sprites, fourteen burst sprites, two orbiting objects and circle
+pulses. Shared free-slot and retirement helpers preserve each caller's carry,
+width and bus order. Original 24-bit integration, phase overshoot, slot limits,
+animation thresholds, stack saves and near/far child frames remain literal.
+Existing world-object, window and streamed-field storage is reused. E0B9 is
+already the verified StartAnimation service; no duplicate implementation.
+
+One combined checkpoint passes 16,384 direct and 8,192 actual production-ABI
+CPU/full-WRAM/ordered-bus/child-snapshot cases. All 160 unwind and 400 altered
+child-return injections are reached on each path. There are 60 semantic and
+84 additional consumer guards, 300 redirect probes across all 20 child sites
+and 16 detected in-memory ROM faults. Probe-only seeds force dormant sites;
+positive input matrices are unchanged. Final formatting preserves C tokens.
+
+Two production transitions (0C/0F) finish in 860/1,021 frames, with 1,810 script
+steps. All 9,805 paired frames, including 7,444 ordinary and 480 closure frames,
+match CPU/WRAM/PPU/pixel hashes without alignment gaps. All six new bindings
+execute; none of their enabled-path arrivals remain interpreted. Ordinary PCM
+hashes and all 0F PCM hashes match. Transition 0C has 405 differing PCM hashes;
+existing HLE timing limitations remain, so full cycle/audio parity is not claimed.
+Each scene starts from the exact in-memory baseline; no ROM/snapshot export.
+
+Read-only bank-86 profiling falls from 401,422 to 136,277 interpreted instructions:
+265,145 fewer (66.05%) in these two transitions, not whole-game coverage or FPS.
+GCC/Clang semantic builds and actual resource-CLI tests, metadata checks and the
+isolated Windows Release build pass. There are 24 real generated wrappers.
+Counts: 1,533 verified, 1,522 selected bindings, 752 WRAM locations, 465 C units.
+The broad historical regression was not rerun on this revision. Foreign WIP,
+owner build/windows, original ROM and existing circle timing guard are preserved.
+
 ## Sloped-window callers and frame updates — 2026-10-16
 
 Nine complete contracts:86:C536/C54B/C4E0/C5F8,CB21/CB49/CB9E,B039/B1DE.
