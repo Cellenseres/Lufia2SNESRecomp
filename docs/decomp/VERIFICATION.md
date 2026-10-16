@@ -1,3 +1,49 @@
+## Conditional object diagnostic continuation — 2026-10-16
+
+The existing internal event opcode 8F at 80:D5F2 now returns from its
+85:8415 diagnostic child when the original context permits continuation.
+The real JSL at D623 returns through D627 to D681, restores Y/DB and
+resumes the same event VM. It does not restart the timer or fetch twice.
+The optional child service belongs to the local EventRun; the legacy
+factory leaves it null and preserves its original interpreter handoff.
+No public API, ordinary binding or canonical entry was added. Counts stay
+1,574 verified functions, 1,559 ordinary bindings, 752 WRAM locations and
+465 C units. This completes a missing child return, not the whole VM.
+
+The parent uses structured search and return helpers with named record
+fields. It preserves the high-first table pointer reads, raw operand,
+repeated matched-entry read, original call frames and 65,536-visit boundary.
+Its five existing native object children are unchanged. The already-native
+field trigger forwards the timer service without a new trigger implementation.
+Unsupported diagnostic contexts keep their real frame and exact 85:8415
+handoff; changed post-child contexts stop at D627, and child unwinds propagate.
+
+The shared checkpoint compares original ROM instructions, CPU, all WRAM,
+ordered data-bus accesses and controlled-child entry witnesses. It covers
+512 continued diagnostic/end/redraw states, 512 legacy and 512 low-stack
+handoffs; the actual current producer closure adds 512 continued, 512
+low-stack and 512 missing-dispatch states plus 15 redirected/unwound child
+returns. Eight post-diagnostic behaviors cover 4,096 direct states. Nested
+trigger/timer/diagnostic composition passes 512 direct and 512 producer
+states. Another 2,048 found-object prefixes execute four actual native
+children and both coordinate branches (1,024 each), stopping at the existing
+D0BA stack boundary. Unchanged diagnostic/redraw internals are explicit
+controlled services here; their prior separate proofs are reused, not
+claimed as newly executed internals or full gameplay coverage.
+
+Affected timer and trigger matrices pass 4,096 and 16,384 states once.
+Three heap-only ROM faults detect the diagnostic target, return branch and
+Y restoration. The maintained self-contained fixture independently passes
+512 states and its ROM fault against the actual public library. Formatting
+preserves semantic tokens. GCC/Clang libraries and metadata checks and the
+isolated Windows Release build pass. Both resource CLI executables remain
+byte-identical to the preceding accepted checkpoint, so those CLI proofs
+are reused. No full regression or gameplay replay was repeated; there is
+no new gameplay parity, runtime-hit or speed claim for this rare error path.
+
+Maintained fixture: tests/decomp_verify/lufia2_event_object_conditional_verify.c.
+Private evidence: field-object-conditional-next/ACCEPTANCE_RECEIPT.json.
+
 ## Native NMI frame entry — 2026-10-16
 
 Lufia2NmiSaveInterruptFrame reconstructs the complete mirrored 00/80:862D
