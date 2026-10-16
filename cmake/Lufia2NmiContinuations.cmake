@@ -41,6 +41,18 @@ function(lufia2_add_nmi_continuations target core_root)
        _entry_contract MATCHES "status[ \t]*=[ \t]*\"verified\"")
         list(APPEND _definitions LUFIA2_HAVE_NATIVE_NMI_ENTRY=1)
     endif()
+    set(_frame_returns FALSE)
+    if(_api MATCHES "Lufia2FrameWaitRestoreRegisters[(]" AND
+       EXISTS "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h")
+        file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h" _menu_api)
+        if(_menu_api MATCHES "Lufia2SpriteFrameRestoreRegisters[(]")
+            include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2FrameReturns.cmake")
+            lufia2_frame_returns_available(_frame_returns ${target})
+            if(_frame_returns)
+                list(APPEND _definitions LUFIA2_HAVE_NATIVE_FRAME_RETURNS=1)
+            endif()
+        endif()
+    endif()
     set(_result)
     set(_count 0)
     foreach(_source IN LISTS _sources)
@@ -52,8 +64,30 @@ function(lufia2_add_nmi_continuations target core_root)
             endif()
             set(_output "${CMAKE_BINARY_DIR}/generated/decomp-nmi/interp_bridge.c")
             file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/generated/decomp-nmi")
-            file(WRITE "${_output}.tmp"
-                "${_text}\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/nmi_cycles.inc\"\n")
+            set(_timing_suffix "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/nmi_cycles.inc\"\n")
+            if(_frame_returns)
+                include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2OpcodeHookPages.cmake")
+                lufia2_filter_opcode_hook_pages(_text "${_text}")
+                set(_hook_call "                    s_pre_opcode_hooks[hi].hook(cpu, pc_before);")
+                set(_redirect "            if (redirected) continue;")
+                foreach(_required IN ITEMS "${_hook_call}" "${_redirect}")
+                    string(FIND "${_text}" "${_required}" _offset)
+                    if(_offset EQUAL -1)
+                        message(FATAL_ERROR "Native frame returns require reviewed progress checkpoints")
+                    endif()
+                endforeach()
+                string(REPLACE "${_hook_call}"
+                    "                    s_frame_return_auto_quiescent = auto_quiescent;\n${_hook_call}"
+                    _text "${_text}")
+                string(REPLACE "${_redirect}"
+                    "            if (redirected) {\n                Lufia2DecompFrameReturnContinue(&steps, auto_quiescent,\n                    &progress_write_epoch, &progress_dynamic_epoch);\n                continue;\n            }"
+                    _text "${_text}")
+                string(PREPEND _text
+                    "#include <stdint.h>\nstatic int s_frame_return_auto_quiescent;\nstatic void Lufia2DecompFrameReturnContinue(long *, int, uint64_t *, uint64_t *);\n")
+                string(APPEND _timing_suffix
+                    "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/frame_return_cycles.inc\"\n")
+            endif()
+            file(WRITE "${_output}.tmp" "${_text}${_timing_suffix}")
             execute_process(COMMAND "${CMAKE_COMMAND}" -E copy_if_different
                 "${_output}.tmp" "${_output}" COMMAND_ERROR_IS_FATAL ANY)
             foreach(_prop IN ITEMS COMPILE_DEFINITIONS COMPILE_OPTIONS COMPILE_FLAGS

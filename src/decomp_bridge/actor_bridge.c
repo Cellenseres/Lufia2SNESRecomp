@@ -4,6 +4,11 @@
 #include "lufia2/decomp.h"
 #include "decomp_bridge/host_events.h"
 #include "../lufia2_sprite_visibility.h"
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#include "snes/dma.h"
+#include "decomp_bridge/frame_returns.h"
+#include "decomp_bridge/frame_return_timing.h"
+#endif
 
 
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CONTINUATIONS)
@@ -2505,6 +2510,87 @@ void Lufia2DecompInstallNmiHooks(void) {
     };
     for (unsigned i = 0; i < sizeof entries / sizeof entries[0]; ++i)
         interp_bridge_set_pre_opcode_hook(entries[i], ActorBridgeNmiResume);
+}
+#endif
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+static bool ActorBridgeFrameReturnSupported(const CpuState *cpu, uint32_t entry) {
+    unsigned stack_limit = 0x1ff8u;
+    if (entry != 0x8293ccu && entry != 0x868b52u && entry != 0x869756u &&
+        entry != 0x868b6fu)
+        return false;
+    if (entry == 0x868b6fu) {
+        stack_limit = 0x1ff7u;
+        if (cpu->x_flag)
+            return false;
+    }
+    if (cpu->emulation || !cpu->ram || cpu->PB != entry >> 16 || cpu->m_flag > 1u ||
+        cpu->x_flag > 1u || cpu->S < 0x1f00u || cpu->S > stack_limit ||
+        (entry != 0x869756u && !cpu->m_flag))
+        return false;
+    if (!g_snes || !g_snes->dma || g_snes->ram != cpu->ram || g_snes->inNmi ||
+        g_snes->inIrq || g_snes->hIrqEnabled || g_snes->vIrqEnabled ||
+        g_snes->beamMasterLast != cpu->master_cycles || g_snes->hPos > 800u ||
+        g_snes->dma->dmaBusy || g_snes->dma->dmaTimer)
+        return false;
+    for (unsigned channel = 0; channel < 8u; ++channel)
+        if (g_snes->dma->channel[channel].dmaActive)
+            return false;
+    const uint64_t deadline = Lufia2DecompFrameReturnDeadline();
+    return deadline > cpu->master_cycles && deadline - cpu->master_cycles >= 256u;
+}
+
+typedef struct ActorBridgeFrameReturnBus {
+    CpuState *cpu;
+    Lufia2FrameReturnSchedule schedule;
+    unsigned opcode;
+    unsigned pulled;
+    unsigned progress_mask;
+} ActorBridgeFrameReturnBus;
+
+static uint8_t ActorBridgeFrameReturnRead(void *context, uint32_t address) {
+    ActorBridgeFrameReturnBus *bus = context;
+    bool progress = false;
+    const uint8_t value = Lufia2DecompFrameReturnReadByte(bus->cpu, address, &progress);
+    if (progress)
+        bus->progress_mask |= 1u << bus->opcode;
+    if (++bus->pulled == bus->schedule.pulled_bytes[bus->opcode]) {
+        bus->pulled = 0u;
+        ++bus->opcode;
+    }
+    return value;
+}
+
+static void ActorBridgeFrameReturn(CpuState *cpu, uint32_t entry) {
+    if (!ActorBridgeFrameReturnSupported(cpu, entry))
+        return;
+    const Lufia2FrameReturnSchedule schedule =
+        Lufia2FrameReturnScheduleFor(entry, cpu->ram[cpu->S + 1u], cpu->m_flag);
+    const unsigned fetch_speed = cpu_region_speed(entry);
+    ActorBridgeFrameReturnBus bus = {cpu, schedule, 0u, 0u, 0u};
+    const Lufia2Memory memory = {ActorBridgeFrameReturnRead, NULL, &bus, NULL, NULL};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result =
+        entry == 0x868b6fu ? Lufia2SpriteFrameRestoreRegisters(&memory, &state)
+                           : Lufia2FrameWaitRestoreRegisters(&memory, &state, entry);
+    if (result.flow != LUFIA2_EXECUTION_BOUNDARY || result.pc == entry)
+        return;
+    ActorBridgeStore(cpu, &state);
+    cpu->PB = state.program_bank;
+    for (unsigned step = 0; step < schedule.count; ++step)
+        Lufia2DecompFrameReturnAccountOpcode(
+            cpu, Lufia2FrameReturnCpuCycles(schedule.pulled_bytes[step]),
+            Lufia2FrameReturnMasterClocks(schedule.pulled_bytes[step], fetch_speed),
+            (bus.progress_mask & (1u << step)) != 0u);
+    Lufia2DecompFrameReturnComplete(schedule.count, bus.progress_mask);
+    interp_bridge_pre_opcode_redirect(result.pc);
+}
+
+void Lufia2DecompInstallFrameReturnHooks(void) {
+    static const uint32_t entries[] = {0x8293ccu, 0x868b52u, 0x869756u, 0x868b6fu};
+    for (unsigned i = 0; i < sizeof entries / sizeof entries[0]; ++i)
+        interp_bridge_set_pre_opcode_hook(entries[i], ActorBridgeFrameReturn);
 }
 #endif
 

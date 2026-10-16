@@ -23,6 +23,10 @@
 #include "decomp_bridge/nmi_resume.h"
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#include "decomp_bridge/frame_returns.h"
+#endif
+
 /* Generated interrupt vectors. */
 enum {
     LUFIA2_RESET_PC = 0x008000u,
@@ -116,6 +120,9 @@ void Lufia2ApplyExecutionState(uint32_t version) {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CONTINUATIONS)
     Lufia2DecompInstallNmiHooks();
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    Lufia2DecompInstallFrameReturnHooks();
+#endif
     s_resume_pc = interp_bridge_lle_resume_pc() & 0xFFFFFFu;
     s_started = true;
     s_last_boundary_was_wai = false;
@@ -184,6 +191,14 @@ static uint32_t Lufia2HdmaMemoryFlags(void) {
     return flags;
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+static uint64_t s_frame_return_deadline;
+
+uint64_t Lufia2DecompFrameReturnDeadline(void) {
+    return s_frame_return_deadline;
+}
+#endif
+
 static bool Lufia2RunToBoundary(uint32_t entry_pc) {
     const uint64_t deadline =
         g_cpu.master_cycles + LUFIA2_MASTER_CLOCKS_PER_FRAME;
@@ -192,9 +207,15 @@ static bool Lufia2RunToBoundary(uint32_t entry_pc) {
     defined(LUFIA2_ENABLE_ACTOR_EARLY_RETURN)
     Lufia2NativeWaitBegin();
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    s_frame_return_deadline = deadline;
+#endif
     interp_bridge_set_master_deadline(deadline);
     const int ok = interp_bridge_run_until_quiescent(&g_cpu, entry_pc);
     interp_bridge_set_master_deadline(0);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    s_frame_return_deadline = 0;
+#endif
 #if defined(LUFIA2_ENABLE_NATIVE_WAIT) || defined(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD) || \
     defined(LUFIA2_ENABLE_ACTOR_EARLY_RETURN)
     Lufia2NativeWaitEnd();
@@ -253,6 +274,9 @@ void Lufia2RunOneFrame(void) {
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CONTINUATIONS)
         Lufia2DecompInstallNmiHooks();
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    Lufia2DecompInstallFrameReturnHooks();
 #endif
 
         LUFIA2_LOG(
