@@ -1,3 +1,51 @@
+## Literal VM opcode dispatch prefixes — 2026-10-16
+
+Three complete prefix contracts end at their original indirect jumps:
+80:CC35 reads the event opcode through the actual 80:E8B9 child and dispatches
+at CC3F; 83:E0FC loads the object script pointer and dispatches at E119;
+83:E10F dispatches the next object opcode at the same jump. These are not
+complete VM roots. Existing event/object loops share the same scalar helpers.
+Original opcode ranges, DP-high accumulator bits, carry bit2, bus reads,
+bank/Y wrapping and the pending DB byte on the object stack remain literal.
+
+The grouped differential checkpoint passes 458,752 prefix states directly
+and 458,752 through private actual-consumer adapters, with full CPU, WRAM,
+MMIO and operand-bus comparisons. Two private scalar-core profiles add
+262,144 cases covering all accumulator words, DP-high bytes and index widths.
+5,376 semantic and 30,720 consumer pre-access guards pass; 1,536 original-reader
+post-child context/unwind cases and ten reached consumer redirects pass.
+Three changed ROM operands are detected. The standalone public verifier is
+tests/decomp_verify/lufia2_vm_opcode_dispatch_verify.c; arguments are ROM path
+and suite 0 (event), 1 (object initialization), 2 (next object opcode).
+
+Private runtime binding and executed-JMP resume prototypes each preserve
+all 9,767 frame/PPU/picture/port/CPU/stack records against the accepted baseline.
+Neither receives a dispatch hit in these scenarios: existing native VM owners
+already process those opcodes. Therefore neither adapters, bindings nor the
+SDK resume seam are published. No performance improvement is claimed.
+The three verified portable contracts remain unbound. Total 1,572 verified,
+1,558 selected bindings; 752 WRAM fields and 465 C units remain unchanged.
+Compiler/CLI integration is checked once at the final batch checkpoint.
+
+Final batch checkpoint: strict MSVC private ROM/actual-ABI proofs and the
+self-contained public verifier compile/link pass. GCC and Clang each build
+the actual semantic library and resource CLI, pass the CLI test, metadata
+validation and whole-consumer C11 warnings-as-errors check. The initial
+metadata check found stale generated counts; after regeneration, only that
+failed check and the previously unrun consumer checks were run. The passing
+library/CLI builds were reused. Isolated Windows Release passes. An internal
+helper was renamed to distinguish it from the existing opcode enum tag;
+the function bodies otherwise preserve the proven private C tokens.
+
+Public semantic source retains the proven private bodies, excluding only
+proof exports and formatting/internal-symbol spelling. The public verifier
+retains the three proven prefix profiles; two private core-only profiles
+are excluded. Its standalone binary was strictly compiled and linked;
+unchanged positive ROM matrices were not rerun for this publication step.
+No runtime adapter, SDK seam or new selected binding is integrated. The
+full legacy regression remains deferred; no new full-suite pass is claimed.
+Both commits share this combined checkpoint, not independent test runs.
+
 ## Session records, save previews and near event return — 2026-10-16
 
 Three existing consumer entries now admit the original 129 system/low-WRAM
