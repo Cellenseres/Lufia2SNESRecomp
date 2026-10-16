@@ -1,3 +1,52 @@
+## Event actor reveal continuation — 2026-10-16
+
+The existing event61 handler at 80:DDCC now delegates its original JSL
+at DDD9 to the already-verified 8E:BAF6 reveal routine when scoped child
+services are available. That routine includes its existing encounter service
+at 8E:BB12. A normal return continues at 80:DDDD and restores the saved
+event actor slot through EA50. Child unwinds propagate through EventRun;
+changed CPU contexts retain the exact post-call boundary. The callback-null
+and unsupported paths preserve the original embedded prefix and BB12 handoff.
+Hide route60 stays directly native. Only one semantic source file changes;
+no public API, metadata function or binding is added. Counts remain 1,574
+verified functions, 1,559 ordinary bindings, 752 WRAM locations and 465 C units.
+
+The shared proof covers 8,192 original-ROM hide/show states, including 3,840
+actual calls of the full existing native reveal body. Its unchanged encounter
+child is an explicit controlled service; CPU, full WRAM, ordered data-bus
+accesses and child-entry witnesses match. Timer integration adds 512 normal,
+512 legacy and 512 low-stack states, plus 4,096 unwind/changed-return-context
+states. The actual current producer closure adds 512 normal, 512 low-stack,
+512 missing-target states and 15 redirected/unwound returns. A forwarding
+deletion and two heap-only ROM faults all fail differential checks normally.
+The final faults select valid original child and slot-save entry points;
+an earlier mid-instruction fault crashed the reference and is excluded.
+
+Fixture preparation exposed two test assumptions, not semantic defects:
+the simulated whole child must preserve Y to reach the chosen script END,
+and the low-stack range differs from D5F2 because DDCC saves fewer bytes.
+The missing-entry shim now denies only its intended target. With that
+correction, all 512 prior diagnostic missing-target cases were also checked
+through the actual producer; its original production availability logic is
+unchanged. The earlier broader shim could select the legacy timer wrapper
+after the first missing child, while still matching CPU/WRAM/bus states.
+
+The proposed object-animation call layer was discarded. Its event parent
+already handles negative brightness before calling the already-native queue.
+A change between those reads would require interrupt evidence; no additional
+layer, duplicate implementation or runtime-gain claim is justified here.
+
+The maintained self-contained fixture independently passes 512 states and
+a valid-entry ROM fault against the actual public library. GCC/Clang libraries,
+metadata and the isolated Windows Release build pass. Both CLI executables
+remain byte-identical, so their accepted CLI proofs are reused. Unchanged
+timer/trigger bodies and internal header retain their preceding shared checks;
+no full regression, gameplay replay or repeated unrelated matrices ran.
+This is a completed scoped caller continuation, not a full VM or speed claim.
+
+Fixture: tests/decomp_verify/lufia2_event_actor_reveal_verify.c.
+Private evidence: field-event-object-services-next/ACCEPTANCE_RECEIPT.json.
+
 ## Conditional object diagnostic continuation — 2026-10-16
 
 The existing internal event opcode 8F at 80:D5F2 now returns from its
