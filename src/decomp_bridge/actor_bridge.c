@@ -13417,3 +13417,71 @@ RecompReturn Lufia2DecompBridge_86BD9F(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_86BDF6(CpuState *cpu) {
     return ActorBridgeWorldSequence(cpu, 0x86bdf6u, Lufia2WorldMapStartSceneCirclePulse, 2u, false);
 }
+
+RecompReturn Lufia2DecompBridge_86B857(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b857u, Lufia2WorldMapStepPhasedSceneFrame, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86B954(CpuState *cpu) {
+    return ActorBridgeWorldSceneLeaf(cpu, 0x86b954u, Lufia2WorldMapStopSceneParticleEmission);
+}
+
+RecompReturn Lufia2DecompBridge_86B95B(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b95bu, Lufia2WorldMapStartScenePhaseAnimation, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86B969(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b969u, Lufia2WorldMapStartSceneFall, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86B97E(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b97eu, Lufia2WorldMapStartSceneDeparture, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86B9A3(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b9a3u, Lufia2WorldMapStepSceneFall, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86B9E5(CpuState *cpu) {
+    return ActorBridgeWorldSceneLeaf(cpu, 0x86b9e5u, Lufia2WorldMapStepSceneRebound);
+}
+
+RecompReturn Lufia2DecompBridge_86BA16(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86ba16u, Lufia2WorldMapSplitSceneGroup, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86BA2C(CpuState *cpu) {
+    return ActorBridgeWorldSceneLeaf(cpu, 0x86ba2cu, Lufia2WorldMapAlignSceneGroup);
+}
+
+RecompReturn Lufia2DecompBridge_86BA48(CpuState *cpu) {
+    return ActorBridgeWorldSceneLeaf(cpu, 0x86ba48u, Lufia2WorldMapStepSceneDeparture);
+}
+
+RecompReturn Lufia2DecompBridge_86BAA8(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86baa8u, Lufia2WorldMapResetSceneObjectAnimation, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86BAAE(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86baaeu, Lufia2WorldMapSpawnSceneParticle, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86BAEC(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86baecu, Lufia2WorldMapLoadScenePhaseWindow0, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86BAFA(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86bafau, Lufia2WorldMapLoadScenePhaseWindow1, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86BB01(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86bb01u, Lufia2WorldMapLoadScenePhaseWindow2, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86BB08(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86bb08u, Lufia2WorldMapLoadScenePhaseWindow3, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86BB0F(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86bb0fu, Lufia2WorldMapLoadScenePhaseWindow4, 2u, false);
+}

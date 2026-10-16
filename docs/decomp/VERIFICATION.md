@@ -1,3 +1,50 @@
+## Scene phases and particle ownership — 2026-10-16
+
+Seventeen complete entries: 86:B857/B954/B95B/B969/B97E/B9A3/B9E5/BA16/BA2C/
+BA48/BAA8/BAAE/BAEC/BAFA/BB01/BB08/BB0F. They advance particle/window frames,
+start and step fall/rebound/departure phases, align the scene group and load
+five window definitions. Shared tails and animation resets have one C body.
+The existing six-entry motion prefix remains token-identical. No WRAM alias
+or duplicate animation owner was added. B90A remains a shared continuation.
+
+B857 preserves PHX(B909), then reads the indirect bank-0 vector at 122E/122F
+before invoking its child at B907. The near return reaches the B90A tail.
+BAAE retains the M0 E0B9 call, including its original word animation store;
+E0B9's published native contract remains M1, so that child uses original code.
+
+The combined checkpoint covers 36,864 direct and 18,432 actual production-ABI
+CPU/full-WRAM/ordered-bus/child-snapshot cases; all 304 unwind and 760 altered
+return injections reach their boundary on each path. There are 166 semantic
+and 238 additional consumer guards, 390 dispatch probes across 26 entry/site
+contracts (18 distinct sites), and 26 detected in-memory ROM faults. D378's
+APU wait is an explicit service boundary on both isolated-test sides, including
+nested original children; production keeps the real call. The initial 5,120
+unaffected direct cases are retained. A separate 32-case counter audit proves
+their composed prefix never reaches D378. Formatting preserves all C tokens.
+
+Production transitions 0C/0E finish in 860/983 frames with 1,762 script steps.
+All 9,767 paired frames, including 7,444 ordinary and 480 closure frames, match
+CPU/WRAM/PPU/pixel hashes without alignment gaps. Ordinary/control-0C PCM match;
+0E has 451 differing PCM hashes. Full cycle/audio parity is not claimed.
+All 17 bindings execute. B857 has 506 native and six original arrivals; B9A3
+has 88 native and four original arrivals. A read-only diagnostic classifies
+these as original C246 JMP(C280) and original B857 JMP(B907) continuations,
+with valid M1X0/DB86/DP0 frames. They bypass paired-call HLE dispatch, rather
+than failing native guards. All diagnostic hashes match the preceding native
+run. No global dispatch/admission policy, fake cycles or timing guard changed.
+
+In affected transition 0E, bank-86 interpreted work falls from 260,401 to
+76,450 instructions: 183,951 fewer (70.64%). Control 0C stays at 93,934 on both
+paths. These are scoped instruction counts, not whole-game coverage or FPS.
+GCC/Clang semantic builds and actual resource-CLI tests, metadata and isolated
+Windows Release pass; 68 real wrappers. Counts: 1,550 verified, 1,539 bindings,
+752 WRAM locations, 465 C units. Broad full regression was not rerun here.
+
+The older B508-wait attribution is corrected: synthetic circle index2 reads
+B454 instruction bytes as B5BB, inside the already owned B59E scene function.
+B508 itself has no wait. No duplicate B5BB function is introduced. The next
+batch will cover legitimate sloped handler4 (B4F2) and affected B1DE routing.
+
 ## Scene particles, orbit and circle pulses — 2026-10-16
 
 Six complete contracts: 86:B51C/B56D, BC0F/BCA6 and BD9F/BDF6. They manage
@@ -52,8 +99,9 @@ cases (376 reached injections) and1000 altered-return cases (940 reached).
 A surviving growth mutant exposed overclamped B039 seeds: its1024 direct/512ABI
 positives, affected edge cases and two mutants were rechecked after adding
 unclamped/clamped/wrapped growth; unchanged checks were retained. Final formatting
-preserves exact C tokens. Opaque B1DE handlers use explicit fixture service
-boundaries; raw B508 waits require NMI and are not replaced by invented results.
+preserves exact C tokens. B1DE handlers use explicit fixture service boundaries. Synthetic circle index2
+reads B454 code bytes as B5BB and reaches a scene script requiring NMI.
+The actual circle handler B508 itself has no wait.
 
 Four engine transitions0B/0C/0E/0F complete in379/860/983/1021 frames with3132
 script steps. All11647 frames per run, including7444 ordinary and960 closure
