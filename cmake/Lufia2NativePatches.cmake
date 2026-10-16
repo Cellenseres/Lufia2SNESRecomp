@@ -1,5 +1,19 @@
 include_guard(GLOBAL)
 
+function(_lufia2_replace_native_seam variable needle replacement)
+    string(REPLACE "${needle}" "" _removed "${${variable}}")
+    string(LENGTH "${${variable}}" _before)
+    string(LENGTH "${_removed}" _after)
+    string(LENGTH "${needle}" _length)
+    math(EXPR _delta "${_before} - ${_after}")
+    if(NOT _delta EQUAL _length)
+        message(FATAL_ERROR "Native continuation seam must match exactly once")
+    endif()
+    string(REPLACE "${needle}" "${replacement}" _patched "${${variable}}")
+    set(${variable} "${_patched}" PARENT_SCOPE)
+endfunction()
+
+
 # This integration seam belongs to maintained build input. The owner creates
 # an overlay copy; neither fetched sources nor game AOT output are edited.
 function(lufia2_prepare_native_patch_sources sources_var core_root)
@@ -297,6 +311,42 @@ uint64_t lufia2_frame_wait_ff_site_pairs_count(unsigned site) {
         }
     }
     for (unsigned i = 0; i < 60 && i < PROFILE_HIST_CAP && s_interp_hist[i].n; i++)]=] _text "${_text}")
+            endif()
+            # Resume only verified scene continuations after the original wait.
+            if(LUFIA2_ENABLE_DECOMP AND NOT LUFIA2_DECOMP_REFERENCE_ONLY)
+                string(APPEND _helpers "#include \"src/decomp_bridge/world_resume.h\"\n")
+                set(_old [=[        if (is_call) {]=])
+                set(_new [=[        uint32_t _l2_resume_return = 0u;
+        if (auto_quiescent && !stop_on_rti && op == 0x60u &&
+            (!s_lle_master_deadline || cpu->master_cycles < s_lle_master_deadline)) {
+            _l2_resume_return = Lufia2SceneResumeReturn(&in, pc_before, cpu->ram);
+            if (_l2_resume_return) {
+                sync_interp_to_cpu(&in, cpu);
+                uint32_t target = ((uint32_t)in.k << 16) | in.pc;
+                if (lle_bounce_target_excluded(target) ||
+                    !cpu_dispatch_has_entry(cpu, target))
+                    _l2_resume_return = 0u;
+            }
+        }
+        if (is_call || _l2_resume_return) {]=])
+                _lufia2_replace_native_seam(_text "${_old}" "${_new}")
+                set(_old [=[                const uint32_t ret =
+                    (pc_before + (uint32_t)call_len +
+                     (uint32_t)cpu_dispatch_inline_arg_bytes(target)) & 0xFFFFFF;]=])
+                set(_new [=[                const uint32_t ret = _l2_resume_return ? _l2_resume_return :
+                    (pc_before + (uint32_t)call_len +
+                     (uint32_t)cpu_dispatch_inline_arg_bytes(target)) & 0xFFFFFF;]=])
+                _lufia2_replace_native_seam(_text "${_old}" "${_new}")
+                set(_old [=[            continue;
+        }
+
+        /* Host-invoked interrupt handlers]=])
+                set(_new [=[            if (!_l2_resume_return)
+                continue;
+        }
+
+        /* Host-invoked interrupt handlers]=])
+                _lufia2_replace_native_seam(_text "${_old}" "${_new}")
             endif()
             set(_out "${CMAKE_BINARY_DIR}/generated/native-patches/interp_bridge.c")
             file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/generated/native-patches")
