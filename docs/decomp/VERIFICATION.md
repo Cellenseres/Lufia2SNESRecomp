@@ -1,3 +1,52 @@
+## Sloped-window callers and frame updates — 2026-10-16
+
+Nine complete contracts:86:C536/C54B/C4E0/C5F8,CB21/CB49/CB9E,B039/B1DE.
+They select/load/submit15-byte records, build full sloped windows, clip endpoints
+and advance both frame callbacks. C321/C536 share one original hardware selector
+with distinct stride/base; aliased1E50/1E68 storage is reused. Existing A417,
+A52F and edge/band algorithms are reused. No duplicate multiplier or WRAM span.
+C5F8 keeps empty/invalid exits, rounded distances, saved P/DB, the original
+drawing bank and all three scanline paths. All four CB41 words still targetCB49.
+Dynamic animation handlers remain original services, including actual waits;
+this batch does not claim their bodies. All near/far and synthetic callback
+frames, flags, widths, carries, wrapping and ordered bus accesses remain exact.
+
+The joint11-root checkpoint includes affectedC321 andA52F M0/M1:43008 direct
+and21504 actual production-ABI CPU/full128KiB WRAM/ordered-bus/child-snapshot
+cases,100 semantic plus145 additional consumer guards,330 redirect probes at
+33 distinct sites,17 in-memory ROM fault controls. Each path runs400 unwind
+cases (376 reached injections) and1000 altered-return cases (940 reached).
+A surviving growth mutant exposed overclamped B039 seeds: its1024 direct/512ABI
+positives, affected edge cases and two mutants were rechecked after adding
+unclamped/clamped/wrapped growth; unchanged checks were retained. Final formatting
+preserves exact C tokens. Opaque B1DE handlers use explicit fixture service
+boundaries; raw B508 waits require NMI and are not replaced by invented results.
+
+Four engine transitions0B/0C/0E/0F complete in379/860/983/1021 frames with3132
+script steps. All11647 frames per run, including7444 ordinary and960 closure
+frames, match CPU/WRAM/PPU/pixel hashes. All nine entries execute natively.
+B1DE retains two original arrivals via the original C246 continuation's indirect
+JMP atC280;798 arrivals use its native binding. A targeted read-only trace proves
+M1X0/S1FE8, near frameC282 and predecessorsC27A/C27C/C27F/C280. The paired-call
+interpreter path does not dispatch that JMP through the compiled binding.
+No global admission policy was changed. The diagnostic matches all7444 ordinary
+hashes and1100 scene CPU/WRAM/PPU/pixel hashes. Its playback prefix differs;
+1100 PCM hashes differ from the multi-scene native run,so no cross-prefix audio
+claim is made. In the paired four-scene comparison,1139 scene/closure PCM hashes
+differ; existing HLE clock limitations remain. No full-cycle parity is claimed.
+
+Each scene after the first restores the exact in-memory baseline; no snapshot
+file or ROM export. Read-only bank86 profiling measures1214221 reference versus
+690424 enabled instructions:523797 fewer(43.14%) across these four scenes.
+This is scoped interpreter work, not whole-game coverage or an FPS benchmark.
+MSVC W4/WX, GCC/Clang semantic and actual CLI checks, metadata and isolated
+WindowsRelease pass.1527 verified/1516 selected/752 WRAM/464 portable C units;
+36 actual generated wrappers. Full regression is deferred on this revision.
+The prior sprite-batch notes now distinguish216/540 attempted cases from202/510
+reached injections, confirmed by preserved-object counter-only ROM/ABI runs.
+Evidence:world-window-parents-next/checks.json,runtime/comparison.json,
+entry-diagnostic/CLASSIFICATION.json andACCEPTANCE_RECEIPT.json. No push.
+
 ## World scene sprite trails — 2026-10-16
 
 Four complete entries:86:E71E/E7A2/E7CE/E804. Two original eight-record
@@ -10,8 +59,8 @@ because its records reach1F21. No new WRAM allocation or duplicate multiplier.
 
 The shared six-root checkpoint also covers existingE84F/E8B5:30208 direct and
 15104 production-ABI CPU/full128KiB WRAM/ordered-bus/child-snapshot cases,
-216 unwinds and540 changed returns per path,54 semantic plus86 additional
-consumer guards,180 redirect probes at12 distinct child sites,10 in-memory
+216 unwind-injection cases (202 reached) and540 altered-return cases
+(510 reached) per path,54 semantic plus86 additional consumer guards,180 redirect probes at12 distinct child sites,10 in-memory
 ROM fault controls. Only guard tests were repeated after correcting the old
 E8B5 semantic-anyDB expectation; positive and edge branches stay unchanged.
 Final formatting preserves exact C tokens. Existing A417 executes original
