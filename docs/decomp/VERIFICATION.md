@@ -1,3 +1,47 @@
+## Text system callers and script completion — 2026-10-16
+
+Eight existing internal paths now continue through optional pushed-child
+services: music fade/reset/preparation, immediate sound, sound-value/flag waits,
+window toggle and the no-caller script-end branch. Seven system commands share
+their existing bodies with the unchanged callback-null API and its S1F10 lower
+stack bound. The existing text bridge supplies services; no new binding is added.
+Original sound uploads, SPC synchronization, polling and timing helpers are
+untouched. The sound waits still rewind or continue under their original tests.
+
+The script-end tail at 80:9D69 preserves prompt/window flags, camera-follow
+waiting, actor release and the original JSL at 9DAC. The shared camera helper
+now takes its actual return address: 9D97 for script end and the unchanged B544
+for camera commands. Window toggle reaches the same 9DAC site through its own
+original path. Thus there are ten caller/site groups at nine unique JSL sites.
+EF2F remains an external child here; its existing internal occupancy algorithm
+is not duplicated or promoted by this batch. Changed child CPU modes, PB/DB,
+DP or stack return at the exact next original instruction; unwinds retain frames.
+
+The shared ROM checkpoint passes 68,096 direct states and 10,752 reached whole
+text-engine states, comparing CPU, full WRAM, ordered bus accesses and real
+child-entry frames. The actual current producer passes 10,112 architectural
+comparisons; its initial final assertion incorrectly expected nine rather than
+ten redirect groups. With that harness assertion corrected, a focused 2,048
+state run passes all 150 redirects and per-group counts. No semantic source
+change was needed. Another 65,634 unknown-selector/unsupported-context guards
+reject before any memory access or child call.
+
+Fresh public-library checks pass the maintained 10,752-state engine fixture,
+all 65,634 guards and 2,432 actual producer states with 150 redirects. Six
+heap-only ROM faults in fade duration, reset track, song destination, wait flag,
+window mask and script-end state fail normally. Existing system-command tests
+pass 45,056 ROM states and 65,679 guards; the affected camera/text-wait fixture
+passes 5,632 complete-engine states. One merged fixture array was renamed to
+avoid an MSVC shadowing warning; semantic sources were unchanged.
+
+One incremental GCC/Clang/Windows Release checkpoint and metadata checks pass.
+Both rebuilt resource CLIs remain byte-identical; accepted unchanged CLI tests
+are reused. Publication preserves exact comment-stripped source tokens, with
+formatting restricted to changed ranges. Full legacy regression and a new
+gameplay/audio replay remain deferred. This batch makes no runtime hit-rate,
+cycle-parity or whole-game speed claim. Counts remain 1,574 verified functions,
+1,559 ordinary bindings, 752 WRAM fields and 465 C units.
+
 ## Text movement, camera and music continuations — 2026-10-16
 
 Four existing text handlers now continue through their previously deferred
