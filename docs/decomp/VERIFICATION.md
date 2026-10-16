@@ -1,3 +1,61 @@
+## Native scene continuations after frame waits — 2026-10-16
+
+Six explicit continuation boundaries now share the existing original C owners:
+86:C1E3/C237 resume scene setup/the frame loop; B38E/B391/B394/B397 resume
+the remaining palette waits. These are continuation contracts, not six newly
+discovered whole ROM function bodies. The original C1D2/B350 owners use the
+same helpers. Original waits, zero-counter wrap, child frames and bus order
+remain literal; no artificial clocks, frames or shadow interpreter.
+
+The consumer admits only the real 869757 RTS and these six landings, M1X0,
+PB/DB86, DP0, decimal clear, S1F20..1FFC, with a selected native body and
+remaining deadline. It reads the existing outer return from live WRAM without
+bus access, pushes no guest frame, and uses the engine's paired bounce/unwind
+path. Interrupt/yield owners and unknown contexts retain original dispatch.
+The producer checks each pinned-source seam exactly once. Reference-only and
+decomp-disabled configurations omit the seam. Existing circle timing stays.
+
+The shared eight-root proof covers 7,424 direct and3,712 actual production-ABI
+original-ROM cases: CPU/full128KiB WRAM, ordered operand bus and child states.
+All1,392 unwind and3,480 altered-return injections reach their boundary on
+each path. Eighty semantic and112 additional consumer guards pass;900 reached
+redirects cover60 entry/site contracts and19 distinct sites. Eight ROM faults
+are detected. The private/public behavior tokens match; positive matrices are
+retained across declarations/formatting. A fixture-only correction distinguishes
+a genuine changed-child C237 landing from a pre-entry guard fallback.
+
+The read-only gate passes852,016 cases. The pinned SDK interpreter-bridge
+regression passes305 checks, including48 new inherited-frame cases. The three
+actual CMake overlay configurations pass. Strict GCC/Clang semantic/CLI builds
+and resource tests, metadata and isolated Windows Release pass;24 generated
+wrappers and the three produced seams are checked. Full legacy decomp-verify
+was deferred, not reported as passing; the changed bridge seam received its
+relevant engine regression, while unrelated semantic bodies stay unchanged.
+
+Final production-wrapper transitions0C/0E finish860/983 frames with1,762 script
+steps. All9,767 paired PPU/pixel frames agree without alignment gaps; ordinary
+7,444 CPU/WRAM hashes agree. 0E CPU/WRAM also agree. 0C has one differing hash
+at caseframe788: same-process in-memory diagnosis proves all registers and
+WRAM equal, with only resumePC869752 versus869754 in the unchanged CMP/BEQ
+poll. The next frame converges. 768 original-ROM poll cases prove unchanged
+poll-state equivalence and identical completion after the clock advances.
+The final production CPU/WRAM/PPU traces exactly match that diagnosed prototype;
+no comparison hash was normalized. PCM differs45/589 scene frames. Full PC,
+cycle or audio parity is not claimed. This is an explicit runtime timing limit.
+
+Scoped bank86 interpreter work falls54,984->24,857(0C) and47,359->16,157(0E):
+102,343->41,014 combined,61,329 fewer(59.92%). Not whole-game coverage or FPS.
+The same required run collected read-only wait-caller addresses for next work.
+Counts:1,569 verified contracts,1,558 bindings,752 WRAM fields,465 C units.
+Public fixtures: lufia2_world_scene_resume_verify.c and
+lufia2_scene_resume_gate_verify.c. Private evidence/receipt:world-resume-next.
+
+Correction to older broad snapshot wording: inherited probes wrote private
+register/WRAM diagnostics at seven old ordinary frames. No ROM or serialized
+rollback snapshot was exported. The final acceptance and new mismatch probe
+remove that writer; the latter compares states in memory and emits differences.
+No ROM, private tooling or unrelated owner changes are part of these commits.
+
 ## Animation starter accumulator widths — 2026-10-16
 
 Extended the existing 86:E0B9 animation starter for its actual M0X0 call from
