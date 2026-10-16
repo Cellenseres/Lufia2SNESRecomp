@@ -1,3 +1,46 @@
+## Original field caller continuations — 2026-10-16
+
+Four existing internal text handlers now share optional pushed-child
+services: 80:AC6A selects collected objects, BDBB publishes a redrawn
+region, and BBEB/BDCA enter an area. Their original bodies are reused.
+The legacy APIs retain their native child dispatch and exact fallback
+boundaries, including the earlier S1F10 entry range.
+
+All seven calls are JSL, including the two targets in bank80. Saved Y,
+saved DB, long destination-map writes, reload flags and the original
+NEXT/YIELD decisions are preserved. Changed child contexts hand back at
+the exact next original instruction; no register width is forced. A child
+unwind retains its live guest frame. The text VM uses its existing NEXT
+context fence when a caller leaves DB or CPU modes changed. No additional
+standalone function, metadata promotion or binding is counted.
+
+The shared original-ROM checkpoint passes 16,384 direct states and 4,096
+reached whole-VM/production-ABI states. Each path adds 56 child unwinds and
+336 changed contexts; the actual ABI also passes 105 return redirects
+across the seven sites. There are 589,904 pre-access/unknown-handler guards.
+Three original-ROM faults change the picker return opcode, field-flags
+immediate and reload-flags source bank; all are detected directly and
+through the production ABI. Existing script/field, menu-caller and
+reward/cave fixtures pass once in the same affected checkpoint.
+
+The WRAM-seeded region-publication scenario reaches the new native caller
+once and unwinds through a real child. Over 10,607 paired frames, all
+53,037 raw CPU/WRAM, PPU, picture, PCM, stack and ordered SPC-progress
+records and every WRAM page hash match the previous native version. The
+first 9,767 frames match the accepted baseline. Interpreted instructions
+decline from 5,716,777 to 5,716,753, a scoped reduction of 24. Other caller
+hits are not claimed. The actual public-library replay reproduces the
+private run without semantic overrides or manual dispatch registration.
+This is sampled parity, not a cycle-identical execution claim.
+
+GCC/Clang libraries, metadata checks, strict MSVC public fixtures and the
+isolated Windows Release build pass. The rebuilt GCC/Clang resource CLIs
+are byte-identical to the preceding accepted binaries; their unchanged
+CLI proofs are reused by hash instead of repeated. Direct/ABI proofs are
+reused across token-identical publication. The public fixture and public
+runtime replay are fresh integration checks. All related changes share
+this checkpoint; the full legacy regression remains deferred.
+
 ## Shared script readers and table branches — 2026-10-16
 
 The text VM now shares the existing 80:C0B7 byte reader, 80:C0D0 word
