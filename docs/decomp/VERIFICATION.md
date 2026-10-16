@@ -1,3 +1,77 @@
+## Circular windows and scene sprite setup - 2026-10-16
+
+Six complete contracts are reconstructed:86:C358/C40A/C444/C4A8 andE84F/E8B5.
+Circular window construction keeps its zero-radius RTL, saved data bank, exact
+headers/pointers and both row directions. Byte count0 still means256 rows.
+The extent table retains PHP/SEP30, X/Y truncation, carried midpoint arithmetic
+and status restoration. Lower-half field56 controls the original row stepping.
+E84F keeps sixteen OAM attribute/high-field updates, both eight-record groups
+and scene parameters. E8B5 keeps ADC6 carry across all eight records;byte4 is
+untouched. ExistingE5E2/E5ED/E5FA/E609 packers are reused,not duplicated or recounted.
+
+Three nonoverlapping WRAM spans are catalogued:1467 index,1EC2..1F21 records,
+and neutral1219. The7F:DE00 extent table aliases existing actor/object storage;
+no overlapping table allocation is invented. The original1467 counter naming
+in world_map_objects has457 identical normalRelease executable/data/unwind and
+relocation sections;debug/checksum sections are excluded from that comparison.
+
+The shared12-root checkpoint covers six new contracts plusC2D9 and five resource
+scene callers.41472 direct/20736 actual production-ABI cases compare CPU,all128KiB
+WRAM,ordered operand/MMIO accesses and child snapshots. Each path adds480 child
+unwinds and1200 changed returns.112 semantic plus167 additional consumer guards
+pass;the ABI log repeats112 semantic guards.675 redirects cover17 distinct sites
+and45 root/site occurrences. Fourteen in-memory ROM faults are detected.
+The four affected ABI entries are rechecked after the consumer timing guard:
+14336 cases and the ABI edge union pass;6400 unchanged ABI positives and all
+41472 unchanged direct cases are reused. No identical semantic proof restart.
+
+Consumer eligibility preserves two timing-sensitive preparation calls inB63B.
+Exact live frames identify C2D9'sC314 far return,layer0 and itsB678/B67F caller
+returns. C358 and its three row/table children retain the original path only
+inside those frames. Stack peeks use the known WRAM buffer without guest bus
+accesses. Twelve actual fallback frames and152 near misses prove the guard
+without guest CPU/WRAM/bus mutation. E84F also rejects stacks below1F24 because
+the original record stores reach1F21. Other tested contexts remain native.
+Semantic C,software waits and original quirks are unchanged;no artificial cycles,
+duplicate presentation frames or production shadow interpreter are introduced.
+
+An initial runtime comparison exposed a real presentation difference at0E:
+one fewer preparation frame also shifted later pictures. The bounded original
+timing path above removes that regression. A separate sequential probe failed
+during field closure before13 on both native/reference paths (vector00862D,
+resumeD2C704). That experiment is retained as initial evidence. The final three
+scenes therefore start from an exact saved runtime baseline rather than inherit
+that unrelated carry-over. This does not claim arbitrary scene chaining or all
+real-story preconditions. The in-process rollback API excludes ROM data;its
+CPU/master-clock/fullWRAM/PPU fingerprint is checked before and after restoration.
+DSP output-ring delivery is restored as well. No snapshot file or ROM export.
+
+The final nine scene pairs all complete without failure:17094 frames per run,
+including7444 ordinary and9650 scene/closure frames. All PPU/register/memory and
+pixel fingerprints match. Frames for0C/0E/0F/10/11/12/13/14/15 are860/983/1021/
+771/771/771/771/771/771;all7332 script steps match. Only the twelve explicitly
+excluded preparation entries use original circle code on the enabled path.
+Ordinary7444 CPU/WRAM/PPU/pixel/PCM hashes match. Scene/closure2750 CPU/WRAM and
+604 rawPCM hashes differ,so whole-runtime CPU/audio/cycle parity is not claimed.
+The pre-existing HLE cycle-accounting limitation remains separately documented.
+
+Read-only original-instruction profiling of those nine scenes measures bank86
+at9899677 reference versus7957355 enabled instructions:1942322 fewer (19.62%).
+This is a scoped interpreter-work reduction,not whole-game coverage or an FPS
+benchmark. Remaining hot blocks lie mainly in86:C8xx..CBxx and guide next work.
+
+Strict MSVC,GCC/Clang semantic builds,actual resource CLI targets/tests,metadata,
+isolated WindowsRelease and the incremental consumer rebuild pass.1504 verified,
+zero drafts,1493 selected bindings,752 WRAM locations,461 portable C units
+(460 sources plus CLI). Generation emits24 actual wrappers for six new entries.
+Full regression is deferred on this revision;no new full-suite pass is claimed.
+
+Private evidence:world-window-shapes-next/checks.json,timing-abi-checks.json,
+timing-guards.log,counter-name-equivalence.json,compilers.json,runtime/comparison.json,
+runtime/interpretation-profile.json andACCEPTANCE_RECEIPT.json. Initial failed
+probe/logs remain separately named *-initial. ROM/foreign WIP/private tools stay
+outside the commits. No push.
+
 ## Remaining world scene callers and window records - 2026-10-16
 
 Fourteen complete contracts are reconstructed and bound:86:B15A/B59E/B63B,
