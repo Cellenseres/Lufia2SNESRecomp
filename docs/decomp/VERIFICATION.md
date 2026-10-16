@@ -1,3 +1,56 @@
+## Actor scene bank contracts and field colour calls — 2026-10-16
+
+The existing $83:A82E scene constructor now supports the original 128 system
+data-bank mirrors in portable C. Program bank $83, DP0 and binary arithmetic
+remain required. Its original saved status, forty slots, child frames and
+ordered banked accesses are unchanged. All four entry widths are covered;
+the metadata row retains the canonical M1X0 profile. The consumer still
+requires DB=$83: widening that runtime admission made two scene transitions
+one frame early, so that adapter experiment was not accepted.
+
+The existing $83:AEB5 colour dispatcher now admits those same system banks
+in the consumer, including observed DB=$37/$87 callers. Its complete semantic
+body already supported the original banked operations. Other width, DP,
+decimal, program-bank and stack guards remain. No new function or binding
+is counted: 1,569 verified contracts, 1,558 selected bindings.
+
+One shared checkpoint covers 16,384 direct and 16,384 actual-ABI constructor
+states, with original A6DF/A746 children and eleven explicit service sites.
+Every child entry is compared. Both paths pass 6,656 child-unwind states;
+3,900 reached ABI redirects cover all thirteen sites. Colour passes 4,096
+direct and 4,096 actual-ABI states with original children, 16,384 direct and
+16,384 actual-ABI child-unwind states, and 615 reached redirects. CPU, full
+WRAM and ordered operand accesses agree. An additional 47,616 consumer
+guards and 4,096 pre-access semantic guards pass.
+
+The separately tested A746 X8 adapter remains private despite 327,680
+direct and 327,680 actual-ABI ROM cases passing: its runtime phase changed
+many transient states. Literal helper code remains shared; no duplicate body
+or speculative runtime admission was added.
+
+Final production-object acceptance preserves all 9,767 pictures and PPU
+states, both original scene durations, and all 159,715 ordered CPU-to-SPC
+writes (stream hash 41E7208BACC42988), also at every sampled frame. Twenty-four
+observed DB37/87 calls now use native colour semantics. Original interpreted
+instructions fall from 4,901,520 to 4,901,067 in this scoped test, not a
+whole-game performance estimate.
+
+Raw CPU/WRAM hashes differ on six frames. Four polling-PC differences
+(8293C8/8293CA) and four saved NMI-PC stack-page differences overlap; one
+original circle-row intermediate state (86C432/86C439, page1D400) converges
+on the next frame. Registers other than those PCs agree. All raw hashes
+are retained. PCM differs on 1,718 frames: full cycle, audio-sample and
+per-frame guest-state parity is not claimed. No synthetic timing or
+normalisation conceals these observations.
+
+Six original-ROM operand faults are caught. Actual GCC and Clang semantic
+builds, CLI resource targets/tests, metadata checks and complete consumer
+adapter compilation pass; the isolated Windows Release build passes.
+Unchanged positive proofs are reused across token-equivalent formatting.
+Validation covers the combined semantic/consumer worktree before its atomic
+commits; intermediate commits were not tested separately. The full legacy
+regression was deferred, not reported green on this revision.
+
 ## Native scene continuations after frame waits — 2026-10-16
 
 Six explicit continuation boundaries now share the existing original C owners:
