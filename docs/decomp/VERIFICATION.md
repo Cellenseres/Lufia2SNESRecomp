@@ -1,3 +1,56 @@
+## Whole attribute helper entries — 2026-10-17
+
+Two real original children now have verified standalone contracts and native
+bindings: 80:EF2F Lufia2FieldMarkVisibleActorCells and 80:EEEB
+Lufia2FieldMarkListedCells. Their existing private algorithms are shared with
+the attribute-map builder at ED9C; no algorithm is duplicated. Both supported
+entries are PB80, M1/X0, binary, DP0, with stacks 1F00..1FFC. Actor occupancy
+sets DB80 and marks one or two cells for visible actors; the listed-cell helper
+sets DB7E and marks bit 2. Hardware multiply accesses retain their original
+bank, width and order. Actual RTL at EF8D and RTS at EF2E remain guest returns.
+
+The list helper has its complete original logic and a bounded continuation:
+after 65,536 iterations it hands off at EEF8 with exact CPU/memory state and
+live guest frames. The old parent propagates that result without popping its
+call frame; successful parent paths retain the same shared body and frame.
+The exhaustion proof covers the standalone entry and the real EE75 JSR site,
+not an invented normally reachable whole-map state. A preceding valid list's
+FF marker makes an all-zero whole-parent exhaustion seed inappropriate.
+
+The shared checkpoint passes 65,536 direct and 65,536 actual producer states,
+plus 2,048 focused real-return compositions and 512 whole-parent compositions
+through each layer. The focused returns cover every seeded list length and
+both ordinary and wrapped list addresses; the initial empty-list-only return
+selection was broadened without repeating the unchanged full direct matrix.
+CPU, full WRAM, ordered bus/MMIO accesses and actual guest frame behavior match
+the ROM. Both semantic exhaustion compositions and an actual producer handoff
+match the exact 65,537th EEF8 entry. Admission rejects 262,160 semantic and
+262,176 unpaired producer contexts before any bus access, including mirror-bank
+fallback PCs, every rejected stack/DP value and unsupported modes.
+
+Another 1,024 real text-end/window-toggle compositions pass directly and through
+nested text and attribute producers. This checks the actual DB change to80:
+the text parent hands back at 9DB0 when its script bank changes, preserving the
+original PLP/PLB exit. Synthetic services that preserve DB do not establish this
+contract. No original sound upload, wait, synchronization or poll kernel changes.
+
+Fresh public-library checks pass 1,024 entry states, 2,048 return compositions,
+512 parent states, the semantic guards and exhaustion. Actual public producer
+checks pass 2,048 entry states, 64 parent states, producer guards, exhaustion
+and 1,024 nested real-child text compositions without semantic overrides.
+Four heap-only ROM faults and a wrong RTS/RTL adapter frame fail normally.
+The actual CMake function-source report selects both verified native entries.
+
+GCC/Clang/metadata checks and one isolated Windows Release build pass. Resource
+CLI binaries are byte-identical, so their unchanged accepted CLI tests are reused.
+The Windows checkpoint took 410.89 seconds, largely static CFG regeneration for
+changed bindings; it was not repeatedly run per entry. Future binding batches
+should amortize that cost where dependencies allow. Formatting preserves source
+tokens; expanding the named list limit restores the privately proven tokens.
+Full legacy regression and a new gameplay/audio replay remain deferred, with
+no current hit-rate, timing-parity or speed claim. Totals: 1,576 verified,
+1,561 ordinary native bindings, 752 WRAM fields and 465 semantic C units.
+
 ## Text system callers and script completion — 2026-10-16
 
 Eight existing internal paths now continue through optional pushed-child
