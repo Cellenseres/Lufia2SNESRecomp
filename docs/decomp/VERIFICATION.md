@@ -2895,3 +2895,35 @@ once. PPU/image hashes and43 pictures equal the prior native replay. Two
 CPU/WRAM frame hashes and4787 PCM hashes differ; no cycle/audio equality is
 claimed. Full1965-job regression remains deferred. Planned semantic commits
 share this final combined checkpoint, without separate intermediate retests.
+
+
+### Name-entry data-bank mirrors — 2026-10-16
+
+Eight existing entries ($82:F0F6/F117/F4F4/F556/F50A/F523/F585/F5AF)
+now accept the 129 system/low-WRAM data banks supported by the original
+accesses, including observed DB=$83 callers. Original M1/X16, DP0, binary,
+stack and program-bank restrictions remain. The shared record-bank predicate
+is unchanged for its three default-record callers. Portable bodies, function
+contracts and selected bindings are unchanged: 1,569 verified / 1,558 selected.
+
+Shared checkpoint: 133,515 original-ROM direct and 133,515 actual adapter
+states; CPU, full WRAM, MMIO and ordered accesses agree. All positive states
+use native adapters. Another 21,375 child redirects, 55,296 unsupported states
+covering all 127 rejected banks, and eight original-ROM mutations pass.
+Strict MSVC, GCC and Clang adapter compilation and isolated Windows Release pass.
+The standalone semantic/CLI checks are reused from unchanged child a06a557;
+no full legacy regression is claimed for this consumer-only revision.
+
+Production comparison: 9,767 paired frames have identical PPU/pictures and
+complete both scene scripts. CPU-to-SPC writes have identical count (159,715)
+and ordered-stream hash (41E7208BACC42988). Scoped interpreted instructions
+fall from 4,902,892 to 4,901,520; this is not a whole-game performance figure.
+Raw state hashes differ on 20 frames: nine register differences, twelve RAM
+differences, with overlap. These are bounded SPC upload progress, saved NMI
+poll PCs on stack page $1F, and one original circle-row intermediate state;
+the states converge again. PCM differs on 7,955 frames. Exact cycle, audio
+sample and per-frame CPU/WRAM parity are not claimed or normalized.
+
+The five equipment-bank candidates and the field post-wait prototype remain
+private because their broader timing/state differences are unresolved.
+Evidence: .agent/decomp/record-bank-next/ACCEPTANCE_RECEIPT.json.
