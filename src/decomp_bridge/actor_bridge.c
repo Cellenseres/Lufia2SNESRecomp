@@ -13854,3 +13854,23 @@ RecompReturn Lufia2DecompBridge_80EEEB(CpuState *cpu) {
     return ActorBridgeFieldAttributeEntry(cpu, 0x80eeebu, Lufia2FieldMarkListedCells,
                                           2u);
 }
+
+static RecompReturn ActorBridgeAreaSpawnEntry(CpuState *cpu, uint32_t entry,
+                                              ActorWholeFunction run,
+                                              uint8_t frame_size) {
+    if (cpu->PB != 0x80u || cpu->D || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame,
+                                   ((uint32_t)cpu->PB << 16) | (uint16_t)entry);
+    }
+    return ActorBridgeWholeM1X16(cpu, entry, run, frame_size);
+}
+
+RecompReturn Lufia2DecompBridge_80D533(CpuState *cpu) {
+    return ActorBridgeAreaSpawnEntry(cpu, 0x80d533u, Lufia2FieldSpawnActorsInArea, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_80D583(CpuState *cpu) {
+    return ActorBridgeAreaSpawnEntry(cpu, 0x80d583u, Lufia2FieldRandomAreaCoordinate,
+                                     2u);
+}
