@@ -1,3 +1,71 @@
+## Remaining world scene callers and window records - 2026-10-16
+
+Fourteen complete contracts are reconstructed and bound:86:B15A/B59E/B63B,
+BB5C/BE30/C04E,B19A,BBC4/BE72/BE7A/BEC4 andC321/C336/C2D9. All nineteen distinct
+nonempty authored scene callbacks inAEB1's23-slot table now have semantic entry
+contracts. Two empty RTS entries,the0000 target and theC00F alias remain exactly
+as authored; this does not claim all descendants or a whole native scene VM.
+Unknown descendants includingC358/E84F remain explicit original services.
+
+B19A shares the existing BBE6/C08C loader. Actor group setup shares the existing
+AFB2/AFE3 implementation with its original anchor coordinates. The transition
+retains both scripts, both window submissions, fade, resource290, palette MVN
+and object startup. BEC4 keeps its actualM0X0 entry/exit;BE7A guardsM0 returns
+inside itsM1 parent. Positions, animation writes and exact child frames remain
+observable. No software waits, duplicate stores or original quirks are removed.
+
+C321 reads the hardware multiply result after the original register writes.
+C336 copies all six original record bytes. C2D9 preserves four parameter reads,
+the saved layer byte, buffer selection, farC358 child and selector increment.
+Inspection ofC358/C4A8/C40A/C444 identifies circular-mask centerX/Y and radius;
+the remaining field keeps its neutral name. No inferred rectangle replacement.
+Existing1E50 records and battle/field scratch aliases are reused, without new
+overlapping WRAM catalog entries.
+
+The shared18-root checkpoint includes four affected prior callers.17920 direct
+and8960 production-ABI cases compare CPU/full128KiB WRAM/ordered operand-MMIO
+accesses and child snapshots. Each path also passes656 child unwinds and1640
+changed-return contexts.178 semantic and252 additional consumer guards pass;
+the ABI log includes the repeated178 semantic guards.1230 redirect probes cover
+all82 distinct call sites. Fourteen in-memory ROM faults are detected.
+
+The first ABI pass exposed2048 BEC4 fallbacks:its wrapper selected theM1 helper.
+The corrected M0X0 adapter passes all2048 affected cases withzero fallback.
+One fault control exposed correlated synthetic window-buffer inputs; independent
+first-buffer parity covers the missing branch. Only1024 direct/512 ABI window
+cases are repeated.16896 direct/6400 ABI positive cases and unchanged edge inputs
+are reused, rather than restarting all checks. The final local-name correction
+has identical137 COFF code/data/debug/unwind sections and relocation bytes;
+all414 symbol records match after normalizing the one private helper name.
+
+Strict MSVC,GCC/Clang semantic builds,actual resource CLI targets/tests,metadata
+and isolated Windows Release pass. Final GCC/Clang rebuilds cover the naming
+correction; unchanged CLI dependencies/results are reused.1498 verified entries,
+zero drafts,1487 selected bindings,749 WRAM locations and459 portable C units
+(458 sources plus CLI). Generation emits56 actual wrappers for14 new entries.
+Full1965-job regression is deferred on this revision; it is not reported green.
+
+All six original production scenes complete withzero failure. Each run records
+13651 frames:7444 ordinary and6207 scene/closure frames. All PPU/register/memory/
+pixel fingerprints match. Scene selectors0C/0D/0E/0F/10/16 take860/431/983/1021/
+771/701 frames on both paths; script steps are800/420/962/1010/760/690 on both.
+All fourteen new entry addresses execute, withno original entry for those roots
+on the enabled path. No visible animation frame or script step is omitted.
+
+Runtime equality remains scoped:ordinary7444 CPU/WRAM/PPU/pixel/PCM fingerprints
+match. Across scenes/closures3804 CPU/WRAM and1104 rawPCM fingerprints differ.
+Those samples are recorded, not newly localized individually. The prior
+scene-resource timing review already establishes that the HLE bridge lacks
+original instruction-cycle accounting and can shift unchanged sound-upload
+progress. These unchanged timing contracts are not re-proven per entry; no
+whole-runtime CPU/audio/cycle equivalence is claimed. No timing compensation,
+semantic patch or shadow interpreter is introduced.
+
+Private evidence:world-remaining-scenes-next/checks.json,name-equivalence.json,
+compilers.json,compiler-final.json,generated-witnesses.json,runtime/comparison.json
+andACCEPTANCE_RECEIPT.json. ROM remains at its original path; no ROM/private
+tooling/foreign WIP included. No push.
+
 ## Scene resources, palette and actor groups - 2026-10-16
 
 Fourteen complete bank86 entry contracts are reconstructed and bound: AFB2,
