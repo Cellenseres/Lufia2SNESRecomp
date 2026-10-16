@@ -1,3 +1,52 @@
+## Text camera and map callers — 2026-10-17
+
+Twelve existing internal text paths now use optional consumer child services:
+A2B0/B721 rebuild attributes, B341/B34F center and publish layers, B494
+publishes layers, AF6B restores scene display, and AFC0/B62B/B6F4/B72D/
+B646/B659 perform scene actions, tile copies, redraws and attribute/upload
+requests. Both command families retain one shared implementation and their
+callback-null APIs, including the original S1F10 stack admission. The text
+engine supplies its existing pushed-child service. No new canonical entry,
+metadata promotion, binding or algorithm copy is introduced.
+
+The AFC0 tail resumes with its original PLY and next-command branch after
+the D533 child. Original DB/Y frames, operand reads and NEXT/YIELD decisions
+remain intact. Width, DP, decimal, PB or stack changes hand back at the exact
+post-call instruction. DB changes flow through the original caller accesses
+and DB restores; the text engine still fences a changed script bank. Actual
+frame waits at BF0B retain their live JSR frame and explicit handoff. The
+B659 NMI disable/upload/re-enable sequence remains ordered as in the ROM.
+No frame-wait acceleration or hardware/audio implementation change is made.
+
+The shared checkpoint passes 54,784 direct states, 11,776 reached whole-text
+states, 10,368 actual consumer-producer states and all 330 return redirects
+across 22 caller/site groups. CPU, full WRAM, child-entry frames and ordered
+bus/MMIO accesses match the original ROM. Another 131,240 unsupported-context
+and unknown-selector cases reject before bus access. A 6,144-state composition
+fixture also executes the actual layer-scroll, display-register and tilemap-
+request children where reached, rather than substituting their return values.
+It covers 1,792 real child executions within those caller states.
+
+Fresh public-library checks pass 6,400 engine states, all admission guards,
+6,144 composition states and 4,992 actual producer states with all 330
+redirects, without semantic overrides. Six heap-only ROM faults are detected
+with normal failure exits. The affected callback-null render fixture passes
+32,768 states and 65,639 guards; the preceding system/end fixture passes
+4,608 states. The initial render invocation accidentally selected guard-only
+mode; its corrected no-argument invocation supplies the full affected result.
+
+The first small private proof caught an incorrect newly supplied scene-display
+target; ROM bytes and metadata established F2F3 before publication. Fixture
+corrections cover heap-only script seeding in ROM banks and simulated RTL PB
+restoration. None changes original ROM bytes on disk or accepted semantics.
+The compiler checkpoint passes GCC, Clang, metadata checks and isolated
+Windows Release (9.25 seconds). Resource CLI executables are byte-identical,
+so unchanged accepted CLI checks are reused. Only changed source ranges were
+formatted, preserving comment-stripped tokens. Full legacy regression and
+new gameplay/audio replay remain deferred. There is no new runtime hit-rate,
+cycle-parity or speed claim. Totals remain 1,576 verified entries, 1,561
+ordinary bindings, 752 WRAM fields and 465 semantic C units.
+
 ## Whole attribute helper entries — 2026-10-17
 
 Two real original children now have verified standalone contracts and native
