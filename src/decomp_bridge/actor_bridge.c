@@ -13171,3 +13171,77 @@ RecompReturn Lufia2DecompBridge_86C2D9(CpuState *cpu) {
     return ActorBridgeWorldSequence(cpu, 0x86c2d9u,
                                     Lufia2WorldMapSubmitSceneWindowRecord, 2u, false);
 }
+
+static bool ActorBridgeCircleNeedsOriginalTiming(const CpuState *cpu, uint32_t entry) {
+    if (!cpu->ram || cpu->PB != 0x86u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu)
+        return false;
+    const unsigned stack = cpu->S;
+    const uint16_t caller =
+        (uint16_t)(cpu->ram[stack + 1u] | (uint16_t)cpu->ram[stack + 2u] << 8);
+    unsigned far_frame;
+    if (entry == 0x86c358u && cpu->DB == 0x86u) {
+        far_frame = 1u;
+    } else if (entry == 0x86c4a8u && caller == 0xc370u) {
+        far_frame = 4u;
+    } else if (entry == 0x86c40au && (caller == 0xc3c4u || caller == 0xc3cau)) {
+        far_frame = caller == 0xc3c4u ? 5u : 4u;
+    } else if (entry == 0x86c444u && (caller == 0xc3ebu || caller == 0xc3f1u)) {
+        far_frame = caller == 0xc3ebu ? 6u : 5u;
+    } else {
+        return false;
+    }
+    if (stack + far_frame + 5u >= 0x2000u ||
+        (far_frame > 1u && cpu->ram[stack + far_frame - 1u] != 0x86u))
+        return false;
+    const uint8_t *frame = cpu->ram + stack + far_frame;
+    const uint16_t scene_return = (uint16_t)(frame[4] | (uint16_t)frame[5] << 8);
+    /* Keep the transition's original VBlank phase. */
+    return frame[0] == 0x14u && frame[1] == 0xc3u && frame[2] == 0x86u &&
+           frame[3] == 0u && (scene_return == 0xb678u || scene_return == 0xb67fu);
+}
+
+static RecompReturn ActorBridgeCircleLeaf(CpuState *cpu, uint32_t entry,
+                                          ActorWholeFunction function) {
+    if (cpu->PB != 0x86u || cpu->DB != 0x7fu || !cpu->m_flag || cpu->x_flag || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu ||
+        ActorBridgeCircleNeedsOriginalTiming(cpu, entry)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeWhole(cpu, entry, function, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_86C358(CpuState *cpu) {
+    if (ActorBridgeCircleNeedsOriginalTiming(cpu, 0x86c358u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86c358u);
+    }
+    return ActorBridgeWorldSequence(cpu, 0x86c358u, Lufia2WorldMapBuildCircularWindow,
+                                    3u, true);
+}
+
+RecompReturn Lufia2DecompBridge_86C40A(CpuState *cpu) {
+    return ActorBridgeCircleLeaf(cpu, 0x86c40au, Lufia2WorldMapAppendUpperCircleRows);
+}
+
+RecompReturn Lufia2DecompBridge_86C444(CpuState *cpu) {
+    return ActorBridgeCircleLeaf(cpu, 0x86c444u, Lufia2WorldMapAppendLowerCircleRows);
+}
+
+RecompReturn Lufia2DecompBridge_86C4A8(CpuState *cpu) {
+    return ActorBridgeCircleLeaf(cpu, 0x86c4a8u, Lufia2WorldMapBuildCircleExtentTable);
+}
+
+RecompReturn Lufia2DecompBridge_86E84F(CpuState *cpu) {
+    if (cpu->S < 0x1f24u) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86e84fu);
+    }
+    return ActorBridgeWorldSequence(cpu, 0x86e84fu, Lufia2WorldMapPrepareSceneSprites,
+                                    2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86E8B5(CpuState *cpu) {
+    return ActorBridgeWorldSceneLeaf(cpu, 0x86e8b5u,
+                                     Lufia2WorldMapClearSceneSpriteRecords);
+}
