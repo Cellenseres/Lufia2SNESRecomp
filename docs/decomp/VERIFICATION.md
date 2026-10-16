@@ -1,3 +1,15 @@
+## Public field C++ linkage — 2026-10-17
+
+The four recently added attribute/area-spawn declarations now remain inside
+the field header's existing extern C block. An actual C++ linker probe
+reproduces four unresolved mangled symbols against the previous header and
+links/runs successfully with the corrected header and the same accepted
+library. The maintained probe references all four functions. Preprocessed C
+tokens are identical before and after; only blank lines move. Function bodies,
+bindings, library bytes and the scoped ROM/ABI proofs are unchanged. Those
+results and the existing compiler checkpoint are reused; no full regression
+or whole-game rebuild was repeated for this declaration-only repair.
+
 ## Whole random area-spawn entries — 2026-10-17
 
 Two complete original children now have verified contracts and native bindings:
