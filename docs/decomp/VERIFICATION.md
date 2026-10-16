@@ -1,3 +1,46 @@
+## Text movement, camera and music continuations — 2026-10-16
+
+Four existing text handlers now continue through their previously deferred
+branches when pushed-child services and the original CPU context are available:
+actor motion at 80:A834, party gathering at B3DF, camera initialization at
+B4FE, and the three music/scene calls at B862/B866/B86A. The existing text
+engine bridge already supplies these services; no new runtime binding is added.
+The callback-null API retains its previous exact handoff boundaries.
+
+Actor motion shares the existing slot/header/occupancy implementations. Party
+gathering preserves PHY/PLY and the original wait-or-continue decision. Music
+changes retain all three JSL calls, their live frames, context checks and child
+unwinds. Sound uploads, polling, synchronization and their implementations are
+unchanged. Camera code retains byte increment wrap, cell lookup, leader-follow
+waits, full-byte direction indexing and original arithmetic/flag behavior.
+The direction table starts inside earlier instruction bytes; unknown targets
+retain their pointer reads and pushed JSR frame before exact handoff.
+
+The shared original-ROM checkpoint covers 32,768 direct states, 6,704 legacy,
+low-stack and changed-child/unwind states, 4,096 branch-witness states, 2,048
+compositions with real party-update/offset/occupancy children, and an explicit
+65,536-iteration header-search budget. Its reference stops at the 65,537th
+loop entry, preserving live JSR/JSL/PHB frames. CPU, full WRAM, ordered bus
+accesses and controlled child-entry states agree. Branch witnesses confirm
+all four direction bodies and leader-follow execute, rather than only guards.
+
+Whole-engine coverage includes 5,632 semantic and 4,864 actual producer states.
+The current eleven-function consumer closure is extracted unchanged except for
+read-only entry/return observations; 60 child redirects pass. The fresh public
+library passes the maintained 5,632-state engine fixture and 1,280 producer
+integration states with all 60 redirects. Four heap-only ROM operand faults
+and an omitted music child are detected with normal failure exits. The affected
+script/field fixture passes 36,864 states and 65,657 guards in the same batch.
+
+One incremental GCC/Clang/MSVC and Windows Release checkpoint passes; metadata
+checks pass. Both rebuilt resource CLIs are byte-identical to their preceding
+accepted binaries, so their unchanged CLI proofs are reused. Named integral
+constants expand to the exact privately proven source tokens; formatting also
+preserves tokens. Full decomp-verify and a new gameplay/audio replay are deferred;
+no current interpreter hit-rate, cycle-parity or whole-game speed claim is made.
+Counts remain 1,574 verified functions, 1,559 ordinary bindings, 752 WRAM fields
+and 465 C units. These are extensions inside existing entries, not new functions.
+
 ## Native frame-return continuations — 2026-10-16
 
 Four complete register-restore tails now have portable semantic continuation
