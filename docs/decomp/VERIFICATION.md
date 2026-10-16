@@ -1,3 +1,65 @@
+## Original text/menu caller continuations — 2026-10-16
+
+The text VM now uses its existing pushed-child service for five related
+callers: 80:A32B, A372, A51D, BD99 and B909. Their original tails restore
+saved Y/DB, reload the scene, clear text state and resume or exit the VM.
+Existing scene helpers A350/A368 remain shared. Script-menu A51D reloads
+without adding a fade. Legacy no-service boundaries remain unchanged.
+
+Every original child call retains its JSR/JSL frame and exact unwind.
+M0 returns stop before width-dependent immediates. A changed M/X, DP,
+decimal mode or script bank hands NEXT back at 80:9D00 instead of
+continuing through a CPU context outside the text VM's C contract.
+Unknown child semantics remain explicit services; this completes internal
+caller continuations, not the entire menus or text VM. No new standalone
+function contract or native binding is counted.
+
+One checkpoint covers 20,480 direct original-ROM states, 5,120 reached
+whole-text-VM ABI states, 120 child unwinds and 720 changed-child contexts
+on each path, all 15 child sites, 225 production return redirects and
+131,246 pre-access/unknown-handler guards. Children deliberately change Y
+where saved-index restoration matters. Controlled children isolate caller
+semantics; their interiors are not reverified by these tests. Five original
+caller-tail mutations are detected. Existing positive suites retain 28,672
+menu and 36,864 script/field states; 256 complete recovery ABI cases retain
+106 child calls each and 105 redirect probes. Two stale unknown-handler
+lists now recognize the already-supported BD99 and B7FE routes.
+
+The ordinary 9,767-frame replay exactly matches the accepted baseline but
+does not reach these callers. An additional original-script menu scenario,
+seeded in WRAM without modifying the ROM, reaches A372 with real children
+and correctly unwinds at the first waiting child. All 10,607 paired raw
+CPU/WRAM, PPU, picture, PCM, active/discarded-stack and ordered SPC progress
+records and all RAM-page hashes agree. Interpreted instructions decline
+from 5,888,064 to 5,888,027, a scoped reduction of 37. Other new caller tails
+are covered by differential ROM/ABI proofs, not claimed as runtime hits.
+
+The final public-library replay exactly reproduces the private candidate:
+53,037 raw comparison records and all RAM-page hashes over 10,607 frames.
+No private semantic object or manual dispatch registration is used. This
+is sampled-state and output parity, not a cycle-identical execution claim.
+GCC/Clang semantic libraries, actual resource CLIs and metadata checks,
+strict MSVC public fixtures and the isolated Windows Release build pass.
+Corrected legacy guard lists pass 65,626 menu and 65,657 script cases;
+unchanged positive bodies reuse the green results within this checkpoint.
+The seven reached production ABI helpers match the current consumer tokens
+apart from read-only observers. Full legacy regression remains deferred.
+Several related slices share this final checkpoint; intermediate edits were
+not independently accepted.
+
+The final public-library replay exactly reproduces the private candidate:
+53,037 raw comparison records and all RAM-page hashes over 10,607 frames.
+No private semantic object or manual dispatch registration is used. This
+is sampled-state and output parity, not a cycle-identical execution claim.
+GCC/Clang semantic libraries, actual resource CLIs and metadata checks,
+strict MSVC public fixtures and the isolated Windows Release build pass.
+Corrected legacy guard lists pass 65,626 menu and 65,657 script cases;
+unchanged positive bodies reuse the green results within this checkpoint.
+The seven reached production ABI helpers match the current consumer tokens
+apart from read-only observers. Full legacy regression remains deferred.
+Several related slices share this final checkpoint; intermediate edits were
+not independently accepted.
+
 ## Original field-frame continuation — 2026-10-16
 
 83:8007 resumes the existing field loop after its original 83:900C wait.
