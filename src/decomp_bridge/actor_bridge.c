@@ -13899,3 +13899,33 @@ RecompReturn Lufia2DecompBridge_83D9C6(CpuState *cpu) {
     return ActorBridgeSecondaryMovement(cpu, 0x830000u | 0xd9c6u,
                                         Lufia2ActorCommitTileStep);
 }
+
+static RecompReturn ActorBridgePopupRecord(CpuState *cpu, uint32_t entry,
+                                           ActorWholeFunction run) {
+    if (cpu->PB != 0x81u || cpu->DB != 0x7eu || cpu->D || cpu->S < 0x1f00u ||
+        cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame,
+                                   ((uint32_t)cpu->PB << 16) | (uint16_t)entry);
+    }
+    return ActorBridgeWholeM1X16(cpu, entry, run, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_81C3EE(CpuState *cpu) {
+    return ActorBridgePopupRecord(cpu, 0x81c3eeu, Lufia2BattleBuildSlotPopup);
+}
+
+RecompReturn Lufia2DecompBridge_81C477(CpuState *cpu) {
+    return ActorBridgePopupRecord(cpu, 0x81c477u, Lufia2BattleBuildPopupRecord);
+}
+
+RecompReturn Lufia2DecompBridge_81C652(CpuState *cpu) {
+    if (cpu->PB != 0x81u || (cpu->DB & 0x7fu) >= 0x40u || cpu->D || cpu->S < 0x1f00u ||
+        cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, ((uint32_t)cpu->PB << 16) | 0xc652u);
+    }
+    return ActorBridgeBattleEntry(
+        cpu, 0x81c652u, NULL, Lufia2BattleApplyTargetStatusTick, 2u, BATTLE_BRIDGE_M1X0,
+        0, BATTLE_BRIDGE_REGISTER_BANK, 0);
+}
