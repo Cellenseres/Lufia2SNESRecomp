@@ -1,3 +1,47 @@
+## Primary actor script: observed X8 caller — 2026-10-16
+
+The existing 83:D416 adapter now admits its observed M1X1 caller at
+83:A96B. The original routine changes only M with REP20/SEP20; LDX and TAX
+retain the caller's index width. The existing portable body already models
+this behavior. Its ROM script-table lookup, pointer addition, flags and
+three-byte record writes are unchanged.
+
+The additional profile requires native mode, binary arithmetic, PB83, DP0,
+S1F20..1FFC, host frame0/3 and one of the 129 system/low-WRAM data banks.
+All existing M1X0 admission and unsupported-state behavior remain unchanged.
+The sibling 83:D3F7 secondary-script loader already supports both index
+widths; it is checked as an affected control and receives no extra binding.
+
+The shared checkpoint passes 196,608 primary and 196,608 secondary states
+on each of the direct and actual-ABI paths. CPU, full WRAM and every operand
+read/write are compared. Direct cases include both index widths, all input
+accumulator/record words and all 256 data banks; the primary actual-ABI X8
+profile uses its admitted 129 banks. 11,264 unsupported X8 states preserve
+the previous CPU/WRAM and exact return-frame reads. Two ROM operand faults
+are detected. No semantic body, metadata contract or binding is added.
+
+The paired runtime receives two additional native primary-script calls,
+both DB87/M1X1/S1FEE/frame3. All 9,767 sampled CPU/WRAM, PPU, picture, PCM,
+port-progress and active/discarded stack records match the accepted baseline.
+Scene durations remain 860/983 frames. The ordered CPU-to-SPC stream remains
+159,715 writes with hash41E7208BACC42988. Interpreted instructions fall from
+4,906,118 to 4,906,088: 30 instructions across these two calls, not a claim
+about whole-game performance. Counts stay 1,572 verified and 1,558 selected.
+
+Final consumer compiler/Windows checks follow at this batch checkpoint.
+The unchanged semantic library and resource CLI checks from b1bf305 are
+reused; the full legacy regression is deferred.
+
+Final consumer checkpoint passes strict MSVC actual-ABI compilation,
+GCC and Clang whole-consumer C11 warnings-as-errors, and the isolated
+Windows Release build. Public and private adapter C tokens match.
+Portable source, public headers, metadata, tables and linked dependencies
+remain at the prior semantic checkpoint; its library, resource CLI and
+metadata checks are reused. Only the consumer admission and these notes
+change. No full legacy regression is claimed, and no intermediate commit
+is described as independently tested. Private runtime instrumentation
+observes calls without modifying guest state or cycle accounting.
+
 ## Literal VM opcode dispatch prefixes — 2026-10-16
 
 Three complete prefix contracts end at their original indirect jumps:
