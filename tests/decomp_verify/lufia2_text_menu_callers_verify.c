@@ -461,7 +461,7 @@ static int verify_guards(void) {
         for (; i < 5; ++i)
             if (h == handlers[i])
                 break;
-        if (i < 5)
+        if (i < 5 || h == 0xa414u || h == 0xa41fu)
             continue;
         Lufia2CpuState n;
         seed(&n);

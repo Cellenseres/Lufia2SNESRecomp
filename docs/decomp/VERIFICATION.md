@@ -1,3 +1,60 @@
+## Original reward/cave caller continuations — 2026-10-16
+
+The existing text/menu services now carry both item-reward pages,
+80:A414/A41F, through their shared A42B loop. The original count byte
+wraps from zero through 256 iterations. Selection feedback retains its
+current X width and optional scene reload. The count decrement retains
+current-M word side effects. Saved Y and the actual near-return word are
+consumed literally; rewritten returns use their original landing PC.
+A 4,096-step host budget hands back at A43A without changing guest state.
+
+80:ABD0 now uses the same optional child protocol for cave entry and
+exit. The exit's current-width DP:AE test decides whether A350 reloads
+the scene. Saved DB/Y and the original text-state write remain intact.
+All immediate-width fences, pushed child frames, child unwinds and the
+text VM's existing NEXT context fence remain explicit. Existing no-service
+APIs keep their previous boundaries. These are four documented internal
+contracts, not new standalone verified entries or bindings.
+
+The shared checkpoint passes 3,072 direct ROM states and 3,072 reached
+whole-VM ABI states across all count bytes and both cave branches.
+Each path covers 72 child unwinds, 432 changed contexts, 64 rewritten
+reward returns and two explicit loop-budget cases. Six distinct child
+sites are reached; 165 production return redirects pass. Additional
+probes reach A45F, A479 and ABEF with M0, and 16 real near-return landing
+boundaries per path include bank-local wrap and text-VM control PCs.
+Controlled children isolate caller semantics; their interiors are not
+reverified here. There are 131,108 pre-access/unknown guards and five
+original-ROM operand faults are detected.
+
+Affected earlier callers pass 20,480 direct and 5,120 actual VM/ABI
+states, their saved-index/context/unwind cases, 225 redirects and 131,244
+service/legacy guards. Legacy menu positives retain 28,672 states;
+legacy ABD0 and BA39 each pass 1,024 states plus 253 guards. The existing
+recovery ABI passes 256 complete cases with 106 children each and 105
+redirects. The earlier service guard list now recognizes the two reward
+routes, without weakening unknown-handler assertions.
+
+A real item1/count1 reward script is seeded in WRAM without modifying
+the ROM. Its real child path unwinds and rejoins the original guest flow.
+All 10,607 paired CPU/WRAM, PPU, picture, PCM, stack and ordered SPC-progress
+records and all RAM-page hashes agree; the first 9,767 frames also match
+the preceding accepted baseline. One reward invocation reaches native C.
+Interpreted instructions decline from 5,717,083 to 5,717,031, a scoped
+reduction of 52. Cave and other reward tails have ROM/ABI coverage;
+additional runtime hits are not claimed. Full legacy regression is deferred.
+
+The final actual-public-library replay reproduces all 53,037 comparison
+records and RAM-page hashes over 10,607 frames, with no private semantic
+objects or manual dispatch registration. GCC/Clang libraries, real resource
+CLIs and metadata checks, strict MSVC public fixtures and the isolated
+Windows Release build pass. Five fault controls also pass against the
+public library. The actual original reference forces 80:9CB8 to the
+original only during the WRAM-seeded reward phase; other accepted native
+selections stay the same. This is sampled-state/output parity, not a
+cycle-identical execution claim. Related slices share this checkpoint;
+intermediate edits are not separately accepted. Full legacy remains deferred.
+
 ## Original text/menu caller continuations — 2026-10-16
 
 The text VM now uses its existing pushed-child service for five related
