@@ -1,3 +1,79 @@
+## Original field-frame continuation — 2026-10-16
+
+83:8007 resumes the existing field loop after its original 83:900C wait.
+The portable owner and resume share one C body. The resumed first iteration
+skips only the wait already completed by the original CPU; later iterations
+retain every original wait, child frame, width fence and restart boundary.
+No second field scheduler or synthetic guest return frame is introduced.
+
+The consumer admits native binary PB83/DB83, DP0, M1/either X width,
+S1FFF/HRV0. The read-only integration gate runs only after the real RTS
+at83:9012 lands at83:8007, inside a quiescent noninterrupt run before its
+deadline. Its dispatch uses frame size 0. Existing scene continuation gates,
+ordinary paired-call handling, original RTS timing and RTI ownership remain.
+
+The unchanged earlier direct ROM proof is reused with source/log hashes:
+4,096 states and912 boundary cases per owner/resume, plus eight 4,096-frame
+compositions per entry. The resumed first wait count is 4,095 per case;
+the owner retains 4,096. The current actual ABI reruns both entries together:
+8,192 state cases, 1,824 boundary cases and 16 long compositions. This covers
+19 child sites per entry, 304 reached child unwinds, 608 M0 return fences,
+912 context fences and 3,040 redirect probes. The owner's three incoming
+contexts remain tested; the nonreturning resume uses its one real HRV0/S1FFF
+context. Two semantic faults that respectively add/remove the first wait
+are detected. The permanent direct fixture retains the passing resume logic.
+
+There are 263,830 consumer guards and 131,390 semantic pre-access checks with
+no bus accesses. The gate passes 656,320 read-only states across all PC,
+stack, DP, bank-pair and return-site axes, including 256 real original-ROM
+RTS executions. These checks share one checkpoint; only an affected redirect
+fixture was retried after replacing its invalid framed resume contexts.
+
+The current paired runtime reaches 4,599 additional native continuations:
+4,597 M1X1 and two M1X0. All 9,767 pictures/PPU states and 860/983-frame scene
+durations agree. The complete ordered SPC-write fingerprint is 159,715 writes,
+hash41E7208BACC42988 on both paths. Original execution exactly matches the
+preceding accepted baseline. Interpreted instructions decline from 4,895,554
+to 4,749,879, a scoped reduction of 145,675; no whole-game percentage is claimed.
+
+Raw CPU/WRAM hashes differ on 8,224 frames. Of 72 sampled CPU differences,
+61 are in original SPC transfers, ten in original menu frame waits and one
+at the original circle-row store. RAM differences occupy DP0 on 45 frames,
+stack page1F00 on 8,217 and page1D400 on one frame. At frame 8793 the original
+path is before STA 7F:D45B=B8, while the native path is immediately after it;
+the page agrees next frame. The prior independent read-only pending-store
+diagnostic is reused because every current original raw frame/page record
+is identical to that diagnostic's input path. One active-stack difference
+occurs during an original SPC transfer at frame 1598. Discarded-stack bytes
+differ on 8,217 frames, sampled port progress on 34 and PCM on 8,134. These raw
+exceptions are retained. Cycle/audio/all-frame architectural parity is not
+claimed; no clock, guest state, frame or hash is adjusted.
+
+Counts become 1,573 verified contracts and 1,559 bindings; 752 WRAM fields and
+465 C units remain. Final SDK, CLI/compiler and generated integration checks
+share this batch checkpoint. Full legacy regression is deferred.
+
+Final integration checkpoint passes both GCC/Clang semantic libraries,
+actual resource CLIs, metadata checks and strict whole-consumer C11 builds.
+Isolated Windows Release and strict MSVC compile/link of both permanent
+fixtures pass. Native/reference/disabled CMake configurations enable the
+new seam only in native mode. All four maintained production seams are
+tested by the pinned SDK contract harness: 305 unchanged checks pass and
+are reused; the 104 added field checks pass after the synthetic handoff
+target receives its missing WAI instruction. Only those affected cases
+were retried. No runtime or semantic expectations were weakened.
+
+The actual generated public binding, maintained SDK overlay and public
+library also run the complete native scenario. All 53,437 relevant raw
+records and all RAM-page hashes exactly reproduce the private candidate.
+No manual dispatch entry or private semantic object remains in that replay;
+only read-only counters are retained. The unchanged original baseline is
+reused after exact record comparison. The permanent direct fixture keeps
+its passing algorithm and all 1,024 unique opcode lengths in a readable
+constant table. Public/private semantic and consumer C tokens agree.
+These commits share the combined checkpoint; intermediate revisions were
+not independently tested. Full legacy regression remains deferred.
+
 ## Byte-index field position callers — 2026-10-16
 
 The existing 83:A746 actor fine-position adapter additionally accepts the

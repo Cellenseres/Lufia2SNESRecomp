@@ -13605,3 +13605,23 @@ RecompReturn Lufia2DecompBridge_86B397(CpuState *cpu) {
     return ActorBridgeWorldSequence(cpu, 0x86b397u,
         Lufia2WorldMapResumePaletteWait3, 2u, false);
 }
+
+RecompReturn Lufia2DecompBridge_838007(CpuState *cpu) {
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+    if (cpu->emulation || cpu->_flag_D || cpu->PB != 0x83u || cpu->DB != 0x83u ||
+        !cpu->m_flag || cpu->D || cpu->S != 0x1fffu || cpu->host_return_valid != 0u)
+        return ActorBridgeFallback(cpu, &frame, 0x838007u);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+                                 ActorBridgeExecutionCheckpoint, cpu};
+    ActorPushedCall call = {cpu, frame, RECOMP_RETURN_NORMAL};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result =
+        Lufia2FieldResumeFrame(&memory, &state, ActorBridgeSceneChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    cpu->PB = state.program_bank;
+    return interp_tier_dispatch_tail(cpu, result.pc, result.pc, frame.entry_s,
+                                     frame.hrv);
+}
