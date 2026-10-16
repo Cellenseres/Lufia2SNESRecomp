@@ -1,3 +1,53 @@
+## Whole random area-spawn entries — 2026-10-17
+
+Two complete original children now have verified contracts and native bindings:
+80:D533 Lufia2FieldSpawnActorsInArea and 80:D583
+Lufia2FieldRandomAreaCoordinate. Their algorithms were private parts of the
+field-event actor module. They now share field_area_spawn.c; event opcode 78
+retains its original operand prefix and JSL frame around that same body.
+The text AFC0 child also selects the new whole-entry binding. No actor-spawn,
+offset or random-number algorithm is copied or replaced.
+
+Both supported entries use PB80, M1/X0, binary arithmetic, DP0 and stacks
+1F00..1FFC. D533 ends at its actual RTL at D582, while D583 ends at RTS D5A4
+with a 16-bit accumulator. Guest return instructions remain guest returns.
+The original zero-count underflow means 256 spawn attempts. Slot exhaustion,
+stale slot offsets, coordinate wrap, random refills, multiply accesses, bus
+ordering and saved actor-slot restoration remain literal original behavior.
+
+The shared ROM checkpoint passes 20,480 direct states and 20,480 actual
+producer states, including original random/spawn/offset children rather than
+controlled substitutes. Each layer also passes 1,280 focused RTS/RTL return
+compositions and 512 raw-slot/exhaustion/index-wrap edge states. Those edges
+include long-index crossings into mirrored RAM or ROM and guest caller-frame
+overlap. Poisoned admission checks reject 262,160 semantic and 262,176 actual
+producer states before bus access, covering unsupported stacks, DP, banks and
+modes. CPU, full WRAM and ordered bus/MMIO accesses match the ROM.
+
+The changed field-event prefix and text AFC0 caller each pass 512 actual child
+compositions. The event seeds use direct area-point operands E0..FA; FB..FF
+have other original value semantics and are not mislabeled direct point IDs.
+Another 512 cases compose the actual text and spawn producers with original
+children. A failed first nested fixture was traced to surplus heap-only script
+seeding at 83:E000, inside an executed actor child. Removing that unused seed
+resolved the mismatch; increasing the interpreter ceiling alone did not.
+The ROM file on disk and the semantic reconstruction were unchanged by that
+fixture repair. A private missing forward declaration was also corrected.
+
+Fresh public-library checks pass 1,280 entry states, 1,280 focused returns,
+512 edge states, both admission matrices, 128 compositions for each caller
+and 512 nested producer compositions without semantic overrides. Four heap-
+only ROM operand faults and a wrong RTS/RTL adapter fail normally. The actual
+CMake selection report includes both entries among 1,563 ordinary bindings.
+GCC, Clang, metadata checks and one isolated Windows Release build pass.
+Windows took 415.56 seconds, dominated by native CFG regeneration and the
+dependent rebuild; it was run once for the batch. Unchanged resource CLI
+executables retain their accepted byte-identical tests. Source publication
+preserves comment-stripped tokens. Full legacy regression and a new gameplay/
+audio replay remain deferred, with no new hit-rate, timing or speed claim.
+Totals: 1,578 verified entries, 1,563 ordinary bindings, 752 WRAM fields and
+466 semantic C units.
+
 ## Text camera and map callers — 2026-10-17
 
 Twelve existing internal text paths now use optional consumer child services:
