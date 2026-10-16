@@ -908,10 +908,14 @@ RecompReturn Lufia2DecompBridge_82C7(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_A746(CpuState *cpu) {
-    return ActorBridgeRunVoid(
-        cpu, 0x83a746u, Lufia2ActorSyncFinePosition, 3, 0x83a76cu, 0);
+    const int byte_index =
+        cpu->m_flag && cpu->x_flag && !cpu->emulation && !cpu->_flag_D &&
+        cpu->PB == 0x83u && cpu->DB == 0x87u && !cpu->D &&
+        (cpu->host_return_valid == 0u || cpu->host_return_valid == 3u) &&
+        cpu->S >= 0x1f10u && cpu->S <= 0x1ffcu;
+    return ActorBridgeRunVoid(cpu, 0x83a746u, Lufia2ActorSyncFinePosition, 3, 0x83a76cu,
+                              byte_index);
 }
-
 RecompReturn Lufia2DecompBridge_C947(CpuState *cpu) {
     return ActorBridgeRunVoid(
         cpu, 0x83c947u, Lufia2ActorPrimaryReset, 2, 0x83c989u, 0);
