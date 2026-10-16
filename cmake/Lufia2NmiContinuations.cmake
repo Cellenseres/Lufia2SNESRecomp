@@ -33,6 +33,14 @@ function(lufia2_add_nmi_continuations target core_root)
        _api MATCHES "Lufia2NmiRestoreInterruptFrame[(]")
         list(APPEND _definitions LUFIA2_HAVE_NATIVE_NMI_FINISH=1)
     endif()
+    string(REGEX MATCH
+        "\\[\\[function\\]\\][^[]*name[ \t]*=[ \t]*\"Lufia2NmiSaveInterruptFrame\"[^[]*"
+        _entry_contract "${_metadata}")
+    if(_api MATCHES "Lufia2NmiSaveInterruptFrame[(]" AND
+       _entry_contract MATCHES "address[ \t]*=[ \t]*\"80:862D\"" AND
+       _entry_contract MATCHES "status[ \t]*=[ \t]*\"verified\"")
+        list(APPEND _definitions LUFIA2_HAVE_NATIVE_NMI_ENTRY=1)
+    endif()
     set(_result)
     set(_count 0)
     foreach(_source IN LISTS _sources)
