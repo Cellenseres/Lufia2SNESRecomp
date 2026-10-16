@@ -2406,6 +2406,13 @@ static void ActorBridgeNmiWrite(void *context, uint32_t address, uint8_t value) 
 }
 
 static bool ActorBridgeNmiResumeSupported(const CpuState *cpu, uint32_t pc) {
+    if (!g_snes || !g_snes->inNmi || cpu->emulation || !cpu->ram)
+        return false;
+#if defined(LUFIA2_HAVE_NATIVE_NMI_ENTRY)
+    if (pc == 0x00862du || pc == 0x80862du)
+        return cpu->PB == pc >> 16 && cpu->m_flag <= 1u && cpu->x_flag <= 1u &&
+               cpu->S >= 0x1f08u && cpu->S <= 0x1ffbu;
+#endif
     bool byte_mode;
     bool restore = false;
     switch (pc) {
@@ -2429,13 +2436,16 @@ static bool ActorBridgeNmiResumeSupported(const CpuState *cpu, uint32_t pc) {
     default:
         return false;
     }
-    return g_snes && g_snes->inNmi && !cpu->emulation && cpu->ram && cpu->PB == 0x80u &&
-           cpu->m_flag == (byte_mode && !restore) && cpu->x_flag == byte_mode &&
-           !cpu->_flag_D && !cpu->D && cpu->S >= 0x1f00u && cpu->S <= 0x1ff3u &&
-           (!byte_mode || cpu->DB == 0x80u);
+    return cpu->PB == 0x80u && cpu->m_flag == (byte_mode && !restore) &&
+           cpu->x_flag == byte_mode && !cpu->_flag_D && !cpu->D && cpu->S >= 0x1f00u &&
+           cpu->S <= 0x1ff3u && (!byte_mode || cpu->DB == 0x80u);
 }
 
 static Lufia2NmiSchedule ActorBridgeNmiSchedule(const CpuState *cpu, uint32_t pc) {
+#if defined(LUFIA2_HAVE_NATIVE_NMI_ENTRY)
+    if (pc == 0x00862du || pc == 0x80862du)
+        return Lufia2NmiEntrySchedule();
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_FINISH)
     if (pc == 0x808664u)
         return Lufia2NmiClockSchedule(cpu->ram);
@@ -2448,6 +2458,10 @@ static Lufia2NmiSchedule ActorBridgeNmiSchedule(const CpuState *cpu, uint32_t pc
 
 static Lufia2ExecutionResult ActorBridgeNmiSlice(const Lufia2Memory *memory,
                                                  Lufia2CpuState *cpu, uint32_t pc) {
+#if defined(LUFIA2_HAVE_NATIVE_NMI_ENTRY)
+    if (pc == 0x00862du || pc == 0x80862du)
+        return Lufia2NmiSaveInterruptFrame(memory, cpu);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_FINISH)
     if (pc == 0x808664u)
         return Lufia2NmiDisplayAndClock(memory, cpu);
@@ -2470,6 +2484,7 @@ static void ActorBridgeNmiResume(CpuState *cpu, uint32_t pc) {
     if (result.flow != LUFIA2_EXECUTION_BOUNDARY || result.pc == pc)
         return;
     ActorBridgeStore(cpu, &state);
+    cpu->PB = state.program_bank;
     for (unsigned i = 0; i < schedule.count; ++i) {
         const Lufia2NmiCost cost = schedule.steps[i];
         Lufia2DecompNmiAccountCycles(cpu, Lufia2NmiCpuCycles(cost),
@@ -2480,6 +2495,9 @@ static void ActorBridgeNmiResume(CpuState *cpu, uint32_t pc) {
 
 void Lufia2DecompInstallNmiHooks(void) {
     static const uint32_t entries[] = {
+#if defined(LUFIA2_HAVE_NATIVE_NMI_ENTRY)
+        0x00862du,
+#endif
         0x808638u, 0x80864cu, 0x808653u, 0x80865au,
 #if defined(LUFIA2_HAVE_NATIVE_NMI_FINISH)
         0x808664u, 0x80869bu,

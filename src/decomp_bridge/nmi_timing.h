@@ -105,4 +105,15 @@ static inline Lufia2NmiSchedule Lufia2NmiRestoreSchedule(const uint8_t *ram) {
     return schedule;
 }
 
+static inline Lufia2NmiSchedule Lufia2NmiEntrySchedule(void) {
+    Lufia2NmiSchedule schedule = {0};
+    for (unsigned saved_byte = 0; saved_byte < 2; ++saved_byte)
+        Lufia2NmiAppend(&schedule, 1, 1, 0, 1);
+    Lufia2NmiAppend(&schedule, 2, 0, 0, 1);
+    for (unsigned saved_word = 0; saved_word < 3; ++saved_word)
+        Lufia2NmiAppend(&schedule, 1, 2, 0, 1);
+    Lufia2NmiAppend(&schedule, 4, 0, 0, 0);
+    return schedule;
+}
+
 #endif

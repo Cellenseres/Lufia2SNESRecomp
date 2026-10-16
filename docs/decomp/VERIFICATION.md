@@ -1,3 +1,59 @@
+## Native NMI frame entry — 2026-10-16
+
+Lufia2NmiSaveInterruptFrame reconstructs the complete mirrored 00/80:862D
+prologue through its original jump to 80:8638. It saves the current status,
+data bank and full A/X/Y in original byte order, including B when M1,
+then exports M0X0 and PB80. The hardware interrupt frame is already present.
+The actual original RTI remains responsible for its later return. Canonical
+metadata records nominal M0X0; separate ROM/ABI proofs admit all four input
+widths. This is one new verified canonical entry, with no ordinary-call
+binding: the desktop interrupt owner installs its mirrored pre-opcode hook.
+Totals are 1,574 verified functions, 1,559 ordinary bindings, 752 WRAM
+locations and 465 portable C units. No alias or width variant is counted.
+
+Both direct and actual producer paths pass 16,384 entry states covering all
+saved status bytes, both ROM mirrors/speeds, four stack positions and register
+variants. CPU, all WRAM, ordered data writes and each original opcode's CPU
+and master costs agree. Direct and ABI paths each compose 512 saved frames,
+the accepted restoration block and a real interpreted RTI. The maintained
+public fixture separately passes its 16,384 entry states, 512 real RTIs and
+an original-ROM fault. Guards cover 132,108 core and 990,028 consumer cases,
+including the old six hooks and both vector mirrors before any bus access.
+Three heap-only ROM faults fail in each path. Removing the producer's PB
+transfer is also detected. That missing transfer was caught and corrected
+before publication; the generic ordinary-call adapter is unchanged.
+
+Actual runtime evidence established that ScreenFade was already reached by
+its existing canonical native binding. The proposed extra fade hook and
+unused cost model were removed. Its unchanged C received 65,792 private
+direct ROM checks and 512 real RTS compositions; none counts as new work
+or native gain. The private ABI return banner retains an outdated RTS label;
+its compiled entry-only loop executes 512 RTI compositions. The maintained
+public fixture reports the correct scope.
+
+The final public-library replay has seven hooks, automatic runtime
+registration and no semantic override. Across 10,607 frames, all 53,037 raw
+CPU/WRAM, PPU, picture, PCM, stack and ordered sound-port-progress records
+and every WRAM page match the preceding accepted integration. Interpreted
+instructions decline from 5,336,633 to 5,262,671, exactly 73,962 removed
+by 10,566 seven-instruction prologues. This is sampled parity and instruction
+reduction, not a whole-game speed estimate. The owner hook at 8699 and its
+original REP20 remain interpreted, as do the real guest return instructions.
+
+Seventeen CMake cases pass, including old/missing/draft/wrong-address entry
+contracts and disabled/reference configurations. Actual older headers and
+libraries still link the four-hook prefix and six-hook finish variants.
+GCC/Clang libraries and metadata, strict MSVC fixtures and the isolated
+Windows Release build pass. Resource CLI binaries are byte-identical to
+their accepted versions, so their CLI proofs are reused. Existing NMI bodies
+and SDK bus/cycle adapters remain unchanged; prior exact function-closure
+proofs are reused. No full regression or repeated legacy matrix ran.
+
+The maintained fixture is tests/decomp_verify/lufia2_nmi_entry_verify.c.
+Private evidence is nmi-entry-fade-next/ACCEPTANCE_RECEIPT.json. The initial
+private replay included a fade hook with zero visits; the final public replay
+validates its removal. All changes share this combined checkpoint.
+
 ## Native NMI display and interrupt restoration — 2026-10-16
 
 The desktop now also uses the original display/clock block at 80:8664 and
