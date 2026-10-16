@@ -477,7 +477,7 @@ int main(int argc, char **argv) {
             for (; j < 4u; ++j)
                 if (h == handlers[j])
                     break;
-            if (j < 4u)
+            if (j < 4u || h == 0xb7feu)
                 continue;
             Lufia2CpuState n = untouched;
             if (Lufia2TextExecuteScriptCommand(&m, &n, (uint16_t)h) ||

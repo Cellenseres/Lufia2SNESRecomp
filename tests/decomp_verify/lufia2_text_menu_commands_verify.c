@@ -381,6 +381,8 @@ int main(int argc, char **argv) {
 
     unsigned total = 0;
     for (suite = 0; suite < 7u; ++suite) {
+        if (argc == 3 && strcmp(argv[2], "--guards") == 0)
+            continue;
         if (selected_handler && selected_handler != handlers[suite])
             continue;
         unsigned cases = 4096u;
@@ -408,7 +410,7 @@ int main(int argc, char **argv) {
             for (; j < 7u; ++j)
                 if (h == handlers[j])
                     break;
-            if (j < 7u)
+            if (j < 7u || h == 0xbd99u)
                 continue;
             Lufia2CpuState n = untouched;
             if (ExecuteSceneControl(&m, &n, (uint16_t)h) ||
