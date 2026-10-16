@@ -142,4 +142,6 @@ function(lufia2_add_decomp_bridge target snesrecomp_root)
         "${snesrecomp_root}/runner/src"
         "${snesrecomp_root}/runner/src/snes")
     target_link_libraries(${target} PRIVATE Lufia2::Decomp)
+    include("${CMAKE_SOURCE_DIR}/cmake/Lufia2NmiContinuations.cmake")
+    lufia2_add_nmi_continuations(${target} "${snesrecomp_root}")
 endfunction()

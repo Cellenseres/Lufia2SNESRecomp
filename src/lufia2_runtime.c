@@ -19,6 +19,9 @@
 #include "snes/interp_bridge.h"
 #include "lufia2_msu_driver.h"
 #include "lufia2_log.h"
+#if defined(LUFIA2_HAVE_NATIVE_NMI_CONTINUATIONS)
+#include "decomp_bridge/nmi_resume.h"
+#endif
 
 /* Generated interrupt vectors. */
 enum {
@@ -110,6 +113,9 @@ void Lufia2ApplyExecutionState(uint32_t version) {
 
     RtlApplyExecutionState();
     Lufia2MsuApplyLoadedState();
+#if defined(LUFIA2_HAVE_NATIVE_NMI_CONTINUATIONS)
+    Lufia2DecompInstallNmiHooks();
+#endif
     s_resume_pc = interp_bridge_lle_resume_pc() & 0xFFFFFFu;
     s_started = true;
     s_last_boundary_was_wai = false;
@@ -244,6 +250,9 @@ void Lufia2RunOneFrame(void) {
 #if defined(LUFIA2_ENABLE_NATIVE_WAIT) || defined(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD) || \
     defined(LUFIA2_ENABLE_ACTOR_EARLY_RETURN)
         Lufia2NativePatchesInit();
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_NMI_CONTINUATIONS)
+        Lufia2DecompInstallNmiHooks();
 #endif
 
         LUFIA2_LOG(
