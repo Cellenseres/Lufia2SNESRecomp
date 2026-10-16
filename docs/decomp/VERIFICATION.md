@@ -1,3 +1,68 @@
+## Menu callers and equipment-selection widths — 2026-10-16
+
+Eleven existing adapters now admit the 129 original system/low-WRAM data
+banks: title preparation 82:E8DE/E917/E998, palette selection 86:916C,
+save-slot construction 82:F20A/F481/EEF7, slot display 82:EF25, record-list
+testing 82:ECAF, action dispatch 82:E9D5 and save-menu entry 82:E8B2.
+All other mode, program-bank, DP, stack and child-return guards remain.
+
+The existing 82:9971 equipment-member selector already preserves entry
+widths through PHY/PHP/REP/PLP/PLY. Its portable admission now accepts all
+four M/X profiles in binary mode. The canonical metadata profile remains
+M0X0. Its consumer additionally accepts the observed M1X0 native/binary,
+PB82, DP0, S1F10..1FFC, HRV0/2 profile in the same 129 data banks. Legacy
+M0X0 admission is unchanged; X8 consumer calls remain original.
+
+One shared checkpoint covers 429,312 bank-profile states per direct/ABI
+path, including 9,417 reached child unwinds per path and 120 reached ABI
+redirect probes. The width selector adds 294,912 direct  and 147,456 actual
+ABI states. Its direct coverage includes all 65,536 DP values at all four
+entry widths; bank coverage includes all 256 DB values. A further 24,576
+direct states cover stack aliases at three stacks, eight overlapping
+destinations and all 256 saved-status bytes. Every positive comparison
+checks CPU, full WRAM and ordered operand accesses; bank fixtures also
+compare MMIO. Only sequential instruction-fetch bytes are excluded.
+There are 5,732 unsupported consumer states  and 16 semantic pre-access
+guards. An in-memory original-ROM AND-operand fault is detected at case 14.
+The permanent equipment-selection fixture retains the passing direct
+width and stack-alias algorithms. No ROM bytes are exported or changed.
+
+The paired runtime reaches each additional profile once. All 9,767 pictures
+and PPU states match; scene durations remain 860/983 frames. The original
+path exactly reproduces the preceding accepted equipment checkpoint.
+The complete ordered SPC-write fingerprint is 159,715 writes/hash
+41E7208BACC42988 on both paths. Interpreted instruction counts change from
+4,888,416 to 4,896,060: these twelve native calls are not a whole-game
+speedup claim, because SPC polling phases also change.
+
+Raw CPU/WRAM hashes differ on 8,226 frames. There are 77 sampled CPU
+differences: 71 original SPC transfers, five original menu frame waits and
+one original circle-row write. RAM differences occupy DP0 on 66 frames,
+stack page1F00 on 8,225 and page1D400 on one frame. At frame 8793 the native
+path is at 86:C432, immediately before the taken branch and STA 7F:D45B;
+the original path is at 86:C439, immediately after that store. A read-only
+diagnostic reproduces every raw native record and proves that the single
+pending B8 write accounts for the page hash difference. The page agrees
+again on the next frame. This diagnostic does not replace or normalise
+any recorded state. Four active-stack differences occur during original
+SPC transfers. Discarded-stack bytes differ on 8,225 frames; port progress
+on 67 and PCM on 8,136. Cycle, audio and all-frame architectural parity
+are not claimed. Original semantic bodies and guest clocks stay literal.
+
+Counts remain 1,572 verified contracts, 1,558 bindings, 752 WRAM fields and
+465 C units. Final compiler/library/CLI checks share this checkpoint.
+The full legacy regression is deferred; unchanged green bank cases were
+reused when correcting only a width-fixture bank constant.
+
+Final checkpoint: strict MSVC ROM/actual-ABI fixtures and permanent
+public fixture compilation/linking, GCC/Clang semantic libraries, resource
+CLIs, metadata checks and whole-consumer C11 warnings-as-errors all pass.
+The isolated Windows Release build passes. Public/private source tokens
+match; the public direct fixture keeps the previously verified algorithms.
+Unchanged positive cases are not rerun solely for publication or formatting.
+The two commits share this combined checkpoint; intermediate commits were
+not tested separately. Full legacy regression remains deferred.
+
 ## Equipment records in original system data banks — 2026-10-16
 
 Five existing equipment adapters now admit the 129 system/low-WRAM data

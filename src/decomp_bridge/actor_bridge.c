@@ -9388,12 +9388,21 @@ RecompReturn Lufia2DecompBridge_81EC35(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_829971(CpuState *cpu) {
-    if (cpu->PB != 0x82u || cpu->m_flag || cpu->x_flag ||
-        cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
+    if (!cpu->emulation && !cpu->_flag_D && cpu->m_flag && !cpu->x_flag &&
+        cpu->PB == 0x82u && !cpu->D &&
+        (cpu->host_return_valid == 0u || cpu->host_return_valid == 2u) &&
+        cpu->S >= 0x1f10u && cpu->S <= 0x1ffcu &&
+        ActorBridgeRecordBankSupported(cpu->DB))
+        return ActorBridgeWholeAnyWidth(cpu, 0x829971u,
+                                        Lufia2PartySelectActiveEquipmentMember, 2u);
+
+    if (cpu->PB != 0x82u || cpu->m_flag || cpu->x_flag || cpu->D != 0u ||
+        cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
         return ActorBridgeFallback(cpu, &frame, 0x829971u);
     }
-    return ActorBridgeWholeAnyWidth(cpu, 0x829971u, Lufia2PartySelectActiveEquipmentMember, 2u);
+    return ActorBridgeWholeAnyWidth(cpu, 0x829971u,
+                                    Lufia2PartySelectActiveEquipmentMember, 2u);
 }
 
 RecompReturn Lufia2DecompBridge_82E893(CpuState *cpu) {
@@ -9406,8 +9415,8 @@ RecompReturn Lufia2DecompBridge_82E893(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_82E8DE(CpuState *cpu) {
-    if (cpu->PB != 0x82u || cpu->DB != 0x7eu || !cpu->m_flag || cpu->x_flag ||
-        cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
+    if (cpu->PB != 0x82u || !ActorBridgeRecordBankSupported(cpu->DB) || !cpu->m_flag ||
+        cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
         return ActorBridgeFallback(cpu, &frame, 0x82e8deu);
     }
@@ -9415,8 +9424,8 @@ RecompReturn Lufia2DecompBridge_82E8DE(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_82E917(CpuState *cpu) {
-    if (cpu->PB != 0x82u || cpu->DB != 0x7eu || !cpu->m_flag || cpu->x_flag ||
-        cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
+    if (cpu->PB != 0x82u || !ActorBridgeRecordBankSupported(cpu->DB) || !cpu->m_flag ||
+        cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
         return ActorBridgeFallback(cpu, &frame, 0x82e917u);
     }
@@ -9424,8 +9433,8 @@ RecompReturn Lufia2DecompBridge_82E917(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_82E998(CpuState *cpu) {
-    if (cpu->PB != 0x82u || cpu->DB != 0x7eu || !cpu->m_flag || cpu->x_flag ||
-        cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
+    if (cpu->PB != 0x82u || !ActorBridgeRecordBankSupported(cpu->DB) || !cpu->m_flag ||
+        cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
         return ActorBridgeFallback(cpu, &frame, 0x82e998u);
     }
@@ -9442,12 +9451,13 @@ RecompReturn Lufia2DecompBridge_80905F(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_86916C(CpuState *cpu) {
-    if (cpu->PB != 0x86u || cpu->DB != 0x7eu || cpu->x_flag ||
+    if (cpu->PB != 0x86u || !ActorBridgeRecordBankSupported(cpu->DB) || cpu->x_flag ||
         cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
         return ActorBridgeFallback(cpu, &frame, 0x86916cu);
     }
-    return ActorBridgeWholeAnyWidth(cpu, 0x86916cu, Lufia2MenuLoadSelectionPalettes, 3u);
+    return ActorBridgeWholeAnyWidth(cpu, 0x86916cu, Lufia2MenuLoadSelectionPalettes,
+                                    3u);
 }
 
 RecompReturn Lufia2DecompBridge_809073(CpuState *cpu) {
@@ -9460,12 +9470,12 @@ RecompReturn Lufia2DecompBridge_809073(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_82F20A(CpuState *cpu) {
-    if (cpu->PB != 0x82u || cpu->DB != 0x7eu || !cpu->m_flag || cpu->x_flag ||
-        cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
+    if (cpu->PB != 0x82u || !ActorBridgeRecordBankSupported(cpu->DB) || !cpu->m_flag ||
+        cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-        return ActorBridgeFallback(cpu,&frame,0x82f20au);
+        return ActorBridgeFallback(cpu, &frame, 0x82f20au);
     }
-    return ActorBridgeSceneOwners(cpu,0x82f20au,Lufia2SaveBuildMenuSlots,2u);
+    return ActorBridgeSceneOwners(cpu, 0x82f20au, Lufia2SaveBuildMenuSlots, 2u);
 }
 
 RecompReturn Lufia2DecompBridge_82F22B(CpuState *cpu) {
@@ -9478,21 +9488,21 @@ RecompReturn Lufia2DecompBridge_82F22B(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_82F481(CpuState *cpu) {
-    if (cpu->PB != 0x82u || cpu->DB != 0x7eu || !cpu->m_flag || cpu->x_flag ||
-        cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
+    if (cpu->PB != 0x82u || !ActorBridgeRecordBankSupported(cpu->DB) || !cpu->m_flag ||
+        cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-        return ActorBridgeFallback(cpu,&frame,0x82f481u);
+        return ActorBridgeFallback(cpu, &frame, 0x82f481u);
     }
-    return ActorBridgeWholeAnyWidth(cpu,0x82f481u,Lufia2SaveRestoreMenuSelection,2u);
+    return ActorBridgeWholeAnyWidth(cpu, 0x82f481u, Lufia2SaveRestoreMenuSelection, 2u);
 }
 
 RecompReturn Lufia2DecompBridge_82EEF7(CpuState *cpu) {
-    if (cpu->PB != 0x82u || cpu->DB != 0x7eu || !cpu->m_flag || cpu->x_flag ||
-        cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
+    if (cpu->PB != 0x82u || !ActorBridgeRecordBankSupported(cpu->DB) || !cpu->m_flag ||
+        cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-        return ActorBridgeFallback(cpu,&frame,0x82eef7u);
+        return ActorBridgeFallback(cpu, &frame, 0x82eef7u);
     }
-    return ActorBridgeSceneOwners(cpu,0x82eef7u,Lufia2SavePrepareMenuCursors,2u);
+    return ActorBridgeSceneOwners(cpu, 0x82eef7u, Lufia2SavePrepareMenuCursors, 2u);
 }
 
 RecompReturn Lufia2DecompBridge_82E941(CpuState *cpu) {
@@ -9514,21 +9524,21 @@ RecompReturn Lufia2DecompBridge_82E95D(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_82EF25(CpuState *cpu) {
-    if (cpu->PB != 0x82u || cpu->DB != 0x7eu || !cpu->m_flag || cpu->x_flag ||
-        cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
+    if (cpu->PB != 0x82u || !ActorBridgeRecordBankSupported(cpu->DB) || !cpu->m_flag ||
+        cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-        return ActorBridgeFallback(cpu,&frame,0x82ef25u);
+        return ActorBridgeFallback(cpu, &frame, 0x82ef25u);
     }
-    return ActorBridgeSceneOwners(cpu,0x82ef25u,Lufia2SavePrepareSlotDisplay,2u);
+    return ActorBridgeSceneOwners(cpu, 0x82ef25u, Lufia2SavePrepareSlotDisplay, 2u);
 }
 
 RecompReturn Lufia2DecompBridge_82ECAF(CpuState *cpu) {
-    if (cpu->PB != 0x82u || cpu->DB != 0x7eu || !cpu->m_flag || cpu->x_flag ||
-        cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
+    if (cpu->PB != 0x82u || !ActorBridgeRecordBankSupported(cpu->DB) || !cpu->m_flag ||
+        cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-        return ActorBridgeFallback(cpu,&frame,0x82ecafu);
+        return ActorBridgeFallback(cpu, &frame, 0x82ecafu);
     }
-    return ActorBridgeWholeAnyWidth(cpu,0x82ecafu,Lufia2SaveTestRecordList,2u);
+    return ActorBridgeWholeAnyWidth(cpu, 0x82ecafu, Lufia2SaveTestRecordList, 2u);
 }
 
 RecompReturn Lufia2DecompBridge_82EFB5(CpuState *cpu) {
@@ -9568,12 +9578,12 @@ RecompReturn Lufia2DecompBridge_82F190(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_82E9D5(CpuState *cpu) {
-    if (cpu->PB != 0x82u || cpu->DB != 0x7eu || !cpu->m_flag || cpu->x_flag ||
-        cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffbu) {
+    if (cpu->PB != 0x82u || !ActorBridgeRecordBankSupported(cpu->DB) || !cpu->m_flag ||
+        cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffbu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-        return ActorBridgeFallback(cpu,&frame,0x82e9d5u);
+        return ActorBridgeFallback(cpu, &frame, 0x82e9d5u);
     }
-    return ActorBridgeSceneOwners(cpu,0x82e9d5u,Lufia2SaveRunMenuActions,2u);
+    return ActorBridgeSceneOwners(cpu, 0x82e9d5u, Lufia2SaveRunMenuActions, 2u);
 }
 
 RecompReturn Lufia2DecompBridge_82EA3B(CpuState *cpu) {
@@ -9990,11 +10000,12 @@ RecompReturn Lufia2DecompBridge_82E87B(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_82E8B2(CpuState *cpu) {
-    if(cpu->PB!=0x82u||cpu->DB!=0x7eu||!cpu->m_flag||cpu->x_flag||cpu->D!=0u||cpu->S<0x1f10u||cpu->S>0x1ffcu) {
-        const ActorBridgeFrame frame=ActorBridgeEnter(cpu);
-        return ActorBridgeFallback(cpu,&frame,0x82e8b2u);
+    if (cpu->PB != 0x82u || !ActorBridgeRecordBankSupported(cpu->DB) || !cpu->m_flag ||
+        cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x82e8b2u);
     }
-    return ActorBridgeSceneOwners(cpu,0x82e8b2u,Lufia2MenuRunSaveSelection,2u);
+    return ActorBridgeSceneOwners(cpu, 0x82e8b2u, Lufia2MenuRunSaveSelection, 2u);
 }
 
 RecompReturn Lufia2DecompBridge_82E7AA(CpuState *cpu) {
