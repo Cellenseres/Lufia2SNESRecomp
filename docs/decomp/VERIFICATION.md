@@ -1,3 +1,37 @@
+## Animation starter accumulator widths — 2026-10-16
+
+Extended the existing 86:E0B9 animation starter for its actual M0X0 call from
+BAAE@BAE5. The initial STA10,x writes the full accumulator before REP20;
+both entry widths then share the existing lookup/frame body and exit M1X0.
+The original temporary frame-byte overwrite remains observable on the bus.
+No duplicate function, WRAM alias or binding was introduced. Canonical
+metadata remains M1X0; E11F retains its M1X0-only stepping contract.
+
+One checkpoint covers 16,384 direct and 16,384 actual production-ABI cases,
+both accumulator widths, all animation-byte values, varying high bytes,
+poses, DP0/nonzero, flags and near-return contexts. Full CPU/128KiB WRAM and
+ordered operand-bus accesses match original ROM. Two semantic and forty
+consumer guards pass, including the unchanged E11F M0 rejection. Eight ROM
+faults are detected. A separate C fault omitting the high-byte store leaves
+CPU/WRAM equal but fails the ordered bus comparison (38 versus39 accesses).
+New guard/mutation additions preserve the positive inputs and source tokens;
+previous passing positive matrices are reused, rather than repeated.
+
+The real 0C/0E scene comparison passes all 9,767 paired CPU/WRAM/PPU/pixel
+frames without alignment gaps, including 7,444 ordinary and480 closure
+frames. Only the new M0 entry is disabled in the reference; all previous
+scene bindings remain enabled. Scene0E's58 original E0B9 arrivals disappear;
+its bank86 interpreted work falls60,675 to47,359 (13,316 fewer,21.95%).
+Control0C remains54,984. Ordinary/control PCM match;55 scene0E PCM hashes
+differ. No full cycle/audio/FPS claim. Shared original waits stay unchanged.
+
+Incremental Windows Release and strict GCC/Clang semantic/resource CLI
+builds/tests pass. Metadata stays1,563 verified/1,552 selected,752 WRAM and
+465 C units. Broad full regression deferred, not reported as passing.
+Fixture:tests/decomp_verify/lufia2_world_animation_width_verify.c.
+Private receipt:world-animation-width-next/ACCEPTANCE_RECEIPT.json.
+Foreign WIP, ROM and owner build/windows remain untouched. Nothing pushed.
+
 ## Window animation handlers and palette fade — 2026-10-16
 
 Thirteen complete entries: 86:B454/B47E/B4BE/B4F2/B508/B748/B7CF/B7D3/B7D5/

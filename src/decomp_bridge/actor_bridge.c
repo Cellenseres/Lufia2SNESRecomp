@@ -4123,7 +4123,7 @@ RecompReturn Lufia2DecompBridge_818EEA(CpuState *cpu) {
     return ActorBridgeBattleActorSprite(cpu, 0x818eeau, Lufia2BattleActorSprite);
 }
 
-/* World animations: M8/X16; stepping also needs DP0 and S $1F00..$1FFC. */
+/* Animation stepping requires M8, DP0 and an isolated stack. */
 static RecompReturn ActorBridgeWorldAnimation(
     CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction animate,
     int needs_caller_frame) {
@@ -4135,7 +4135,7 @@ static RecompReturn ActorBridgeWorldAnimation(
     Lufia2ExecutionResult result;
 
     if (cpu->emulation || cpu->PB != 0x86u || cpu->S > 0x1ffcu ||
-        !cpu->m_flag || cpu->x_flag ||
+        cpu->x_flag || (needs_caller_frame && !cpu->m_flag) ||
         (needs_caller_frame && (cpu->D != 0u || cpu->S < 0x1f00u)))
         return ActorBridgeFallback(cpu, &frame, entry_pc24);
     frame = ActorBridgeEnter(cpu);
