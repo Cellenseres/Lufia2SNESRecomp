@@ -1,3 +1,52 @@
+## Native NMI display and interrupt restoration — 2026-10-16
+
+The desktop now also uses the original display/clock block at 80:8664 and
+frame-restoration block at 80:869B. Two bounded portable APIs share the
+existing MainNmi bodies: Lufia2NmiDisplayAndClock stops before 80:8699;
+Lufia2NmiRestoreInterruptFrame stops before the real RTI at 80:86BF or the
+reset jump at 80:86B1. The existing 8699 owner hook and its original REP20
+remain in the interpreter. They run once and retain control of redirects
+and mutable CPU context. Unsupported post-hook state continues originally.
+There are no additional canonical functions, bindings or count promotions.
+
+The combined original-ROM checkpoint covers 262,144 direct states at both
+ROM speeds plus 1,024 hour-rollover edges, with exact CPU, WRAM, ordered
+data/MMIO accesses and independently observed per-opcode CPU/master costs.
+Production adapter coverage adds 16,384 states plus 1,024 hour edges.
+Both paths separately compose 1,280 actual interpreted RTIs. Another 1,664
+actual owner-hook compositions vary DB, DP, M/X, decimal mode, stack,
+flags, reset state and MEMSEL. They preserve a single callback per side.
+Pre-access guards cover 264,204 portable and 857,911 consumer cases.
+Three heap-only ROM faults are detected by each direct and ABI fixture.
+Affected canonical MainNmi checks pass 65,536 direct states with five child
+unwinds and 65,541 actual ABI invocations, zero fallbacks and 15 redirects.
+
+The public-library replay, with automatic runtime registration and no
+semantic override, matches the preceding accepted prefix integration across
+10,607 frames: all 53,037 raw CPU/WRAM, PPU, picture, PCM, stack and ordered
+sound-port-progress records and every WRAM page agree. Interpreted
+instructions fall from 5,579,395 to 5,336,633, another 242,762 removed.
+The unchanged 8699 REP20 executes 10,566 times. These are scoped replay
+results, not a whole-game performance percentage.
+
+Strict MSVC fixtures, GCC/Clang libraries and metadata, and the isolated
+Windows Release build pass. Byte-identical resource CLI executables reuse
+their accepted CLI proofs. Thirteen CMake cases cover full, prefix-only,
+partial-API, disabled, reference and rejected configurations; an actual
+older-prefix library links and installs exactly four hooks. Formatting is
+token-identical. Exhaustive private proofs are reused for the same published
+sources; the final public library separately passes RTI/fault checks and the
+runtime replay. The exact-X guard refinement changes only invalid X values;
+all positive states have X1 and the guards were freshly run afterwards.
+No identical exhaustive run or legacy full regression was repeated.
+
+The maintained test is tests/decomp_verify/lufia2_nmi_finish_verify.c.
+Private evidence is nmi-finish-slices-next/ACCEPTANCE_RECEIPT.json. The first
+runtime fixture accidentally extended unrelated four-row scenario loops;
+only its instrumentation was corrected before the accepted comparison.
+The initial callback fixture also toggled shared MEMSEL twice; its corrected
+deterministic input is the accepted result. Neither issue changed semantics.
+
 ## Original NMI continuations — 2026-10-16
 
 The existing MainNmi implementation now shares six phases with
