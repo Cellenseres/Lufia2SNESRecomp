@@ -1,3 +1,40 @@
+## Sloped world windows — 2026-10-16
+
+Ten complete entries:86:C831/C843/C854/C928/CA06/CA2F/CA5E/CA83/CAB2/CAD7.
+They count edge rows, initialize scanlines, rasterize four signed slopes and
+build upper/lower HDMA bands. Four directional leaves share one implementation.
+Zero count still draws256 rows; zero complement angle and arithmetic overflow
+retain M0 returns, while row exhaustion retains M1. CA06 accepts both widths,
+restores its saved Y, and keeps the original indexed JSR frame and read order.
+Header pointers, clipping, carries, wrapping and data-bank behavior remain exact.
+The original C5F8 caller and its CB21 clipping subtree remain interpreted.
+Operand-byte false entries from raw scans were excluded; no duplicates added.
+
+One combined checkpoint passes45056 direct and22528 actual production-ABI
+CPU/full128KiB WRAM/ordered-bus/child-snapshot cases,8 unwinds and20 altered
+child returns per path,91 semantic plus140 additional consumer guards,15 child
+redirects and14 in-memory ROM fault controls. Consumer contracts require
+PB86/DB7F/DP0/D0/X16 andS1F20..1FFC with the documented entry M width.
+Formatting afterward preserves exact C token streams; proofs are reused.
+
+Three affected engine transitions0C/0E/0F complete in860/983/1021 frames with
+2772 script steps. Across11028 frames per run, including7444 ordinary frames,
+all PPU and pixel hashes match without alignment gaps. All ten new entries
+execute natively, with no original entries at those addresses on the enabled
+path. Ordinary CPU/WRAM/audio also match; scene/closure496 CPU/WRAM and1138
+rawPCM hashes differ. Existing HLE clock limitations remain; no full-cycle or
+whole-runtime audio equivalence is claimed. Existing circle timing eligibility
+is retained on both sides. No synthetic delays or duplicate frames were added.
+
+Read-only bank86 profiling of these three transitions measures5332021 original
+instructions in the reference versus1136470 with the new bindings:4195551 fewer
+(78.69%). This is scoped interpreter work, not whole-game coverage or an FPS
+benchmark. GCC/Clang semantic and actual resource CLI checks, MSVC W4/WX proofs,
+metadata and isolated WindowsRelease pass.1514 verified/1503 selected/752 WRAM,
+462 portable C units;40 actual generated wrappers for ten new bindings.
+Full regression is deferred for this revision. Private evidence is under
+world-sloped-windows-next; ROM, unrelated WIP and tools remain uncommitted.
+
 ## Circular windows and scene sprite setup - 2026-10-16
 
 Six complete contracts are reconstructed:86:C358/C40A/C444/C4A8 andE84F/E8B5.
