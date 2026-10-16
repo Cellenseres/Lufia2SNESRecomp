@@ -312,14 +312,17 @@ uint64_t lufia2_frame_wait_ff_site_pairs_count(unsigned site) {
     }
     for (unsigned i = 0; i < 60 && i < PROFILE_HIST_CAP && s_interp_hist[i].n; i++)]=] _text "${_text}")
             endif()
-            # Resume only verified scene continuations after the original wait.
+            # Resume verified continuations after the original wait.
             if(LUFIA2_ENABLE_DECOMP AND NOT LUFIA2_DECOMP_REFERENCE_ONLY)
                 string(APPEND _helpers "#include \"src/decomp_bridge/world_resume.h\"\n")
+                string(APPEND _helpers "#include \"src/decomp_bridge/field_resume.h\"\n")
                 set(_old [=[        if (is_call) {]=])
                 set(_new [=[        uint32_t _l2_resume_return = 0u;
         if (auto_quiescent && !stop_on_rti && op == 0x60u &&
             (!s_lle_master_deadline || cpu->master_cycles < s_lle_master_deadline)) {
             _l2_resume_return = Lufia2SceneResumeReturn(&in, pc_before, cpu->ram);
+            if (!_l2_resume_return)
+                _l2_resume_return = Lufia2FieldResumeReturn(&in, pc_before);
             if (_l2_resume_return) {
                 sync_interp_to_cpu(&in, cpu);
                 uint32_t target = ((uint32_t)in.k << 16) | in.pc;
@@ -329,6 +332,10 @@ uint64_t lufia2_frame_wait_ff_site_pairs_count(unsigned site) {
             }
         }
         if (is_call || _l2_resume_return) {]=])
+                _lufia2_replace_native_seam(_text "${_old}" "${_new}")
+                set(_old [=[            const uint8_t _fs = (op == 0x22) ? 3 : 2;]=])
+                set(_new [=[            const uint8_t _fs = _l2_resume_return == 0x838007u ? 0u :
+                (op == 0x22) ? 3 : 2;]=])
                 _lufia2_replace_native_seam(_text "${_old}" "${_new}")
                 set(_old [=[                const uint32_t ret =
                     (pc_before + (uint32_t)call_len +
