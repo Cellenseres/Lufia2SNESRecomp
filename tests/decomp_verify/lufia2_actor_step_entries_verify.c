@@ -33,7 +33,7 @@ static void observe(void *context, uint32_t address, uint8_t value, bool write) 
         ++fetch_address;
         return;
     }
-    if (trace->count == 12000000u) {
+    if (trace->count == sizeof(trace->events) / sizeof(trace->events[0])) {
         fprintf(stderr, "trace ceiling case%u side%s fetch%06X\n", number,
                 trace == &original_trace ? "original" : "native", fetch_address);
         exit(1);

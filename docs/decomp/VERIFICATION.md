@@ -1,3 +1,63 @@
+## Popup records and single-target status ticks — 2026-10-17
+
+Three complete original JSR entries now have verified native bindings:
+81:C3EE Lufia2BattleBuildSlotPopup, 81:C477 Lufia2BattleBuildPopupRecord and
+81:C652 Lufia2BattleApplyTargetStatusTick. Their original RTS boundaries are
+C476,C585,C738. Popup entries require PB81, DB7E, M1/X0, binary arithmetic,
+DP0 and S1F00..1FFC. The status entry admits hardware-register mirror banks
+00..3F/80..BF instead of DB7E, and requires an explicit pushed-child service.
+All three reuse existing algorithms; the original C600 wrapper still pushes
+and consumes its own JSR frame around the same target-tick body. No popup,
+damage or random-number algorithm is copied.
+
+Expanded ordered-bus proof found inherited popup C fidelity defects despite
+matching final CPU/WRAM. Word DEC of the scan count and word INC of the popup
+count wrote low/high instead of the original high/low order. Their two local
+sites now use the existing width-aware memory-step helper. Global CPU helpers
+are unchanged. The parent also read the mode for inactive/unrecognized slots;
+it now reads it only for the four original popup types. Slot lookup preserves
+the original comparison carry. These repairs reproduce original ROM behavior,
+including signed digits, limits and the original output indexing quirks.
+
+The shared direct checkpoint covers 12,288 new-entry states and 8,192 affected
+C35F/C600 caller states; the actual 21-function producer closure passes 20,480
+states on the same families. Each layer also passes 5,120 raw-slot, digit,
+output-wrap and target-mask edge states, 1,536 focused return states and 2,048
+target-tick interruption states. Edges include all 256 popup kinds with 13
+signed-value cases, raw slot offsets crossing banks, wrapped output positions,
+all 128 accepted register-mirror banks and all byte target masks. A zero staged
+mask retains its original nonterminating child; the proof interrupts at that
+live child entry and does not invent a successful return.
+
+CPU, full WRAM, ordered bus accesses and MMIO results match original code.
+Each of the six target-tick child sites is reached and interrupted. Ninety
+additional actual producer probes cover changed return PCs, changed stacks,
+ancestor skips and LLE unwinds at all six sites. Admission proof rejects
+393,878 semantic and 393,902 unpaired producer contexts before memory access;
+the null-child guard also rejects before access. The C600 affected proof stops
+at its explicit presentation child when requested; it does not claim gameplay
+execution of that asynchronous presentation chain.
+
+One first caller fixture used RTS for the original C35F RTL; its trace ceiling
+correctly rejected the invalid run. The corrected fixture uses the actual RTL.
+Interruption checks distinguish the first and last D9C9 call by original call
+site rather than stopping ambiguously at the repeated target address. Fixture
+trace guards now use allocated capacity, including the earlier actor-entry
+fixture; ordinary comparisons and semantic expectations remain unchanged.
+
+Private/public semantic tokens match. Full unchanged direct/ABI/edge/return/
+guard/redirect proofs are reused. Fresh public wiring passes 160 direct,
+48 return and 160 actual producer states plus null-child and C++ link/run
+checks. Four heap-only ROM faults and a wrong return-frame adapter fail
+normally. CMake selects the three entries among 1,570 ordinary native bindings.
+GCC, Clang, metadata indexing and one isolated Windows Release build pass;
+resource CLI tests are reused only when executable bytes remain identical.
+The receipt records exact compiler durations. Full regression and fresh
+gameplay/audio replay remain deferred. No new runtime-hit or speed claim.
+The following atomic commits share validation of their combined final state;
+intermediate commits were not independently tested. Totals: 1,585 verified
+entries, 1,570 ordinary bindings, 752 WRAM fields and 466 semantic C units.
+
 ## Secondary movement entries and indirect dispatch — 2026-10-17
 
 Four complete original JSR children now share the existing secondary-VM
