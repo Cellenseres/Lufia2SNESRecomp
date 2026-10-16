@@ -433,7 +433,7 @@ int main(int argc, char **argv) {
         for (; i < 8u; ++i)
             if (handler == handlers[i])
                 break;
-        if (i < 8u)
+        if (i < 8u || handler == 0x9ec8u)
             continue;
         Lufia2CpuState state = untouched;
         if (ExecuteSceneControl(&memory, &state, (uint16_t)handler) ||

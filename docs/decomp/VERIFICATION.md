@@ -1,3 +1,68 @@
+## Shared script readers and table branches — 2026-10-16
+
+The text VM now shares the existing 80:C0B7 byte reader, 80:C0D0 word
+reader and 80:C102 relative seeker. Their old text helpers retain their
+original call frames. The word reader preserves both original reads,
+current-M pushes/pulls, accumulator exchange and bank advancement. The
+duplicated byte-only implementation previously returned the wrong value
+under M0; a frozen pre-change executable reproduces that mismatch against
+the supported ROM. This fixes decompilation fidelity, not original gameplay.
+
+The existing C0D0 entry and consumer additionally accept M0 with the same
+native, X16, binary, PB80, DP0 and stack guards. Canonical reader entry
+names and bindings are reused; no duplicate routines or new bindings are
+introduced. C0B7/C0D0 metadata records their preserved runtime exit widths.
+Shared internal bodies let legacy callers retain their broader frame
+contexts without weakening the canonical entry guards.
+
+With child services, the existing 80:A041 variable-table branch continues
+through A3C6 using the existing goto implementation. Without services, its
+previous exact A3C6 boundary remains available. The internal route is
+documented complete for this contract; the enclosing text VM is not
+claimed fully reconstructed.
+
+The combined checkpoint covers 327,680 direct reader/seeker states and
+196,608 actual bridge states, with 24 additional intentional bank/frame
+aliases on each path. CPU, full WRAM and ordered data-bus accesses agree
+with the ROM. Reached A041 compositions cover 4,096 ordinary states plus
+64 bank-edge states directly and through the actual VM bridge; 4,096
+legacy states retain the old handoff. There are 262,150 semantic and
+262,151 consumer pre-access guards. Two original-ROM operand faults are
+detected on both direct and actual-ABI paths.
+
+One shared affected union covers 18 existing text/script fixtures. All
+positive matrices pass. Two old unknown-command lists omitted existing
+implemented routes; only those guard groups were corrected and repeated.
+The permanent reader fixture also passes against the actual public static
+library, including bank edges, legacy handoffs, guards and fault controls.
+No unchanged full regression is repeated for each helper or commit.
+
+Two real-runtime comparisons each cover 10,607 frames and 53,037 raw
+comparison records, plus every WRAM page hash. CPU/WRAM, PPU, pictures,
+PCM, stack and ordered SPC progress agree with the preceding native
+implementation. Their first 9,767 frames also match the accepted baseline.
+The ordinary A041 scenario reaches native C once and removes 50 interpreted
+instructions. With the text VM deliberately original in both runs, the
+new M0 reader admission removes six. These are separate scoped scenarios,
+not additive whole-game measurements or cycle-identical execution claims.
+The custom script is WRAM-seeded; earlier accepted diagnostic phases are
+retained. Neither scenario changes the ROM file or saves.
+
+GCC/Clang library builds, real resource CLI tests, metadata checks, strict
+MSVC public fixtures and the isolated Windows Release build pass. The
+full legacy regression remains deferred. Source, compiler and proof hashes
+and reused/fresh scopes are recorded in the private batch receipt. Several
+related changes share this final checkpoint; intermediate commits are not
+independently claimed tested.
+
+The final public-library replay also reproduces both scenarios' 53,037
+raw records and all WRAM-page hashes exactly. The forced-VM scenario
+observes one accepted native M0 word-reader entry at S1FF8/DB7E. No private
+semantic objects or manual dispatch registrations are linked. The earlier
+direct/ABI proofs are reused only for token-identical semantic bodies and
+the checked production bridge closure; the public fixture and generated
+runtime replay are fresh integration checks.
+
 ## Original reward/cave caller continuations — 2026-10-16
 
 The existing text/menu services now carry both item-reward pages,

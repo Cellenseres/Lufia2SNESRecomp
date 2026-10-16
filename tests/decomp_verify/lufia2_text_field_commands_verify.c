@@ -412,7 +412,8 @@ int main(int argc, char **argv) {
         for (; i < 13u; ++i)
             if (handler == handlers[i])
                 break;
-        if (i < 13u)
+        if (i < 13u || handler == 0xac6au || handler == 0xbbebu ||
+            handler == 0xbdbbu || handler == 0xbdcau || handler == 0xb6b3u)
             continue;
         Lufia2CpuState state = untouched;
         if (Lufia2TextExecuteFieldCommand(&memory, &state, (uint16_t)handler) ||

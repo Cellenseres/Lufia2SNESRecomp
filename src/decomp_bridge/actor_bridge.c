@@ -5499,7 +5499,8 @@ static RecompReturn ActorBridgeSceneRecordHelper(
     return ActorBridgeRunWhole(cpu, entry, helper, return_frame, byte_input ? 4 : 2);
 }
 RecompReturn Lufia2DecompBridge_80C0D0(CpuState *cpu) {
-    return ActorBridgeSceneRecordHelper(cpu, 0x80c0d0u, Lufia2SceneScriptReadWord, true, 2u);
+    return ActorBridgeSceneRecordHelper(
+        cpu, 0x80c0d0u, Lufia2SceneScriptReadWord, cpu->m_flag != 0u, 2u);
 }
 RecompReturn Lufia2DecompBridge_80C102(CpuState *cpu) {
     return ActorBridgeSceneRecordHelper(cpu, 0x80c102u, Lufia2SceneScriptSeekRelative, false, 2u);
