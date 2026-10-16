@@ -13314,3 +13314,27 @@ RecompReturn Lufia2DecompBridge_86CAD7(CpuState *cpu) {
     return ActorBridgeSlopedWindowLeaf(cpu, 0x86cad7u,
                                        Lufia2WorldMapInitializeWindowRows, true);
 }
+
+RecompReturn Lufia2DecompBridge_86E71E(CpuState *cpu) {
+    if (cpu->S < 0x1f24u) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86e71eu);
+    }
+    return ActorBridgeWorldSequence(cpu, 0x86e71eu,
+                                    Lufia2WorldMapAnimateSceneSpriteTrails, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86E7A2(CpuState *cpu) {
+    return ActorBridgeWorldSceneLeaf(cpu, 0x86e7a2u,
+                                     Lufia2WorldMapSpawnSceneSpriteTrail);
+}
+
+RecompReturn Lufia2DecompBridge_86E7CE(CpuState *cpu) {
+    return ActorBridgeWorldSceneLeaf(cpu, 0x86e7ceu,
+                                     Lufia2WorldMapAdvanceSceneSpriteTrail);
+}
+
+RecompReturn Lufia2DecompBridge_86E804(CpuState *cpu) {
+    return ActorBridgeWorldSceneLeaf(cpu, 0x86e804u,
+                                     Lufia2WorldMapDrawSceneSpriteTrail);
+}

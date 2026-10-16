@@ -6021,3 +6021,19 @@ bridge = "Lufia2DecompBridge_86CAB2"
 [[binding]]
 address = "86:CAD7"
 bridge = "Lufia2DecompBridge_86CAD7"
+
+[[binding]]
+address = "86:E71E"
+bridge = "Lufia2DecompBridge_86E71E"
+
+[[binding]]
+address = "86:E7A2"
+bridge = "Lufia2DecompBridge_86E7A2"
+
+[[binding]]
+address = "86:E7CE"
+bridge = "Lufia2DecompBridge_86E7CE"
+
+[[binding]]
+address = "86:E804"
+bridge = "Lufia2DecompBridge_86E804"

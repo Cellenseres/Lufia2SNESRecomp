@@ -1,3 +1,40 @@
+## World scene sprite trails — 2026-10-16
+
+Four complete entries:86:E71E/E7A2/E7CE/E804. Two original eight-record
+sprite groups retain their origins, seven trail records, spawn order, animation
+ages/tiles and reverse OAM emission. ExistingE650/A417 and the existing
+SceneSpriteSetup child boundary are reused. Original word stores after XBA,
+inactive records, age wrapping and byte4 persistence remain unchanged.
+The parent retains all nine near-call sites and requires consumer S>=1F24
+because its records reach1F21. No new WRAM allocation or duplicate multiplier.
+
+The shared six-root checkpoint also covers existingE84F/E8B5:30208 direct and
+15104 production-ABI CPU/full128KiB WRAM/ordered-bus/child-snapshot cases,
+216 unwinds and540 changed returns per path,54 semantic plus86 additional
+consumer guards,180 redirect probes at12 distinct child sites,10 in-memory
+ROM fault controls. Only guard tests were repeated after correcting the old
+E8B5 semantic-anyDB expectation; positive and edge branches stay unchanged.
+Final formatting preserves exact C tokens. Existing A417 executes original
+ROM in composed fixtures; its internals are not newly claimed by this batch.
+
+The affected resource scene15 and control scene10 both complete in771 frames,
+with760 script steps each. All9466 frames per run, including7444 ordinary
+frames and two240-frame closures, match CPU/WRAM/PPU/pixel/rawPCM hashes.
+All four new entries execute natively in15, with no original entries at those
+addresses on the enabled path. The second scene restores an exact in-memory
+baseline; no snapshot file or ROM export. This scoped result does not establish
+general HLE cycle accuracy or arbitrary story-state preconditions.
+
+Read-only bank86 profiling measures684762 reference versus233646 enabled
+instructions across the two scenes:451116 fewer(65.88%). This is scoped
+interpreter work, not whole-game coverage or an FPS benchmark. MSVC W4/WX,
+GCC/Clang semantic and actual resource CLI checks, metadata and isolated
+WindowsRelease pass.1518 verified/1507 selected/752 WRAM/462 portable C units;
+16 actual new generated wrappers. Full regression is deferred on this revision.
+Evidence:world-scene-sprite-motion-next/checks.json,compilers.json,runtime/
+comparison.json andACCEPTANCE_RECEIPT.json. Nothing pushed; private tools,
+ROM and unrelated work remain excluded.
+
 ## Sloped world windows — 2026-10-16
 
 Ten complete entries:86:C831/C843/C854/C928/CA06/CA2F/CA5E/CA83/CAB2/CAD7.
