@@ -5,6 +5,15 @@
 #include "decomp_bridge/host_events.h"
 #include "../lufia2_sprite_visibility.h"
 
+
+#if defined(LUFIA2_HAVE_NATIVE_NMI_CONTINUATIONS)
+#include "snes/snes.h"
+#include "decomp_bridge/nmi_resume.h"
+#include "decomp_bridge/nmi_timing.h"
+#include "decomp_bridge/nmi_resume.h"
+extern Snes *g_snes;
+#endif
+
 typedef struct ActorBridgeFrame {
     uint16_t entry_s;
     uint8_t hrv;
@@ -2386,6 +2395,66 @@ static void ActorBridgePlayTimeTick(
     Lufia2DecompPlayTimeTick(call->cpu, pc);
     ActorBridgeLoad(call->cpu, state);
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_NMI_CONTINUATIONS)
+static uint8_t ActorBridgeNmiRead(void *context, uint32_t address) {
+    return Lufia2DecompNmiReadByte((CpuState *)context, address);
+}
+
+static void ActorBridgeNmiWrite(void *context, uint32_t address, uint8_t value) {
+    Lufia2DecompNmiWriteByte((CpuState *)context, address, value);
+}
+
+static bool ActorBridgeNmiResumeSupported(const CpuState *cpu, uint32_t pc) {
+    bool byte_mode;
+    switch (pc) {
+    case 0x808638u:
+        byte_mode = false;
+        break;
+    case 0x80864cu:
+    case 0x808653u:
+    case 0x80865au:
+        byte_mode = true;
+        break;
+    default:
+        return false;
+    }
+    return g_snes && g_snes->inNmi && !cpu->emulation && cpu->ram && cpu->PB == 0x80u &&
+           cpu->m_flag == byte_mode && cpu->x_flag == byte_mode && !cpu->_flag_D &&
+           !cpu->D && cpu->S >= 0x1f00u && cpu->S <= 0x1ff3u &&
+           (!byte_mode || cpu->DB == 0x80u);
+}
+
+static void ActorBridgeNmiResume(CpuState *cpu, uint32_t pc) {
+    if (!ActorBridgeNmiResumeSupported(cpu, pc))
+        return;
+    const Lufia2NmiSchedule schedule = pc == 0x808638u
+                                           ? Lufia2NmiPrepareSchedule(cpu->ram)
+                                           : Lufia2NmiCallbacksSchedule(cpu->ram, pc);
+    const unsigned fetch_speed = cpu_region_speed(pc);
+    const Lufia2Memory memory = {ActorBridgeNmiRead, ActorBridgeNmiWrite, cpu,
+                                 ActorBridgeExecutionCheckpoint, cpu};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result =
+        Lufia2MainNmiResume(&memory, &state, pc, NULL, NULL);
+    if (result.flow != LUFIA2_EXECUTION_BOUNDARY || result.pc == pc)
+        return;
+    ActorBridgeStore(cpu, &state);
+    for (unsigned i = 0; i < schedule.count; ++i) {
+        const Lufia2NmiCost cost = schedule.steps[i];
+        Lufia2DecompNmiAccountCycles(cpu, Lufia2NmiCpuCycles(cost),
+                                     Lufia2NmiMasterClocks(cost, fetch_speed));
+    }
+    interp_bridge_pre_opcode_redirect(result.pc);
+}
+
+void Lufia2DecompInstallNmiHooks(void) {
+    static const uint32_t entries[] = {0x808638u, 0x80864cu, 0x808653u, 0x80865au};
+    for (unsigned i = 0; i < sizeof entries / sizeof entries[0]; ++i)
+        interp_bridge_set_pre_opcode_hook(entries[i], ActorBridgeNmiResume);
+}
+#endif
 
 RecompReturn Lufia2DecompBridge_808638(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);

@@ -1,3 +1,62 @@
+## Original NMI continuations — 2026-10-16
+
+The existing MainNmi implementation now shares six phases with
+Lufia2MainNmiResume: 80:8638, 864C, 8653, 865A, 8661 and 8664. They stop
+before original child JSRs or at the original reset/RTI boundaries. The
+canonical child-service API retains its behavior, including saved registers,
+the uncapped original play clock and the 80:8699 checkpoint. An unexpected
+M0 child return hands back at its exact next original instruction. MainNmi
+exit_mx is dynamic because PLP restores the saved status. No additional
+function, binding, memory location or semantic translation unit is counted.
+
+The shared ROM checkpoint passes 393,216 phase states plus 1,024 hour
+rollover edges, 4,096 canonical MainNmi states, 80 child unwinds, 80 changed
+width boundaries and 1,280 actual interpreted RTI compositions. The permanent
+public fixture also passes 852,046 pre-access guards. Three heap-only ROM
+faults change the HDMA operand, clock threshold and restored register;
+all are detected. The affected older play-time fixtures pass 65,536 direct
+states and 65,541 actual canonical-ABI invocations, with zero fallbacks and
+15 return redirects. Their real checkpoint also exercises changed DB.
+
+The desktop consumer currently admits only preparation and callback
+selection at 8638/864C/8653/865A. It preserves original child JSRs, RTSs,
+the play-time hook and RTI. Native entry requires E0, binary arithmetic,
+PB80, DP0 and S1F00..1FF3; preparation is M0X0, subsequent phases M1X1
+with DB80. Unsupported states stay in the original interpreter. Only the
+desktop owner with enabled decomp, verified MainNmi metadata and the new
+portable API receives these hooks. Cold startup and execution-state loading
+both install them. Reference-only, disabled, older-library and other-runtime
+configurations retain their existing sources.
+
+The consumer accounts for the original per-opcode CPU/master costs,
+memory speeds, refresh and existing APU batching. Its byte accesses use
+the interpreter's own bus callbacks, preserving the dynamic-read cache and
+progress epochs used by wait detection. The pinned SDK stays unchanged;
+a maintained overlay supplies these narrow adapter functions. Both ROM
+speeds pass 132,608 production-prefix ABI states. The instruction cost
+sequence is independently checked against original opcodes and raw bus
+addresses. There are 590,655 consumer/core guard cases and two additional
+production-ABI ROM faults. Eleven CMake selection/rejection cases pass.
+
+The actual public-library replay uses automatic owner registration and no
+semantic overrides. Over 10,607 frames, all 53,037 raw CPU/WRAM, PPU,
+picture, PCM, stack and ordered sound-port-progress records and every WRAM
+page match the preceding accepted native version. Interpreted instructions
+decline from 5,716,753 to 5,579,395, a scoped reduction of 137,358. This
+is sampled parity; no whole-runtime cycle identity or frame-rate gain is
+claimed. A separate full-NMI experiment establishes that missing interpreter
+bus bookkeeping caused transient sound-upload progress differences. Its
+broader runtime activation remains separate pending callback-context fences.
+
+GCC/Clang libraries, metadata validation, strict MSVC fixtures and isolated
+Windows Release builds pass. Resource CLI proofs are reused by identical
+rebuilt executable hashes. All changes share the combined checkpoint; no
+claim is made that intermediate commits were independently tested. The
+historical full decomp-verify target and manifest unit-test file are absent
+from the current isolated configuration, so those runs execute no tests and
+are not reported as passing. The actual configure-time manifest generation,
+AOT generation and production build pass.
+
 ## Original field caller continuations — 2026-10-16
 
 Four existing internal text handlers now share optional pushed-child
