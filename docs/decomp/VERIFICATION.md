@@ -1,3 +1,61 @@
+## Secondary movement entries and indirect dispatch — 2026-10-17
+
+Four complete original JSR children now share the existing secondary-VM
+algorithms through guarded public entries: 83:DA8A StopSecondaryScript,
+83:DA71 MarkLeaderScriptStop, 83:DA5B PrepareStepProbe and 83:D9C6
+CommitTileStep. Their RTS boundaries are DA99, DA89, DA70 and DA5A.
+The existing VM wrappers retain their original frames and wider contexts.
+The new entries admit PB83, M1/X0, binary arithmetic, DP0 and S1F00..1FFC.
+The probe and commit retain live movement-child frames and unknown targets.
+No arbitrary walk continuation is promoted or counted as a whole function.
+
+An inherited C fidelity defect in 83:FB12 was independently reproduced:
+DA5B with facing 1 matched CPU/WRAM but generated 12 bus accesses instead of
+the original 10. MovementStep read the indirect target then handed back
+before the already-completed JMP; its bridge read the same table again.
+The semantic helper now reports the actual program-bank:target boundary;
+the bridge uses that result without additional reads. The four recognized
+targets and original frames remain unchanged. This repairs native fidelity,
+not an original game bug. The reference test executes the original JMP
+before comparing the independently decoded target and machine state.
+
+Shared verification passes 40,960 direct and 40,960 actual producer states
+across the four new entries and affected FB12 helper. Each layer also passes
+5,120 all-byte-direction states, 2,560 focused return compositions and 2,048
+actor-state-bit/edge-slot states. The latter covers all 256 state bytes at
+slots 0/1/31/39, distributed across WRAM banks 7E/7F. An additional 512 actual
+FB12 producer states retain X8/X16 and DP0/20/E0 contexts. CPU, full WRAM,
+ordered bus accesses and real RTS/RTL compositions match the original ROM.
+Poisoned admission checks reject 524,320 semantic and 524,352 unpaired actual
+producer states before access. The ABI proof uses 18 exact producer functions;
+observations do not alter entry or return state.
+
+The affected-only legacy proof passes 60,416 movement, indirect-jump,
+primary/secondary VM, player and 44 primary-handler states. Forty unused
+legacy small-bridge registrations trap if invoked; that semantic proof does
+not claim their ABI execution. The old --skip-small still runs unrelated
+families, so its overly broad run was stopped and is not accepted regression
+evidence. The maintained --movement selector restricts the existing cases
+to the affected families. Its fresh public-library cohort passes 6,272 states.
+
+Private/public semantic tokens are identical. Full unchanged matrices,
+admission and return proofs are reused rather than repeated. Fresh public
+wiring checks pass 160 direct states, 160 unknown-direction states, 80 return
+compositions, 32 raw contexts, 256 state-bit states, 160 actual producer
+states and 32 raw producer contexts. Four heap-only ROM instruction faults,
+an extra-table-read bridge fault and a wrong RTS/RTL adapter fail normally.
+A C++ link/run probe exercises all four new declarations inside extern C.
+CMake selects all four among 1,567 ordinary native bindings.
+
+GCC, Clang, metadata indexing and one isolated Windows Release build pass.
+Windows took 420.20 seconds including native CFG regeneration; GCC/Clang
+took 58.36/51.14 seconds. Unchanged resource CLI executable bytes retain
+their earlier accepted tests. Full regression and fresh gameplay/audio replay
+remain deferred. No new interpreter-hit, timing or speed result is claimed.
+Combined final-state validation covers the following atomic commits, not
+independent validation of intermediate revisions. Totals: 1,582 verified
+entries, 1,567 ordinary bindings, 752 WRAM fields and 466 semantic C units.
+
 ## Public field C++ linkage — 2026-10-17
 
 The four recently added attribute/area-spawn declarations now remain inside

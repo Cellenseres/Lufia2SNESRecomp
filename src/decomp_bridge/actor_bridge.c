@@ -223,13 +223,8 @@ RecompReturn Lufia2DecompBridge_FB12(CpuState *cpu) {
     ActorBridgeStore(cpu, &state);
     if (rtl_pc24 == 0) {
         /* Unknown JMP ($FB1A,X) target: finish in LLE. */
-        const uint16_t target = (uint16_t)(
-            cpu_read8(cpu, cpu->PB, (uint16)(0xfb1au + cpu->X)) |
-            ((uint16_t)cpu_read8(
-                cpu, cpu->PB, (uint16)(0xfb1bu + cpu->X)) << 8));
-        return interp_tier_dispatch_tail(
-            cpu, ((uint32_t)cpu->PB << 16) | target, 0x83fb17u,
-            frame.entry_s, frame.hrv);
+        return interp_tier_dispatch_tail(cpu, state.resume_pc, 0x83fb17u, frame.entry_s,
+                                         frame.hrv);
     }
     return ActorBridgeReturn(cpu, &frame, 3, rtl_pc24);
 }
@@ -13873,4 +13868,34 @@ RecompReturn Lufia2DecompBridge_80D533(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_80D583(CpuState *cpu) {
     return ActorBridgeAreaSpawnEntry(cpu, 0x80d583u, Lufia2FieldRandomAreaCoordinate,
                                      2u);
+}
+
+static RecompReturn ActorBridgeSecondaryMovement(CpuState *cpu, uint32_t entry,
+                                                 ActorWholeFunction run) {
+    if (cpu->PB != 0x83u || cpu->D || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame,
+                                   ((uint32_t)cpu->PB << 16) | (uint16_t)entry);
+    }
+    return ActorBridgeWholeM1X16(cpu, entry, run, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83DA8A(CpuState *cpu) {
+    return ActorBridgeSecondaryMovement(cpu, 0x830000u | 0xda8au,
+                                        Lufia2ActorStopSecondaryScript);
+}
+
+RecompReturn Lufia2DecompBridge_83DA71(CpuState *cpu) {
+    return ActorBridgeSecondaryMovement(cpu, 0x830000u | 0xda71u,
+                                        Lufia2ActorMarkLeaderScriptStop);
+}
+
+RecompReturn Lufia2DecompBridge_83DA5B(CpuState *cpu) {
+    return ActorBridgeSecondaryMovement(cpu, 0x830000u | 0xda5bu,
+                                        Lufia2ActorPrepareStepProbe);
+}
+
+RecompReturn Lufia2DecompBridge_83D9C6(CpuState *cpu) {
+    return ActorBridgeSecondaryMovement(cpu, 0x830000u | 0xd9c6u,
+                                        Lufia2ActorCommitTileStep);
 }
