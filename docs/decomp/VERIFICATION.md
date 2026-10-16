@@ -1,3 +1,44 @@
+## Byte-index field position callers — 2026-10-16
+
+The existing 83:A746 actor fine-position adapter additionally accepts the
+observed DB87/M1X1 caller profile in native binary mode, PB83, DP0,
+S1F10..1FFC and HRV0/3. Existing M1X0 admission is unchanged. The literal
+portable position algorithm, metadata and selected bindings are unchanged.
+
+The earlier 327,680 direct ROM states are reused after comparing the
+complete relevant semantic source/header closure and seven shared bridge
+helpers. The only intervening public actor/field header changes are three
+unrelated VM declarations. A current broad ABI experiment passed 163,840
+states; its DB83/X8 admission changed intro timing and was rejected.
+The final narrower DB87/X8 adapter passes a focused 65,536-state actual-ABI
+matrix covering all slot words and both admitted return modes. There are
+7,240 consumer guard states, including every excluded DB and independently
+invalid mode, width, DP, stack and return-mode conditions. Original entry
+frame reads, CPU, full WRAM and ordered operand accesses are checked.
+
+The field-only runtime reaches 22 additional native calls and removes
+506 interpreted instructions (4,896,060 to 4,895,554) in this scenario.
+All 9,767 raw CPU/WRAM, PPU, PCM, picture, port and stack records agree
+exactly with the current original-profile baseline. Both scene durations
+remain 860/983 frames. The ordered SPC stream remains 159,715 writes,
+hash41E7208BACC42988. No guest clock, frame or hash is adjusted.
+The 35 DB83/X8 intro calls remain original: their broad experiment moved
+an intro section one frame early and differed on 1,116 picture frames.
+Neither this result nor function-level parity justifies enabling that
+separate timing-sensitive profile.
+
+Counts remain 1,572 verified contracts, 1,558 bindings, 752 WRAM fields and
+465 C units. Consumer compiler/Release checks share this checkpoint.
+Unchanged semantic library, metadata and CLI results are reused from
+8bc0b5a/24ac544; the full legacy regression remains deferred.
+
+Final consumer checkpoint passes strict MSVC actual-ABI/guard fixtures,
+GCC/Clang whole-consumer C11 warnings-as-errors and isolated Windows
+Release. Unchanged library, metadata and CLI proofs from the preceding
+batch are reused. The combined final sources were checked once before
+these two dependent commits; no separately tested intermediate revision
+is claimed. Full legacy regression is deferred.
+
 ## Menu callers and equipment-selection widths — 2026-10-16
 
 Eleven existing adapters now admit the 129 original system/low-WRAM data
