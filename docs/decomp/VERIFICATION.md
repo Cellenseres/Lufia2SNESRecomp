@@ -1,3 +1,53 @@
+## Session records, save previews and near event return — 2026-10-16
+
+Three existing consumer entries now admit the original 129 system/low-WRAM
+data banks: 82:F22B builds a save preview, 82:9AA3 resets session records,
+and 82:C2AE initializes saved capsule data. Observed callers use DB83/82.
+The original M1X0, DP0, binary, program-bank and stack guards remain.
+
+83:BB76 also supports its observed near-return entry at S1FFD with host
+frame0/2. Frame3 is rejected before any return read at 00:2000. The portable
+near contract ends at S1FFD; the far B727 caller retains its S1FFC maximum.
+Only the supported stack-boundary guard changes; original writes and flags
+remain literal, without a second implementation of the helper.
+
+The shared ROM/actual-ABI matrices pass 33,024 session/capsule cases,
+66,048 save-preview cases and 16,384 event-helper cases on each path.
+All operand accesses, CPU and full WRAM are compared. The two parents add
+387/258 reached child-unwind cases per path. All five child sites pass
+9,675 reached ABI redirects across all 129 banks. Session reset also executes
+the actual capsule child in 4,128 direct and 4,128 nested actual-ABI cases.
+27,648 consumer guards and 3,584 pre-access semantic guards pass. Four ROM
+operand faults are detected. Existing complete bodies stay shared; no new
+function, contract or binding is counted (1,569 verified/1,558 selected).
+
+Final production-library acceptance preserves all 9,767 pictures and PPU
+states, both scene durations (860/983 frames), and the complete ordered
+159,715-write CPU-to-SPC stream (hash 41E7208BACC42988). Eleven observed calls
+now use the existing native bodies: two session resets, two capsule
+initializations, four save previews and three event preparations.
+
+Execution timing is not identical. CPU/WRAM hashes differ on 8,253 frames;
+all WRAM pages outside direct-page0 and stack-page1F00 agree at every frame.
+There are 103 CPU-state differences in original SPC transfers or frame
+waits. Four active-stack
+differences occur during the SPC upload; 8,230 frames retain different
+discarded stack bytes. Seventy-two sampled frames differ in SPC write
+progress, while the complete ordered port stream agrees. PCM differs on
+9,258 frames. These raw results are retained without normalisation.
+
+Total interpreted instructions are 4,901,067 before versus 4,906,118 after
+in this run, alongside the changed SPC polling phase. This is not evidence
+of a whole-game speedup or of identical cycle/audio/frame-state timing.
+Original function semantics are separately checked at their actual boundaries.
+
+Actual GCC/Clang semantic builds, CLI resource targets/tests, metadata and
+complete consumer compilation pass. The isolated Windows Release build
+passes. The private/public behaviour tokens agree; the final runtime
+uses the actual production library. The combined worktree was validated
+before preparing its atomic commits; intermediate commits were not tested
+separately. Full legacy regression was deferred.
+
 ## Actor scene bank contracts and field colour calls — 2026-10-16
 
 The existing $83:A82E scene constructor now supports the original 128 system
