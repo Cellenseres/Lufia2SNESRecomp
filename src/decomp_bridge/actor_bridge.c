@@ -927,9 +927,19 @@ RecompReturn Lufia2DecompBridge_CB65(CpuState *cpu) {
         cpu, 0x83cb65u, Lufia2ActorClearSlotLinks, 2, 0x83cb70u, 0);
 }
 
+static int ActorBridgeRecordBankSupported(uint8_t bank);
+
 RecompReturn Lufia2DecompBridge_D416(CpuState *cpu) {
-    return ActorBridgeRunVoid(
-        cpu, 0x83d416u, Lufia2ActorLoadPrimaryScript, 3, 0x83d436u, 0);
+    if (!cpu->emulation && !cpu->_flag_D && cpu->m_flag && cpu->x_flag &&
+        cpu->PB == 0x83u && !cpu->D &&
+        (cpu->host_return_valid == 0u || cpu->host_return_valid == 3u) &&
+        cpu->S >= 0x1f20u && cpu->S <= 0x1ffcu &&
+        ActorBridgeRecordBankSupported(cpu->DB))
+        return ActorBridgeRunVoid(cpu, 0x83d416u, Lufia2ActorLoadPrimaryScript, 3u,
+                                  0x83d436u, 1);
+
+    return ActorBridgeRunVoid(cpu, 0x83d416u, Lufia2ActorLoadPrimaryScript, 3,
+                              0x83d436u, 0);
 }
 
 RecompReturn Lufia2DecompBridge_FA3F(CpuState *cpu) {
