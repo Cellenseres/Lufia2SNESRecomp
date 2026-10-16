@@ -1,3 +1,57 @@
+## Equipment records in original system data banks — 2026-10-16
+
+Five existing equipment adapters now admit the 129 system/low-WRAM data
+banks through the existing shared predicate: 82:F703 selects a slot,
+82:F710 loads an item, 82:F722 accumulates modifiers, 82:F846 rebuilds one
+member's modifiers, and 82:994E rebuilds the party's equipment statistics.
+Observed original callers use DB83. Program bank, DP0, widths, binary/native
+mode, stack and child-return guards remain unchanged. No portable body,
+public declaration, metadata contract or selected binding is added.
+
+The original 93,783 direct ROM states and 34,560 unsupported consumer
+guards are reused after proving the five adapter blocks and 14 common
+consumer helpers identical to the earlier passing candidate. Relevant
+party/equipment source and CPU/bus helpers are unchanged. The updated
+actual-ABI fixture runs 93,783 states against the current library, including
+903 reached child unwinds and 13,590 reached redirect probes. It preserves
+real child PB on return and unwind, replacing an older fixture assumption.
+All five entries compare CPU, full WRAM, MMIO and ordered operand accesses.
+
+The paired current runtime receives 234 additional native calls: 84 slot
+selections, 84 item loads, 50 modifier accumulations, 14 member rebuilds and
+two party rebuilds. All 9,767 pictures and PPU states match; both scene
+durations remain 860/983 frames. All WRAM outside DP0 and stack page1F00
+matches at every frame. The complete ordered CPU-to-SPC write fingerprint
+remains 159,715 writes, hash41E7208BACC42988. The original path exactly
+matches the prior accepted baseline. Interpreted instructions decline from
+4,906,088 to 4,888,416, a scoped reduction of 17,672 instructions.
+
+Timing remains different between execution tiers. CPU/WRAM hashes differ
+on 8,254 frames: 102 sampled CPU differences occur in original SPC transfer
+code (94) or original menu frame waits (8). RAM differences are confined to
+DP0 (80 frames) and stack page1F00 (8,228 frames). Four active-stack
+differences occur during SPC transfers at frames1566/1582/1598/1601;
+discarded-stack bytes differ on 8,228 frames. Port-write progress differs on
+76 sampled frames, while its complete ordered fingerprint agrees. PCM
+differs on 9,258 frames. These raw observations are retained without
+normalisation. No identical-cycle, audio, whole-frame architectural-state
+or whole-game performance claim is made. Source semantics remain literal.
+
+Counts remain 1,572 verified contracts, 1,558 bindings, 752 WRAM fields and
+465 C units. Final consumer compiler checks share this batch checkpoint;
+unchanged semantic/library/CLI checks are reused, and the full legacy
+regression is deferred.
+
+Final checkpoint passes strict MSVC current actual-ABI compilation,
+GCC/Clang whole-consumer C11 warnings-as-errors and the isolated Windows
+Release build. Public/private adapter C tokens match. The unchanged direct
+ROM and guard results are reused with their source and log hashes; only
+the changed actual-ABI fixture and current runtime were rerun. Unchanged
+semantic library, resource CLI and metadata checks are reused from the
+preceding checkpoints. Full legacy regression remains deferred. The two
+commits share this combined proof; no intermediate commit was separately
+tested. No guest state, timing, cycles or recorded hashes were normalised.
+
 ## Primary actor script: observed X8 caller — 2026-10-16
 
 The existing 83:D416 adapter now admits its observed M1X1 caller at
