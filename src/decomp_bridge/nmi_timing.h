@@ -19,7 +19,7 @@ static inline unsigned Lufia2NmiMasterClocks(Lufia2NmiCost cost, unsigned fetch_
 }
 
 typedef struct Lufia2NmiSchedule {
-    Lufia2NmiCost steps[8];
+    Lufia2NmiCost steps[32];
     unsigned count;
 } Lufia2NmiSchedule;
 
@@ -53,6 +53,55 @@ static inline Lufia2NmiSchedule Lufia2NmiCallbacksSchedule(const uint8_t *ram,
         if (ram[flags[i]])
             break;
     }
+    return schedule;
+}
+
+static inline Lufia2NmiSchedule Lufia2NmiClockSchedule(const uint8_t *ram) {
+    Lufia2NmiSchedule schedule = {0};
+    Lufia2NmiAppend(&schedule, 3, 1, 0, 0);
+    Lufia2NmiAppend(&schedule, 3, 0, 1, 0);
+    Lufia2NmiAppend(&schedule, 3, 1, 0, 0);
+    Lufia2NmiAppend(&schedule, 2, 0, 0, (ram[0xb50] & 0x80) ? 1 : 0);
+    if (ram[0xb50] & 0x80)
+        return schedule;
+    for (unsigned address = 0xb50; address >= 0xb4e; --address) {
+        unsigned advance = (uint8_t)(ram[address] + 1) >= 60;
+        Lufia2NmiAppend(&schedule, 1, 0, 0, 1);
+        Lufia2NmiAppend(&schedule, 3, 1, 0, 0);
+        Lufia2NmiAppend(&schedule, 2, 0, 0, 0);
+        Lufia2NmiAppend(&schedule, 2, 0, 0, advance ? 0 : 1);
+        if (!advance)
+            break;
+        Lufia2NmiAppend(&schedule, 3, 1, 0, 0);
+        Lufia2NmiAppend(&schedule, 3, address == 0xb4e ? 2 : 1, 0,
+                        address == 0xb4e ? 1 : 0);
+    }
+    return schedule;
+}
+
+static inline Lufia2NmiSchedule Lufia2NmiRestoreSchedule(const uint8_t *ram) {
+    Lufia2NmiSchedule schedule = {0};
+
+    Lufia2NmiAppend(&schedule, 2, 4, 0, 1);
+    Lufia2NmiAppend(&schedule, 2, 4, 0, 1);
+    Lufia2NmiAppend(&schedule, 4, 2, 0, 0);
+    Lufia2NmiAppend(&schedule, 3, 0, 0, 0);
+    Lufia2NmiAppend(&schedule, 2, 0, 0, ram[0x520] ? 0 : 1);
+    if (ram[0x520]) {
+        unsigned reset = ram[0x46] == 0x30 && ram[0x47] == 0x30;
+        Lufia2NmiAppend(&schedule, 2, 2, 0, 0);
+        Lufia2NmiAppend(&schedule, 3, 0, 0, 0);
+        Lufia2NmiAppend(&schedule, 2, 0, 0, 1);
+        Lufia2NmiAppend(&schedule, 2, 0, 0, reset ? 0 : 1);
+        if (reset)
+            return schedule;
+    }
+    Lufia2NmiAppend(&schedule, 3, 0, ram[0x520] ? 1 : 2, 0);
+    Lufia2NmiAppend(&schedule, 2, 0, 0, 1);
+    for (unsigned i = 0; i < 3; ++i)
+        Lufia2NmiAppend(&schedule, 1, 2, 0, 2);
+    for (unsigned i = 0; i < 2; ++i)
+        Lufia2NmiAppend(&schedule, 1, 1, 0, 2);
     return schedule;
 }
 
