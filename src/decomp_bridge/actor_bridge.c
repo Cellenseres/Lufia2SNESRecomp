@@ -10477,13 +10477,13 @@ RecompReturn Lufia2DecompBridge_83A534(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_83AEB5(CpuState *cpu) {
-    if (cpu->S < 0x1f20u || cpu->S > 0x1ffdu) {
+    if (!ActorBridgeSystemBank(cpu->DB) || cpu->S < 0x1f20u || cpu->S > 0x1ffdu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
         return ActorBridgeFallback(cpu, &frame, 0x83aeb5u);
     }
-    return ActorBridgeBattleEntry(cpu, 0x83aeb5u, 0,
-        Lufia2FieldColourEffectsWithServices, 2u,
-        BATTLE_BRIDGE_ANY_WIDTH, 0, 0x83, 0);
+    return ActorBridgeBattleEntry(
+        cpu, 0x83aeb5u, 0, Lufia2FieldColourEffectsWithServices, 2u,
+        BATTLE_BRIDGE_ANY_WIDTH, 0, BATTLE_BRIDGE_ANY_BANK, 0);
 }
 
 RecompReturn Lufia2DecompBridge_848D54(CpuState *cpu) {
