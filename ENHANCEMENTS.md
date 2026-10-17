@@ -34,19 +34,21 @@ in-game verification of every camera position and transition.
 
 ## Widescreen room visibility
 
-Maps without room data, such as the Ancient Cave, Foomy Woods and most maps
-from `0x4C`, follow the cells the game itself hides: a cell whose edge bits
+The margins follow the cells the game itself hides: a cell whose edge bits
 are both set shows the map's first cell, as on the original screen. Actors in
-the margins are hidden on such cells; the native view keeps all of them.
+the margins are hidden on such cells; the native view keeps all of them. This
+also covers maps without room data, such as the Ancient Cave, Foomy Woods and
+most maps from `0x4C`. On authored maps the room data still decides when the
+margins open and what lies past the map's edges.
 
 `config.ini` selects the mode in `[Lufia2Features]` with
-`WidescreenRoomVisibility = l2rooms`, `compare` or `game`; the `LUFIA2_ROOM_VISIBILITY`
-environment variable overrides it, and the CMake cache value
-`LUFIA2_ROOM_VISIBILITY_DEFAULT` sets the build default (`game`). `l2rooms`
-restores the earlier inferred-map behavior for maps without room data.
-`compare` draws authored maps from room data as before and prints a
-`[room-compare]` line whenever the room or the game's hidden cells change,
-counting the cells only one of them shows.
+`WidescreenRoomVisibility = l2rooms`, `compare` or `game`. The
+`LUFIA2_ROOM_VISIBILITY` environment variable overrides it, and the CMake cache
+value `LUFIA2_ROOM_VISIBILITY_DEFAULT` sets the build default (`game`).
+`l2rooms` restores the earlier behavior: room data on authored maps, the
+inferred map elsewhere. `compare` draws authored maps from room data and
+prints a `[room-compare]` line whenever the room or the game's hidden cells
+change, counting the cells only one of them shows.
 
 `LUFIA2_ROOM_VISIBILITY_DEBUG=1` draws hidden cells instead of hiding them and
 tints them; cells whose edge is open get a second tint. Runtime-log builds

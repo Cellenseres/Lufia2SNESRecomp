@@ -495,9 +495,12 @@ static uint16_t ResolveWideTile(
     uint16_t entry = 0;
     const uint32_t sub_tile_x = (uint32_t)map_tile_x & 1u;
     const uint32_t sub_tile_y = (uint32_t)map_tile_y & 1u;
-    if (!room && s_game_driven)
+    /* Room data still extends the map past its edges. */
+    if (s_game_driven &&
+        (!room || MapTileInside(map, map_tile_x, map_tile_y)))
         return ResolveGameDrivenTile(map, logical_layer, map_tile_x, map_tile_y);
-    if (!room || RoomOwnsMapTile(map, room, map_tile_x, map_tile_y)) {
+    if (!s_game_driven &&
+        (!room || RoomOwnsMapTile(map, room, map_tile_x, map_tile_y))) {
         if (ResolveMapTile(
                 map, logical_layer, map_tile_x, map_tile_y, &entry) &&
             RoomDebugTint()) {
@@ -1429,6 +1432,19 @@ static Lufia2MapWidescreenResult PrepareGameDrivenMap(
     return result;
 }
 
+/* Room data still picks when the margins open and what lies past the map's
+   edges; the game decides which of its cells show. */
+static void FollowGameOnAuthoredMap(const Lufia2RuntimeMap *map) {
+    Lufia2FieldCellView view;
+    OpenCellView(&view);
+    if (!GameTablesMatch(&view, map))
+        return;
+    Lufia2HiddenCells cells;
+    CountHiddenCells(&view, &cells);
+    s_game_driven = true;
+    s_game_hides = cells.hidden[0] + cells.hidden[1] != 0;
+}
+
 /* Report where room data and the game's hidden cells disagree, once per
    room and cell state. */
 static void CompareRoomWithGame(
@@ -1565,9 +1581,12 @@ Lufia2MapWidescreenResult Lufia2PrepareMapWidescreen(
     }
     const Lufia2MapWidescreenResult result = PrepareAuthoredMap(
         ppu, &map, signature, map_id, room_lookup, &room);
-    if (result == LUFIA2_MAP_WIDESCREEN_ACTIVE && s_room_active &&
-        RoomVisibility() == LUFIA2_ROOM_VISIBILITY_COMPARE)
+    if (result != LUFIA2_MAP_WIDESCREEN_ACTIVE)
+        return result;
+    if (s_room_active && RoomVisibility() == LUFIA2_ROOM_VISIBILITY_COMPARE)
         CompareRoomWithGame(&s_map, &s_room, signature);
+    if (RoomVisibility() == LUFIA2_ROOM_VISIBILITY_GAME)
+        FollowGameOnAuthoredMap(&s_map);
     return result;
 }
 
