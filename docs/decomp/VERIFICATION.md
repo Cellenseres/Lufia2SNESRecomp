@@ -1,3 +1,67 @@
+## Field condition helpers and original indirect calls — 2026-10-17
+
+Nine complete original entries are verified and natively bound: 80:E4C5
+StoreConditionResult, E55B NegateConditionResult, E132 TestLeaderPosition,
+E15A TestLeaderArea, CD8B FindObjectInBox, CD88 FindObjectInArea, E458
+FindCellBitsInArea, E78D FindEventConditionList and E566 TestConditionList
+(public names carry the Lufia2Field prefix). E78D returns through the original
+RTL; the other entries use their original RTS sites, including conditional
+return sites in E15A/E458. Original VM callers share these bodies and retain
+their own frames. No algorithm is duplicated. The public entry contract is
+PB80, M1/X0, binary arithmetic, DP0, S1F00..1FFC and DB00..3F/80..BF or DB7E.
+Unsupported entry contexts hand off before guest bus access.
+
+Ordered-bus comparisons exposed two inherited C fidelity defects. Bounds were
+read as C function arguments, allowing compiler-dependent order and reading
+the upper bound even when the original lower-bound comparison exits. The
+shared range helper now performs those reads lazily in ROM order. Unknown
+E566 condition-table targets previously handed off before an already-read
+indirect JSR. They now hand off at the actual target after pushing the original
+E58D return frame. Known leader/cell/object condition targets remain shared C.
+These corrections preserve original behavior rather than patching the game.
+
+The shared checkpoint covers 36,864 direct entry states and 36,864 states
+through the actual 20-function producer closure. Each layer additionally
+passes 9,216 raw-index, bank-crossing, area-underflow and selection edge states,
+4,608 original RTS/RTL compositions and 1,024 unknown-target live-frame states.
+Admission checks cover 1,180,863 semantic and 1,180,935 unpaired producer
+contexts. Fifteen affected event opcodes pass 3,840 direct original-handler
+compositions; this caller cohort is not claimed as a separate producer proof.
+CPU state, full WRAM and ordered guest bus operations are compared.
+
+Two long-list handoff families also pass two direct and six producer states
+after 65,536 original iterations. These use synthetic script data only in the
+heap-loaded ROM buffer, with original instruction banks untouched; they are
+reported separately from the unchanged-ROM cohorts. Both original list PCs
+and live frames remain available to the interpreter. The actual producer
+states include paired, unpaired and mismatched host-return contexts.
+
+Initial list fixtures accidentally seeded bank00:8000 instead of WRAM7E:8000;
+the address and missing-list sentinel were corrected. Only complete passing
+cohorts from the early direct runs are reused: 12,288 storage/negation/position,
+16,384 area/object/cell and 8,192 corrected list states. The failed rows and
+earlier unstructured list rows are excluded. A separate popup fixture had
+the same high-WRAM seed-address issue. Corrected sparse popup values pass
+8,192 direct and 8,192 actual producer states against the unchanged accepted
+popup implementation. The maintained popup fixture now seeds the intended
+WRAM addresses; no popup semantic source changes in this batch.
+
+Private/public semantic tokens match. Full unchanged scoped proofs are
+reused; fresh public wiring checks cover 288 direct, 144 return, 32 unknown,
+240 opcode-caller and 320 actual producer states. Four heap-only ROM faults
+and a wrong return-frame adapter are rejected normally. All nine C++ symbols
+link and run. One shared GCC/Clang/metadata/isolated Windows Release checkpoint
+passes. Byte-identical resource CLI results are reused; full decomp regression
+and new gameplay/audio replay are deferred, not reported as passing.
+
+Totals: 1,594 verified entries, 1,579 ordinary native bindings, 752 documented
+WRAM locations and 466 semantic C units. Fifteen verified entries remain
+intentionally unbound. Additional public entries into existing C bodies do
+not measure removed interpreter instructions, current hit rates or FPS.
+Evidence: field-condition-entries-next/ACCEPTANCE_RECEIPT.json and maintained
+lufia2_field_condition_entries_verify.c, lufia2_field_condition_callers_verify.c
+and lufia2_field_condition_cpp_link_verify.cpp. No ROM/save redistribution.
+
 ## Popup records and single-target status ticks — 2026-10-17
 
 Three complete original JSR entries now have verified native bindings:

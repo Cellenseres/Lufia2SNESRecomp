@@ -153,7 +153,7 @@ static void seed(Lufia2CpuState *cpu) {
         native.wram[slot] = (uint8_t[]){0x80u, 4u, 3u, 2u, 0u}[(number + i) % 5u];
         native.wram[slot + 2u] = (uint8_t)((number + i) % 18u);
         for (unsigned k = 0; k < 13u; ++k)
-            word(slot + 4u + 2u * k,
+            word(0x7e0000u + slot + 4u + 2u * k,
                  k == (number + i) % 14u ? (uint16_t)(number * 113u) : 0u);
     }
     native.wram[0x11deu] = (uint8_t)(number & 1u);
