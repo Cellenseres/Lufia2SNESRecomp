@@ -14030,3 +14030,33 @@ RecompReturn Lufia2DecompBridge_80E92A(CpuState *cpu) {
     return ActorBridgeFieldConditionEntry(cpu, 0x80e92au, Lufia2FieldResolveEventArea,
                                           2u);
 }
+
+static RecompReturn ActorBridgeScalingEntry(CpuState *cpu, uint32_t entry,
+                                            ActorWholeFunction function) {
+    const int reads_operand = entry != 0x83fb05u;
+    const int sets_accumulator_width = entry == 0x83faf4u;
+    if (cpu->PB != 0x83u || cpu->D || cpu->emulation || cpu->_flag_D ||
+        (!sets_accumulator_width && !cpu->m_flag) || cpu->S < 0x1f00u ||
+        cpu->S > 0x1ffcu ||
+        (reads_operand && (cpu->DB & 0x7fu) >= 0x40u && cpu->DB != 0x7eu)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, entry, function, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83DE76(CpuState *cpu) {
+    return ActorBridgeScalingEntry(cpu, 0x83de76u, Lufia2ActorBuildOrbitOffsets);
+}
+
+RecompReturn Lufia2DecompBridge_83DE9F(CpuState *cpu) {
+    return ActorBridgeScalingEntry(cpu, 0x83de9fu, Lufia2ActorScaleRadius);
+}
+
+RecompReturn Lufia2DecompBridge_83FAF4(CpuState *cpu) {
+    return ActorBridgeScalingEntry(cpu, 0x83faf4u, Lufia2ActorReadSignedOperand);
+}
+
+RecompReturn Lufia2DecompBridge_83FB05(CpuState *cpu) {
+    return ActorBridgeScalingEntry(cpu, 0x83fb05u, Lufia2ObjectSignExtendNibble);
+}

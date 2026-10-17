@@ -1,3 +1,68 @@
+## Actor orbit, radius and signed-operand entries — 2026-10-17
+
+Four original callable entries are verified and natively bound: 83:DE76
+Lufia2ActorBuildOrbitOffsets, 83:DE9F Lufia2ActorScaleRadius, 83:FAF4
+Lufia2ActorReadSignedOperand and 83:FB05 Lufia2ObjectSignExtendNibble. Each
+shares an existing semantic body; old callers retain their original JSR and
+RTS frames. No allocation, trigonometry or sign algorithm is copied. Tables
+83:DD18/80:84BF and inline projection fragments 83:E73A/E7C2 were excluded
+from new function counts and bindings.
+
+All four require PB83, DP0, binary arithmetic and S1F00..1FFC. Three enter
+with M1; FAF4 sets M1 before reading its operand and also accepts M0. All
+support both native index widths. FB05 is independent of DB; the other
+three admit register-mirror banks or 7E. Exit M is zero and index width is
+retained. Metadata records the ordinary M1X0 -> M0X0 convention; additional
+admitted widths are tested, not silently narrowed by the bridge.
+
+Original return sites are DE9E, DEBC, FB04 and FB11 respectively. DE76
+retains both original sine/cosine calls, scale calls and DP54/56 stores.
+DE9F retains Mode-7 register writes, its original RMW of MPYL and the
+original carry into the result. DB7E therefore accesses WRAM rather than
+being replaced by a host multiply. FAF4 keeps TDC before the indexed operand
+read. FB05 preserves the original unmasked-input behavior: positive values
+retain the incoming high accumulator byte. No sign, carry or range quirk is
+optimized away. A disassembler needs DE9F's actual M0 exit to decode the
+caller's word stores correctly; its default external-call guess is not proof.
+
+The combined private ROM proof passes 36,864 direct and 36,864 actual
+producer states across four entries and five complete affected caller
+families: secondary F2/F6/F7/F8 and the object F6/FB route. Every caller
+must actually reach its affected helper. Both layers also pass 2,304 original
+return compositions. A separate systematic arithmetic group passes 144,640
+states per layer: 12,544 angle/radius-edge combinations, all 65,536 A16
+inputs for scaling, 1,024 signed-byte/all-MX cases and all 65,536 A16 inputs
+for nibble extension. Groups are separately reported, not claimed unique.
+
+Leaf checks compare CPU, complete WRAM, all ordered data-bus accesses,
+ordered MMIO and live Mode-7 state. Complete VM callers compare CPU, complete
+WRAM, ordered MMIO and live device state; no all-data-read-order claim is made
+for those pre-existing VM bodies. Each layer additionally passes 1,280 caller
+cases with original script banks 00/80/83/7E. This explicitly tests real
+Mode-7 accesses as well as original WRAM-mapped accesses. The first normal
+caller cohort used script bank 7E; the added bank group fills that concrete
+coverage gap without repeating unchanged leaf cohorts.
+
+Admission passes 524,695 semantic and 526,239 unpaired actual producer
+checks, including 1,544 emulation rejections. The 19-function producer closure
+contains actual bridge bodies with read-only entry/return observations. Every
+invocation must use the native path; fallback is rejected immediately. No
+existing timing fence, renderer, sound engine or platform layer changed.
+
+Private/public runtime tokens match. Fresh public-library and actual-bridge
+wiring, admission, return, arithmetic, bank-context, C++ linkage and effective
+fault controls are recorded in actor-scaling-entries-next/ACCEPTANCE_RECEIPT.json.
+Large unchanged private cohorts are reused for their exact scope. GCC, Clang, metadata and isolated Windows Release pass (Windows393.42s).
+Byte-identical CLI checks are reused. Compiler and CLI results remain scoped
+in the receipt. Full decomp regression, new gameplay/audio
+replay, timing measurements and a measured interpreter-hit reduction are
+deferred. Original instruction bytes and saved games remain unchanged.
+
+Totals after acceptance: 1,604 verified entries, 1,589 ordinary native bindings,
+752 documented WRAM locations and 466 semantic C units. Fifteen verified
+entries remain deliberately unbound. These entry counts do not measure a
+whole-ROM completion percentage or a gameplay speedup.
+
 ## Actor sprite, secondary-script and event-area entries — 2026-10-17
 
 Three original entries share their existing semantic bodies: 83:AA50
