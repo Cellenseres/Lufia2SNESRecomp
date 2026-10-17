@@ -1,3 +1,67 @@
+# Native entries for existing semantic workers - 2026-10-17
+
+Four real original call targets now expose their existing shared implementations:
+84:8862 AncientCaveAppendSavedItem, 84:886D AncientCaveTestBlueItem,
+85:8E98 BattleUploadVramQueue and 85:9265 BattleClearActionWorkspace.
+These are four newly verified entry contracts and native bindings, not four
+newly reconstructed algorithms. The current conservative 1,675-root call survey
+showed these targets but source inspection proved their bodies already existed.
+No duplicate implementations, new WRAM allocations or C units were added.
+
+cave_entry.c keeps its original simulated JSR/RTS wrappers around the extracted
+blue-item test and saved-item append workers. battle_nmi.c keeps its original
+queue caller frame. battle_frame.c calls the shared workspace worker inside
+the same original JSL/RTL frame. Expanding each new worker into its old caller
+reproduces the old CPU/bus/stack token stream exactly; LEGACY_EXPANSION.json
+records the four checks. Native entry guards are separate from these unguarded
+workers, so old caller admission and unusual old caller states remain unchanged.
+
+The cave test scans the same 41 original words after masking the nine-bit item
+ID, with original success/failure carry and distinct RTS boundaries. Appending
+an item uses the raw DP60 offset, its original long word store and pointer
+increment. Bank carry can map that store into a bank80 low-WRAM mirror and
+overwrite DP60 itself or the live caller return word; neither case is clamped.
+The queue worker consumes sixteen six-byte descriptors in reverse order,
+retains channel6 register/DMA order and clears the original length bytes after
+each transfer. The workspace clear keeps PHB/PLB, DB7F and all 764 byte stores.
+No NMI scheduling, renderer, DMA engine, timing policy or gameplay change occurs.
+
+All four complete entries admit their original PB, DP0, binary, X16 and
+S1F00..1FFC, with any DB. The cave entries require M0; the battle entries M1.
+Original callback-free RTS/RTL contracts are checked against actual producer
+wrappers, including matching and nonmatching host-return-valid states.
+
+One shared proof per side: 16,384 normal states, 4,096 original-return states
+and 256 dedicated saved-item aliases = 20,736 direct and 20,736 actual states.
+Return groups execute 3,072 real RTS and 1,024 real RTL; aliases add 256 real
+RTS per side. All CPU/full WRAM/every ordered data and MMIO access and
+math/Mode7/WMADD device states agree. Alias offsets cover WRAM/ROM bank carry,
+DP pointer overlap, the live return word and FFFF. 524,320 semantic and
+525,344 actual pre-access guards pass, including 1,024 emulation contexts.
+
+The four existing caller paths have exact lexical expansion conservation;
+their entire historical ROM suites were not rerun or reported as fresh passes.
+The new actual entry proofs and public library checks complement that evidence.
+A private ABI compile rejected unreachable code after an unused leaf-only
+dispatcher stub. Making that unused stub return normally changed no reachable
+leaf state or semantic source; direct proofs were retained and the previously
+unexecuted ABI groups then ran. No expectation was weakened.
+
+The bus proof checks the original DMA register/trigger order, not DMA payload
+pixels or cycle timing. Full decomp-verify, complete legacy-caller regressions
+and gameplay/pixel/NMI timing replay are deferred. No whole-ROM completion,
+current global interpreter-hit percentage or speedup is claimed.
+
+Fresh public checks each:128normal,64real returns and16saved-item aliases;
+allguards and4C++symbols pass. Four effective heap-ROM faults andtwo
+production stack/frame faults are detected. Public bodies are token-identical
+to the privately verified shared workers. No ROM file is copied or modified.
+
+One combined GCC/Clang/metadata/isolated Windows Release checkpoint PASS;
+Windows 214.33s. Unchanged resource CLI executable bytes and unchanged
+fixture/dependencies justify reuse of their previous accepted CLI test results.
+No repeated full semantic regression; no push.
+
 # Battle followups and selection copy - 2026-10-17
 
 Three original caller contracts: 85:8F8A BattleResolveRecoverableStatuses,
