@@ -114,14 +114,16 @@ endif()
 
 # Runtime default when config.ini and LUFIA2_ROOM_VISIBILITY select none.
 set(LUFIA2_ROOM_VISIBILITY_DEFAULT "game" CACHE STRING
-    "Widescreen room visibility when nothing selects one: l2rooms or game")
-set_property(CACHE LUFIA2_ROOM_VISIBILITY_DEFAULT PROPERTY STRINGS l2rooms game)
+    "Widescreen room visibility when nothing selects one: l2rooms, compare or game")
+set_property(CACHE LUFIA2_ROOM_VISIBILITY_DEFAULT PROPERTY STRINGS l2rooms compare game)
 if(LUFIA2_ROOM_VISIBILITY_DEFAULT STREQUAL "l2rooms")
     set(LUFIA2_ROOM_VISIBILITY_DEFAULT_MODE 0)
+elseif(LUFIA2_ROOM_VISIBILITY_DEFAULT STREQUAL "compare")
+    set(LUFIA2_ROOM_VISIBILITY_DEFAULT_MODE 1)
 elseif(LUFIA2_ROOM_VISIBILITY_DEFAULT STREQUAL "game")
     set(LUFIA2_ROOM_VISIBILITY_DEFAULT_MODE 2)
 else()
-    message(FATAL_ERROR "LUFIA2_ROOM_VISIBILITY_DEFAULT must be l2rooms or game")
+    message(FATAL_ERROR "LUFIA2_ROOM_VISIBILITY_DEFAULT must be l2rooms, compare or game")
 endif()
 
 if(VITA)

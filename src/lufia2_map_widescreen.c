@@ -167,6 +167,9 @@ static bool s_game_driven;
 static bool s_game_hides;
 static int32_t s_camera_x;
 static bool s_table_mismatch_reported;
+static uint64_t s_compared_signature;
+static uint16_t s_compared_room;
+static uint32_t s_compared_hash;
 
 static uint16_t Read16(const uint8_t *data) {
     return (uint16_t)(data[0] | ((uint16_t)data[1] << 8));
@@ -341,6 +344,8 @@ static const char *RoomVisibilityName(Lufia2RoomVisibility mode) {
     switch (mode) {
     case LUFIA2_ROOM_VISIBILITY_L2ROOMS:
         return "l2rooms";
+    case LUFIA2_ROOM_VISIBILITY_COMPARE:
+        return "compare";
     case LUFIA2_ROOM_VISIBILITY_GAME:
         return "game";
     }
@@ -350,6 +355,7 @@ static const char *RoomVisibilityName(Lufia2RoomVisibility mode) {
 static bool ParseRoomVisibility(const char *text, Lufia2RoomVisibility *mode) {
     static const Lufia2RoomVisibility kModes[] = {
         LUFIA2_ROOM_VISIBILITY_L2ROOMS,
+        LUFIA2_ROOM_VISIBILITY_COMPARE,
         LUFIA2_ROOM_VISIBILITY_GAME,
     };
     for (size_t i = 0; i < sizeof(kModes) / sizeof(kModes[0]); i++) {
@@ -372,7 +378,8 @@ void Lufia2MapWidescreenSetRoomVisibility(const char *configured) {
     s_visibility_resolved = true;
     if (choice && *choice && !ParseRoomVisibility(choice, &s_visibility)) {
         fprintf(stderr,
-            "[video] room visibility '%s' not understood (l2rooms, game); "
+            "[video] room visibility '%s' not understood (l2rooms, compare, "
+            "game); "
             "using %s\n",
             choice, RoomVisibilityName(s_visibility));
     }
@@ -1422,6 +1429,62 @@ static Lufia2MapWidescreenResult PrepareGameDrivenMap(
     return result;
 }
 
+/* Report where room data and the game's hidden cells disagree, once per
+   room and cell state. */
+static void CompareRoomWithGame(
+    const Lufia2RuntimeMap *map,
+    const Lufia2RoomSelection *room,
+    uint64_t signature) {
+    Lufia2FieldCellView view;
+    Lufia2HiddenCells cells;
+    OpenCellView(&view);
+    CountHiddenCells(&view, &cells);
+    if (signature == s_compared_signature &&
+        room->room_id == s_compared_room && cells.hash == s_compared_hash)
+        return;
+    s_compared_signature = signature;
+    s_compared_room = room->room_id;
+    s_compared_hash = cells.hash;
+    if (!GameTablesMatch(&view, map)) {
+        fprintf(stderr, "[room-compare] map $%02X room %u: cell tables "
+                "differ from the map header\n",
+                (unsigned)g_ram[0x05ac], (unsigned)room->room_id);
+        return;
+    }
+
+    uint32_t room_only[2] = {0, 0};
+    uint32_t game_only[2] = {0, 0};
+    uint32_t first = UINT32_MAX;
+    const uint32_t count = (uint32_t)map->width * map->height;
+    for (uint32_t i = 0; i < count; i++) {
+        const bool authored = Lufia2RoomDataCellIsVisible(room, i);
+        for (unsigned slot = 0; slot < 2; slot++) {
+            Lufia2FieldDisplayedCell cell;
+            if (!Lufia2FieldCellDisplayed(&view, slot, i % map->width,
+                                          i / map->width, &cell))
+                continue;
+            const bool shown = !cell.hidden;
+            room_only[slot] += authored && !shown;
+            game_only[slot] += !authored && shown;
+            if (authored != shown && first == UINT32_MAX)
+                first = i;
+        }
+    }
+    if (first == UINT32_MAX) {
+        fprintf(stderr, "[room-compare] map $%02X room %u: room data matches "
+                "the game's hidden cells\n",
+                (unsigned)g_ram[0x05ac], (unsigned)room->room_id);
+        return;
+    }
+    fprintf(stderr,
+        "[room-compare] map $%02X room %u: room data only %u/%u cells, "
+        "game only %u/%u cells (layer B/A), first at %u,%u\n",
+        (unsigned)g_ram[0x05ac], (unsigned)room->room_id,
+        (unsigned)room_only[0], (unsigned)room_only[1],
+        (unsigned)game_only[0], (unsigned)game_only[1],
+        (unsigned)(first % map->width), (unsigned)(first / map->width));
+}
+
 Lufia2MapWidescreenResult Lufia2PrepareMapWidescreen(
     Ppu *ppu,
     int margin_pixels) {
@@ -1500,8 +1563,12 @@ Lufia2MapWidescreenResult Lufia2PrepareMapWidescreen(
             return PrepareInferredMap(ppu, &map, signature);
         return PrepareGameDrivenMap(ppu, &map, signature);
     }
-    return PrepareAuthoredMap(
+    const Lufia2MapWidescreenResult result = PrepareAuthoredMap(
         ppu, &map, signature, map_id, room_lookup, &room);
+    if (result == LUFIA2_MAP_WIDESCREEN_ACTIVE && s_room_active &&
+        RoomVisibility() == LUFIA2_ROOM_VISIBILITY_COMPARE)
+        CompareRoomWithGame(&s_map, &s_room, signature);
+    return result;
 }
 
 bool Lufia2MapWidescreenIsActive(void) {

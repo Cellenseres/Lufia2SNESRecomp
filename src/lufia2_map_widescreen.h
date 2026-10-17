@@ -15,6 +15,8 @@ enum {
 /* Who decides which map cells the margins may show. */
 typedef enum Lufia2RoomVisibility {
     LUFIA2_ROOM_VISIBILITY_L2ROOMS = 0,
+    /* Room data draws; disagreements with the game are reported. */
+    LUFIA2_ROOM_VISIBILITY_COMPARE = 1,
     LUFIA2_ROOM_VISIBILITY_GAME = 2,
 } Lufia2RoomVisibility;
 

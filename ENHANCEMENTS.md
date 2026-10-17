@@ -40,10 +40,13 @@ are both set shows the map's first cell, as on the original screen. Actors in
 the margins are hidden on such cells; the native view keeps all of them.
 
 `config.ini` selects the mode in `[Lufia2Features]` with
-`WidescreenRoomVisibility = l2rooms` or `game`; the `LUFIA2_ROOM_VISIBILITY`
+`WidescreenRoomVisibility = l2rooms`, `compare` or `game`; the `LUFIA2_ROOM_VISIBILITY`
 environment variable overrides it, and the CMake cache value
 `LUFIA2_ROOM_VISIBILITY_DEFAULT` sets the build default (`game`). `l2rooms`
 restores the earlier inferred-map behavior for maps without room data.
+`compare` draws authored maps from room data as before and prints a
+`[room-compare]` line whenever the room or the game's hidden cells change,
+counting the cells only one of them shows.
 
 `LUFIA2_ROOM_VISIBILITY_DEBUG=1` draws hidden cells instead of hiding them and
 tints them; cells whose edge is open get a second tint. Runtime-log builds
