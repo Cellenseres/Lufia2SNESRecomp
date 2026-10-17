@@ -1,3 +1,57 @@
+## Original Cave placement and random entry contracts - 2026-10-17
+
+Nine original JSR entries are verified and natively bound:83:99C8 resolves
+tile positions;99D3 probes the start/placed-object area;9A1C places an object;
+9A6B/9A9F probe nearby/exact chest positions;9ABC tries placing a room chest;
+9E1B/9E11/9DE4 draw a scaled random byte, doubled index and wrapped mean.
+Existing helpers and new entries share their algorithm bodies. The already
+frame-free chest-placement/proximity bodies are reused directly. Legacy
+site-based helpers retain all original JSR/JSL/RTS frames and interfaces.
+These entry contracts do not represent nine wholly new gameplay algorithms.
+
+All require native execution, PB83, DP0, binary arithmetic, M1 and S1F00..1FFC.
+The five object/chest routines require DB7F and X16. Tile-position and random
+helpers ignore DB and accept either native X width.99C8 returns M0; the
+others return M1, retaining index width. Metadata records ordinary X16 modes.
+ChestAt has distinct success9AB6/miss9ABB RTS sites; its shared body reports
+the actual site from the carry result.99D3 has only RTS9A1B:99F4 branches to
+the common PLX at9A1A. This was confirmed before reconstruction.
+
+Original behavior stays literal. Object count zero still probes the first
+slot; chest count zero probes none. The wide-object branch increments its
+loaded size byte before comparing column, rather than substituting a column
+calculation. Neighbour probes use original asymmetric offsets(-1,+2).
+Raw word counts, capacity checks, list wrapping and data aliases are retained.
+Zero random limits still advance the RNG and access Mode7 registers. Signed
+Mode7 factors and the mean's wrapped byte addition before LSR are preserved.
+No range clamp, probabilistic shortcut or original-game bug fix was added.
+
+Both semantic and actual24-function producer layers pass20,480 normal states
+across nine leaves and the existing9D11 complete cell-picker caller;2,304
+coordinate/limit edges;2,560 real RTS return compositions;and100 raw-count
+states across five placement/probe families. Count cases include0,1,7,8,19,
+20,255,256,FF00,FFFF, including empty-slot collision and long wrapped scans.
+Random factors include raw values>=128, varied RNG indices/refills, incoming
+Mode7 latch state, both admitted X widths and every DB for independent leaves.
+All groups compare CPU, full WRAM, every ordered data access, ordered MMIO
+and live multiplication/division/Mode7/WMADD state. The existing9D11 caller
+must reach9E1B; no whole-floor replay or gameplay runtime-hit claim is made.
+
+Admission passes1,180,991 semantic and1,183,044 unpaired actual cases,
+including2,053 emulation rejections. Every production-ABI invocation rejects
+fallback. Public source formatting preserves private C tokens. Fresh public
+library/actual producer wiring, nine C++ symbols, nine effective ROM faults
+and two wrong-frame adapter controls PASS. The frame fault is confined to
+the new placement-entry adapter; the existing grid adapter is unchanged.
+GCC, Clang, metadata and isolated Windows Release pass (Windows188.5s).
+Byte-identical CLI checks are reused. Compiler and CLI results remain scoped
+in the receipt. Full regression, whole-floor
+replay and new gameplay/audio tests are deferred, not reported as passing.
+
+Totals after acceptance:1,639 verified entries,1,624 ordinary bindings,
+752 documented WRAM locations and466 semantic C units. Fifteen verified
+entries remain deliberately unbound. No whole-ROM percentage or speed claim.
+
 ## Original Ancient Cave grid entry contracts - 2026-10-17
 
 Fifteen complete original JSR routines now have verified native entry contracts:

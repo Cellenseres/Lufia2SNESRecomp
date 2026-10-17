@@ -14213,3 +14213,61 @@ RecompReturn Lufia2DecompBridge_839D46(CpuState *cpu) {
     return ActorBridgeCaveGridEntry(cpu, 0x839d46u, Lufia2CaveReplaceUpperTileIndex, 0u,
                                     1u);
 }
+
+static RecompReturn ActorBridgeCavePlacementEntry(CpuState *cpu, uint32_t entry,
+                                                  ActorWholeFunction function,
+                                                  unsigned work_bank,
+                                                  unsigned allow_byte_index) {
+    if (cpu->PB != 0x83u || cpu->D || cpu->emulation || cpu->_flag_D || !cpu->m_flag ||
+        (!allow_byte_index && cpu->x_flag) || (work_bank && cpu->DB != 0x7fu) ||
+        cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, entry, function, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8399C8(CpuState *cpu) {
+    return ActorBridgeCavePlacementEntry(cpu, 0x8399c8u, Lufia2CaveResolveTilePosition,
+                                         0u, 1u);
+}
+
+RecompReturn Lufia2DecompBridge_8399D3(CpuState *cpu) {
+    return ActorBridgeCavePlacementEntry(cpu, 0x8399d3u, Lufia2CaveProbeObjectPlacement,
+                                         1u, 0u);
+}
+
+RecompReturn Lufia2DecompBridge_839A1C(CpuState *cpu) {
+    return ActorBridgeCavePlacementEntry(cpu, 0x839a1cu, Lufia2CavePlaceRandomObject,
+                                         1u, 0u);
+}
+
+RecompReturn Lufia2DecompBridge_839A6B(CpuState *cpu) {
+    return ActorBridgeCavePlacementEntry(cpu, 0x839a6bu, Lufia2CaveProbeNearbyChest, 1u,
+                                         0u);
+}
+
+RecompReturn Lufia2DecompBridge_839A9F(CpuState *cpu) {
+    return ActorBridgeCavePlacementEntry(cpu, 0x839a9fu, Lufia2CaveProbeChestAtPosition,
+                                         1u, 0u);
+}
+
+RecompReturn Lufia2DecompBridge_839ABC(CpuState *cpu) {
+    return ActorBridgeCavePlacementEntry(cpu, 0x839abcu, Lufia2CaveTryPlaceRoomChest,
+                                         1u, 0u);
+}
+
+RecompReturn Lufia2DecompBridge_839E1B(CpuState *cpu) {
+    return ActorBridgeCavePlacementEntry(cpu, 0x839e1bu, Lufia2CaveDrawRandomBelow, 0u,
+                                         1u);
+}
+
+RecompReturn Lufia2DecompBridge_839E11(CpuState *cpu) {
+    return ActorBridgeCavePlacementEntry(cpu, 0x839e11u, Lufia2CaveDrawRandomIndex, 0u,
+                                         1u);
+}
+
+RecompReturn Lufia2DecompBridge_839DE4(CpuState *cpu) {
+    return ActorBridgeCavePlacementEntry(cpu, 0x839de4u, Lufia2CaveDrawRandomMean, 0u,
+                                         1u);
+}
