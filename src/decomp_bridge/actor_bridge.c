@@ -14060,3 +14060,32 @@ RecompReturn Lufia2DecompBridge_83FAF4(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_83FB05(CpuState *cpu) {
     return ActorBridgeScalingEntry(cpu, 0x83fb05u, Lufia2ObjectSignExtendNibble);
 }
+
+static RecompReturn ActorBridgeMenuOperandEntry(CpuState *cpu, uint32_t entry,
+                                                ActorWholeFunction function) {
+    const int needs_byte_mode = entry == 0x808c6cu;
+    if (cpu->PB != 0x80u || cpu->D || cpu->emulation || cpu->_flag_D || cpu->x_flag ||
+        (needs_byte_mode && !cpu->m_flag) || cpu->S < 0x1f00u || cpu->S > 0x1ffcu ||
+        ((cpu->DB & 0x7fu) >= 0x40u && cpu->DB != 0x7eu)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, entry, function, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_808BA7(CpuState *cpu) {
+    return ActorBridgeMenuOperandEntry(cpu, 0x808ba7u, Lufia2MenuReadPointerOperand);
+}
+
+RecompReturn Lufia2DecompBridge_808BB2(CpuState *cpu) {
+    return ActorBridgeMenuOperandEntry(cpu, 0x808bb2u,
+                                       Lufia2MenuReadOffsetPointerOperand);
+}
+
+RecompReturn Lufia2DecompBridge_808C6C(CpuState *cpu) {
+    return ActorBridgeMenuOperandEntry(cpu, 0x808c6cu, Lufia2MenuLoadNumberBytes);
+}
+
+RecompReturn Lufia2DecompBridge_808C9E(CpuState *cpu) {
+    return ActorBridgeMenuOperandEntry(cpu, 0x808c9eu, Lufia2MenuReadBranchOperands);
+}
