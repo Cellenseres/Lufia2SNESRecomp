@@ -66,3 +66,15 @@ Desktop.ini
 # each user generates the TGA locally from their own game capture.
 /assets/img/*.tga
 /assets/img/*-preview.png
+
+# Private development tests
+/tests/
+/scripts/tests/
+/patches/tests/
+/tools/tests/
+/scripts/test_decomp_manifest_aliases.py
+/cmake/Lufia2DecompVerify.cmake
+/cmake/Lufia2Msu.cmake
+/ports/vita-gxm/platform/tests/
+/ports/vita-gxm/perf/test_analyze_log.py
+/ports/vita/perf/test_analyze_log.py
