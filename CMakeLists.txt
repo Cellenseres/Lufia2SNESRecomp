@@ -147,6 +147,10 @@ set(LUFIA2_SDL3_ROOT "" CACHE PATH
     "Optional local SDL3 source tree")
 set(LUFIA2_ROM "${CMAKE_SOURCE_DIR}/lufia2.sfc" CACHE FILEPATH
     "Path to the supported Lufia II USA ROM")
+# A modified or expanded ROM runs on the interpreter path only: nothing that
+# is pinned to the clean USA bytes may be selected for it.
+option(LUFIA2_ALLOW_UNVERIFIED_ROM
+    "Accept a ROM that is not the clean USA release (interpreter path only)" OFF)
 
 set(_deps_root "${CMAKE_BINARY_DIR}/_deps")
 set(_download_root "${_deps_root}/downloads")
@@ -301,8 +305,14 @@ if(EXISTS "${LUFIA2_ROM}")
     string(TOUPPER "${_rom_sha256}" _rom_sha256)
     if(NOT _rom_sha256 STREQUAL
        "7C34ECB16C10F551120ED7B86CFBC947042F479B52EE74BB3C40E92FDD192B3A")
-        message(FATAL_ERROR
-            "Unsupported ROM. Expected the clean Lufia II USA release.")
+        if(LUFIA2_ALLOW_UNVERIFIED_ROM)
+            message(WARNING
+                "Unverified ROM (SHA256 ${_rom_sha256}). Semantic decomp, "
+                "reviewed AOT and ROM-pinned assets assume the clean USA release.")
+        else()
+            message(FATAL_ERROR
+                "Unsupported ROM. Expected the clean Lufia II USA release.")
+        endif()
     endif()
 
     set(LUFIA2_GENERATED_DIR "${CMAKE_BINARY_DIR}/lufia2-gen")
@@ -464,6 +474,11 @@ set(LUFIA2_HOST_SOURCES
     src/desktop_glue.c
     src/lufia2_battle.c
     src/lufia2_battle_widescreen.c
+    src/lufia2_dev_script.c
+    src/lufia2_hd2d.c
+    src/lufia2_hd2d_gl.c
+    src/lufia2_hd2d_present.c
+    src/lufia2_hd2d_scene.c
     src/lufia2_game_info.c
     patches/lufia2_intro_mode7_world.c
     patches/lufia2_mode7_substep.c
@@ -604,6 +619,9 @@ endif()
 if(LUFIA2_ENABLE_BRIDGE_AUDIT)
     target_compile_definitions(Lufia2Recomp PRIVATE LUFIA2_ENABLE_BRIDGE_AUDIT=1)
 endif()
+if(LUFIA2_ALLOW_UNVERIFIED_ROM)
+    target_compile_definitions(Lufia2Recomp PRIVATE LUFIA2_ALLOW_UNVERIFIED_ROM=1)
+endif()
 if(LUFIA2_ENABLE_RUNTIME_LOG)
     target_compile_definitions(Lufia2Recomp PRIVATE LUFIA2_ENABLE_RUNTIME_LOG=1)
     message(STATUS "Lufia2 runtime log ON: map, MSU, widescreen and periodic state tracing")
@@ -667,7 +685,22 @@ lufia2_target_config_overlay(Lufia2Recomp "${SNESRECOMP_ROOT}")
 include("${CMAKE_SOURCE_DIR}/cmake/Lufia2SoundMenu.cmake")
 lufia2_target_sound_menu_patch(Lufia2Recomp)
 
+# The HD-2D renderer talks to OpenGL through the loader the presenter already
+# initialised; only its own translation unit sees that header.
+set_source_files_properties(src/lufia2_hd2d_gl.c PROPERTIES
+    INCLUDE_DIRECTORIES "${RECOMP_UI_ROOT}/src/third_party")
+
 if(NOT VITA)
+    # Replays a recorded Battle frame through the HD-2D renderer, off screen.
+    add_executable(Lufia2Hd2dPreview EXCLUDE_FROM_ALL
+        scripts/tests/hd2d_preview.c
+        src/lufia2_hd2d_scene.c src/lufia2_hd2d_gl.c src/lufia2_dev_script.c)
+    target_include_directories(Lufia2Hd2dPreview PRIVATE
+        "${CMAKE_SOURCE_DIR}/src" "${RECOMP_UI_ROOT}/src/third_party")
+    target_link_libraries(Lufia2Hd2dPreview PRIVATE
+        SDL3::SDL3 snesrecomp_platform)
+    target_compile_definitions(Lufia2Hd2dPreview PRIVATE SDL_MAIN_HANDLED)
+
     add_executable(Lufia2BattleEffectsTest EXCLUDE_FROM_ALL
         scripts/tests/battle_effects.c
         src/lufia2_battle_effects.c src/lufia2_battle_ui.c src/lufia2_menu_ui.c src/lufia2_battle.c

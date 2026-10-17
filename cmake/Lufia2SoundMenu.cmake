@@ -14,6 +14,12 @@ function(lufia2_target_sound_menu_patch target)
         set(_entry "RecompReturn bank_82_8028_M1X0(CpuState *cpu) {")
         string(FIND "${_source}" "${_entry}" _start)
         if(_start EQUAL -1)
+            # Without the reviewed roots the dispatcher is not compiled at all;
+            # the interpreter hook in lufia2_sound_menu.c still guards it.
+            if(LUFIA2_ALLOW_UNVERIFIED_ROM)
+                message(STATUS "Sound menu AOT seam skipped: unverified ROM")
+                return()
+            endif()
             message(FATAL_ERROR "Sound menu dispatcher entry changed")
         endif()
         string(SUBSTRING "${_source}" ${_start} -1 _tail)

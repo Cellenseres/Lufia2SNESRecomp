@@ -63,6 +63,9 @@
 #include "lufia2_battle.h"
 #include "lufia2_build_identity.h"
 #include "lufia2_battle_widescreen.h"
+#include "lufia2_dev_script.h"
+#include "lufia2_hd2d.h"
+#include "lufia2_hd2d_present.h"
 #include "lufia2_battle_effects.h"
 #include "lufia2_map_load.h"
 #include "lufia2_equip_names.h"
@@ -177,6 +180,8 @@ static size_t s_audio_scratch_size;
 
 static bool s_paused;
 static bool s_turbo;
+/* Scripted run with a hidden window; it takes no keyboard input either. */
+static bool s_dev_hidden;
 static bool s_fullscreen;
 static bool s_display_perf;
 static int s_current_window_scale = DEFAULT_WINDOW_SCALE;
@@ -192,6 +197,8 @@ static uint32_t s_input_release_mask;
 static Lufia2VideoLayout s_last_video_layout = LUFIA2_VIDEO_LAYOUT_COUNT;
 static Lufia2VideoLayout s_held_video_layout = LUFIA2_VIDEO_CENTERED;
 static Lufia2VideoLayout s_current_video_layout = LUFIA2_VIDEO_CENTERED;
+/* The frame shows a town or a dungeon, whatever its margins came to. */
+static bool s_field_frame;
 static Lufia2VideoHandoff s_video_handoff;
 static uint64_t s_last_intro_raster_reject_signature = UINT64_MAX;
 
@@ -214,6 +221,15 @@ static bool s_frame_repeatable;
 static bool s_hd_mode7_perspective;
 static bool s_hd_mode7_filter;
 static bool s_hide_bottom_scanline = true;
+/* The user's HD-2D choice for each kind of scene; whether a scene can be
+ * drawn at all is the presenter's. F6, F7 and F8 switch them. */
+static bool s_hd2d[LUFIA2_HD2D_KINDS] = {true, true, true};
+static const char *const kHd2dKeys[LUFIA2_HD2D_KINDS] = {
+    "HD2DBattle", "HD2DWorldMap", "HD2DMaps",
+};
+static const char *const kHd2dNames[LUFIA2_HD2D_KINDS] = {
+    "battle", "world map", "maps",
+};
 static bool s_motion_interpolation;
 static SnesRecompMode7Line s_hd_mode7_lines[SNES_HEIGHT];
 static SnesRecompMode7Line s_intro_mode7_world_lines[SNES_HEIGHT];
@@ -386,6 +402,18 @@ static void LoadVisualConfig(const char *path) {
          AsciiEqualsNoCase(value, "0")))
         s_hide_bottom_scanline = false;
 
+    for (unsigned kind = 0; kind < LUFIA2_HD2D_KINDS; kind++) {
+        /* LUFIA2_HD2D overrides the file, for a quick comparison run. */
+        const char *override = getenv("LUFIA2_HD2D");
+        s_hd2d[kind] = !(ReadIniText(path, "Graphics", kHd2dKeys[kind],
+                                     value, sizeof(value)) &&
+                         (AsciiEqualsNoCase(value, "Off") ||
+                          AsciiEqualsNoCase(value, "0")));
+        Lufia2Hd2dSetEnabled((Lufia2Hd2dKind)kind,
+                             override && *override ? *override != '0'
+                                                   : s_hd2d[kind]);
+    }
+
     /* Off until sprites move with the camera too. */
     s_motion_interpolation = false;
     if (ReadIniText(path, "Graphics", "MotionInterpolation", value,
@@ -499,6 +527,12 @@ static bool EnsureDefaultConfig(const char *path) {
         "HDMode7Filter = Off\n"
         "HDMode7Perspective = On\n"
         "HideBottomScanline = On\n"
+        "# HD-2D: draw a scene as a lit, depth-of-field diorama built from\n"
+        "# the original graphics. OpenGL only. F6, F7 and F8 switch Battle,\n"
+        "# the world map, and towns and dungeons while playing.\n"
+        "HD2DBattle = On\n"
+        "HD2DWorldMap = On\n"
+        "HD2DMaps = On\n"
         "MotionInterpolation = Off\n"
         "PresentRate = Guest\n"
         "PresentRateHz = 0\n"
@@ -627,6 +661,36 @@ static bool LoadVerifiedRom(const char *path,
         payload_size = LUFIA2_ROM_SIZE;
     }
 
+#ifdef LUFIA2_ALLOW_UNVERIFIED_ROM
+    /* A modified or expanded image: any whole number of LoROM banks, with or
+     * without a copier header. It runs on the interpreter path only. */
+    if (payload_size != LUFIA2_ROM_SIZE) {
+        if ((file_size & 0x7fffu) == LUFIA2_COPIER_HEADER) {
+            payload_offset = LUFIA2_COPIER_HEADER;
+            payload_size = file_size - LUFIA2_COPIER_HEADER;
+        }
+        if (payload_size >= LUFIA2_ROM_SIZE && !(payload_size & 0x7fffu) &&
+            !memcmp(file_data + payload_offset + 0x7fc0, "Lufia II", 8)) {
+            uint8_t *image = (uint8_t *)malloc(payload_size);
+            if (!image) {
+                free(file_data);
+                return false;
+            }
+            memcpy(image, file_data + payload_offset, payload_size);
+            free(file_data);
+            if (!quiet)
+                fprintf(stderr,
+                    "[rom] unverified %zu-byte image accepted; fixes and "
+                    "assets pinned to the USA release stay inactive\n",
+                    payload_size);
+            if (rom_out) *rom_out = image;
+            else free(image);
+            if (size_out) *size_out = (uint32_t)payload_size;
+            return true;
+        }
+    }
+#endif
+
     if (payload_size != LUFIA2_ROM_SIZE) {
         if (!quiet) {
             fprintf(stderr,
@@ -644,6 +708,10 @@ static bool LoadVerifiedRom(const char *path,
     recompui_sha1_compute(file_data + payload_offset, payload_size, digest);
     recompui_sha1_hex(digest, sha1_hex);
 
+#ifdef LUFIA2_ALLOW_UNVERIFIED_ROM
+    if (strcmp(sha1_hex, kLufia2Sha1) != 0 && !quiet)
+        fprintf(stderr, "[rom] unverified image accepted: %s\n", sha1_hex);
+#else
     if (strcmp(sha1_hex, kLufia2Sha1) != 0) {
         if (!quiet) {
             fprintf(stderr,
@@ -655,6 +723,7 @@ static bool LoadVerifiedRom(const char *path,
         free(file_data);
         return false;
     }
+#endif
 
     uint8_t *payload = file_data;
     if (payload_offset != 0) {
@@ -951,6 +1020,8 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
         (int)(s_present_rate_millihertz / 1000u));
     PersistText("Graphics", "HideBottomScanline",
         s_hide_bottom_scanline ? "On" : "Off");
+    for (unsigned kind = 0; kind < LUFIA2_HD2D_KINDS; kind++)
+        PersistText("Graphics", kHd2dKeys[kind], s_hd2d[kind] ? "On" : "Off");
     PersistText("Graphics", "HDMode7",
         Lufia2HdMode7ScaleName(s_hd_mode7_scale));
 
@@ -965,7 +1036,9 @@ static bool KeyDown(const uint8_t *keys, SDL_Scancode sc) {
 }
 
 static uint32_t ReadKeyboardInput(void) {
-    if (s_player1_source != PLAYER_INPUT_KEYBOARD)
+    /* A start that bypasses the launcher keeps the configured source, which
+     * defaults to a gamepad; with none attached the keyboard still plays. */
+    if (s_player1_source != PLAYER_INPUT_KEYBOARD && s_gamepad)
         return 0;
 
     const uint8_t *keys = snesrecomp_sdl_get_keyboard_state();
@@ -1177,6 +1250,12 @@ static bool InitVideo(void) {
                 ? kCleanHdPresetPath : g_config.shader;
         config.shader_preset_interface =
             snesrecomp_glsl_shader_preset_interface();
+        /* HD-2D Battle draws through the same hook and passes every other
+         * frame on to the preset chosen above. */
+        config.shader_preset_path =
+            Lufia2Hd2dPresetPath(config.shader_preset_path);
+        config.shader_preset_interface = Lufia2Hd2dPresetInterface(
+            config.shader_preset_interface);
     } else if (config.backend == SNESRECOMP_PRESENT_BACKEND_VULKAN) {
         /* Clean-HD reaches Vulkan as a scaling policy, not a preset file: the
          * backend runs the same two passes natively and parses no .glslp. */
@@ -1200,11 +1279,11 @@ static bool InitVideo(void) {
             "Vulkan presenter failed; OpenGL fallback: %s", error);
         config.backend = SNESRECOMP_PRESENT_BACKEND_OPENGL;
         config.scaling = SNESRECOMP_PRESENT_SCALING_DEFAULT;
-        config.shader_preset_path =
+        config.shader_preset_path = Lufia2Hd2dPresetPath(
             s_visual_preset == LUFIA2_VISUAL_CLEAN_HD
-                ? kCleanHdPresetPath : g_config.shader;
-        config.shader_preset_interface =
-            snesrecomp_glsl_shader_preset_interface();
+                ? kCleanHdPresetPath : g_config.shader);
+        config.shader_preset_interface = Lufia2Hd2dPresetInterface(
+            snesrecomp_glsl_shader_preset_interface());
         created = snesrecomp_presenter_create(
             &config, &s_presenter, error, sizeof(error));
     }
@@ -1233,6 +1312,13 @@ static bool InitVideo(void) {
     }
 
     s_fullscreen = config.fullscreen;
+    /* Only the OpenGL presenter has the hook the scene is drawn through. */
+    Lufia2Hd2dSetAvailable(
+        snesrecomp_presenter_backend(s_presenter) ==
+            SNESRECOMP_PRESENT_BACKEND_OPENGL &&
+        config.shader_preset_interface != NULL &&
+        config.shader_preset_interface !=
+            snesrecomp_glsl_shader_preset_interface());
 
     host_report_breadcrumb(
         "video ready: %dx%d scale=%d method=%s fullscreen=%d linear=%d vsync=%s caps=0x%x",
@@ -1493,9 +1579,12 @@ static void Lufia2InterpForget(void) {
 /* Called once the PPU state matches the frame just rendered. */
 static void Lufia2InterpNoteFrame(int ppu_flags) {
     s_interp_ready = false;
+    /* An HD-2D scene is drawn from one frame's map and sprites; the frames
+       made up in between would go out as the flat picture. */
     if (!s_motion_interpolation || !s_high_refresh ||
         Lufia2VideoHandoffIsHolding(&s_video_handoff) ||
-        s_current_video_layout != LUFIA2_VIDEO_REGULAR_MAP) {
+        s_current_video_layout != LUFIA2_VIDEO_REGULAR_MAP ||
+        Lufia2Hd2dCurrent()) {
         Lufia2InterpForget();
         return;
     }
@@ -1756,8 +1845,14 @@ static bool SubmitFrame(bool include_rewind) {
     const bool mode7_layout =
         s_current_video_layout == LUFIA2_VIDEO_INTRO_MODE7 ||
         s_current_video_layout == LUFIA2_VIDEO_WORLD_MAP;
+    /* A frame staged as an HD-2D scene goes out through the ordinary path
+     * below, where the scene is drawn in place of the picture; on the world
+     * map that takes the place of the HD Mode 7 pass. */
+    const Lufia2Hd2dFrame *hd2d_frame =
+        include_rewind ? NULL : Lufia2Hd2dCurrent();
     const bool hd_requested =
         mode7_layout && s_hd_mode7_scale != 0u &&
+        !(hd2d_frame && hd2d_frame->kind == LUFIA2_HD2D_WORLD_MAP) &&
         snesrecomp_presenter_mode7_scale_supported(
             s_presenter, s_hd_mode7_scale);
     const bool substep_was_live = s_mode7_substep_live;
@@ -1906,6 +2001,9 @@ static bool SubmitFrame(bool include_rewind) {
             .pitch = s_frame_width * 4,
             .overlay = overlay,
         };
+        /* A staged frame goes out as its scene; the rewind filmstrip and
+         * every other frame keep the authentic picture. */
+        Lufia2Hd2dPresentArm(hd2d_frame);
         if (!snesrecomp_presenter_present(s_presenter, &frame)) {
             fprintf(stderr, "Present failed: %s\n",
                     snesrecomp_presenter_last_error(s_presenter));
@@ -1934,6 +2032,129 @@ static bool SubmitFrame(bool include_rewind) {
         s_window_resize_pending = false;
     }
     return true;
+}
+
+/* Development: record the Battle frame for offline replay, next to the three
+ * pictures and the actor list the scene builder makes of it. */
+static void DevDumpHd2d(const char *prefix) {
+    static const char *const kNames[3] = {"background", "actors", "interface"};
+    const Lufia2Hd2dFrame *frame = Lufia2Hd2dCurrent();
+    if (!prefix)
+        return;
+    if (!frame) {
+        fprintf(stderr, "[hd2d] no Battle frame to dump for %s\n", prefix);
+        return;
+    }
+
+    char path[600];
+    snprintf(path, sizeof path, "%s.l2hd", prefix);
+    if (!Lufia2Hd2dSaveFrame(path, frame))
+        fprintf(stderr, "[hd2d] could not write %s\n", path);
+
+    Lufia2Hd2dScene scene;
+    Lufia2Hd2dBuildScene(frame, &scene);
+    /* The actor picture may be the larger of the three. */
+    uint8_t *argb = (uint8_t *)malloc(
+        ((size_t)scene.width * scene.height +
+         (size_t)scene.actors_width * scene.actors_height) * 4);
+    if (!argb)
+        return;
+    const uint8_t *const planes[3] = {
+        scene.background, scene.actors, scene.interface,
+    };
+    for (unsigned plane = 0; plane < 3; plane++) {
+        const unsigned plane_width =
+            plane == 1u ? scene.actors_width : scene.width;
+        const unsigned plane_height =
+            plane == 1u ? scene.actors_height : scene.height;
+        const size_t pixels = (size_t)plane_width * plane_height;
+        for (size_t i = 0; i < pixels; i++) {
+            argb[i * 4 + 0] = planes[plane][i * 4 + 2];
+            argb[i * 4 + 1] = planes[plane][i * 4 + 1];
+            argb[i * 4 + 2] = planes[plane][i * 4 + 0];
+            argb[i * 4 + 3] = planes[plane][i * 4 + 3];
+        }
+        snprintf(path, sizeof path, "%s_%s.png", prefix, kNames[plane]);
+        Lufia2DevWritePng(path, argb, plane_width, plane_height,
+                          (size_t)plane_width * 4, true);
+    }
+    free(argb);
+    if (scene.ground.lower) {
+        /* The field window: both layers, and the height of what shows. */
+        const Lufia2Hd2dGround *ground = &scene.ground;
+        const unsigned wide = ground->tiles_wide * 8u;
+        const unsigned high = ground->tiles_high * 8u;
+        uint8_t *window = (uint8_t *)malloc((size_t)wide * high * 4u);
+        for (unsigned plane = 0; window && plane < 3u; plane++) {
+            static const char *const kGround[3] = {"lower", "upper", "relief"};
+            for (size_t i = 0; i < (size_t)wide * high; i++) {
+                const uint8_t *lower = ground->lower + i * 4u;
+                const uint8_t *upper = ground->upper + i * 4u;
+                const uint8_t *relief = ground->relief + i * 4u;
+                uint8_t rgba[4] = {lower[0], lower[1], lower[2], 255};
+                if (plane == 1u) {
+                    memcpy(rgba, upper, 4);
+                } else if (plane == 2u) {
+                    /* Height as brightness; red where sprites are hidden. */
+                    const unsigned height = upper[3] ? relief[0] : relief[1];
+                    const unsigned grey = height > 84u ? 255u : height * 3u;
+                    rgba[0] = (uint8_t)(relief[2] ? 255u : grey);
+                    rgba[1] = (uint8_t)grey;
+                    rgba[2] = (uint8_t)(height ? grey : 40u);
+                }
+                window[i * 4 + 0] = rgba[2];
+                window[i * 4 + 1] = rgba[1];
+                window[i * 4 + 2] = rgba[0];
+                window[i * 4 + 3] = rgba[3];
+            }
+            snprintf(path, sizeof path, "%s_%s.png", prefix, kGround[plane]);
+            Lufia2DevWritePng(path, window, wide, high, (size_t)wide * 4,
+                              plane == 1u);
+        }
+        free(window);
+    }
+    snprintf(path, sizeof path, "%s_flat.png", prefix);
+    Lufia2DevWritePng(path, (const uint8_t *)frame->flat, frame->width,
+                      frame->height, (size_t)frame->width * 4, false);
+
+    snprintf(path, sizeof path, "%s.txt", prefix);
+    FILE *file = fopen(path, "w");
+    if (!file)
+        return;
+    fprintf(file, "kind %d serial %u background %u brightness %u "
+                  "bg2_enemies %u bg1_columns %u..%u\n",
+            (int)frame->kind, frame->serial, frame->background_id,
+            frame->brightness,
+            frame->enemies_on_bg2 ? 1u : 0u, scene.background_x0,
+            scene.background_x1);
+    if (frame->plane.tiles)
+        fprintf(file, "plane %ux%u tiles origin %.2f,%.2f\n",
+                frame->plane.tiles_wide, frame->plane.tiles_high,
+                frame->plane.origin_x, frame->plane.origin_y);
+    if (scene.ground.lower)
+        fprintf(file, "field map %u window %ux%u tiles origin %d,%d map "
+                      "%d,%d tallest %u enclosed %d\n",
+                frame->field.map_id, scene.ground.tiles_wide,
+                scene.ground.tiles_high, scene.ground.origin_x,
+                scene.ground.origin_y, scene.ground.map_x,
+                scene.ground.map_y, scene.ground.tallest,
+                scene.ground.enclosed ? 1 : 0);
+    for (unsigned i = 0; i < frame->enemy_count; i++)
+        fprintf(file, "enemy %d,%d %ux%u\n", frame->enemies[i].x,
+                frame->enemies[i].y, frame->enemies[i].width,
+                frame->enemies[i].height);
+    for (unsigned i = 0; i < scene.actor_count; i++)
+        fprintf(file, "actor kind %d box %d,%d..%d,%d foot %d\n",
+                (int)scene.actor[i].kind, scene.actor[i].x0,
+                scene.actor[i].y0, scene.actor[i].x1, scene.actor[i].y1,
+                scene.actor[i].foot);
+    for (unsigned i = 0; i < frame->sprite_count; i++)
+        fprintf(file, "sprite slot %u at %d,%d %ux%u priority %u palette %u\n",
+                frame->sprites[i].slot, frame->sprites[i].x,
+                frame->sprites[i].y, frame->sprites[i].width,
+                frame->sprites[i].height, frame->sprites[i].priority,
+                frame->sprites[i].palette);
+    fclose(file);
 }
 
 static bool PresentFrame(bool include_rewind) {
@@ -2029,6 +2250,7 @@ static void PrepareVideoFrame(void) {
     bool finalize_map_widescreen = false;
     Lufia2BattleEffectsPrepare(g_ppu, false, 0, 0);
     Lufia2MenuUiReset(g_ppu);
+    s_field_frame = layout == LUFIA2_VIDEO_REGULAR_MAP;
     switch (layout) {
     case LUFIA2_VIDEO_WORLD_MAP:
         Lufia2DeactivateMapWidescreen();
@@ -2051,7 +2273,10 @@ static void PrepareVideoFrame(void) {
 
     case LUFIA2_VIDEO_BATTLE:
         Lufia2DeactivateMapWidescreen();
-        if (Lufia2BattleEffectsPrepare(
+        /* The HD-2D scene widens Battle itself, out of the native picture:
+         * it wants neither the margin compositor nor the moved HUD cards. */
+        if (!Lufia2Hd2dEnabled(LUFIA2_HD2D_BATTLE) &&
+            Lufia2BattleEffectsPrepare(
                 g_ppu, g_ws_active, (unsigned)s_frame_width, SNES_HEIGHT)) {
             PpuSetExtraSpace(g_ppu, (uint8_t)g_ws_extra);
             /* Extend scene crops; preserve finite name windows. */
@@ -2324,6 +2549,9 @@ static bool HandleEvents(void) {
         if (e.type == SDL_EVENT_QUIT)
             return false;
 
+        if (s_dev_hidden)
+            continue;
+
         if (e.type == SDL_EVENT_KEY_DOWN ||
             e.type == SDL_EVENT_KEY_UP) {
             const bool down = e.type == SDL_EVENT_KEY_DOWN;
@@ -2345,7 +2573,27 @@ static bool HandleEvents(void) {
                 e.key.key == SDLK_ESCAPE) {
                 return false;
             }
-
+            if (e.key.key == SDLK_F6 || e.key.key == SDLK_F7 ||
+                e.key.key == SDLK_F8) {
+                const Lufia2Hd2dKind kind =
+                    e.key.key == SDLK_F6 ? LUFIA2_HD2D_BATTLE
+                    : e.key.key == SDLK_F7 ? LUFIA2_HD2D_WORLD_MAP
+                    : LUFIA2_HD2D_MAP;
+                if (down && !e.key.repeat) {
+                    char message[64];
+                    s_hd2d[kind] = !s_hd2d[kind];
+                    Lufia2Hd2dSetEnabled(kind, s_hd2d[kind]);
+                    PersistText("Graphics", kHd2dKeys[kind],
+                                s_hd2d[kind] ? "On" : "Off");
+                    snprintf(message, sizeof message, "HD-2D %s: %s",
+                             kHd2dNames[kind],
+                             !s_hd2d[kind] ? "off"
+                             : !Lufia2Hd2dEnabled(kind) ? "needs OpenGL"
+                             : "on");
+                    Lufia2OverlayUiPush(message, 1600);
+                }
+                continue;
+            }
             const int cmd =
                 FindCmdForSdlKey(e.key.key, e.key.mod);
             if (!e.key.repeat)
@@ -2719,6 +2967,7 @@ int main(int argc, char **argv) {
     recompui_keybinds_init(NULL);
 
     Lufia2MapLoadInstallHooks();
+    Lufia2Hd2dInstallHooks(rom_data, rom_size);
     Lufia2EquipNamesInstall();
     Lufia2PlayTimeInstall();
     Lufia2PartyLimitsInstall();
@@ -2742,11 +2991,29 @@ int main(int argc, char **argv) {
 
     memset(s_pixels, 0, sizeof(s_pixels));
 
+    /* A scripted run is unattended: silent, unthrottled, unsynchronised and,
+     * unless LUFIA2_DEV_SHOW asks otherwise, out of the user's way. */
+    if (Lufia2DevScriptInit()) {
+        const char *show = getenv("LUFIA2_DEV_SHOW");
+        s_turbo = true;
+        s_vsync_enabled = false;
+        g_config.enable_audio = 0;
+        s_dev_hidden = !(show && *show && *show != '0');
+        if (s_dev_hidden)
+            SDL_SetHint(SDL_HINT_WINDOW_ACTIVATE_WHEN_SHOWN, "0");
+    }
+
     if (!InitVideo()) {
         snes_free(snes);
         free(rom_data);
         ShutdownDesktop();
         return 1;
+    }
+    if (s_dev_hidden) {
+        SDL_Window **windows = SDL_GetWindows(NULL);
+        for (SDL_Window **window = windows; window && *window; window++)
+            SDL_HideWindow(*window);
+        SDL_free(windows);
     }
 
     if (!InitAudio()) {
@@ -2828,8 +3095,10 @@ int main(int argc, char **argv) {
             const uint32_t raw_input =
                 ReadKeyboardInput() | ReadGamepadInput();
             s_input_release_mask &= raw_input;
-            const uint32_t input = raw_input & ~s_input_release_mask;
+            const uint32_t input = Lufia2DevScriptInput(
+                frame_counter, raw_input & ~s_input_release_mask);
 
+            Lufia2DevScriptPoke(frame_counter, g_ram, sizeof g_ram);
             L2CaptureFrameBegin(input);
             RtlRunFrame(input);
             Lufia2MsuDriverFrame();
@@ -2846,9 +3115,22 @@ int main(int argc, char **argv) {
                 ppu_flags |= kPpuRenderFlags_NoSpriteLimits;
 
             Lufia2BeginMapRenderOverlay(g_ppu);
+            {
+                const Lufia2BattleState hd2d_battle =
+                    Lufia2BattleInspect(g_ram);
+                Lufia2Hd2dBeginFrame(
+                    g_ppu, &hd2d_battle,
+                    s_current_video_layout == LUFIA2_VIDEO_WORLD_MAP
+                        ? LUFIA2_HD2D_SHOWN_WORLD_MAP
+                    : s_field_frame ? LUFIA2_HD2D_SHOWN_FIELD
+                                    : LUFIA2_HD2D_SHOWN_OTHER,
+                    (unsigned)s_frame_width,
+                    g_ws_extra > 0 ? (unsigned)g_ws_extra : 0u, &ppu_flags);
+            }
             PpuBeginDrawing(
                 g_ppu, s_pixels, (size_t)s_frame_width * 4, ppu_flags);
             Lufia2DrawPpuFrame();
+            Lufia2Hd2dEndFrame(g_ppu, g_ram, s_pixels, frame_counter);
             Lufia2BattleUiFinish(s_pixels, (size_t)s_frame_width * 4);
             Lufia2InterpNoteFrame(ppu_flags);
             Lufia2EndMapRenderOverlay(g_ppu);
@@ -2859,6 +3141,42 @@ int main(int argc, char **argv) {
             Lufia2SavestateMenuNoteFrame(
                 (const uint32_t *)s_present_pixels,
                 s_frame_width, SNES_HEIGHT);
+            if (Lufia2DevScriptActive()) {
+                const Lufia2BattleState dev_battle =
+                    Lufia2BattleInspect(g_ram);
+                Lufia2DevScriptNoteBattle(
+                    frame_counter,
+                    dev_battle.active && dev_battle.display_ready);
+            }
+            Lufia2DevScriptFrame(frame_counter, s_present_pixels,
+                                 (unsigned)s_frame_width, SNES_HEIGHT);
+            DevDumpHd2d(Lufia2DevScriptRequest(frame_counter, "layers"));
+            {
+                const char *wram =
+                    Lufia2DevScriptRequest(frame_counter, "wram");
+                FILE *file = wram ? fopen(wram, "wb") : NULL;
+                if (file) {
+                    fwrite(g_ram, 1, sizeof g_ram, file);
+                    fclose(file);
+                }
+                /* The 64 register bytes the PPU snapshots, then CGRAM, OAM
+                 * and VRAM, little-endian words. */
+                const char *ppu =
+                    Lufia2DevScriptRequest(frame_counter, "ppu");
+                file = ppu ? fopen(ppu, "wb") : NULL;
+                if (file) {
+                    fwrite(&g_ppu->inidisp, 1, PPU_SAVESTATE_REGS_SIZE, file);
+                    fwrite(g_ppu->cgram, 1, sizeof g_ppu->cgram, file);
+                    fwrite(g_ppu->oam, 1, sizeof g_ppu->oam, file);
+                    fwrite(g_ppu->highOam, 1, sizeof g_ppu->highOam, file);
+                    fwrite(g_ppu->vram, 1, sizeof g_ppu->vram, file);
+                    fclose(file);
+                }
+            }
+            Lufia2Hd2dPresentShot(
+                Lufia2DevScriptRequest(frame_counter, "hdshot"));
+            if (Lufia2DevScriptQuit(frame_counter))
+                running = false;
 
             frame_counter++;
             UpdatePerfTitle();

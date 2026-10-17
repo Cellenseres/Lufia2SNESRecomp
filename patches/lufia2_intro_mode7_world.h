@@ -30,5 +30,10 @@ Lufia2IntroMode7WorldStatus Lufia2IntroMode7WorldPrepare(
     unsigned world_line_capacity,
     SnesRecompMode7MapSource *world_source);
 
+/* The terrain class of each 16x16 block of the world last rebuilt, row-major,
+ * or NULL when none is. Valid until the next Prepare. */
+const uint8_t *Lufia2IntroMode7WorldTerrain(unsigned *width_blocks,
+                                            unsigned *height_blocks);
+
 const char *Lufia2IntroMode7WorldStatusName(
     Lufia2IntroMode7WorldStatus status);
