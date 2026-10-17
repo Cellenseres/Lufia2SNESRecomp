@@ -14406,3 +14406,51 @@ RecompReturn Lufia2DecompBridge_8681D0(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu, 0x8681d0u, Lufia2SelectScreenControl, 2u);
 }
+
+static uint8_t ActorBridgeSelectTransitionContext(const CpuState *cpu,
+                                                  unsigned either_m) {
+    return cpu->PB == 0x86u && cpu->DB == 0x7eu && !cpu->D && !cpu->emulation &&
+           !cpu->_flag_D && !cpu->x_flag && (either_m || cpu->m_flag) &&
+           cpu->S >= 0x1f00u && cpu->S <= 0x1ffcu;
+}
+
+RecompReturn Lufia2DecompBridge_868305(CpuState *cpu) {
+    if (!ActorBridgeSelectTransitionContext(cpu, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x868305u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x868305u, Lufia2SelectScreenFadeIn, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_86830F(CpuState *cpu) {
+    if (!ActorBridgeSelectTransitionContext(cpu, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86830fu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x86830fu, Lufia2SelectScreenFadeOut, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_868339(CpuState *cpu) {
+    if (!ActorBridgeSelectTransitionContext(cpu, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x868339u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x868339u, Lufia2SelectScreenWaitForInput, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_86835B(CpuState *cpu) {
+    if (!ActorBridgeSelectTransitionContext(cpu, 1u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86835bu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x86835bu, Lufia2SelectScreenConfigureObject,
+                                  2u);
+}
+
+RecompReturn Lufia2DecompBridge_8682C8(CpuState *cpu) {
+    if (!ActorBridgeSelectTransitionContext(cpu, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8682c8u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x8682c8u, Lufia2SelectScreenWaitForObjects, 2u);
+}
