@@ -1,3 +1,55 @@
+# Original tile drawing/upload entry contracts - 2026-10-17
+
+Four additional callable original entries share their existing C bodies:
+83:9D88 Cave tile block;86:D1A1 world-map upload queue;86:D1E8 column upload;
+86:D271 two-pass block upload. Their old JSR/RTS wrappers and call sites remain.
+No duplicate algorithms or inline-fragment bindings were introduced.
+
+All require native binary mode, DP0,X16,S1F00..1FFC; Cave PB83/DB7F/M1;
+world PB86 and DB register mirrors or7E. Queue requiresM1; column and block
+forceM0 and also accept incomingM0. All completed paths returnM1 at original
+RTS9DE3,D1E6,D26A,D2CF. Metadata records ordinaryM1X0 calls. Original byte
+queue/row counters retain zero-to256 underflow and both DMA passes. Original
+size subtraction, source-bank reads, VRAM strides and carry propagation remain.
+
+Cave block dimensions are read dynamically from the bound ROM.63 of256
+records have zero dimensions. Word underflow can mean65536 iterations per
+axis; destination absolute,Y can also cross7F into bank80 WRAM mirrors and
+overwrite DP loop counters. Preserve these behaviors. The new entry executes
+literal setup then hands off at83:9DAE for zeros or a conservative last-write
+bound aboveFFFF. Bound includes the original source-add carry in row advance.
+No extra bus read, clamp, skipped loop or fabricated empty rectangle. The
+legacy wrapper passes no handoff and retains the complete original algorithm.
+These cases are explicit original continuation coverage, not full native loops.
+
+Shared checkpoint:8192 normal comparisons per direct/actual-producer side,
+1024 coordinate/type edges each,1024 return-profile states each (1012 actual
+RTS returns and12 original continuations),28 raw queue counts
+each and1536 descriptor aliases each:11804 per side.694 Cave cases per side
+compare literal prefix plus64 instructions of original continuation. Aliases
+include DP scratch, queue, guest stack, PPU/WMADD/DMA and end-of-bank words.
+Queue includes both actual child sites/legacy frames. Compare complete CPU,
+full WRAM,every ordered operand/data access,MMIO and live math/Mode7/WMADD
+device state. Four leaves use the actual16-function production adapter closure;
+native invocation is mandatory, with paired/unpaired return and tail contracts.
+524954 semantic and525600 actual pre-access guards include646 emulation cases.
+
+Fresh public-library checks:128 normal,64 returns,1024 edges,7 counts and48
+aliases per side, all unsupported-context guards and four C++ link symbols.
+Four effective heap-only ROM faults and two production stack/frame faults are
+detected. No ROM was copied, exported or added to any artifact. The new alias
+cohort extends the fixture; prior unchanged cohorts retain their first passing
+driver revision. Adding stddef.h fixes NULL portability without changing logic.
+The initial synthetic Cave trace ceiling exposed the raw bank-crossing case;
+no earlier incomplete run is reported as green.
+
+GCC,Clang,metadata and isolated Windows Release pass (Windows216.8s).
+Resource CLI checks reuse byte-identical executables and unchanged fixtures.
+Only failed standalone compiles were repeated after the missing header fix. Full decomp-verify, complete
+floor replay and in-game replay are deferred for this scoped helper batch.
+DMA payload pixels, NMI scheduling, current interpreter hit rate, whole-ROM
+completion and speedup are not claimed. No PPU/platform/owner-build changes.
+
 ## Original Cave placement and random entry contracts - 2026-10-17
 
 Nine original JSR entries are verified and natively bound:83:99C8 resolves
