@@ -14271,3 +14271,39 @@ RecompReturn Lufia2DecompBridge_839DE4(CpuState *cpu) {
     return ActorBridgeCavePlacementEntry(cpu, 0x839de4u, Lufia2CaveDrawRandomMean, 0u,
                                          1u);
 }
+
+static RecompReturn ActorBridgeTileUploadEntry(CpuState *cpu, uint32_t entry,
+                                               ActorWholeFunction function,
+                                               unsigned any_accumulator) {
+    const uint8_t bank = cpu->DB;
+    const uint8_t cave = entry == 0x839d88u;
+    const uint8_t mapped_bank =
+        cave ? bank == 0x7fu
+             : bank < 0x40u || bank == 0x7eu || (bank >= 0x80u && bank < 0xc0u);
+    if (cpu->PB != (cave ? 0x83u : 0x86u) || cpu->D || cpu->emulation || cpu->_flag_D ||
+        cpu->x_flag || (!any_accumulator && !cpu->m_flag) || !mapped_bank ||
+        cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, entry, function, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_839D88(CpuState *cpu) {
+    return ActorBridgeTileUploadEntry(cpu, 0x839d88u, Lufia2CaveDrawTileBlock, 0u);
+}
+
+RecompReturn Lufia2DecompBridge_86D1A1(CpuState *cpu) {
+    return ActorBridgeTileUploadEntry(cpu, 0x86d1a1u, Lufia2WorldMapUploadTileQueue,
+                                      0u);
+}
+
+RecompReturn Lufia2DecompBridge_86D1E8(CpuState *cpu) {
+    return ActorBridgeTileUploadEntry(cpu, 0x86d1e8u, Lufia2WorldMapUploadTileColumn,
+                                      1u);
+}
+
+RecompReturn Lufia2DecompBridge_86D271(CpuState *cpu) {
+    return ActorBridgeTileUploadEntry(cpu, 0x86d271u, Lufia2WorldMapUploadTileBlock,
+                                      1u);
+}
