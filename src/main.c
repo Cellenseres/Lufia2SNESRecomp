@@ -514,8 +514,6 @@ static bool EnsureDefaultConfig(const char *path) {
         "\n"
         "[Lufia2Features]\n"
         "FixSoundMenu = 1\n"
-        "# WidescreenRoomVisibility: l2rooms, compare or game; unset uses the build default.\n"
-        "# WidescreenRoomVisibility = game\n"
         "\n"
         "[GamepadMap]\n"
         "EnableGamepad1 = true\n"

@@ -12,14 +12,6 @@ enum {
     LUFIA2_MAP_STREAM_GUARD_PIXELS = 16,
 };
 
-/* Who decides which map cells the margins may show. */
-typedef enum Lufia2RoomVisibility {
-    LUFIA2_ROOM_VISIBILITY_L2ROOMS = 0,
-    /* Room data draws; disagreements with the game are reported. */
-    LUFIA2_ROOM_VISIBILITY_COMPARE = 1,
-    LUFIA2_ROOM_VISIBILITY_GAME = 2,
-} Lufia2RoomVisibility;
-
 typedef enum Lufia2MapWidescreenResult {
     LUFIA2_MAP_WIDESCREEN_DISABLED = 0,
     LUFIA2_MAP_WIDESCREEN_ACTIVE,
@@ -34,5 +26,5 @@ void Lufia2BeginMapRenderOverlay(Ppu *ppu);
 void Lufia2EndMapRenderOverlay(Ppu *ppu);
 void Lufia2DeactivateMapWidescreen(void);
 void Lufia2MapWidescreenStateChanged(void);
-/* The configured choice; LUFIA2_ROOM_VISIBILITY overrides it. */
+/* Only "game" is left; other values warn. */
 void Lufia2MapWidescreenSetRoomVisibility(const char *configured);
