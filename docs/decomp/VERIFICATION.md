@@ -1,3 +1,61 @@
+## Original object motion and animation helpers - 2026-10-17
+
+Seven complete original JSR entries share the existing object VM algorithms:
+83:E1AD/E1B9 add display offsets, 83:EE9D/EEA9 add fine positions, 83:EED8
+reads a random offset, 83:ED63 selects a low-nibble subcommand, and 83:EE0E
+copies animation state. Existing callers retain their original stack frames.
+No new C unit or duplicate algorithm was introduced. The new entry contracts
+expose previously internal semantic bodies to original generated callers;
+they do not represent seven wholly new gameplay algorithms.
+
+All require native execution, PB83, DP0, binary arithmetic and S1F00..1FFC.
+Position entries require M0 and ignore DB; the others require M1 and admit
+register-mirror DB banks or7E. Both native index widths are supported. Only
+EED8 exits M0; the others exit M1. Index width is retained. Metadata describes
+the usual X16 convention; additional accepted widths are explicitly verified.
+Return sites are E1B8/E1C4/EEA8/EEB4/EEEB/ED6C/EE47 respectively.
+
+The shared subcommand helper now uses the original index-width-aware INY.
+The previous internal IncrementY16 differed from ROM for X8,Y=FF. Existing
+X16 VM callers keep their behavior. Literal long-indexed accesses, RNG refill,
+MMIO multiplication, signed-byte high-byte quirks, data aliasing and writes
+that overwrite a guest return word are retained. The dispatch-table lookup
+remains after the original RTS, outside the ED63 entry body.
+
+Shared ROM verification passes 26,624 direct and 26,624 actual producer states
+across seven leaves and six complete object VM families: F6/F7/FB/FC/F2/F1.
+Each complete caller must reach its affected helper. Both layers additionally
+pass 28,672 raw-address/alias/stack/MMIO edge states, 3,328 real RTS return
+compositions and 1,536 complete caller states with script banks00/80/83/7E.
+Leaf checks compare CPU, full WRAM, every ordered data-bus access, ordered
+MMIO and live multiplication/division/Mode7/WMADD state. Complete callers
+compare CPU, full WRAM, ordered MMIO and those devices; no complete-caller
+all-data-read-order claim is made. Actual return assertions compare rewritten
+targets against the live guest return word; fallback is forbidden throughout.
+
+Admission passes 917,934 semantic and 920,756 unpaired actual producer cases,
+including2,822 emulation rejections. The actual21-function producer closure
+uses only read-only entry/return observations. The initial X8 mismatch was a
+real shared-helper fidelity defect, corrected before acceptance. Initial
+caller fixtures ended F2/F1 with a despawn instruction requiring unrelated
+services; the accepted fixtures use the original41 wait instruction. One
+signed/unsigned warning in the guard fixture was corrected. Failed initial
+logs are retained and excluded from passing counts.
+
+Fresh public-library/actual-producer wiring, C++ linkage, seven effective ROM
+fault controls and three actual adapter fault controls are recorded separately.
+GCC, Clang, metadata and isolated Windows Release pass (Windows392.27s).
+Byte-identical CLI checks are reused. Compiler and CLI results remain scoped
+in the receipt. Large private cohorts are
+reused only for their unchanged relevant C/producer/harness scope. Later
+read-only return counters do not imply a full rerun of those cohorts.
+Full regression and new gameplay/audio replay are deferred, not reported as
+passing on this revision. No interpreter-hit rate, speedup or timing claim.
+
+Totals after acceptance:1,615 verified entries,1,600 ordinary native bindings,
+752 documented WRAM locations and466 semantic C units. Fifteen verified
+entries remain deliberately unbound. These counts are not a whole-ROM census.
+
 ## Menu pointer, numeric and branch operands — 2026-10-17
 
 Four original subroutines are verified and natively bound: 80:8BA7
