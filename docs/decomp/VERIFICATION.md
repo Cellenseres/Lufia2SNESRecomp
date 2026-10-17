@@ -1,3 +1,50 @@
+# Selection-screen control - 2026-10-17
+
+Five complete original entries86:89FD/87D3/8865/8784/81D0 are reconstructed
+and selected through ordinary native bindings. New menu_select_control.c
+preserves sprite-status clearing, scene-state clearing, raw HDMA descriptor
+selection, three map copies and the complete carry-result controller.
+Existing TitleCopyTileRows8740 and asset helpers are reused, not duplicated.
+Source names follow existing SelectScreenNmi; exact scene identity is unclaimed.
+
+PB86,DP0,binary,anyDB,S1F00..1FFC.89FD accepts all nativeM/X and restoresP
+throughPHP/PLP, including X8 truncation;8865 accepts eitherM withX16 and
+exitsM1X0;other three requireM1X0. Four fixed RTS8A16/87DF/88A5/87D2;
+controller returns81F7 or81FA according to original carry. All14 original
+child frames remain live; unwinds stop at their exact original site. Slot
+indices remain raw bytes, with no invented descriptor bounds. The existing
+868000 root keeps its original three-byte RTL and complete setup call graph.
+
+New canonical RAM7E15B8 is title_animation_frame. Title8695 increments it;
+SelectNmiRedraw87E0 adds its low byte to1800 VRAM. It is not a row count.
+15B9 remains the existing scene-reused field_recovery_object_updates byte;
+no invented choice-state or high-upload meaning. No Title algorithm changed.
+
+Private proof26,208 direct and26,208 actual-adapter states each:20,480normal,
+5,120 realRTS,320composed,224childunwinds,64full-root/realRTL. Every CPU
+field,fullWRAM and ordered data/MMIO/math/Mode7/WMADD agree.20-function
+actual producer closure must invoke native entries, with no fallback.210
+redirect probes cover14new child sites. Guards655,399semantic/657,700actual
+include3missingcallbacks and2,304emulation contexts. Full actual input,
+framewait and NMI internals are not part of this proof:8305/81FB/8298/8B48
+remain explicit original services, including their side effects and frames.
+
+Private/public semantic tokens and producer bodies are identical. Fresh public checks per side:160normal,80RTS,40default-composed,28unwinds,
+4rootRTL;320additionalDB80composed and64DB80rootRTL;210actualredirects;
+allguards and5C++symbols pass.5heap-ROM faults and2stack/frame producer
+faults are detected. No ROM files are modified or copied. One combined compiler/CLI/
+Windows Release checkpoint covers this batch; unchanged large private
+cohorts are retained. Full decomp-verify is deferred, not reported passing.
+No timing/pixel/speedup/interpreter-hit/whole-ROM completion claim.
+
+The first build checkpoint exposed the new source missing from the explicit
+CMake list. Adding that unit fixed the five-symbol public/Windows link failure.
+Only affected incremental compiler/link gates were repeated; the unchanged
+private semantic/producer matrices were retained. Initial logs are archived.
+
+GCC/Clang/metadata/isolated Windows Release PASS; Windows67.8s.
+Resource CLI checks reuse unchanged executable bytes and fixture/dependencies.
+
 # Selection-screen setup reconstructed - 2026-10-17
 
 Five original routines now have complete C entry contracts:86:80DB graphics,
