@@ -1,3 +1,84 @@
+## Field selection and palette/wave child entries — 2026-10-17
+
+Three original entries are verified and natively bound: 83:ACEF
+Lufia2FieldSelectSessionSetup, 83:AEED Lufia2FieldAdvancePaletteCycles and
+83:AF54 Lufia2FieldStepWaveTable. They reuse existing semantic bodies.
+ACB7 now calls an unguarded shared selection helper after its original prefix;
+its original entry and AD23 keep their previous consumer admission rules.
+The palette caller retains its original JSR frame around the shared cycle
+body. The wave body was already shared. No algorithm is copied or optimized.
+
+ACEF is the actual JML target after a world-encounter defeat and TCS1FFF.
+Its SEP20/REP10/PHK/PLB normalizes widths and replaces incoming DB86 before
+selection, map preparation and field entry. The public entry requires PB83,
+DP0, binary arithmetic, a child service and S1F10..1FFF; all incoming data
+banks and native widths are supported. It never invents an RTS/RTL. Child
+unwinds, width fences, map restarts and original field-loop handoffs retain
+their state and frames. Only ACEF bypasses the old session bridge DB0/7E/83
+whitelist; explicit controls keep ACB7/AD23 rejecting DB86 as before.
+
+The two effect entries require PB83, DB7F, DP0, binary arithmetic, M1/X0 and
+S1F00..1FFC. Their original RTS sites are AF53/AFCC. Palette data remains read
+through the original A1 bus mapping; the zero-duration chain hands off at
+AF11 after its existing 65,536-step host work limit. Wave timer, pointer,
+channel-1 writes and data-bank changes remain literal. PPU/runtime engines,
+sound and intentional timing-specific interpreter fences are untouched.
+
+The selection proof passes 14,336 direct and 14,336 actual-producer states,
+covering all 67 selection/map child sites, every incoming DB and all four
+native M/X combinations. It compares parent instructions against original
+ROM with explicit controlled child services, including their complete input
+registers and pushed frames; it does not claim those service internals were
+executed by original ROM. Each layer also passes 67 live-child interruptions,
+134 returned-width variants, 512 affected ACB7 parents and 512 arrivals from
+actual original 86:9D9E instructions through TCS/JML83ACEF. The reset performs no invented stack clear; nonzero discarded stack bytes
+and subsequent original stack writes are compared. Eighteen small discovery states identify the child
+cases for the focused edge selectors; they are not added to the normal matrix.
+The actual producer adds 1,005 redirect contracts across all 67 sites and
+45 distinct missing-child-target contracts. Its closure includes the actual
+selection/session adapter bodies without substituting their algorithms.
+
+Effect proof passes 2,048 direct entry states, 1,024 affected AEB5 parent
+states and 2,048 actual producer states. Original return compositions cover
+512 direct entries, 256 direct parent states and 512 actual producer states.
+Terminating zero-duration links additionally pass 64 direct entry/parent and
+32 producer states using unchanged original ROM data. Each layer additionally
+passes three zero-duration palette-chain limit
+states. Only those limit states use synthetic palette data in the heap-loaded
+ROM buffer; original instruction banks remain unchanged. Normal ROM cohorts
+read the supported ROM in place. CPU, full WRAM, ordered bus accesses and
+hardware-register results are compared.
+
+Combined admission checks pass 393,760 semantic and 394,788 unpaired actual
+producer states, plus the semantic null-child contract. The producer count
+includes 1,026 emulation rejections and two unchanged old-session DB controls.
+The initial selection driver reused a battle-adapter redirect-depth expectation;
+it was corrected to the actual session adapter protocol before accepting any
+producer states. An initial fixture visit limit also interrupted normal actor
+installation too early; it now limits only repeated map-entry passes. Those
+early partial runs are excluded. Full accepted selection direct coverage is
+1,024 final base states plus 13,312 structured branch states.
+
+Private/public semantic tokens match. Large cohorts are retained for their
+unchanged private sources, compiler options and linked dependencies. Fresh
+public-library wiring covers 64 selection/arrival/ACB7 states, 48 effect/parent
+states, 24 effect return states, 16 finite palette-link states, 48 selection producer
+states and 56 effect
+producer/return states. Public semantic admission is checked again against
+the actual library. Four heap-only ROM faults, a wrong incoming-stack adapter
+and a wrong effect return-frame adapter are rejected normally; three C++
+symbols link and run. GCC, Clang, metadata and one isolated Windows Release
+checkpoint pass (Windows 411.25 seconds). Byte-identical CLI results are reused. No complete public
+matrix rerun, full decomp regression, new gameplay/audio replay or speed
+measurement is claimed for this revision.
+
+Totals: 1,597 verified entries, 1,582 ordinary native bindings, 752 documented
+WRAM locations and 466 semantic C units. Fifteen verified entries remain
+intentionally unbound. Additional exposed entries are not a whole-ROM
+completion percentage or a measured interpreter reduction. Evidence:
+field-selection-entry-next/ACCEPTANCE_RECEIPT.json, maintained field-session
+selection, palette/wave, admission and C++ link fixtures.
+
 ## Field condition helpers and original indirect calls — 2026-10-17
 
 Nine complete original entries are verified and natively bound: 80:E4C5
