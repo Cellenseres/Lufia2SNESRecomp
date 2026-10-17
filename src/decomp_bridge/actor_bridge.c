@@ -14356,3 +14356,53 @@ RecompReturn Lufia2DecompBridge_868000(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu, 0x868000u, Lufia2SelectScreenRun, 3u);
 }
+
+static uint8_t ActorBridgeSelectControlContext(const CpuState *cpu,
+                                               unsigned width_mode) {
+    return cpu->PB == 0x86u && !cpu->D && !cpu->emulation && !cpu->_flag_D &&
+           (width_mode == 2u || !cpu->x_flag) && (width_mode || cpu->m_flag) &&
+           cpu->S >= 0x1f00u && cpu->S <= 0x1ffcu;
+}
+
+RecompReturn Lufia2DecompBridge_8689FD(CpuState *cpu) {
+    if (!ActorBridgeSelectControlContext(cpu, 2u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8689fdu);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x8689fdu, Lufia2SelectScreenClearSpriteStatus,
+                                    2u);
+}
+
+RecompReturn Lufia2DecompBridge_8687D3(CpuState *cpu) {
+    if (!ActorBridgeSelectControlContext(cpu, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8687d3u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x8687d3u, Lufia2SelectScreenClearState, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_868865(CpuState *cpu) {
+    if (!ActorBridgeSelectControlContext(cpu, 1u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x868865u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x868865u, Lufia2SelectScreenConfigureHdmaSlot,
+                                  2u);
+}
+
+RecompReturn Lufia2DecompBridge_868784(CpuState *cpu) {
+    if (!ActorBridgeSelectControlContext(cpu, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x868784u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x868784u, Lufia2SelectScreenInitializeLayout,
+                                  2u);
+}
+
+RecompReturn Lufia2DecompBridge_8681D0(CpuState *cpu) {
+    if (!ActorBridgeSelectControlContext(cpu, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8681d0u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x8681d0u, Lufia2SelectScreenControl, 2u);
+}
