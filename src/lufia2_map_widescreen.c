@@ -528,6 +528,15 @@ static uint16_t ResolveWideTile(
     uint16_t entry = 0;
     const uint32_t sub_tile_x = (uint32_t)map_tile_x & 1u;
     const uint32_t sub_tile_y = (uint32_t)map_tile_y & 1u;
+    uint16_t patch_block = 0;
+    /* Painted cells win everywhere in the margins. */
+    if (room && Lufia2RoomDataPatchBlock(
+            room, map_tile_x >> 1, map_tile_y >> 1, logical_layer,
+            &patch_block)) {
+        (void)ResolveBlockTile(
+            map, patch_block, sub_tile_x, sub_tile_y, &entry);
+        return entry;
+    }
     /* Room data still extends the map past its edges. */
     if (s_game_driven &&
         (!room || MapTileInside(map, map_tile_x, map_tile_y)))
@@ -539,15 +548,6 @@ static uint16_t ResolveWideTile(
             RoomDebugTint()) {
             entry = TintGameCell(logical_layer, map_tile_x, map_tile_y, entry);
         }
-        return entry;
-    }
-
-    uint16_t patch_block = 0;
-    if (Lufia2RoomDataPatchBlock(
-            room, map_tile_x >> 1, map_tile_y >> 1, logical_layer,
-            &patch_block)) {
-        (void)ResolveBlockTile(
-            map, patch_block, sub_tile_x, sub_tile_y, &entry);
         return entry;
     }
 
