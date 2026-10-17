@@ -40,6 +40,16 @@ static bool s_load_attempted;
 static bool s_load_valid;
 static const char *s_last_error;
 
+static struct {
+    bool valid;
+    uint8_t map_id;
+    uint8_t width;
+    uint8_t height;
+    Lufia2MapPaint paint;
+    Lufia2RoomLookupResult result;
+    const char *error;
+} s_cached_map;
+
 static uint16_t Read16(const uint8_t *data) {
     return (uint16_t)(data[0] | ((uint16_t)data[1] << 8));
 }
@@ -53,6 +63,11 @@ static uint32_t Read32(const uint8_t *data) {
 
 static bool RangeIsValid(size_t offset, size_t size, size_t limit) {
     return offset <= limit && size <= limit - offset;
+}
+
+static bool TableIsValid(size_t offset, uint32_t count, size_t stride,
+                         size_t limit) {
+    return offset <= limit && count <= (limit - offset) / stride;
 }
 
 static bool LoadFile(const char *path) {
@@ -103,10 +118,9 @@ static bool ValidateHeader(void) {
     s_directory_offset = Read32(s_data + 44);
     s_strings_offset = Read32(s_data + 48);
     if (Read32(s_data + 52) != s_data_size ||
-        !RangeIsValid(
-            s_directory_offset,
-            (size_t)s_map_count * LUFIA2_ROOM_DIRECTORY_SIZE,
-            s_strings_offset) ||
+        s_directory_offset < LUFIA2_ROOM_HEADER_SIZE ||
+        !TableIsValid(s_directory_offset, s_map_count,
+                      LUFIA2_ROOM_DIRECTORY_SIZE, s_strings_offset) ||
         s_strings_offset > s_data_size) {
         return false;
     }
@@ -234,8 +248,7 @@ static Lufia2RoomLookupResult ReadMapV5(
         return InvalidData("map fill is invalid");
     const uint32_t patch_offset = Read32(payload + 36);
     const uint32_t patch_count = Read32(payload + 40);
-    if (!RangeIsValid(patch_offset,
-                      (size_t)patch_count * LUFIA2_ROOM_PATCH_SIZE,
+    if (!TableIsValid(patch_offset, patch_count, LUFIA2_ROOM_PATCH_SIZE,
                       payload_size) ||
         !RangeIsValid(Read32(payload + 44), Read32(payload + 48),
                       payload_size))
@@ -264,8 +277,7 @@ static Lufia2RoomLookupResult ReadMapRooms(
         memcmp(payload, "MAP0", 4) != 0 ||
         Read32(payload + 4) != payload_size ||
         Read32(payload + 8) != room_size ||
-        !RangeIsValid(header_size, (size_t)room_count * room_size,
-                      payload_size))
+        !TableIsValid(header_size, room_count, room_size, payload_size))
         return InvalidData("map payload header is invalid");
     if (room_count > LUFIA2_ROOM_MAX_TABLES)
         return InvalidData("too many rooms to merge");
@@ -296,8 +308,7 @@ static Lufia2RoomLookupResult ReadMapRooms(
             continue;
         const uint32_t patch_offset = Read32(room + 44);
         const uint32_t patch_count = Read32(room + 48);
-        if (!RangeIsValid(patch_offset,
-                          (size_t)patch_count * LUFIA2_ROOM_PATCH_SIZE,
+        if (!TableIsValid(patch_offset, patch_count, LUFIA2_ROOM_PATCH_SIZE,
                           payload_size))
             return InvalidData("patch table is out of bounds");
         if (!patch_count)
@@ -314,7 +325,7 @@ static Lufia2RoomLookupResult ReadMapRooms(
     return LUFIA2_ROOM_FOUND;
 }
 
-Lufia2RoomLookupResult Lufia2RoomDataFindMap(
+static Lufia2RoomLookupResult ReadMap(
     uint8_t map_id,
     uint8_t map_width,
     uint8_t map_height,
@@ -347,6 +358,30 @@ Lufia2RoomLookupResult Lufia2RoomDataFindMap(
     if (s_version >= LUFIA2_ROOM_VERSION)
         return ReadMapV5(payload, payload_size, paint);
     return ReadMapRooms(directory, payload, payload_size, paint);
+}
+
+Lufia2RoomLookupResult Lufia2RoomDataFindMap(
+    uint8_t map_id, uint8_t map_width, uint8_t map_height,
+    Lufia2MapPaint *paint) {
+    if (!paint)
+        return InvalidData("map paint output is missing");
+    if (s_cached_map.valid && s_cached_map.map_id == map_id &&
+        s_cached_map.width == map_width && s_cached_map.height == map_height) {
+        *paint = s_cached_map.paint;
+        s_last_error = s_cached_map.error;
+        return s_cached_map.result;
+    }
+
+    const Lufia2RoomLookupResult result = ReadMap(
+        map_id, map_width, map_height, paint);
+    s_cached_map.valid = true;
+    s_cached_map.map_id = map_id;
+    s_cached_map.paint = *paint;
+    s_cached_map.width = map_width;
+    s_cached_map.height = map_height;
+    s_cached_map.result = result;
+    s_cached_map.error = s_last_error;
+    return result;
 }
 
 static bool FindPatch(

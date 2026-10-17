@@ -26,5 +26,5 @@ void Lufia2BeginMapRenderOverlay(Ppu *ppu);
 void Lufia2EndMapRenderOverlay(Ppu *ppu);
 void Lufia2DeactivateMapWidescreen(void);
 void Lufia2MapWidescreenStateChanged(void);
-/* Only "game" is left; other values warn. */
-void Lufia2MapWidescreenSetRoomVisibility(const char *configured);
+/* Warn about retired visibility settings. */
+void Lufia2MapWidescreenCheckVisibilityConfig(const char *configured);

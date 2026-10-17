@@ -780,7 +780,7 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
         "config.ini", "Lufia2Features", "FixSoundMenu", true));
     {
         char visibility[32];
-        Lufia2MapWidescreenSetRoomVisibility(
+        Lufia2MapWidescreenCheckVisibilityConfig(
             ReadIniText("config.ini", "Lufia2Features",
                         "WidescreenRoomVisibility", visibility,
                         sizeof(visibility)) ? visibility : NULL);
