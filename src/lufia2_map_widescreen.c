@@ -5,10 +5,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "lufia2_map_load.h"
 #include "lufia2_room_data.h"
+#include "lufia2/field.h"
 #include "snes/ws_shadow.h"
 #include "lufia2_log.h"
 
@@ -36,6 +38,7 @@ enum {
     LUFIA2_COLLISION_TOP = 0x04,
     LUFIA2_COLLISION_LEFT = 0x08,
     LUFIA2_ROOM_BORDER = 0x10,
+    LUFIA2_CELL_INDEX_MASK = 0x03ff,
     LUFIA2_PLAYER_X = 0x1ddae,
     LUFIA2_PLAYER_Y = 0x1de3e,
     /* The guest streams the native tilemaps in the NMI after the load
@@ -46,6 +49,14 @@ enum {
        player enters the cell instead. */
     LUFIA2_TRANSITION_GRACE_FRAMES = 10,
     LUFIA2_FULL_BRIGHTNESS = 15,
+    LUFIA2_CELL_EDGE_BITS = 0x3000,
+    LUFIA2_CELL_EDGE_INSIDE = 0x1000,
+    LUFIA2_CELL_EDGE_OPEN = 0x2000,
+    LUFIA2_MAP_SLOT = 0x05aa,
+    LUFIA2_SECTION_WORD = 0xd020,
+    /* Debug tint: palette bits flipped on hidden and open cells. */
+    LUFIA2_TINT_HIDDEN = 0x1000,
+    LUFIA2_TINT_OPEN = 0x0800,
 };
 
 typedef enum Lufia2Direction {
@@ -63,6 +74,14 @@ typedef struct Lufia2RuntimeMap {
     uint8_t width;
     uint8_t height;
 } Lufia2RuntimeMap;
+
+/* Edge bits of the two traced cell tables, as the game left them. */
+typedef struct Lufia2HiddenCells {
+    uint32_t hidden[2];
+    uint32_t open[2];
+    uint32_t inside[2];
+    uint32_t hash;
+} Lufia2HiddenCells;
 
 typedef struct Lufia2VramBackup {
     uint16_t address;
@@ -127,6 +146,14 @@ static bool s_wrong_mode_reported;
 static Lufia2VramBackup s_vram_backups[LUFIA2_MAX_VRAM_BACKUPS];
 static unsigned s_vram_backup_count;
 static uint8_t s_vram_backed_up[0x8000 / 8];
+
+/* Last hidden-cell state that was reported. */
+static uint32_t s_reported_hidden_hash;
+static uint32_t s_reported_hidden_generation = UINT32_MAX;
+static unsigned s_hidden_report_frames;
+
+/* Cell tables of the frame being drawn. */
+static Lufia2FieldCellView s_cell_view;
 
 static uint16_t Read16(const uint8_t *data) {
     return (uint16_t)(data[0] | ((uint16_t)data[1] << 8));
@@ -264,6 +291,79 @@ static bool ResolveMapTile(
         (uint32_t)map_tile_x & 1u, (uint32_t)map_tile_y & 1u, entry);
 }
 
+static void OpenCellView(Lufia2FieldCellView *view) {
+    Lufia2FieldCellViewOpen(view, g_ram + LUFIA2_BANK_SIZE);
+}
+
+/* The tile the game's own writers would put here. */
+static bool ResolveGameTile(
+    const Lufia2FieldCellView *view,
+    int logical_layer,
+    int32_t map_tile_x,
+    int32_t map_tile_y,
+    uint16_t *entry) {
+    Lufia2FieldDisplayedCell cell;
+    if (map_tile_x < 0 || map_tile_y < 0 ||
+        !Lufia2FieldCellDisplayed(
+            view, (unsigned)logical_layer, (unsigned)map_tile_x >> 1,
+            (unsigned)map_tile_y >> 1, &cell)) {
+        return false;
+    }
+    *entry = cell.tiles[(((uint32_t)map_tile_x & 1u) << 1) |
+                        ((uint32_t)map_tile_y & 1u)];
+    return true;
+}
+
+/* LUFIA2_ROOM_VISIBILITY_DEBUG=1 tints what the game hides or opens. */
+static bool RoomDebugTint(void) {
+    static int s_debug = -1;
+    if (s_debug < 0) {
+        const char *choice = getenv("LUFIA2_ROOM_VISIBILITY_DEBUG");
+        s_debug = choice && *choice && strcmp(choice, "0") != 0;
+    }
+    return s_debug != 0;
+}
+
+static uint16_t TintGameCell(int logical_layer, int32_t map_tile_x,
+                             int32_t map_tile_y, uint16_t entry) {
+    Lufia2FieldDisplayedCell cell;
+    if (map_tile_x < 0 || map_tile_y < 0 ||
+        !Lufia2FieldCellDisplayed(
+            &s_cell_view, (unsigned)logical_layer, (unsigned)map_tile_x >> 1,
+            (unsigned)map_tile_y >> 1, &cell)) {
+        return entry;
+    }
+    const uint16_t bits = cell.word & LUFIA2_CELL_EDGE_BITS;
+    if (bits == LUFIA2_CELL_EDGE_BITS)
+        return entry ^ LUFIA2_TINT_HIDDEN;
+    if (bits == LUFIA2_CELL_EDGE_OPEN)
+        return entry ^ LUFIA2_TINT_OPEN;
+    return entry;
+}
+
+static void CountHiddenCells(
+    const Lufia2FieldCellView *view,
+    Lufia2HiddenCells *cells) {
+    memset(cells, 0, sizeof(*cells));
+    uint32_t hash = 2166136261u;
+    for (unsigned slot = 0; slot < 2; slot++) {
+        const uint32_t count =
+            (uint32_t)(view->width[slot] & 0xffu) * (view->height[slot] & 0xffu);
+        for (uint32_t i = 0; i < count; i++) {
+            const uint32_t at = view->cell_base[slot] + i * 2u;
+            if (at >= LUFIA2_BANK_SIZE - 1u)
+                break;
+            const uint16_t bits =
+                Read16(g_ram + LUFIA2_BANK_SIZE + at) & LUFIA2_CELL_EDGE_BITS;
+            cells->hidden[slot] += bits == LUFIA2_CELL_EDGE_BITS;
+            cells->open[slot] += bits == LUFIA2_CELL_EDGE_OPEN;
+            cells->inside[slot] += bits == LUFIA2_CELL_EDGE_INSIDE;
+            hash = (hash ^ (bits >> 12)) * 16777619u;
+        }
+    }
+    cells->hash = hash;
+}
+
 static bool RoomOwnsMapTile(
     const Lufia2RuntimeMap *map,
     const Lufia2RoomSelection *room,
@@ -289,8 +389,11 @@ static uint16_t ResolveWideTile(
     const uint32_t sub_tile_x = (uint32_t)map_tile_x & 1u;
     const uint32_t sub_tile_y = (uint32_t)map_tile_y & 1u;
     if (!room || RoomOwnsMapTile(map, room, map_tile_x, map_tile_y)) {
-        (void)ResolveMapTile(
-            map, logical_layer, map_tile_x, map_tile_y, &entry);
+        if (ResolveMapTile(
+                map, logical_layer, map_tile_x, map_tile_y, &entry) &&
+            RoomDebugTint()) {
+            entry = TintGameCell(logical_layer, map_tile_x, map_tile_y, entry);
+        }
         return entry;
     }
 
@@ -352,9 +455,11 @@ static void LayerScrollBias(const Ppu *ppu, int bg,
    for maps whose widescreen extent is inferred rather than authored: without
    room metadata the wider view is only safe once the map in bank $7F
    demonstrably explains what the PPU is displaying. */
-static bool NativeViewportMatches(
+static unsigned NativeViewportScore(
     const Ppu *ppu,
-    const Lufia2RuntimeMap *map) {
+    const Lufia2RuntimeMap *map,
+    const Lufia2FieldCellView *game_view,
+    unsigned *checked_out) {
     int32_t camera_x = 0;
     int32_t camera_y = 0;
     CameraOrigin(ppu, &camera_x, &camera_y);
@@ -377,10 +482,13 @@ static bool NativeViewportMatches(
                 const int32_t tile_x = bg_tile_x0 + dx;
                 const int32_t tile_y = bg_tile_y0 + dy;
                 uint16_t expected = 0;
-                if (!ResolveMapTile(
-                        map, logical_layer, tile_x, tile_y, &expected)) {
+                const bool resolved = game_view
+                    ? ResolveGameTile(
+                          game_view, logical_layer, tile_x, tile_y, &expected)
+                    : ResolveMapTile(
+                          map, logical_layer, tile_x, tile_y, &expected);
+                if (!resolved)
                     continue;
-                }
 
                 const uint16_t address = (uint16_t)(
                     map_base + (((uint32_t)tile_y & 31u) << 5) +
@@ -392,8 +500,85 @@ static bool NativeViewportMatches(
         }
     }
 
+    *checked_out = checked;
+    return matched;
+}
+
+static bool NativeViewportMatches(
+    const Ppu *ppu,
+    const Lufia2RuntimeMap *map) {
+    unsigned checked = 0;
+    const unsigned matched = NativeViewportScore(ppu, map, NULL, &checked);
     return checked >= LUFIA2_NATIVE_MIN_SAMPLES &&
         matched * 100u >= checked * LUFIA2_NATIVE_MATCH_PERCENT;
+}
+
+static unsigned ScorePercent(unsigned matched, unsigned checked) {
+    return checked ? matched * 100u / checked : 0u;
+}
+
+/* Instrumentation: what the game hides, and whether its own drawing rule
+   explains the native picture better than the raw cells do. */
+static void ReportHiddenCells(
+    const Ppu *ppu,
+    const Lufia2RuntimeMap *map,
+    uint32_t generation) {
+#ifdef LUFIA2_ENABLE_RUNTIME_LOG
+    Lufia2FieldCellView view;
+    OpenCellView(&view);
+    Lufia2HiddenCells cells;
+    CountHiddenCells(&view, &cells);
+    const bool changed = generation != s_reported_hidden_generation ||
+        cells.hash != s_reported_hidden_hash;
+    if (changed) {
+        s_reported_hidden_generation = generation;
+        s_reported_hidden_hash = cells.hash;
+        s_hidden_report_frames = 0;
+        const uint8_t *bank = g_ram + LUFIA2_BANK_SIZE;
+        const uint32_t layer_b = LUFIA2_MAP_HEADER_SIZE +
+            map->cell_count * 2u + LUFIA2_MAP_LAYER_HEADER_SIZE;
+        const uint16_t substitute = view.cell_base[0] < 0xffffu
+            ? Read16(bank + view.cell_base[0]) & LUFIA2_CELL_INDEX_MASK : 0;
+        const uint16_t layer_b_first = view.cell_base[1] < 0xffffu
+            ? Read16(bank + view.cell_base[1]) & LUFIA2_CELL_INDEX_MASK : 0;
+        LUFIA2_LOG(
+            "[room-vis] map $%02X %ux%u: tables $%04X/$%04X (header "
+            "$%04X/$%04X) sizes %ux%u/%ux%u slot %u D020 %02X/%02X; "
+            "hidden %u/%u open %u/%u inside %u/%u; substitute block "
+            "$%03X, layer B cell 0 $%03X; metatiles $%04X (blockset $%04X)\n",
+            (unsigned)g_ram[0x05ac], (unsigned)map->width,
+            (unsigned)map->height, (unsigned)view.cell_base[0],
+            (unsigned)view.cell_base[1], (unsigned)LUFIA2_MAP_HEADER_SIZE,
+            (unsigned)layer_b, (unsigned)view.width[0],
+            (unsigned)view.height[0], (unsigned)view.width[1],
+            (unsigned)view.height[1], (unsigned)Read16(g_ram + LUFIA2_MAP_SLOT),
+            (unsigned)bank[LUFIA2_SECTION_WORD],
+            (unsigned)bank[LUFIA2_SECTION_WORD + 2], (unsigned)cells.hidden[0],
+            (unsigned)cells.hidden[1], (unsigned)cells.open[0],
+            (unsigned)cells.open[1], (unsigned)cells.inside[0],
+            (unsigned)cells.inside[1], (unsigned)substitute,
+            (unsigned)layer_b_first, (unsigned)view.metatile_base,
+            (unsigned)(map->blockset - bank + LUFIA2_BLOCKSET_HEADER_SIZE));
+    }
+    /* Score once the guest has redrawn the native view. */
+    if (s_hidden_report_frames <= LUFIA2_SETTLE_FRAMES &&
+        ++s_hidden_report_frames == LUFIA2_SETTLE_FRAMES) {
+        unsigned raw_checked = 0;
+        unsigned game_checked = 0;
+        const unsigned raw = NativeViewportScore(ppu, map, NULL, &raw_checked);
+        const unsigned game =
+            NativeViewportScore(ppu, map, &view, &game_checked);
+        LUFIA2_LOG(
+            "[room-vis] map $%02X native match: raw cells %u%% of %u, "
+            "game rule %u%% of %u\n",
+            (unsigned)g_ram[0x05ac], ScorePercent(raw, raw_checked),
+            raw_checked, ScorePercent(game, game_checked), game_checked);
+    }
+#else
+    (void)ppu;
+    (void)map;
+    (void)generation;
+#endif
 }
 
 static bool HasRoomBorders(const Lufia2RuntimeMap *map) {
@@ -707,6 +892,7 @@ void Lufia2BeginMapRenderOverlay(Ppu *ppu) {
         return;
     }
 
+    OpenCellView(&s_cell_view);
     bool guard_band = false;
     for (int bg = 0; bg < 2; bg++) {
         const uint32_t flags = ppu->windowsel >> (bg * 4);
@@ -1100,6 +1286,8 @@ Lufia2MapWidescreenResult Lufia2PrepareMapWidescreen(
         return NotReadyYet();
     }
 
+    ReportHiddenCells(ppu, &map, generation);
+
     uint16_t player_x;
     uint16_t player_y;
     CurrentPlayerPosition(ppu, &map, &player_x, &player_y);
@@ -1145,6 +1333,7 @@ void Lufia2FinalizeMapWidescreen(Ppu *ppu, int margin_pixels) {
     int32_t camera_x = 0;
     int32_t camera_y = 0;
     CameraOrigin(ppu, &camera_x, &camera_y);
+    OpenCellView(&s_cell_view);
     FillWideViewport(
         ppu, &s_map, s_room_active ? &s_room : NULL, margin_pixels,
         camera_x, camera_y);
