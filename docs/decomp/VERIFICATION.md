@@ -1,3 +1,44 @@
+# Selection-screen sequence callers - 2026-10-17
+
+Two complete original entries86:81FB/8298 connect the reconstructed selection
+screen into its ordered presentation sequences. The existing control unit
+shares action records and cleanup code; no duplicate object/transition bodies.
+Primary sequence preserves48/528/216/112-frame waits,all object/style/script
+arguments,nine interruption checks and its two carry-result returns8288/8297.
+Alternate sequence preserves64/100-frame waits,three interruption points and
+PHP before cleanup followed by PLP and RTS82C7. The final alternate BCS targets
+the same next instruction; cleanup still runs regardless of its carry result.
+
+Admission PB86/DB7E/DP0/binary/M1X16/S1F00..1FFC matches proven callers.
+All27 original JSR/JSL sites keep live frames,including the saved status byte
+through alternate cleanup. Audio8096CC/809692 already have verified owners;
+no sound/SPC implementation is changed. Original poll828B4B,framewait8B48,
+NMI and low-level Title handlers remain explicit services in this proof.
+
+15,392direct and15,392actual states per side:8,192normal,2,048realRTS,
+4,096additionalupper-stack realRTS,128composed,864childunwinds and64complete
+868000root/RTL compositions. Both root mode branches compose the new sequence
+callers,transitions,object setup,layout and asset functions. AllCPU/fullWRAM/
+everyordereddata/MMIO/math/Mode7/WMADD agree.17-function actual producer
+closure requires native invocation without fallback.405redirect probes across
+27sites.262,672semantic and262,672actual guards include2nullcallbacks and
+2emulation contexts. Cleanup services deliberately vary N/Z/V/I/C to verify
+restoring the pre-cleanup status. Ordinary and early-interruption paths agree.
+
+Private/public bodies are token-identical after formatting. One combined
+compiler/CLI/isolated Windows checkpoint covers both related callers; no full
+regression per entry. No frame skipping,input replacement,ROM modification or
+SPC timing optimization is introduced. Full decomp-verify is deferred; no
+pixel/NMI schedule/timing/runtime-hit/speedup/whole-ROM completion claim.
+
+Fresh public checks each:64normal,32RTS,16composed,54unwinds,4rootRTL,
+64upper-stack realRTS and64additionalDB80rootRTL.405actualredirects,allguards
+and2C++symbols pass. Four effective heap-ROM timing/result/PHP/PLP faults
+andtwo production stack/frame faults are detected. No ROM is copied/written.
+
+GCC/Clang/metadata/isolated Windows Release PASS; Windows196.24s.
+Resource CLI checks reuse unchanged executable bytes and fixture/dependencies.
+
 # Selection-screen transitions and input - 2026-10-17
 
 Five complete original entries86:8305/830F/8339/835B/82C8 reconstruct fade-in,
