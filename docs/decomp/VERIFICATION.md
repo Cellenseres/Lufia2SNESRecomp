@@ -1,3 +1,54 @@
+# Selection-screen transitions and input - 2026-10-17
+
+Five complete original entries86:8305/830F/8339/835B/82C8 reconstruct fade-in,
+fade-out,input waiting,object setup and object-completion waiting in C.
+Both fade entries share one body.84/C4 meanings follow verified ScreenFade
+8086C1. All existing Title object/layer/palette/particle helpers remain owned
+by their existing entries; no duplicate bodies or invented callable tables.
+Sound,poll,framewait and NMI internals are retained as explicit original services.
+
+Native admission PB86/DB7E/DP0/binary/X16,S1F00..1FFC matches proven callers;
+835B accepts eitherM,other entriesM1. Other contexts keep original ownership.
+Raw byte descriptor offsets are not clamped or multiplied.835B preserves the
+original PHX/PLX and three live object pointers at15BA/15BC/15BE.8339 retains
+X=0 underflow. No host sleep,frame skipping or input substitution is added.
+
+Shared fade returns8338;object setup838B;input wait8357/835A;object wait8302/
+8304 retain original carries and flags.22 original child sites keep live two-
+or three-byte frames. All loops execute at most4096iterations per native
+invocation,then continue original ROM exactly at8317/8339/82CE with balanced
+local stack and unchanged observable CPU/memory state. Original indefinite
+wait behavior remains possible; these bounds do not finish a waiting operation.
+
+Private proof23,600 direct and23,600 actual-adapter states per side:10,240normal,
+2,560realRTS,10,240additionalupper-stack realRTS,160composed,352childunwinds,
+32complete868000 root/RTL and16budgetcontinuations. Each budget boundary
+executes64 original continuation instructions on both sides (1,024 per side).
+AllCPU/fullWRAM/everyordereddata/MMIO/math/Mode7/WMADD agree.20-function
+actual producer closure requires native invocation without fallback;330
+redirect probes across22new sites. Guards656,679semantic/656,680actual include
+5nullcallbacks,all255otherDBbanks and6native-width emulation contexts.
+
+A private fixture initially misclassified a native8339 continuation at its
+entry PC as fallback. It now requires no prior child calls for that decision.
+Production code and semantic C did not change. Earlier normal/return/root/
+unwind cohorts are retained; only failed budgets and added continuation/
+upper-stack profiles were run. New tail replay switches the fetch observer
+only during original continuation instructions; ordinary paths are unchanged.
+
+Public library/actual-producer wiring and compiler evidence appear in the
+sealed receipt. No semantic overrides. One combined compiler/CLI/Windows
+checkpoint covers the five-entry batch. Full decomp-verify is deferred.
+No pixel/NMI-schedule/SPC-timing/speedup/runtime-hit/whole-ROM completion claim.
+
+Fresh public checks each:160normal,80RTS,40composed,44unwinds,4rootRTL,
+4budgetcontinuations,160upper-stack realRTS and64additionalDB80rootRTL.
+330actualredirects,allguards and5C++symbols pass.5heap-ROM and2stack/frame
+producer faults are detected; no ROM files are modified/copied.
+
+GCC/Clang/metadata/isolated Windows Release PASS; Windows197.44s.
+Resource CLI checks reuse unchanged executable bytes and fixture/dependencies.
+
 # Selection-screen control - 2026-10-17
 
 Five complete original entries86:89FD/87D3/8865/8784/81D0 are reconstructed
