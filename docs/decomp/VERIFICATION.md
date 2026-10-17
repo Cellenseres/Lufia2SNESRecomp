@@ -1,3 +1,91 @@
+# Inventory consumption and battle action work - 2026-10-17
+
+Twelve complete original entry contracts: 81:F114/F15B/EBF4 and
+85:948C/CE21/CF68/D025/D94F/D9F0/937D/CFAB/D080. Two new semantic units
+share the original child-call and CPU helpers. Existing 85:D9C9 stays the sole
+BattleEffectRecord implementation; menu_screen.c and all protected work stay
+unchanged. Metadata entry_mx records the normal concrete entry width; the
+documented guards also admit either M at F15B and all native M/X at EBF4/CE21.
+
+Inventory consumption preserves the 96-slot backward search, nine-bit item IDs,
+raw eight-bit selected slots and seven-bit quantities. F114's unusual return
+values remain literal: encoded remaining quantity on a partial removal, old
+quantity on depletion and full-A zero from TDC on an empty slot. The shared
+09F2/09F4 scratch bytes retain their original reuse.
+
+EBF4 restores PHP/PHB/A/X/Y after refreshing portraits and clearing five motion
+records. 948C clears inactive enemy draw flags and retains multiply-register
+and WRAM-port order for capsule cleanup. CE21 clears 330 bytes, then conditionally
+collects action adjustments, forms a bias, invokes the original action dispatcher
+and stores a result. CF68 visits eleven stride-30 records via CFAB and negates
+the original 56 adjustment words. CFAB reads each source and destination live,
+including aliases. D080 is an actor-flag lookup, not population count.
+
+D94F builds the original 30-byte record through the B8 long pointer and copies
+it using WMADD/WMDATA. The last buffer byte remains untouched as in the ROM.
+D9F0 marks matching three-byte turn records until zero; 937D removes the first
+matching actor from twelve records and shifts the rest. A deep D9F0 scan may
+overwrite the live caller return word: both semantic and actual consumer tests
+preserve that original behavior, including the RTL return bank.
+
+All entries require their original PB, DP0, binary arithmetic and S1F00..1FFC;
+DB remains unrestricted. Most enter M1X16, CFAB enters M0X16, F15B accepts either
+M with X16, EBF4/CE21 accept all native M/X and restore the saved status. Real
+mixed two-/three-byte call and return frames stay intact. D9F0 hands off at
+85:D9FA after 4,096 records with its PHA/PHY still live; the proof checks the
+4,097th occurrence of that PC and 64 subsequent original instructions. No
+CF68 loop budget is needed: its actual CFAB child preserves X and visits eleven
+records. Earlier private planning assertions about popcount/CF68 are superseded.
+
+One shared ROM checkpoint per side: 49,152 normal states, 12,288 original-return
+states, 768 compositions, 448 forced child unwinds, 768 live-alias states and
+four dedicated queue budgets = 63,428 direct and 63,428 actual-consumer states.
+The normal group reaches 2,016 queue continuations; the return group reaches
+504 continuations plus 5,120 real RTS and 6,664 real RTL returns. Alias checks
+add 512 real RTS and 256 real RTL returns. Every continuation checks another
+64 original instructions. Full CPU/WRAM and every ordered data/MMIO access,
+multiply/divide/Mode7/WMADD device state agree. Opcode-fetch traffic is excluded.
+
+The 26-function actual consumer closure uses all twelve production wrappers,
+including nested consumers for the new inventory/adjustment/bias/result helpers.
+Fourteen original JSR/JSL service boundaries and 210 actual redirect probes
+pass. Original CE6F/D0CD, portrait/upload and actor-address children remain
+explicit services in this proof. This is not proof of their internal bodies or
+of frame/NMI/pixel timing. The complete requested caller contracts are verified.
+1,572,960 semantic and 1,577,817 actual pre-access guards pass, including seven
+null callbacks and 4,864 emulation contexts. Wrong PB/DP/width/decimal/stack
+contexts remain unchanged and hand off before memory access.
+
+An alias test exposed a private fixture error: its rewritten-return expectation
+assumed an RTS bank for an RTL. Correcting the fixture to read the live third
+stack byte agrees with the unchanged production return helper. Only affected
+actual alias cases and outstanding groups were run after that correction;
+unchanged normal/return/composition/unwind proofs were retained. Public source
+formatting is token-identical. No ROM file is modified or copied.
+
+Eight WRAM locations are catalogued; F60C is a base marker, not a new disjoint
+330-byte allocation, since it overlaps the existing F65B marker. The two new
+source units are explicitly listed in the standalone CMake build. All twelve
+functions have native bindings only after the combined proof. No duplicate
+table/inline labels or bare return stub were counted as new functions.
+
+Full decomp-verify and gameplay/pixel/timing replay are deferred. No whole-ROM
+completion, current global interpreter-hit percentage or speedup is claimed.
+The separate read-only runtime sample reached 7,444 frames / 4,109,163
+interpreted instructions; protected sound/SPC/frame handshakes dominate that
+bounded sample. It is guidance for research, not a global performance census.
+
+Fresh public checks each: 384 normal, 192 returns, 96 compositions, 28 child
+unwinds, 48 aliases and one queue budget; all 210 actual redirects, all guards
+and twelve C++ symbols pass. Six effective heap-ROM faults and two production
+stack/frame faults are detected. Private matrices are reused only for token-
+identical sources; original services and their limitations remain explicit.
+
+One combined GCC/Clang/metadata/isolated Windows Release checkpoint PASS;
+Windows 272.59s. Unchanged resource CLI executable bytes and unchanged
+fixture/dependencies justify reuse of their previous accepted CLI test results.
+No repeated full semantic regression; no push.
+
 # Selection-screen sequence callers - 2026-10-17
 
 Two complete original entries86:81FB/8298 connect the reconstructed selection
