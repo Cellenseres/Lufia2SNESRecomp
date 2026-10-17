@@ -13929,3 +13929,60 @@ RecompReturn Lufia2DecompBridge_81C652(CpuState *cpu) {
         cpu, 0x81c652u, NULL, Lufia2BattleApplyTargetStatusTick, 2u, BATTLE_BRIDGE_M1X0,
         0, BATTLE_BRIDGE_REGISTER_BANK, 0);
 }
+
+static RecompReturn ActorBridgeFieldConditionEntry(CpuState *cpu, uint32_t entry,
+                                                   ActorWholeFunction run,
+                                                   uint8_t frame_size) {
+    if (cpu->PB != 0x80u || ((cpu->DB & 0x7fu) >= 0x40u && cpu->DB != 0x7eu) ||
+        cpu->D || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame,
+                                   ((uint32_t)cpu->PB << 16) | (uint16_t)entry);
+    }
+    return ActorBridgeRunWhole(cpu, entry, run, frame_size, 4u);
+}
+
+RecompReturn Lufia2DecompBridge_80E4C5(CpuState *cpu) {
+    return ActorBridgeFieldConditionEntry(cpu, 0x80e4c5u,
+                                          Lufia2FieldStoreConditionResult, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_80E55B(CpuState *cpu) {
+    return ActorBridgeFieldConditionEntry(cpu, 0x80e55bu,
+                                          Lufia2FieldNegateConditionResult, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_80E132(CpuState *cpu) {
+    return ActorBridgeFieldConditionEntry(cpu, 0x80e132u, Lufia2FieldTestLeaderPosition,
+                                          2u);
+}
+
+RecompReturn Lufia2DecompBridge_80E15A(CpuState *cpu) {
+    return ActorBridgeFieldConditionEntry(cpu, 0x80e15au, Lufia2FieldTestLeaderArea,
+                                          2u);
+}
+
+RecompReturn Lufia2DecompBridge_80CD8B(CpuState *cpu) {
+    return ActorBridgeFieldConditionEntry(cpu, 0x80cd8bu, Lufia2FieldFindObjectInBox,
+                                          2u);
+}
+
+RecompReturn Lufia2DecompBridge_80CD88(CpuState *cpu) {
+    return ActorBridgeFieldConditionEntry(cpu, 0x80cd88u, Lufia2FieldFindObjectInArea,
+                                          2u);
+}
+
+RecompReturn Lufia2DecompBridge_80E458(CpuState *cpu) {
+    return ActorBridgeFieldConditionEntry(cpu, 0x80e458u, Lufia2FieldFindCellBitsInArea,
+                                          2u);
+}
+
+RecompReturn Lufia2DecompBridge_80E78D(CpuState *cpu) {
+    return ActorBridgeFieldConditionEntry(cpu, 0x80e78du,
+                                          Lufia2FieldFindEventConditionList, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_80E566(CpuState *cpu) {
+    return ActorBridgeFieldConditionEntry(cpu, 0x80e566u, Lufia2FieldTestConditionList,
+                                          2u);
+}
