@@ -39,7 +39,9 @@ are both set shows the map's first cell, as on the original screen. Actors in
 the margins are hidden on such cells; the native view keeps all of them. This
 also covers maps without room data, such as the Ancient Cave, Foomy Woods and
 most maps from `0x4C`. On authored maps the room data still decides when the
-margins open and what lies past the map's edges.
+margins open and what lies past the map's edges. When the game retraces its
+hidden cells, the margins keep the old picture until the native screen
+changes: a door's fade-out switches them at black.
 
 `config.ini` selects the mode in `[Lufia2Features]` with
 `WidescreenRoomVisibility = l2rooms`, `compare` or `game`. The
