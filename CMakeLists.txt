@@ -112,6 +112,12 @@ else()
     message(FATAL_ERROR "LUFIA2_QUIESCENCE_INDEX_DEFAULT must be auto, indexed or original")
 endif()
 
+if(DEFINED LUFIA2_ROOM_VISIBILITY_DEFAULT AND
+   NOT LUFIA2_ROOM_VISIBILITY_DEFAULT STREQUAL "game")
+    message(WARNING "LUFIA2_ROOM_VISIBILITY_DEFAULT is obsolete; using game visibility")
+endif()
+unset(LUFIA2_ROOM_VISIBILITY_DEFAULT CACHE)
+
 if(VITA)
     include("${CMAKE_SOURCE_DIR}/ports/vita/native.cmake")
     return()

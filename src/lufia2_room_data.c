@@ -8,17 +8,19 @@
 #include "lufia2_log.h"
 
 enum {
+    LUFIA2_ROOM_VERSION = 5,
     LUFIA2_ROOM_HEADER_SIZE = 64,
     LUFIA2_ROOM_DIRECTORY_SIZE = 48,
+    LUFIA2_ROOM_PATCH_SIZE = 8,
+    LUFIA2_ROOM_MAX_FILE_SIZE = 16 * 1024 * 1024,
+    /* Version 5 map payload. */
+    LUFIA2_ROOM_MAP_SIZE = 52,
+    /* Versions 1-4: rooms in a MAP0 payload. */
     LUFIA2_ROOM_MAP_HEADER_V2_SIZE = 20,
-    LUFIA2_ROOM_MAP_HEADER_SIZE = 24,
-    LUFIA2_ROOM_TRANSITION_SIZE = 8,
+    LUFIA2_ROOM_MAP_HEADER_V3_SIZE = 24,
     LUFIA2_ROOM_V1_SIZE = 52,
     LUFIA2_ROOM_V2_SIZE = 44,
     LUFIA2_ROOM_V4_SIZE = 52,
-    LUFIA2_ROOM_SPAN_SIZE = 6,
-    LUFIA2_ROOM_PATCH_SIZE = 8,
-    LUFIA2_ROOM_MAX_FILE_SIZE = 16 * 1024 * 1024,
 };
 
 static const uint8_t kLufia2RomSha256[32] = {
@@ -91,7 +93,7 @@ static bool ValidateHeader(void) {
     if (memcmp(s_data, "L2RD", 4) != 0)
         return false;
     s_version = Read16(s_data + 4);
-    if ((s_version < 1 || s_version > 4) ||
+    if ((s_version < 1 || s_version > LUFIA2_ROOM_VERSION) ||
         Read16(s_data + 6) != LUFIA2_ROOM_HEADER_SIZE ||
         memcmp(s_data + 8, kLufia2RomSha256, 32) != 0) {
         return false;
@@ -139,14 +141,19 @@ static void EnsureLoaded(void) {
 
     s_load_valid = true;
     LUFIA2_LOG(
-        "[room-data] loaded %u authored map(s), format version %u: %s\n",
-        (unsigned)s_map_count, (unsigned)s_version, path);
+        "[room-data] loaded %u authored map(s), format version %u%s: %s\n",
+        (unsigned)s_map_count, (unsigned)s_version,
+        s_version < LUFIA2_ROOM_VERSION ? " (rooms merged per map)" : "",
+        path);
 }
 
 static const uint8_t *FindMapDirectory(uint8_t map_id) {
     for (uint32_t index = 0; index < s_map_count; index++) {
         const uint8_t *entry = s_data + s_directory_offset +
             index * LUFIA2_ROOM_DIRECTORY_SIZE;
+        /* Version 5: other kinds are for later readers. */
+        if (s_version >= LUFIA2_ROOM_VERSION && Read16(entry + 4) != 0)
+            continue;
         if (Read16(entry) == map_id)
             return entry;
     }
@@ -163,44 +170,15 @@ static Lufia2RoomLookupResult MapNotReady(const char *reason) {
     return LUFIA2_ROOM_MAP_NOT_READY;
 }
 
-static int SpanTableContains(
-    const uint8_t *payload,
-    size_t payload_size,
-    uint32_t offset,
-    uint32_t count,
-    uint8_t width,
-    uint8_t height,
-    uint16_t cell_x,
-    uint16_t cell_y) {
-    if (!RangeIsValid(
-            offset, (size_t)count * LUFIA2_ROOM_SPAN_SIZE, payload_size)) {
-        return -1;
-    }
-
-    bool contains = false;
-    for (uint32_t index = 0; index < count; index++) {
-        const uint8_t *span = payload + offset + index * LUFIA2_ROOM_SPAN_SIZE;
-        const uint16_t y = Read16(span);
-        const uint16_t x0 = Read16(span + 2);
-        const uint16_t x1 = Read16(span + 4);
-        if (y >= height || x0 >= x1 || x1 > width)
-            return -1;
-        if (y == cell_y && cell_x >= x0 && cell_x < x1)
-            contains = true;
-    }
-    return contains ? 1 : 0;
-}
-
 static bool ReadVoid(
-    const uint8_t *room,
-    size_t offset,
+    const uint8_t *record,
     uint8_t width,
     uint8_t height,
     Lufia2RoomVoid *definition) {
-    definition->mode = Read16(room + offset);
-    definition->x = Read16(room + offset + 2);
-    definition->y = Read16(room + offset + 4);
-    definition->block = Read16(room + offset + 6);
+    definition->mode = Read16(record);
+    definition->x = Read16(record + 2);
+    definition->y = Read16(record + 4);
+    definition->block = Read16(record + 6);
     if (definition->mode > LUFIA2_ROOM_VOID_BLOCK)
         return false;
     if (definition->mode == LUFIA2_ROOM_VOID_SOURCE_CELL &&
@@ -210,71 +188,176 @@ static bool ReadVoid(
     return true;
 }
 
-static bool ReadSelection(
-    const uint8_t *payload,
-    size_t payload_size,
-    const uint8_t *room,
-    uint8_t width,
-    uint8_t height,
-    Lufia2RoomSelection *selection) {
-    memset(selection, 0, sizeof(*selection));
-    selection->room_id = Read16(room);
-    selection->map_width = width;
-    selection->map_height = height;
-    selection->map_payload = payload;
-    selection->map_payload_size = payload_size;
-
-    const uint32_t name_offset = Read32(room + 4);
-    if (name_offset >= s_data_size - s_strings_offset)
+static bool SameVoid(const Lufia2RoomVoid *a, const Lufia2RoomVoid *b) {
+    if (a->mode != b->mode)
         return false;
-    const char *name = (const char *)(s_data + s_strings_offset + name_offset);
-    if (!memchr(name, '\0', s_data_size - s_strings_offset - name_offset))
-        return false;
-    selection->name = name;
-
-    if (s_version == 1) {
-        selection->activation_offset = Read32(room + 12);
-        selection->activation_count = Read32(room + 16);
-        selection->visibility_offset = Read32(room + 20);
-        selection->visibility_count = Read32(room + 24);
-        return ReadVoid(room, 36, width, height, &selection->bg1) &&
-            ReadVoid(room, 44, width, height, &selection->bg2);
-    }
-
-    selection->visibility_offset = Read32(room + 12);
-    selection->visibility_count = Read32(room + 16);
-    if (s_version >= 4) {
-        selection->patch_offset = Read32(room + 44);
-        selection->patch_count = Read32(room + 48);
-        if (!RangeIsValid(
-                selection->patch_offset,
-                (size_t)selection->patch_count * LUFIA2_ROOM_PATCH_SIZE,
-                payload_size)) {
-            return false;
-        }
-    }
-    return ReadVoid(room, 28, width, height, &selection->bg1) &&
-        ReadVoid(room, 36, width, height, &selection->bg2);
+    if (a->mode == LUFIA2_ROOM_VOID_SOURCE_CELL)
+        return a->x == b->x && a->y == b->y;
+    if (a->mode == LUFIA2_ROOM_VOID_BLOCK)
+        return a->block == b->block;
+    return true;
 }
 
-bool Lufia2RoomDataPatchBlock(
-    const Lufia2RoomSelection *selection,
+/* Most rooms win; a tie goes to the lowest room id. */
+static Lufia2RoomVoid MajorityVoid(const Lufia2RoomVoid *voids, unsigned count) {
+    unsigned best = 0;
+    unsigned best_votes = 0;
+    for (unsigned i = 0; i < count; i++) {
+        unsigned votes = 0;
+        for (unsigned j = 0; j < count; j++)
+            votes += SameVoid(&voids[i], &voids[j]);
+        if (votes > best_votes) {
+            best = i;
+            best_votes = votes;
+        }
+    }
+    return voids[best];
+}
+
+static Lufia2RoomLookupResult ReadMapV5(
+    const uint8_t *payload,
+    uint32_t payload_size,
+    Lufia2MapPaint *paint) {
+    if (payload_size < LUFIA2_ROOM_MAP_SIZE ||
+        memcmp(payload, "MAP5", 4) != 0 ||
+        Read32(payload + 4) != payload_size ||
+        Read16(payload + 8) < LUFIA2_ROOM_MAP_SIZE ||
+        Read16(payload + 8) > payload_size)
+        return InvalidData("map payload header is invalid");
+    paint->band = Read16(payload + 18);
+    if (paint->band > LUFIA2_ROOM_MAX_PATCH_BAND)
+        return InvalidData("paint band is too wide");
+    if (!ReadVoid(payload + 20, paint->map_width, paint->map_height,
+                  &paint->bg1) ||
+        !ReadVoid(payload + 28, paint->map_width, paint->map_height,
+                  &paint->bg2))
+        return InvalidData("map fill is invalid");
+    const uint32_t patch_offset = Read32(payload + 36);
+    const uint32_t patch_count = Read32(payload + 40);
+    if (!RangeIsValid(patch_offset,
+                      (size_t)patch_count * LUFIA2_ROOM_PATCH_SIZE,
+                      payload_size) ||
+        !RangeIsValid(Read32(payload + 44), Read32(payload + 48),
+                      payload_size))
+        return InvalidData("map table is out of bounds");
+    if (patch_count) {
+        paint->patch_offset[0] = patch_offset;
+        paint->patch_count[0] = patch_count;
+        paint->table_count = 1;
+    }
+    return LUFIA2_ROOM_FOUND;
+}
+
+/* Versions 1-4: merge the rooms like the editor's converter. */
+static Lufia2RoomLookupResult ReadMapRooms(
+    const uint8_t *directory,
+    const uint8_t *payload,
+    uint32_t payload_size,
+    Lufia2MapPaint *paint) {
+    const uint32_t header_size = s_version >= 3
+        ? LUFIA2_ROOM_MAP_HEADER_V3_SIZE : LUFIA2_ROOM_MAP_HEADER_V2_SIZE;
+    const uint32_t room_size =
+        s_version == 1 ? LUFIA2_ROOM_V1_SIZE :
+        s_version >= 4 ? LUFIA2_ROOM_V4_SIZE : LUFIA2_ROOM_V2_SIZE;
+    const uint16_t room_count = Read16(directory + 4);
+    if (payload_size < header_size ||
+        memcmp(payload, "MAP0", 4) != 0 ||
+        Read32(payload + 4) != payload_size ||
+        Read32(payload + 8) != room_size ||
+        !RangeIsValid(header_size, (size_t)room_count * room_size,
+                      payload_size))
+        return InvalidData("map payload header is invalid");
+    if (room_count > LUFIA2_ROOM_MAX_TABLES)
+        return InvalidData("too many rooms to merge");
+
+    /* Room records by ascending id. */
+    const uint8_t *rooms[LUFIA2_ROOM_MAX_TABLES];
+    for (uint16_t index = 0; index < room_count; index++) {
+        const uint8_t *room = payload + header_size + (size_t)index * room_size;
+        uint16_t at = index;
+        while (at > 0 && Read16(rooms[at - 1]) > Read16(room)) {
+            rooms[at] = rooms[at - 1];
+            at--;
+        }
+        rooms[at] = room;
+    }
+
+    Lufia2RoomVoid bg1[LUFIA2_ROOM_MAX_TABLES];
+    Lufia2RoomVoid bg2[LUFIA2_ROOM_MAX_TABLES];
+    const uint32_t void_at = s_version == 1 ? 36 : 28;
+    for (uint16_t index = 0; index < room_count; index++) {
+        const uint8_t *room = rooms[index];
+        if (!ReadVoid(room + void_at, paint->map_width, paint->map_height,
+                      &bg1[index]) ||
+            !ReadVoid(room + void_at + 8, paint->map_width,
+                      paint->map_height, &bg2[index]))
+            return InvalidData("room fill is invalid");
+        if (s_version < 4)
+            continue;
+        const uint32_t patch_offset = Read32(room + 44);
+        const uint32_t patch_count = Read32(room + 48);
+        if (!RangeIsValid(patch_offset,
+                          (size_t)patch_count * LUFIA2_ROOM_PATCH_SIZE,
+                          payload_size))
+            return InvalidData("patch table is out of bounds");
+        if (!patch_count)
+            continue;
+        paint->patch_offset[paint->table_count] = patch_offset;
+        paint->patch_count[paint->table_count] = patch_count;
+        paint->table_count++;
+    }
+    if (room_count) {
+        paint->bg1 = MajorityVoid(bg1, room_count);
+        paint->bg2 = MajorityVoid(bg2, room_count);
+    }
+    paint->band = LUFIA2_ROOM_PATCH_BAND;
+    return LUFIA2_ROOM_FOUND;
+}
+
+Lufia2RoomLookupResult Lufia2RoomDataFindMap(
+    uint8_t map_id,
+    uint8_t map_width,
+    uint8_t map_height,
+    Lufia2MapPaint *paint) {
+    s_last_error = NULL;
+    memset(paint, 0, sizeof(*paint));
+    EnsureLoaded();
+    if (!s_load_valid)
+        return LUFIA2_ROOM_NOT_AUTHORED;
+
+    const uint8_t *directory = FindMapDirectory(map_id);
+    if (!directory)
+        return LUFIA2_ROOM_NOT_AUTHORED;
+    if (directory[2] != map_width || directory[3] != map_height)
+        return MapNotReady("runtime map dimensions are still changing");
+
+    const uint32_t payload_offset = Read32(directory + 40);
+    const uint32_t payload_size = Read32(directory + 44);
+    const size_t directory_end = s_directory_offset +
+        (size_t)s_map_count * LUFIA2_ROOM_DIRECTORY_SIZE;
+    if (payload_offset < directory_end ||
+        !RangeIsValid(payload_offset, payload_size, s_strings_offset))
+        return InvalidData("map payload is out of bounds");
+
+    const uint8_t *payload = s_data + payload_offset;
+    paint->map_width = map_width;
+    paint->map_height = map_height;
+    paint->payload = payload;
+    paint->payload_size = payload_size;
+    if (s_version >= LUFIA2_ROOM_VERSION)
+        return ReadMapV5(payload, payload_size, paint);
+    return ReadMapRooms(directory, payload, payload_size, paint);
+}
+
+static bool FindPatch(
+    const uint8_t *table,
+    uint32_t count,
     int32_t cell_x,
     int32_t cell_y,
     int logical_layer,
     uint16_t *block) {
-    if (!selection || !selection->patch_count || !selection->map_payload)
-        return false;
-    if (cell_x < -LUFIA2_ROOM_PATCH_BAND ||
-        cell_y < -LUFIA2_ROOM_PATCH_BAND ||
-        cell_x >= (int32_t)selection->map_width + LUFIA2_ROOM_PATCH_BAND ||
-        cell_y >= (int32_t)selection->map_height + LUFIA2_ROOM_PATCH_BAND) {
-        return false;
-    }
-
-    const uint8_t *table = selection->map_payload + selection->patch_offset;
     uint32_t low = 0;
-    uint32_t high = selection->patch_count;
+    uint32_t high = count;
     while (low < high) {
         const uint32_t middle = low + (high - low) / 2u;
         const uint8_t *entry = table + (size_t)middle * LUFIA2_ROOM_PATCH_SIZE;
@@ -298,238 +381,33 @@ bool Lufia2RoomDataPatchBlock(
     return false;
 }
 
-/* One map's validated payload: the room record table and, from version 3,
-   the transition table. */
-typedef struct Lufia2MapPayload {
-    const uint8_t *payload;
-    uint32_t payload_size;
-    uint32_t records_offset;
-    uint32_t room_size;
-    uint16_t room_count;
-    uint32_t transition_offset;
-    uint32_t transition_count;
-} Lufia2MapPayload;
-
-static Lufia2RoomLookupResult ResolveMapPayload(
-    uint8_t map_id,
-    uint8_t map_width,
-    uint8_t map_height,
-    Lufia2MapPayload *out) {
-    s_last_error = NULL;
-    EnsureLoaded();
-    if (!s_load_valid)
-        return LUFIA2_ROOM_NOT_AUTHORED;
-
-    const uint8_t *directory = FindMapDirectory(map_id);
-    if (!directory)
-        return LUFIA2_ROOM_NOT_AUTHORED;
-    if (directory[2] != map_width || directory[3] != map_height)
-        return MapNotReady("runtime map dimensions are still changing");
-
-    const uint32_t header_size = s_version >= 3
-        ? LUFIA2_ROOM_MAP_HEADER_SIZE : LUFIA2_ROOM_MAP_HEADER_V2_SIZE;
-    const uint32_t payload_offset = Read32(directory + 40);
-    const uint32_t payload_size = Read32(directory + 44);
-    const size_t directory_end = s_directory_offset +
-        (size_t)s_map_count * LUFIA2_ROOM_DIRECTORY_SIZE;
-    if (payload_offset < directory_end ||
-        !RangeIsValid(payload_offset, payload_size, s_strings_offset) ||
-        payload_size < header_size) {
-        return InvalidData("map payload is out of bounds");
-    }
-    const uint8_t *payload = s_data + payload_offset;
-    const uint32_t room_size = Read32(payload + 8);
-    const uint32_t expected_room_size =
-        s_version == 1 ? LUFIA2_ROOM_V1_SIZE :
-        s_version >= 4 ? LUFIA2_ROOM_V4_SIZE : LUFIA2_ROOM_V2_SIZE;
-    const uint16_t room_count = Read16(directory + 4);
-    if (memcmp(payload, "MAP0", 4) != 0 ||
-        Read32(payload + 4) != payload_size ||
-        room_size != expected_room_size ||
-        !RangeIsValid(
-            header_size, (size_t)room_count * room_size, payload_size)) {
-        return InvalidData("map payload header is invalid");
-    }
-
-    out->payload = payload;
-    out->payload_size = payload_size;
-    out->records_offset = header_size;
-    out->room_size = room_size;
-    out->room_count = room_count;
-    out->transition_offset = 0;
-    out->transition_count = 0;
-    if (s_version >= 3) {
-        out->transition_count = Read16(payload + 18);
-        out->transition_offset = Read32(payload + 20);
-        if (!RangeIsValid(
-                out->transition_offset,
-                (size_t)out->transition_count * LUFIA2_ROOM_TRANSITION_SIZE,
-                payload_size)) {
-            return InvalidData("transition table is out of bounds");
-        }
-    }
-    return LUFIA2_ROOM_FOUND;
-}
-
-/* A transition cell records which room the player is in after leaving it in
-   the given direction. The visibility masks cannot express that on their own:
-   a doorway is drawn by the room above it but walked into from the room
-   below, so ownership alone always names the wrong room there. */
-bool Lufia2RoomDataFindTransition(
-    uint8_t map_id,
-    uint8_t map_width,
-    uint8_t map_height,
-    uint16_t cell_x,
-    uint16_t cell_y,
-    Lufia2RoomDirection direction,
-    uint16_t *room_id) {
-    Lufia2MapPayload map;
-    if (ResolveMapPayload(map_id, map_width, map_height, &map) !=
-        LUFIA2_ROOM_FOUND) {
+bool Lufia2RoomDataPatchBlock(
+    const Lufia2MapPaint *paint,
+    int32_t cell_x,
+    int32_t cell_y,
+    int logical_layer,
+    uint16_t *block) {
+    if (!paint || !paint->table_count || !paint->payload)
+        return false;
+    const int32_t band = paint->band;
+    if (cell_x < -band || cell_y < -band ||
+        cell_x >= (int32_t)paint->map_width + band ||
+        cell_y >= (int32_t)paint->map_height + band) {
         return false;
     }
-
-    for (uint32_t index = 0; index < map.transition_count; index++) {
-        const uint8_t *record = map.payload + map.transition_offset +
-            index * LUFIA2_ROOM_TRANSITION_SIZE;
-        if (Read16(record) != cell_x || Read16(record + 2) != cell_y ||
-            Read16(record + 4) != (uint16_t)direction) {
-            continue;
-        }
-        *room_id = Read16(record + 6);
-        return true;
+    for (uint32_t table = 0; table < paint->table_count; table++) {
+        if (FindPatch(paint->payload + paint->patch_offset[table],
+                      paint->patch_count[table], cell_x, cell_y,
+                      logical_layer, block))
+            return true;
     }
     return false;
-}
-
-bool Lufia2RoomDataSelectRoomById(
-    uint8_t map_id,
-    uint8_t map_width,
-    uint8_t map_height,
-    uint16_t room_id,
-    Lufia2RoomSelection *selection) {
-    Lufia2MapPayload map;
-    if (ResolveMapPayload(map_id, map_width, map_height, &map) !=
-        LUFIA2_ROOM_FOUND) {
-        return false;
-    }
-
-    for (uint16_t index = 0; index < map.room_count; index++) {
-        const uint8_t *room = map.payload + map.records_offset +
-            (size_t)index * map.room_size;
-        Lufia2RoomSelection candidate;
-        if (!ReadSelection(
-                map.payload, map.payload_size, room,
-                map_width, map_height, &candidate)) {
-            return false;
-        }
-        if (candidate.room_id != room_id)
-            continue;
-        *selection = candidate;
-        return true;
-    }
-    return false;
-}
-
-Lufia2RoomLookupResult Lufia2RoomDataFindOwner(
-    uint8_t map_id,
-    uint8_t map_width,
-    uint8_t map_height,
-    uint16_t player_x,
-    uint16_t player_y,
-    uint16_t preferred_room_id,
-    Lufia2RoomSelection *selection) {
-    Lufia2MapPayload map;
-    const Lufia2RoomLookupResult resolved =
-        ResolveMapPayload(map_id, map_width, map_height, &map);
-    if (resolved != LUFIA2_ROOM_FOUND)
-        return resolved;
-
-    const uint8_t *payload = map.payload;
-    const uint32_t payload_size = map.payload_size;
-    const uint16_t room_count = map.room_count;
-    const uint32_t room_size = map.room_size;
-
-    const uint16_t cell_x = player_x / 16u;
-    const uint16_t cell_y = player_y / 16u;
-    if (cell_x >= map_width || cell_y >= map_height)
-        return LUFIA2_ROOM_NO_OWNER;
-
-    unsigned owners = 0;
-    bool preferred_owns = false;
-    Lufia2RoomSelection first = {0};
-    Lufia2RoomSelection preferred = {0};
-    for (uint16_t index = 0; index < room_count; index++) {
-        const uint8_t *room = payload + map.records_offset +
-            (size_t)index * room_size;
-        Lufia2RoomSelection candidate;
-        if (!ReadSelection(
-                payload, payload_size, room,
-                map_width, map_height, &candidate)) {
-            return InvalidData("room record is invalid");
-        }
-        const int visible = SpanTableContains(
-            payload, payload_size,
-            candidate.visibility_offset, candidate.visibility_count,
-            map_width, map_height, cell_x, cell_y);
-        const int activation = SpanTableContains(
-            payload, payload_size,
-            candidate.activation_offset, candidate.activation_count,
-            map_width, map_height, cell_x, cell_y);
-        if (visible < 0 || activation < 0)
-            return InvalidData("room span table is invalid");
-        if (!visible && !activation)
-            continue;
-        if (owners == 0)
-            first = candidate;
-        if (candidate.room_id == preferred_room_id) {
-            preferred = candidate;
-            preferred_owns = true;
-        }
-        owners++;
-    }
-
-    if (owners == 0)
-        return LUFIA2_ROOM_NO_OWNER;
-    *selection = preferred_owns ? preferred : first;
-    return LUFIA2_ROOM_FOUND;
-}
-
-bool Lufia2RoomDataCellIsVisible(
-    const Lufia2RoomSelection *selection,
-    uint32_t cell) {
-    if (!selection || !selection->map_width ||
-        cell >= (uint32_t)selection->map_width * selection->map_height) {
-        return false;
-    }
-    const uint16_t x = (uint16_t)(cell % selection->map_width);
-    const uint16_t y = (uint16_t)(cell / selection->map_width);
-    const int visible = SpanTableContains(
-        selection->map_payload, selection->map_payload_size,
-        selection->visibility_offset, selection->visibility_count,
-        selection->map_width, selection->map_height, x, y);
-    const int activation = SpanTableContains(
-        selection->map_payload, selection->map_payload_size,
-        selection->activation_offset, selection->activation_count,
-        selection->map_width, selection->map_height, x, y);
-    return visible > 0 || activation > 0;
-}
-
-const char *Lufia2RoomDirectionName(Lufia2RoomDirection direction) {
-    switch (direction) {
-    case LUFIA2_ROOM_UP: return "up";
-    case LUFIA2_ROOM_DOWN: return "down";
-    case LUFIA2_ROOM_LEFT: return "left";
-    case LUFIA2_ROOM_RIGHT: return "right";
-    default: return "unknown";
-    }
 }
 
 const char *Lufia2RoomLookupResultName(Lufia2RoomLookupResult result) {
     switch (result) {
     case LUFIA2_ROOM_NOT_AUTHORED: return "not authored";
     case LUFIA2_ROOM_FOUND: return "found";
-    case LUFIA2_ROOM_NO_OWNER: return "no owner";
     case LUFIA2_ROOM_MAP_NOT_READY: return "map transition pending";
     case LUFIA2_ROOM_INVALID: return "invalid data";
     default: return "unknown";
@@ -538,4 +416,9 @@ const char *Lufia2RoomLookupResultName(Lufia2RoomLookupResult result) {
 
 const char *Lufia2RoomDataLastError(void) {
     return s_last_error;
+}
+
+unsigned Lufia2RoomDataVersion(void) {
+    EnsureLoaded();
+    return s_load_valid ? s_version : 0u;
 }

@@ -5,10 +5,12 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 #include "lufia2_map_load.h"
 #include "lufia2_room_data.h"
+#include "lufia2/field.h"
 #include "snes/ws_shadow.h"
 #include "lufia2_log.h"
 
@@ -36,16 +38,26 @@ enum {
     LUFIA2_COLLISION_TOP = 0x04,
     LUFIA2_COLLISION_LEFT = 0x08,
     LUFIA2_ROOM_BORDER = 0x10,
+    LUFIA2_CELL_INDEX_MASK = 0x03ff,
     LUFIA2_PLAYER_X = 0x1ddae,
     LUFIA2_PLAYER_Y = 0x1de3e,
     /* The guest streams the native tilemaps in the NMI after the load
        commits, so the first frames of a new map cannot match yet. */
     LUFIA2_SETTLE_FRAMES = 30,
-    /* A transition waits for the guest's fade. Only when the screen
-       never darkens at all does it apply this many frames after the
-       player enters the cell instead. */
+    /* Frames a retrace may wait without a fade. */
     LUFIA2_TRANSITION_GRACE_FRAMES = 10,
+    LUFIA2_SHOWN_MIN_HITS = 2,
+    LUFIA2_SHOWN_HOLD_LIMIT = 240,
+    LUFIA2_FADE_CONTROL = 0x0581,
     LUFIA2_FULL_BRIGHTNESS = 15,
+    LUFIA2_CELL_EDGE_BITS = 0x3000,
+    LUFIA2_CELL_EDGE_INSIDE = 0x1000,
+    LUFIA2_CELL_EDGE_OPEN = 0x2000,
+    LUFIA2_MAP_SLOT = 0x05aa,
+    LUFIA2_SECTION_WORD = 0xd020,
+    /* Debug tint: palette bits flipped on hidden and open cells. */
+    LUFIA2_TINT_HIDDEN = 0x1000,
+    LUFIA2_TINT_OPEN = 0x0800,
 };
 
 typedef enum Lufia2Direction {
@@ -64,6 +76,14 @@ typedef struct Lufia2RuntimeMap {
     uint8_t height;
 } Lufia2RuntimeMap;
 
+/* Edge bits of the two traced cell tables, as the game left them. */
+typedef struct Lufia2HiddenCells {
+    uint32_t hidden[2];
+    uint32_t open[2];
+    uint32_t inside[2];
+    uint32_t hash;
+} Lufia2HiddenCells;
+
 typedef struct Lufia2VramBackup {
     uint16_t address;
     uint16_t value;
@@ -76,40 +96,24 @@ static bool s_active;
 static uint64_t s_map_signature;
 static uint64_t s_rejected_map_signature;
 static Lufia2RuntimeMap s_map;
-static bool s_room_active;
-static Lufia2RoomSelection s_room;
+static bool s_paint_active;
+static Lufia2MapPaint s_paint;
 
-/* Last reported room lookup, so an unchanged result stays quiet. */
-static Lufia2RoomLookupResult s_last_room_lookup = LUFIA2_ROOM_NOT_AUTHORED;
-static uint8_t s_last_room_lookup_map;
-static uint16_t s_last_room_lookup_id = UINT16_MAX;
+/* Last reported paint lookup. */
+static Lufia2RoomLookupResult s_last_lookup = LUFIA2_ROOM_NOT_AUTHORED;
+static uint8_t s_last_lookup_map = UINT8_MAX;
 
 /* Map readiness: the observed load generation and the frames a new map
    is still allowed to settle in. */
 static uint32_t s_map_generation;
 static unsigned s_settle_frames;
 
-/* Player movement, and the authored transition it may arm. */
+/* The player's cell, for the camera. */
 static uint16_t s_player_cell_x;
 static uint16_t s_player_cell_y;
 static bool s_player_cell_valid;
-static Lufia2RoomDirection s_step_direction;
-static bool s_step_valid;
-static bool s_transition_armed;
-static uint16_t s_transition_room_id;
-static unsigned s_transition_frames;
 
-/* A room selection that outranks ownership: applied by a transition, or
-   restored after a battle or menu tore the state down. */
-static bool s_forced_room;
-static uint16_t s_forced_room_id;
-static bool s_remembered_room;
-static uint16_t s_remembered_room_id;
-static uint64_t s_remembered_signature;
-static uint16_t s_remembered_cell_x;
-static uint16_t s_remembered_cell_y;
-
-/* Scratch for the enclosed-area test used by maps without room data. */
+/* Scratch for the enclosed-area test of unpainted maps. */
 static uint8_t s_collision_component[LUFIA2_MAX_MAP_CELLS];
 static uint16_t s_component_queue[LUFIA2_MAX_MAP_CELLS];
 static uint16_t s_last_collision_cell;
@@ -127,6 +131,36 @@ static bool s_wrong_mode_reported;
 static Lufia2VramBackup s_vram_backups[LUFIA2_MAX_VRAM_BACKUPS];
 static unsigned s_vram_backup_count;
 static uint8_t s_vram_backed_up[0x8000 / 8];
+
+/* Last hidden-cell state that was reported. */
+static uint32_t s_reported_hidden_hash;
+static uint32_t s_reported_hidden_generation = UINT32_MAX;
+static unsigned s_hidden_report_frames;
+
+/* Cell tables of the frame being drawn. */
+static Lufia2FieldCellView s_cell_view;
+
+/* The margins follow the game's hidden cells. */
+static bool s_game_driven;
+static bool s_game_hides;
+static int32_t s_camera_x;
+static bool s_table_mismatch_reported;
+
+/* Edge bits the native picture still shows. */
+static uint8_t s_shown_edges[2][LUFIA2_MAX_MAP_CELLS];
+static uint8_t s_shown_bank[LUFIA2_BANK_SIZE];
+static uint32_t s_shown_count;
+static uint64_t s_shown_signature;
+static bool s_shown_valid;
+static bool s_shown_pending;
+static unsigned s_shown_frames;
+static unsigned s_shown_held_frames;
+static bool s_camera_held;
+static int32_t s_held_camera_x;
+static int32_t s_held_camera_y;
+static bool s_last_camera_valid;
+static int32_t s_last_camera_x;
+static int32_t s_last_camera_y;
 
 static uint16_t Read16(const uint8_t *data) {
     return (uint16_t)(data[0] | ((uint16_t)data[1] << 8));
@@ -264,47 +298,184 @@ static bool ResolveMapTile(
         (uint32_t)map_tile_x & 1u, (uint32_t)map_tile_y & 1u, entry);
 }
 
-static bool RoomOwnsMapTile(
-    const Lufia2RuntimeMap *map,
-    const Lufia2RoomSelection *room,
-    int32_t map_tile_x,
-    int32_t map_tile_y) {
-    const int32_t block_x = map_tile_x >> 1;
-    const int32_t block_y = map_tile_y >> 1;
-    if (block_x < 0 || block_y < 0 ||
-        block_x >= (int32_t)map->width || block_y >= (int32_t)map->height) {
-        return false;
-    }
-    return Lufia2RoomDataCellIsVisible(
-        room, (uint32_t)(block_y * (int32_t)map->width + block_x));
+static void OpenCellView(Lufia2FieldCellView *view) {
+    Lufia2FieldCellViewOpen(view, g_ram + LUFIA2_BANK_SIZE);
 }
 
+static void ReleaseShownCells(void) {
+    s_shown_valid = false;
+    s_shown_pending = false;
+    s_camera_held = false;
+}
+
+/* The cells as the native screen still shows them. */
+static void OpenShownCellView(Lufia2FieldCellView *view) {
+    if (s_game_driven && s_shown_pending)
+        Lufia2FieldCellViewOpen(view, s_shown_bank);
+    else
+        OpenCellView(view);
+}
+
+/* The tile the game's own writers would put here. */
+static bool ResolveGameTile(
+    const Lufia2FieldCellView *view,
+    int logical_layer,
+    int32_t map_tile_x,
+    int32_t map_tile_y,
+    uint16_t *entry) {
+    Lufia2FieldDisplayedCell cell;
+    if (map_tile_x < 0 || map_tile_y < 0 ||
+        !Lufia2FieldCellDisplayed(
+            view, (unsigned)logical_layer, (unsigned)map_tile_x >> 1,
+            (unsigned)map_tile_y >> 1, &cell)) {
+        return false;
+    }
+    *entry = cell.tiles[(((uint32_t)map_tile_x & 1u) << 1) |
+                        ((uint32_t)map_tile_y & 1u)];
+    return true;
+}
+
+/* LUFIA2_ROOM_VISIBILITY_DEBUG=1 tints what the game hides or opens. */
+static bool RoomDebugTint(void) {
+    static int s_debug = -1;
+    if (s_debug < 0) {
+        const char *choice = getenv("LUFIA2_ROOM_VISIBILITY_DEBUG");
+        s_debug = choice && *choice && strcmp(choice, "0") != 0;
+    }
+    return s_debug != 0;
+}
+
+static bool NamesGame(const char *text) {
+    static const char kGame[] = "game";
+    size_t n = 0;
+    while (kGame[n] && text[n] && (text[n] | 0x20) == kGame[n])
+        n++;
+    return !kGame[n] && !text[n];
+}
+
+/* Old modes map to the game's hidden cells. */
+void Lufia2MapWidescreenSetRoomVisibility(const char *configured) {
+    const char *override = getenv("LUFIA2_ROOM_VISIBILITY");
+    const char *choice = override && *override ? override : configured;
+    if (!choice || !*choice || NamesGame(choice))
+        return;
+    fprintf(stderr,
+        "[video] room visibility '%s' is no longer supported; the game's "
+        "hidden cells decide (game)\n",
+        choice);
+}
+
+static uint16_t TintGameCell(int logical_layer, int32_t map_tile_x,
+                             int32_t map_tile_y, uint16_t entry) {
+    Lufia2FieldDisplayedCell cell;
+    if (map_tile_x < 0 || map_tile_y < 0 ||
+        !Lufia2FieldCellDisplayed(
+            &s_cell_view, (unsigned)logical_layer, (unsigned)map_tile_x >> 1,
+            (unsigned)map_tile_y >> 1, &cell)) {
+        return entry;
+    }
+    const uint16_t bits = cell.word & LUFIA2_CELL_EDGE_BITS;
+    if (bits == LUFIA2_CELL_EDGE_BITS)
+        return entry ^ LUFIA2_TINT_HIDDEN;
+    if (bits == LUFIA2_CELL_EDGE_OPEN)
+        return entry ^ LUFIA2_TINT_OPEN;
+    return entry;
+}
+
+static void CountHiddenCells(
+    const Lufia2FieldCellView *view,
+    Lufia2HiddenCells *cells) {
+    memset(cells, 0, sizeof(*cells));
+    uint32_t hash = 2166136261u;
+    for (unsigned slot = 0; slot < 2; slot++) {
+        const uint32_t count =
+            (uint32_t)(view->width[slot] & 0xffu) * (view->height[slot] & 0xffu);
+        for (uint32_t i = 0; i < count; i++) {
+            const uint32_t at = view->cell_base[slot] + i * 2u;
+            if (at >= LUFIA2_BANK_SIZE - 1u)
+                break;
+            const uint16_t bits =
+                Read16(g_ram + LUFIA2_BANK_SIZE + at) & LUFIA2_CELL_EDGE_BITS;
+            cells->hidden[slot] += bits == LUFIA2_CELL_EDGE_BITS;
+            cells->open[slot] += bits == LUFIA2_CELL_EDGE_OPEN;
+            cells->inside[slot] += bits == LUFIA2_CELL_EDGE_INSIDE;
+            hash = (hash ^ (bits >> 12)) * 16777619u;
+        }
+    }
+    cells->hash = hash;
+}
+
+static bool MapTileInside(
+    const Lufia2RuntimeMap *map,
+    int32_t map_tile_x,
+    int32_t map_tile_y) {
+    return map_tile_x >= 0 && map_tile_y >= 0 &&
+        (map_tile_x >> 1) < (int32_t)map->width &&
+        (map_tile_y >> 1) < (int32_t)map->height;
+}
+
+/* The game's rule inside the map; outside it, the cell the game draws for
+   hidden cells, or the blank tile on a map that hides nothing. */
+static uint16_t ResolveGameDrivenTile(
+    const Lufia2RuntimeMap *map,
+    int logical_layer,
+    int32_t map_tile_x,
+    int32_t map_tile_y) {
+    uint16_t entry = 0;
+    if (MapTileInside(map, map_tile_x, map_tile_y)) {
+        if (RoomDebugTint()) {
+            if (ResolveMapTile(
+                    map, logical_layer, map_tile_x, map_tile_y, &entry))
+                entry = TintGameCell(
+                    logical_layer, map_tile_x, map_tile_y, entry);
+            return entry;
+        }
+        (void)ResolveGameTile(
+            &s_cell_view, logical_layer, map_tile_x, map_tile_y, &entry);
+        return entry;
+    }
+    if (s_game_hides) {
+        /* Layers 0 and 1 share the metatile base of table 0's first cell. */
+        (void)ResolveGameTile(
+            &s_cell_view, 0, (int32_t)(map_tile_x & 1),
+            (int32_t)(map_tile_y & 1), &entry);
+    }
+    return entry;
+}
+
+/* Paint first, then the map, then its fill. */
 static uint16_t ResolveWideTile(
     const Lufia2RuntimeMap *map,
-    const Lufia2RoomSelection *room,
+    const Lufia2MapPaint *paint,
     int logical_layer,
     int32_t map_tile_x,
     int32_t map_tile_y) {
     uint16_t entry = 0;
     const uint32_t sub_tile_x = (uint32_t)map_tile_x & 1u;
     const uint32_t sub_tile_y = (uint32_t)map_tile_y & 1u;
-    if (!room || RoomOwnsMapTile(map, room, map_tile_x, map_tile_y)) {
-        (void)ResolveMapTile(
-            map, logical_layer, map_tile_x, map_tile_y, &entry);
-        return entry;
-    }
-
     uint16_t patch_block = 0;
-    if (Lufia2RoomDataPatchBlock(
-            room, map_tile_x >> 1, map_tile_y >> 1, logical_layer,
+    /* Painted cells win everywhere in the margins. */
+    if (paint && Lufia2RoomDataPatchBlock(
+            paint, map_tile_x >> 1, map_tile_y >> 1, logical_layer,
             &patch_block)) {
         (void)ResolveBlockTile(
             map, patch_block, sub_tile_x, sub_tile_y, &entry);
         return entry;
     }
+    if (s_game_driven && (!paint || MapTileInside(map, map_tile_x, map_tile_y)))
+        return ResolveGameDrivenTile(map, logical_layer, map_tile_x, map_tile_y);
+    if (MapTileInside(map, map_tile_x, map_tile_y) || !paint) {
+        if (ResolveMapTile(
+                map, logical_layer, map_tile_x, map_tile_y, &entry) &&
+            RoomDebugTint()) {
+            entry = TintGameCell(logical_layer, map_tile_x, map_tile_y, entry);
+        }
+        return entry;
+    }
 
+    /* Past the edges: the map's fill. */
     const Lufia2RoomVoid *definition =
-        logical_layer == 1 ? &room->bg1 : &room->bg2;
+        logical_layer == 1 ? &paint->bg1 : &paint->bg2;
     if (definition->mode == LUFIA2_ROOM_VOID_SOURCE_CELL) {
         const uint32_t cell =
             (uint32_t)definition->y * map->width + definition->x;
@@ -328,6 +499,12 @@ static int32_t UnwrapScroll(uint32_t scroll, int32_t reference) {
 static void CameraOrigin(const Ppu *ppu, int32_t *x, int32_t *y) {
     const uint32_t scroll_x = (uint32_t)ppu->hScroll[0];
     const uint32_t scroll_y = (uint32_t)ppu->vScroll[0];
+    if (s_camera_held) {
+        /* The party may already stand at the warp target. */
+        *x = UnwrapScroll(scroll_x, s_held_camera_x);
+        *y = UnwrapScroll(scroll_y, s_held_camera_y);
+        return;
+    }
     if (!s_player_cell_valid) {
         *x = (int32_t)scroll_x;
         *y = (int32_t)scroll_y;
@@ -352,9 +529,11 @@ static void LayerScrollBias(const Ppu *ppu, int bg,
    for maps whose widescreen extent is inferred rather than authored: without
    room metadata the wider view is only safe once the map in bank $7F
    demonstrably explains what the PPU is displaying. */
-static bool NativeViewportMatches(
+static unsigned NativeViewportScore(
     const Ppu *ppu,
-    const Lufia2RuntimeMap *map) {
+    const Lufia2RuntimeMap *map,
+    const Lufia2FieldCellView *game_view,
+    unsigned *checked_out) {
     int32_t camera_x = 0;
     int32_t camera_y = 0;
     CameraOrigin(ppu, &camera_x, &camera_y);
@@ -377,10 +556,13 @@ static bool NativeViewportMatches(
                 const int32_t tile_x = bg_tile_x0 + dx;
                 const int32_t tile_y = bg_tile_y0 + dy;
                 uint16_t expected = 0;
-                if (!ResolveMapTile(
-                        map, logical_layer, tile_x, tile_y, &expected)) {
+                const bool resolved = game_view
+                    ? ResolveGameTile(
+                          game_view, logical_layer, tile_x, tile_y, &expected)
+                    : ResolveMapTile(
+                          map, logical_layer, tile_x, tile_y, &expected);
+                if (!resolved)
                     continue;
-                }
 
                 const uint16_t address = (uint16_t)(
                     map_base + (((uint32_t)tile_y & 31u) << 5) +
@@ -392,8 +574,85 @@ static bool NativeViewportMatches(
         }
     }
 
+    *checked_out = checked;
+    return matched;
+}
+
+static bool NativeViewportMatches(
+    const Ppu *ppu,
+    const Lufia2RuntimeMap *map) {
+    unsigned checked = 0;
+    const unsigned matched = NativeViewportScore(ppu, map, NULL, &checked);
     return checked >= LUFIA2_NATIVE_MIN_SAMPLES &&
         matched * 100u >= checked * LUFIA2_NATIVE_MATCH_PERCENT;
+}
+
+static unsigned ScorePercent(unsigned matched, unsigned checked) {
+    return checked ? matched * 100u / checked : 0u;
+}
+
+/* Instrumentation: what the game hides, and whether its own drawing rule
+   explains the native picture better than the raw cells do. */
+static void ReportHiddenCells(
+    const Ppu *ppu,
+    const Lufia2RuntimeMap *map,
+    uint32_t generation) {
+#ifdef LUFIA2_ENABLE_RUNTIME_LOG
+    Lufia2FieldCellView view;
+    OpenCellView(&view);
+    Lufia2HiddenCells cells;
+    CountHiddenCells(&view, &cells);
+    const bool changed = generation != s_reported_hidden_generation ||
+        cells.hash != s_reported_hidden_hash;
+    if (changed) {
+        s_reported_hidden_generation = generation;
+        s_reported_hidden_hash = cells.hash;
+        s_hidden_report_frames = 0;
+        const uint8_t *bank = g_ram + LUFIA2_BANK_SIZE;
+        const uint32_t layer_b = LUFIA2_MAP_HEADER_SIZE +
+            map->cell_count * 2u + LUFIA2_MAP_LAYER_HEADER_SIZE;
+        const uint16_t substitute = view.cell_base[0] < 0xffffu
+            ? Read16(bank + view.cell_base[0]) & LUFIA2_CELL_INDEX_MASK : 0;
+        const uint16_t layer_b_first = view.cell_base[1] < 0xffffu
+            ? Read16(bank + view.cell_base[1]) & LUFIA2_CELL_INDEX_MASK : 0;
+        LUFIA2_LOG(
+            "[room-vis] map $%02X %ux%u: tables $%04X/$%04X (header "
+            "$%04X/$%04X) sizes %ux%u/%ux%u slot %u D020 %02X/%02X; "
+            "hidden %u/%u open %u/%u inside %u/%u; substitute block "
+            "$%03X, layer B cell 0 $%03X; metatiles $%04X (blockset $%04X)\n",
+            (unsigned)g_ram[0x05ac], (unsigned)map->width,
+            (unsigned)map->height, (unsigned)view.cell_base[0],
+            (unsigned)view.cell_base[1], (unsigned)LUFIA2_MAP_HEADER_SIZE,
+            (unsigned)layer_b, (unsigned)view.width[0],
+            (unsigned)view.height[0], (unsigned)view.width[1],
+            (unsigned)view.height[1], (unsigned)Read16(g_ram + LUFIA2_MAP_SLOT),
+            (unsigned)bank[LUFIA2_SECTION_WORD],
+            (unsigned)bank[LUFIA2_SECTION_WORD + 2], (unsigned)cells.hidden[0],
+            (unsigned)cells.hidden[1], (unsigned)cells.open[0],
+            (unsigned)cells.open[1], (unsigned)cells.inside[0],
+            (unsigned)cells.inside[1], (unsigned)substitute,
+            (unsigned)layer_b_first, (unsigned)view.metatile_base,
+            (unsigned)(map->blockset - bank + LUFIA2_BLOCKSET_HEADER_SIZE));
+    }
+    /* Score once the guest has redrawn the native view. */
+    if (s_hidden_report_frames <= LUFIA2_SETTLE_FRAMES &&
+        ++s_hidden_report_frames == LUFIA2_SETTLE_FRAMES) {
+        unsigned raw_checked = 0;
+        unsigned game_checked = 0;
+        const unsigned raw = NativeViewportScore(ppu, map, NULL, &raw_checked);
+        const unsigned game =
+            NativeViewportScore(ppu, map, &view, &game_checked);
+        LUFIA2_LOG(
+            "[room-vis] map $%02X native match: raw cells %u%% of %u, "
+            "game rule %u%% of %u\n",
+            (unsigned)g_ram[0x05ac], ScorePercent(raw, raw_checked),
+            raw_checked, ScorePercent(game, game_checked), game_checked);
+    }
+#else
+    (void)ppu;
+    (void)map;
+    (void)generation;
+#endif
 }
 
 static bool HasRoomBorders(const Lufia2RuntimeMap *map) {
@@ -512,7 +771,7 @@ static bool CurrentAreaIsEnclosed(
 static void FillWideViewport(
     const Ppu *ppu,
     const Lufia2RuntimeMap *map,
-    const Lufia2RoomSelection *room,
+    const Lufia2MapPaint *paint,
     int margin_pixels,
     int32_t camera_x,
     int32_t camera_y) {
@@ -541,7 +800,7 @@ static void FillWideViewport(
                 WsShadowForceTile(
                     bg, tile_x, tile_y,
                     ResolveWideTile(
-                        map, room, logical_layer,
+                        map, paint, logical_layer,
                         (int32_t)tile_x + delta_x,
                         (int32_t)tile_y + delta_y));
             }
@@ -557,24 +816,17 @@ static Lufia2MapWidescreenResult NotReadyYet(void) {
     return LUFIA2_MAP_WIDESCREEN_LOADING;
 }
 
+/* Battles, menus and scene changes tear this down. */
 void Lufia2DeactivateMapWidescreen(void) {
-    /* Battles, menus and scene changes tear this state down. Record what was
-       selected so returning to the same map cell restores the same room:
-       ownership alone may name a different one at a doorway or shared cell,
-       and the player cannot have moved in the meantime. */
-    if (s_active && s_room_active) {
-        s_remembered_room = true;
-        s_remembered_room_id = s_room.room_id;
-        s_remembered_signature = s_map_signature;
-        s_remembered_cell_x = s_player_cell_x;
-        s_remembered_cell_y = s_player_cell_y;
-    }
     if (s_active)
         WsShadowReset();
     s_active = false;
     s_map_signature = 0;
     s_map.data = NULL;
-    s_room_active = false;
+    s_paint_active = false;
+    s_game_driven = false;
+    ReleaseShownCells();
+    s_last_camera_valid = false;
     s_last_collision_cell_valid = false;
 }
 
@@ -602,13 +854,8 @@ void Lufia2MapWidescreenStateChanged(void) {
     s_map_generation = UINT32_MAX;
     s_settle_frames = 0;
     s_player_cell_valid = false;
-    s_step_valid = false;
-    s_transition_armed = false;
-    s_transition_frames = 0;
-    s_forced_room = false;
-    s_remembered_room = false;
-    s_last_room_lookup = LUFIA2_ROOM_NOT_AUTHORED;
-    s_last_room_lookup_id = UINT16_MAX;
+    s_last_lookup = LUFIA2_ROOM_NOT_AUTHORED;
+    s_last_lookup_map = UINT8_MAX;
     s_last_collision_cell_valid = false;
     s_wrong_mode_reported = false;
 }
@@ -663,7 +910,7 @@ static void OverlayScreenBand(
             OverlayTile(
                 ppu, address,
                 ResolveWideTile(
-                    map, s_room_active ? &s_room : NULL, logical_layer,
+                    map, s_paint_active ? &s_paint : NULL, logical_layer,
                     (int32_t)tile_x + delta_x, (int32_t)tile_y + delta_y));
         }
     }
@@ -707,6 +954,7 @@ void Lufia2BeginMapRenderOverlay(Ppu *ppu) {
         return;
     }
 
+    OpenShownCellView(&s_cell_view);
     bool guard_band = false;
     for (int bg = 0; bg < 2; bg++) {
         const uint32_t flags = ppu->windowsel >> (bg * 4);
@@ -786,74 +1034,32 @@ static void CurrentPlayerPosition(
     *player_y = y;
 }
 
-static void ReportRoomLookup(
+static void ReportPaintLookup(
     uint8_t map_id,
-    uint8_t map_width,
-    uint32_t player_cell,
     Lufia2RoomLookupResult lookup,
-    const Lufia2RoomSelection *room) {
-    const uint16_t room_id = room ? room->room_id : UINT16_MAX;
-    if (lookup == s_last_room_lookup &&
-        map_id == s_last_room_lookup_map &&
-        room_id == s_last_room_lookup_id) {
+    const Lufia2MapPaint *paint) {
+    if (lookup == s_last_lookup && map_id == s_last_lookup_map)
         return;
-    }
-    s_last_room_lookup = lookup;
-    s_last_room_lookup_map = map_id;
-    s_last_room_lookup_id = room_id;
+    s_last_lookup = lookup;
+    s_last_lookup_map = map_id;
 
     if (lookup == LUFIA2_ROOM_FOUND) {
+        uint32_t painted = 0;
+        for (uint32_t table = 0; table < paint->table_count; table++)
+            painted += paint->patch_count[table];
         LUFIA2_LOG(
-            "[room-data] map $%02X cell %u,%u -> room %u (%s)\n",
-            (unsigned)map_id,
-            (unsigned)(player_cell % room->map_width),
-            (unsigned)(player_cell / room->map_width),
-            (unsigned)room->room_id,
-            room->name && *room->name ? room->name : "unnamed");
+            "[room-data] map $%02X: %u painted cell(s) in %u table(s), "
+            "fill modes %u/%u\n",
+            (unsigned)map_id, (unsigned)painted,
+            (unsigned)paint->table_count, (unsigned)paint->bg1.mode,
+            (unsigned)paint->bg2.mode);
     } else if (lookup != LUFIA2_ROOM_NOT_AUTHORED) {
-        const char *detail =
-            (lookup == LUFIA2_ROOM_INVALID ||
-             lookup == LUFIA2_ROOM_MAP_NOT_READY)
-            ? Lufia2RoomDataLastError() : NULL;
-        const char *action = "using centered 4:3";
-        if (detail && *detail) {
-            LUFIA2_LOG(
-                "[room-data] map $%02X cell %u,%u -> %s (%s); "
-                "%s\n",
-                (unsigned)map_id,
-                (unsigned)(player_cell % map_width),
-                (unsigned)(player_cell / map_width),
-                Lufia2RoomLookupResultName(lookup), detail, action);
-        } else {
-            LUFIA2_LOG(
-                "[room-data] map $%02X cell %u,%u -> %s; "
-                "%s\n",
-                (unsigned)map_id,
-                (unsigned)(player_cell % map_width),
-                (unsigned)(player_cell / map_width),
-                Lufia2RoomLookupResultName(lookup), action);
-        }
+        const char *detail = Lufia2RoomDataLastError();
+        LUFIA2_LOG(
+            "[room-data] map $%02X -> %s (%s)\n",
+            (unsigned)map_id, Lufia2RoomLookupResultName(lookup),
+            detail && *detail ? detail : "no detail");
     }
-}
-
-/* Only a single-cell walk names a direction. A door teleports the player, so
-   the direction that matters is the one they were walking before it. */
-static void TrackPlayerStep(uint16_t cell_x, uint16_t cell_y) {
-    if (s_player_cell_valid &&
-        (cell_x != s_player_cell_x || cell_y != s_player_cell_y)) {
-        const int dx = (int)cell_x - (int)s_player_cell_x;
-        const int dy = (int)cell_y - (int)s_player_cell_y;
-        if (dx == 0 && (dy == 1 || dy == -1)) {
-            s_step_direction = dy > 0 ? LUFIA2_ROOM_DOWN : LUFIA2_ROOM_UP;
-            s_step_valid = true;
-        } else if (dy == 0 && (dx == 1 || dx == -1)) {
-            s_step_direction = dx > 0 ? LUFIA2_ROOM_RIGHT : LUFIA2_ROOM_LEFT;
-            s_step_valid = true;
-        }
-    }
-    s_player_cell_x = cell_x;
-    s_player_cell_y = cell_y;
-    s_player_cell_valid = true;
 }
 
 /* Lufia fades a room change through the INIDISP master brightness rather
@@ -868,64 +1074,166 @@ static bool ScreenIsFading(const Ppu *ppu) {
         PPU_brightness(ppu) < LUFIA2_FULL_BRIGHTNESS;
 }
 
-/* An authored transition arms while the player stands on its cell moving in
-   its direction, and applies once the screen is black. A fade in progress
-   never times out; the grace period only covers a room change the guest
-   performs without darkening the screen at all. */
-static void UpdateRoomTransition(
-    const Ppu *ppu,
-    uint8_t map_id,
-    const Lufia2RuntimeMap *map,
-    uint16_t cell_x,
-    uint16_t cell_y) {
-    TrackPlayerStep(cell_x, cell_y);
+static uint32_t ShownCellCount(const Lufia2FieldCellView *view) {
+    const uint32_t count = (uint32_t)view->width[0] * view->height[0];
+    return count <= LUFIA2_MAX_MAP_CELLS ? count : 0u;
+}
 
-    uint16_t target = 0;
-    if (!s_step_valid ||
-        !Lufia2RoomDataFindTransition(
-            map_id, map->width, map->height, cell_x, cell_y,
-            s_step_direction, &target)) {
-        s_transition_armed = false;
-        return;
-    }
+static bool CellWordAt(
+    const Lufia2FieldCellView *view,
+    unsigned slot,
+    uint32_t cell,
+    uint32_t *at) {
+    *at = view->cell_base[slot] + cell * 2u;
+    return *at < LUFIA2_BANK_SIZE - 1u;
+}
 
-    if (!s_transition_armed || target != s_transition_room_id) {
-        s_transition_armed = true;
-        s_transition_room_id = target;
-        s_transition_frames = 0;
-    }
-
-    if (!ScreenIsBlack(ppu)) {
-        if (ScreenIsFading(ppu)) {
-            /* The fade owns the timing from here on. */
-            s_transition_frames = 0;
-            return;
+static void LatchShownCells(const Lufia2FieldCellView *live, uint64_t signature) {
+    s_shown_count = ShownCellCount(live);
+    s_shown_signature = signature;
+    for (unsigned slot = 0; slot < 2; slot++) {
+        for (uint32_t i = 0; i < s_shown_count; i++) {
+            uint32_t at = 0;
+            s_shown_edges[slot][i] = CellWordAt(live, slot, i, &at)
+                ? (uint8_t)((Read16(live->bank_7f + at) & LUFIA2_CELL_EDGE_BITS) >> 12)
+                : 0u;
         }
-        if (++s_transition_frames <= LUFIA2_TRANSITION_GRACE_FRAMES)
-            return;
     }
+    s_shown_valid = true;
+    s_shown_pending = false;
+    s_shown_frames = 0;
+    s_camera_held = false;
+}
 
-    s_transition_armed = false;
-    if (s_forced_room && s_forced_room_id == target)
+static bool ShownCellsDiffer(const Lufia2FieldCellView *live) {
+    for (unsigned slot = 0; slot < 2; slot++) {
+        for (uint32_t i = 0; i < s_shown_count; i++) {
+            uint32_t at = 0;
+            if (CellWordAt(live, slot, i, &at) &&
+                ((Read16(live->bank_7f + at) & LUFIA2_CELL_EDGE_BITS) >> 12) !=
+                    s_shown_edges[slot][i])
+                return true;
+        }
+    }
+    return false;
+}
+
+/* Live bank $7F with the shown edge bits put back. */
+static void ComposeShownBank(const Lufia2FieldCellView *live) {
+    memcpy(s_shown_bank, live->bank_7f, LUFIA2_BANK_SIZE);
+    for (unsigned slot = 0; slot < 2; slot++) {
+        for (uint32_t i = 0; i < s_shown_count; i++) {
+            uint32_t at = 0;
+            if (!CellWordAt(live, slot, i, &at))
+                break;
+            const uint16_t word = (uint16_t)(
+                (Read16(s_shown_bank + at) & ~LUFIA2_CELL_EDGE_BITS) |
+                ((uint16_t)s_shown_edges[slot][i] << 12));
+            s_shown_bank[at] = (uint8_t)word;
+            s_shown_bank[at + 1u] = (uint8_t)(word >> 8);
+        }
+    }
+}
+
+/* Where the two states draw differently, which one VRAM holds. */
+static bool NativeShowsLiveCells(
+    const Ppu *ppu,
+    const Lufia2FieldCellView *live) {
+    Lufia2FieldCellView shown;
+    Lufia2FieldCellViewOpen(&shown, s_shown_bank);
+    int32_t camera_x = 0;
+    int32_t camera_y = 0;
+    CameraOrigin(ppu, &camera_x, &camera_y);
+    unsigned live_hits = 0;
+    unsigned shown_hits = 0;
+    for (int bg = 0; bg < 2; bg++) {
+        const int logical_layer = bg == 0 ? 1 : 0;
+        const uint16_t map_base = (uint16_t)PPU_bgTilemapAdr(ppu, bg);
+        int32_t bias_x = 0;
+        int32_t bias_y = 0;
+        LayerScrollBias(ppu, bg, &bias_x, &bias_y);
+        const int32_t tile_x0 = (camera_x + bias_x) >> 3;
+        const int32_t tile_y0 = (camera_y + bias_y) >> 3;
+        for (int32_t dy = 0; dy <= LUFIA2_VISIBLE_HEIGHT / LUFIA2_TILE_SIZE; dy++) {
+            for (int32_t dx = 0; dx <= LUFIA2_NATIVE_WIDTH / LUFIA2_TILE_SIZE; dx++) {
+                uint16_t live_entry = 0;
+                uint16_t shown_entry = 0;
+                const int32_t tile_x = tile_x0 + dx;
+                const int32_t tile_y = tile_y0 + dy;
+                if (!ResolveGameTile(live, logical_layer, tile_x, tile_y,
+                                     &live_entry) ||
+                    !ResolveGameTile(&shown, logical_layer, tile_x, tile_y,
+                                     &shown_entry) ||
+                    live_entry == shown_entry)
+                    continue;
+                const uint16_t address = (uint16_t)(
+                    map_base + (((uint32_t)tile_y & 31u) << 5) +
+                    ((uint32_t)tile_x & 31u));
+                const uint16_t vram = ppu->vram[address & 0x7fffu];
+                live_hits += vram == live_entry;
+                shown_hits += vram == shown_entry;
+            }
+        }
+    }
+    return live_hits >= LUFIA2_SHOWN_MIN_HITS && live_hits > shown_hits * 2u;
+}
+
+/* Adopt a retrace once VRAM holds it, or the screen allows. */
+static void SyncShownCells(const Ppu *ppu, uint64_t signature) {
+    Lufia2FieldCellView live;
+    OpenCellView(&live);
+    if (!s_shown_valid || signature != s_shown_signature ||
+        ShownCellCount(&live) != s_shown_count) {
+        LatchShownCells(&live, signature);
         return;
-    s_forced_room = true;
-    s_forced_room_id = target;
-    LUFIA2_LOG(
-        "[room-data] transition at cell %u,%u %s -> room %u\n",
-        (unsigned)cell_x, (unsigned)cell_y,
-        Lufia2RoomDirectionName(s_step_direction), (unsigned)target);
+    }
+    if (!ShownCellsDiffer(&live)) {
+        s_shown_pending = false;
+        s_camera_held = false;
+        return;
+    }
+    if (!s_shown_pending) {
+        s_shown_pending = true;
+        s_shown_frames = 0;
+        s_shown_held_frames = 0;
+        s_camera_held = s_last_camera_valid;
+        s_held_camera_x = s_last_camera_x;
+        s_held_camera_y = s_last_camera_y;
+    }
+    ComposeShownBank(&live);
+
+    const char *reason = NULL;
+    if (ScreenIsBlack(ppu)) {
+        reason = "black screen";
+    } else if (NativeShowsLiveCells(ppu, &live)) {
+        reason = "native layers";
+    } else if (++s_shown_held_frames > LUFIA2_SHOWN_HOLD_LIMIT) {
+        reason = "hold limit";
+    } else if (ScreenIsFading(ppu) || g_ram[LUFIA2_FADE_CONTROL]) {
+        /* $0581 runs the fade before brightness drops. */
+        s_shown_frames = 0;
+    } else if (++s_shown_frames > LUFIA2_TRANSITION_GRACE_FRAMES) {
+        reason = "no fade";
+    }
+    if (!reason)
+        return;
+    LUFIA2_LOG("[room-vis] map $%02X margins adopt retraced cells: %s\n",
+               (unsigned)g_ram[0x05ac], reason);
+    LatchShownCells(&live, signature);
 }
 
 /* Point the shadow at this frame's source and camera. */
 static Lufia2MapWidescreenResult AdoptSource(
     Ppu *ppu,
     const Lufia2RuntimeMap *map,
-    const Lufia2RoomSelection *room) {
+    const Lufia2MapPaint *paint) {
     if (map != &s_map)
         s_map = *map;
-    s_room_active = room != NULL;
-    if (room && room != &s_room)
-        s_room = *room;
+    s_paint_active = paint != NULL;
+    int32_t camera_y = 0;
+    CameraOrigin(ppu, &s_camera_x, &camera_y);
+    if (paint && paint != &s_paint)
+        s_paint = *paint;
     s_settle_frames = 0;
 
     for (int bg = 0; bg < 2; bg++) {
@@ -939,94 +1247,14 @@ static Lufia2MapWidescreenResult AdoptSource(
     return LUFIA2_MAP_WIDESCREEN_ACTIVE;
 }
 
-/* An authored map is described by the room file, not inferred from the
-   screen. It stays in widescreen for as long as the player is inside it:
-   crossing between Visible Areas only changes which area is drawn, and a
-   cell no area owns keeps the room the player came from. */
-static Lufia2MapWidescreenResult PrepareAuthoredMap(
-    Ppu *ppu,
-    const Lufia2RuntimeMap *map,
-    uint64_t signature,
-    uint8_t map_id,
-    Lufia2RoomLookupResult lookup,
-    const Lufia2RoomSelection *room) {
-    s_rejected_map_signature = 0;
-
-    if (s_remembered_room) {
-        const bool same_place = signature == s_remembered_signature &&
-            s_player_cell_valid &&
-            s_player_cell_x == s_remembered_cell_x &&
-            s_player_cell_y == s_remembered_cell_y;
-        s_remembered_room = false;
-        if (same_place && !s_forced_room) {
-            s_forced_room = true;
-            s_forced_room_id = s_remembered_room_id;
-        }
-    }
-
-    /* An applied transition outranks ownership until ownership agrees with
-       it again, which is exactly when the player has left the doorway. */
-    Lufia2RoomSelection forced;
-    if (s_forced_room) {
-        if (lookup == LUFIA2_ROOM_FOUND &&
-            room->room_id == s_forced_room_id) {
-            s_forced_room = false;
-        } else if (Lufia2RoomDataSelectRoomById(
-                map_id, map->width, map->height, s_forced_room_id, &forced)) {
-            room = &forced;
-            lookup = LUFIA2_ROOM_FOUND;
-        } else {
-            s_forced_room = false;
-        }
-    }
-
-    if (lookup == LUFIA2_ROOM_MAP_NOT_READY) {
-        if (s_active && s_room_active && signature == s_map_signature)
-            return AdoptSource(ppu, map, &s_room);
-        Lufia2DeactivateMapWidescreen();
-        return NotReadyYet();
-    }
-
-    if (lookup != LUFIA2_ROOM_FOUND) {
-        /* No area owns this cell. On an authored map that is the open part
-           of a town, not an unsupported scene: the author declared the map
-           and only needed areas where rooms have to be separated. Show the
-           complete processed map there, the way a map with no room data is
-           shown, instead of dropping the whole map to 4:3. */
-        if (!s_active || signature != s_map_signature || s_room_active) {
-            WsShadowReset();
-            s_active = true;
-            s_map_signature = signature;
-            s_last_collision_cell_valid = false;
-            LUFIA2_LOG(
-                "[video] authored map $%02X: no room owns the player, "
-                "using the full map\n",
-                (unsigned)map_id);
-        }
-        return AdoptSource(ppu, map, NULL);
-    }
-
-    if (!s_active || signature != s_map_signature ||
-        !s_room_active || room->room_id != s_room.room_id) {
-        WsShadowReset();
-        s_active = true;
-        s_map_signature = signature;
-        s_last_collision_cell_valid = false;
-        LUFIA2_LOG(
-            "[video] authored room source: map $%02X, room %u (%s)\n",
-            (unsigned)map_id, (unsigned)room->room_id,
-            room->name && *room->name ? room->name : "unnamed");
-    }
-    return AdoptSource(ppu, map, room);
-}
-
-/* A map without authored rooms is inferred, so it keeps the conservative
-   checks: the processed map must explain what the PPU displays, and an
-   enclosed indoor area must not be widened. */
+/* Tables misfit: raw cells; unpainted maps stay cautious. */
 static Lufia2MapWidescreenResult PrepareInferredMap(
     Ppu *ppu,
     const Lufia2RuntimeMap *map,
-    uint64_t signature) {
+    uint64_t signature,
+    const Lufia2MapPaint *paint) {
+    s_game_driven = false;
+    ReleaseShownCells();
     if (signature == s_rejected_map_signature)
         return LUFIA2_MAP_WIDESCREEN_DISABLED;
     s_rejected_map_signature = 0;
@@ -1036,9 +1264,9 @@ static Lufia2MapWidescreenResult PrepareInferredMap(
             Lufia2DeactivateMapWidescreen();
             return NotReadyYet();
         }
-        if (HasRoomBorders(map))
+        if (!paint && HasRoomBorders(map))
             return RejectMap(signature, "room borders");
-        if (CurrentAreaIsEnclosed(ppu, map))
+        if (!paint && CurrentAreaIsEnclosed(ppu, map))
             return RejectMap(signature, "closed area");
 
         WsShadowReset();
@@ -1049,11 +1277,86 @@ static Lufia2MapWidescreenResult PrepareInferredMap(
             "[video] full map source: %ux%u blocks, %u block definitions\n",
             (unsigned)map->width, (unsigned)map->height,
             (unsigned)map->block_count);
-    } else if (CurrentAreaIsEnclosed(ppu, map)) {
+    } else if (!paint && CurrentAreaIsEnclosed(ppu, map)) {
         return RejectMap(signature, "closed area");
     }
 
-    return AdoptSource(ppu, map, NULL);
+    return AdoptSource(ppu, map, paint);
+}
+
+static bool GameTablesMatch(
+    const Lufia2FieldCellView *view,
+    const Lufia2RuntimeMap *map) {
+    for (unsigned slot = 0; slot < 2; slot++) {
+        if (view->width[slot] != map->width ||
+            view->height[slot] != map->height)
+            return false;
+    }
+    return true;
+}
+
+/* The game's hidden cells; painted maps skip the match. */
+static Lufia2MapWidescreenResult PrepareGameDrivenMap(
+    Ppu *ppu,
+    const Lufia2RuntimeMap *map,
+    uint64_t signature,
+    const Lufia2MapPaint *paint) {
+    Lufia2FieldCellView view;
+    OpenCellView(&view);
+    if (!GameTablesMatch(&view, map)) {
+        if (!s_table_mismatch_reported) {
+            s_table_mismatch_reported = true;
+            LUFIA2_LOG(
+                "[video] map $%02X: cell tables %ux%u/%ux%u differ from the "
+                "%ux%u header; using the inferred map\n",
+                (unsigned)g_ram[0x05ac], (unsigned)view.width[0],
+                (unsigned)view.height[0], (unsigned)view.width[1],
+                (unsigned)view.height[1], (unsigned)map->width,
+                (unsigned)map->height);
+        }
+        return PrepareInferredMap(ppu, map, signature, paint);
+    }
+
+    Lufia2HiddenCells cells;
+    CountHiddenCells(&view, &cells);
+    const bool hides = cells.hidden[0] + cells.hidden[1] != 0;
+    if (!hides && signature == s_rejected_map_signature)
+        return LUFIA2_MAP_WIDESCREEN_DISABLED;
+    s_rejected_map_signature = 0;
+
+    if (!s_active || signature != s_map_signature || !s_game_driven) {
+        unsigned checked = 0;
+        const unsigned matched =
+            NativeViewportScore(ppu, map, &view, &checked);
+        if (!paint && (checked < LUFIA2_NATIVE_MIN_SAMPLES ||
+            matched * 100u < checked * LUFIA2_NATIVE_MATCH_PERCENT)) {
+            Lufia2DeactivateMapWidescreen();
+            return NotReadyYet();
+        }
+        /* Only a map that hides nothing keeps the enclosure heuristic. */
+        if (!paint && !hides && CurrentAreaIsEnclosed(ppu, map))
+            return RejectMap(signature, "closed area");
+
+        WsShadowReset();
+        s_active = true;
+        s_map_signature = signature;
+        s_last_collision_cell_valid = false;
+        LUFIA2_LOG(
+            "[video] game-driven map $%02X%s: %ux%u blocks, %u+%u hidden "
+            "cells, native match %u%%\n",
+            (unsigned)g_ram[0x05ac], paint ? " (painted)" : "",
+            (unsigned)map->width, (unsigned)map->height,
+            (unsigned)cells.hidden[0], (unsigned)cells.hidden[1],
+            ScorePercent(matched, checked));
+    } else if (!paint && !hides && CurrentAreaIsEnclosed(ppu, map)) {
+        return RejectMap(signature, "closed area");
+    }
+
+    SyncShownCells(ppu, signature);
+    const Lufia2MapWidescreenResult result = AdoptSource(ppu, map, paint);
+    s_game_driven = true;
+    s_game_hides = hides;
+    return result;
 }
 
 Lufia2MapWidescreenResult Lufia2PrepareMapWidescreen(
@@ -1065,11 +1368,9 @@ Lufia2MapWidescreenResult Lufia2PrepareMapWidescreen(
            previous map is still valid. */
         s_map_generation = generation;
         s_rejected_map_signature = 0;
+        s_table_mismatch_reported = false;
         s_settle_frames = LUFIA2_SETTLE_FRAMES;
         s_player_cell_valid = false;
-        s_step_valid = false;
-        s_transition_armed = false;
-        s_forced_room = false;
         Lufia2DeactivateMapWidescreen();
     }
 
@@ -1100,36 +1401,32 @@ Lufia2MapWidescreenResult Lufia2PrepareMapWidescreen(
         return NotReadyYet();
     }
 
+    ReportHiddenCells(ppu, &map, generation);
+
     uint16_t player_x;
     uint16_t player_y;
     CurrentPlayerPosition(ppu, &map, &player_x, &player_y);
-    const uint8_t runtime_map_id = g_ram[0x05ac];
-    const uint8_t map_id = runtime_map_id ? (uint8_t)(runtime_map_id - 1) : 0;
-    UpdateRoomTransition(
-        ppu, map_id, &map,
-        (uint16_t)(player_x / LUFIA2_BLOCK_SIZE),
-        (uint16_t)(player_y / LUFIA2_BLOCK_SIZE));
+    s_player_cell_x = (uint16_t)(player_x / LUFIA2_BLOCK_SIZE);
+    s_player_cell_y = (uint16_t)(player_y / LUFIA2_BLOCK_SIZE);
+    s_player_cell_valid = true;
 
-    Lufia2RoomSelection room;
-    const Lufia2RoomLookupResult room_lookup = Lufia2RoomDataFindOwner(
-        map_id, map.width, map.height, player_x, player_y,
-        s_room_active ? s_room.room_id : LUFIA2_ROOM_ID_NONE, &room);
-    ReportRoomLookup(
-        map_id, map.width,
-        (uint32_t)(player_y / LUFIA2_BLOCK_SIZE) * map.width +
-            player_x / LUFIA2_BLOCK_SIZE,
-        room_lookup, room_lookup == LUFIA2_ROOM_FOUND ? &room : NULL);
-
-    if (room_lookup == LUFIA2_ROOM_INVALID) {
+    /* The directory is keyed by runtime map id - 1. */
+    const uint8_t map_id = (uint8_t)(g_ram[0x05ac] - 1);
+    Lufia2MapPaint paint;
+    const Lufia2RoomLookupResult lookup =
+        Lufia2RoomDataFindMap(map_id, map.width, map.height, &paint);
+    ReportPaintLookup(map_id, lookup, &paint);
+    if (lookup == LUFIA2_ROOM_INVALID) {
         Lufia2DeactivateMapWidescreen();
         return LUFIA2_MAP_WIDESCREEN_DISABLED;
     }
-
-    const uint64_t signature = MapSignature(&map);
-    if (room_lookup == LUFIA2_ROOM_NOT_AUTHORED)
-        return PrepareInferredMap(ppu, &map, signature);
-    return PrepareAuthoredMap(
-        ppu, &map, signature, map_id, room_lookup, &room);
+    if (lookup == LUFIA2_ROOM_MAP_NOT_READY) {
+        Lufia2DeactivateMapWidescreen();
+        return NotReadyYet();
+    }
+    return PrepareGameDrivenMap(
+        ppu, &map, MapSignature(&map),
+        lookup == LUFIA2_ROOM_FOUND ? &paint : NULL);
 }
 
 bool Lufia2MapWidescreenIsActive(void) {
@@ -1145,18 +1442,35 @@ void Lufia2FinalizeMapWidescreen(Ppu *ppu, int margin_pixels) {
     int32_t camera_x = 0;
     int32_t camera_y = 0;
     CameraOrigin(ppu, &camera_x, &camera_y);
+    if (!s_camera_held) {
+        s_last_camera_valid = true;
+        s_last_camera_x = camera_x;
+        s_last_camera_y = camera_y;
+    }
+    OpenShownCellView(&s_cell_view);
     FillWideViewport(
-        ppu, &s_map, s_room_active ? &s_room : NULL, margin_pixels,
+        ppu, &s_map, s_paint_active ? &s_paint : NULL, margin_pixels,
         camera_x, camera_y);
 }
 
-bool Lufia2MapWidescreenWorldPointIsVisible(uint16_t x, uint16_t y) {
-    if (!s_active || !s_room_active || !s_map.data)
+/* The original culls actors only by its camera window, so the native view
+   keeps them all; only the margins drop actors on hidden cells. */
+static bool GameShowsWorldPoint(uint16_t x, uint16_t y) {
+    const int32_t screen_x = (int32_t)x - s_camera_x;
+    if (screen_x >= -LUFIA2_BLOCK_SIZE * 2 &&
+        screen_x < LUFIA2_NATIVE_WIDTH + LUFIA2_BLOCK_SIZE)
         return true;
-    const uint32_t cell_x = x / LUFIA2_BLOCK_SIZE;
-    const uint32_t cell_y = y / LUFIA2_BLOCK_SIZE;
-    if (cell_x >= s_map.width || cell_y >= s_map.height)
-        return false;
-    return Lufia2RoomDataCellIsVisible(
-        &s_room, cell_y * s_map.width + cell_x);
+    Lufia2FieldCellView view;
+    Lufia2FieldDisplayedCell cell;
+    OpenShownCellView(&view);
+    if (!Lufia2FieldCellDisplayed(&view, 1, x / LUFIA2_BLOCK_SIZE,
+                                  y / LUFIA2_BLOCK_SIZE, &cell))
+        return true;
+    return !cell.hidden;
+}
+
+bool Lufia2MapWidescreenWorldPointIsVisible(uint16_t x, uint16_t y) {
+    if (s_active && s_game_driven && s_map.data)
+        return GameShowsWorldPoint(x, y);
+    return true;
 }

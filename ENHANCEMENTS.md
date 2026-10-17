@@ -14,9 +14,12 @@ Generated files under `src/gen/` are never edited by hand.
 
 ## Widescreen room-data coverage
 
-`assets/widescreen/lufia2.l2rooms` currently contains 76 authored maps,
-224 rooms, and 373 directional room transitions. Story-sequence coverage
-reaches North Dungeon B4 (`0x49`), with these authored location groups:
+`assets/widescreen/lufia2.l2rooms` (format version 5) currently contains 76
+authored maps with 6,676 painted cells and a fill per map. It was converted
+from the version 4 file, which also held 224 rooms and 373 room transitions;
+those are gone, as the game's own hidden cells now decide what shows.
+Story-sequence coverage reaches North Dungeon B4 (`0x49`), with these authored
+location groups:
 
 - Arek Daos Shrine; Elcid; Secret Skills Cave; Cave to Sundletan; Sundletan;
   Lake Cave; and the Shrine to Alunze Kingdom;
@@ -29,5 +32,19 @@ reaches North Dungeon B4 (`0x49`), with these authored location groups:
 The data also includes the ROM's unnamed maps `0x1D`, `0x36`, and `0x4A`, plus
 Small Shrine to Aleyn (`0x55`) and both Port Town of Aleyn maps (`0x5D`-`0x5E`).
 Foomy Woods (`0x0D`) is the sole missing map inside the `0x01`-`0x4A` range.
-Coverage here means room metadata has been authored; it is not a substitute for
+Coverage here means widescreen data has been authored; it is not a substitute for
 in-game verification of every camera position and transition.
+
+## Widescreen visibility
+
+The margins follow the game's hidden cells, including on maps without authored
+data such as the Ancient Cave and Foomy Woods. Painted cells override the margins
+inside and outside map bounds; fills apply only outside. The native 256 columns
+keep the game's picture. Room changes wait for the native redraw or fade.
+
+The v5 `.l2rooms` file stores paint and fills per map. Versions 1-4 still load:
+room paint is combined in room-ID order, and the most common fill wins.
+
+The old `l2rooms` and `compare` settings are retired. Visibility always follows
+the game. `LUFIA2_ROOM_VISIBILITY_DEBUG=1` tints hidden and open cells;
+runtime-log builds report `[room-vis]` diagnostics.
