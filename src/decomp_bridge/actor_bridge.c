@@ -14582,3 +14582,30 @@ RecompReturn Lufia2DecompBridge_85D080(CpuState *cpu) {
     }
     return ActorBridgeWholeAnyWidth(cpu, 0x85d080u, Lufia2BattleReadActorBiasFlag, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_858F8A(CpuState *cpu) {
+    if (cpu->S < 0x1f20u || !ActorBridgeActionWorkContext(cpu, 0x85u, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x858f8au);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x858f8au,
+                                  Lufia2BattleResolveRecoverableStatuses, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_85E0E4(CpuState *cpu) {
+    if (cpu->S < 0x1f20u || !ActorBridgeActionWorkContext(cpu, 0x85u, 2u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x85e0e4u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x85e0e4u,
+                                  Lufia2BattleCheckEnemyGraphicsCapacity, 3u);
+}
+
+RecompReturn Lufia2DecompBridge_869093(CpuState *cpu) {
+    if (cpu->S < 0x1f20u || !ActorBridgeActionWorkContext(cpu, 0x86u, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x869093u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x869093u, Lufia2SelectScreenQueueTilemapCopy,
+                                  2u);
+}

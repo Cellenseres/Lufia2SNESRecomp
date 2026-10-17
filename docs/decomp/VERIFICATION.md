@@ -1,3 +1,71 @@
+# Battle followups and selection copy - 2026-10-17
+
+Three original caller contracts: 85:8F8A BattleResolveRecoverableStatuses,
+85:E0E4 BattleCheckEnemyGraphicsCapacity and 86:9093 SelectScreenQueueTilemapCopy.
+One new battle_followup.c unit and a small extension of menu_select_control.c;
+all original child implementations retain their existing owners. No additional
+WRAM declarations or duplicated table/inline entry bodies are introduced.
+
+8F8A combines the two original DP actor masks, clears a 30-byte effect record
+through WMDATA and checks the original three recoverable status bits. The
+lookup/random/name/phrase/display order and every call frame remain literal.
+Later BIT checks consume the live A left by earlier children, not a cached
+status word. No new status roll or gameplay improvement is introduced. The
+existing D9C9 owns its original zero-mask behavior; this caller does not fix it.
+
+E0E4 saves DB and full A/X/Y, releases defeated enemies, checks six actor slots
+and three graphics groups, then compares packed dimensions and existing group
+weights against the original byte threshold. Both bytes of the packed result
+feed WRMPYA/WRMPYB. The original eight-bit sum can wrap. Carry marks capacity
+failure; both original RTL sites restore registers/DB and force M1X16 exactly.
+Placement at E02D remains an explicit original child, including its original
+assertion/BRK path. No host allocator replaces that operation.
+
+9093 writes the original source7E:6000, length3000 and VRAM1C00 into DP scratch
+and queues the original 82:8044 child. No direct PPU rendering is substituted.
+All three callers admit original PB, DP0, binary, any DB and S1F20..1FFC.
+8F8A/9093 enter M1X16; E0E4 accepts all native M/X and exits M1X16. Metadata
+entry_mx records the nominal M1X0 call mode; guards prove the wider E0E4 input.
+
+One combined proof per side: 12,288 normal states, 3,072 original-return states,
+192 compositions and 704 child unwinds = 16,256 direct and 16,256 actual states.
+All CPU/full WRAM/ordered data and MMIO/math/Mode7/WMADD state agree. Return
+checks execute 2,048 real RTS and 1,024 real RTL per side. Twenty-two encoded
+JSR/JSL sites, 330 actual child-return redirect probes and a 17-function actual
+consumer closure pass. Compositions use the existing D9C9 and DFB9 semantic
+owners; other children remain explicit services. No proof of their internals,
+frame/NMI scheduling, pixels or hardware-cycle timing is claimed.
+
+393,336 semantic and 394,869 actual pre-access guards pass, including three
+null callbacks and 1,536 emulation contexts. Wrong PB/DP/decimal/width/stack
+contexts hand off unchanged before data access. The restricted lower stack
+bound leaves room for the original saved registers and child frames.
+
+A forced-unwind fixture initially set only the low byte of a packed dimension
+return. Its stale high byte legitimately failed the capacity check before the
+desired child. The corrected forced fixture supplies the complete word; only
+the affected unwind groups and outstanding redirect/guard groups were run.
+Unchanged normal/return/composed proofs were retained. Production semantics
+were not changed to force that path. Public formatting is token-identical.
+
+The next related targets CE6F/E02D contain original BRK assertions and must
+retain their actual fault boundaries. D0CD spans 730 decoded instructions;
+it should be reconstructed as an action dispatcher with existing child owners,
+not flattened or approximated. Research is private, not a verified promotion.
+
+Full decomp-verify and gameplay/pixel/timing replay are deferred. No whole-ROM
+completion, current global interpreter-hit percentage or speedup is claimed.
+
+Fresh public checks each:96normal,48real returns,24compositions and44child
+unwinds; all330actual redirects,allguards and3C++symbols pass. Three effective
+heap-ROM faults andtwo production stack/frame faults are detected. No ROM file
+is modified or copied; no push.
+
+One combined GCC/Clang/metadata/isolated Windows Release checkpoint PASS;
+Windows 221.48s. Unchanged resource CLI executable bytes and unchanged
+fixture/dependencies justify reuse of their previous accepted CLI test results.
+No repeated full semantic regression; no push.
+
 # Inventory consumption and battle action work - 2026-10-17
 
 Twelve complete original entry contracts: 81:F114/F15B/EBF4 and
