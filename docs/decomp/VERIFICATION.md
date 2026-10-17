@@ -1,3 +1,75 @@
+## Original Ancient Cave grid entry contracts - 2026-10-17
+
+Fifteen complete original JSR routines now have verified native entry contracts:
+83:9B18/9B27 clear visit bits and count occupied cells;9B3C/9B48 resolve
+stair/cell coordinates;9B62/9BDD traverse and merge rooms;9CA0 fills room
+rectangles;9CCB/9CD6/9CF3/9D68 resolve cell/block/tile offsets;9D11/9D23
+pick/find cells;9D39 appends room links;9D46 replaces an upper tile index.
+Their existing internal helpers and new entries share the same algorithm
+bodies. Old helpers keep their original JSR/RTS frames and interfaces.
+These are new independently verified entry contracts, not fifteen newly
+discovered gameplay algorithms. No new semantic C unit was added.
+
+The duplicated9B48 coordinate implementation in cave_header.c was removed.
+The existing verified9B44 RTL wrapper calls the original CaveCellPosition
+helper with site9B44, retaining the exact9B46 guest JSR return word. Both
+the wrapper and the complete8E:B847 map-header caller are verified with the
+shared body. Existing metadata and bridge admission for these callers remain
+unchanged. M0 input is outside the existing9B44 contract.
+
+All new entries require native execution, PB83, DP0, binary arithmetic,
+X16 and S1F00..1FFC. Most require M1;9D46 requires M0;9D68 forces M0 and
+accepts either incoming M width. Grid/list/tile entries9B18/9B27/9B62/9BDD/
+9D11/9D23/9D39/9D46 require DB7F. Other helpers use DP or long addressing
+and are DB independent.9D46 returns M0; the remaining entries return M1.
+MergeRoom returns at9BED or9C9F: its one-cell branch at9C7B is BRA9C9F,
+not another RTS. FindCell returns at9D33 or9D38. All other return sites are
+recorded in the disassembly and RETURNS.json receipt inputs.
+
+Original quirks remain literal: a zero rectangle width/height underflows
+its byte counter;256 occupied cells overflow the byte count to zero; room
+worklist/link aliasing, visited flags, unmasked coordinates, RNG refill and
+carry propagation are retained. No empty-loop substitution, clamping or
+host geometry algorithm was introduced.
+
+The shared checkpoint passes17,408 direct and17,408 actual producer states
+across15 new entries and the two existing RTL callers. Both layers also pass
+960 address/counter edges,2,176 real RTS/RTL return compositions,24,576
+arithmetic cases across six coordinate helpers, and384 targeted grid states.
+The grid group covers empty/full/visited/checkerboard/single-cell/row/corridor/
+FF layouts, including256-cell count and visit-counter overflow. These groups
+are reported separately, not claimed to be unique or exhaustive states.
+
+All15 entries and the9B44 wrapper compare CPU, full WRAM, every ordered data
+access, MMIO and live multiplication/division/Mode7/WMADD registers. The
+complete map-header caller compares CPU, full WRAM, ordered MMIO and those
+devices; no complete map-header all-data-read-order claim is made. The two
+RTL callers must reach9B48. Actual30-function producer bodies are extracted
+without semantic overrides; every invocation rejects interpreter fallback.
+Admission passes1,968,239 semantic and1,970,295 unpaired actual checks,
+including2,056 emulation rejections.
+
+Original normal/edge/return/arithmetic results retain their accepted driver
+revision. The later grid-only driver adds a conditional seed profile and
+reuses unchanged relevant semantic/ABI objects, headers, compiler options
+and dependencies. Only its384 new cases per layer were executed; unchanged
+cohorts were not rerun. Public wiring checks exercise the final test driver.
+Initial unused CPU-helper parameter warnings and one missing test include
+were fixed before the relevant checks passed. The already-green ABI guard
+matrix was retained after the semantic test include repair.
+
+Fresh public-library/actual-producer wiring,15 C++ symbols,15 effective ROM
+fault controls and two wrong-frame adapter controls are recorded separately.
+GCC, Clang, metadata and isolated Windows Release pass (Windows190.19s).
+Byte-identical CLI checks are reused. Compiler and CLI results remain scoped
+in the receipt. Full regression, whole-floor
+replays and new gameplay/audio tests are deferred, not reported as passing
+on this revision. No current interpreter-hit, speedup or timing claim.
+
+Totals after acceptance:1,630 verified entries,1,615 ordinary native bindings,
+752 documented WRAM locations and466 semantic C units. Fifteen verified
+entries remain deliberately unbound; these counts are not a whole-ROM census.
+
 ## Original object motion and animation helpers - 2026-10-17
 
 Seven complete original JSR entries share the existing object VM algorithms:

@@ -14129,3 +14129,87 @@ RecompReturn Lufia2DecompBridge_83ED63(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_83EE0E(CpuState *cpu) {
     return ActorBridgeObjectHelper(cpu, 0x83ee0eu, Lufia2ObjectCopyAnimationState, 0u);
 }
+
+static RecompReturn ActorBridgeCaveGridEntry(CpuState *cpu, uint32_t entry,
+                                             ActorWholeFunction function,
+                                             unsigned accumulator_mode,
+                                             unsigned work_bank) {
+    if (cpu->PB != 0x83u || cpu->D || cpu->emulation || cpu->_flag_D || cpu->x_flag ||
+        (accumulator_mode != 2u && cpu->m_flag != accumulator_mode) ||
+        (work_bank && cpu->DB != 0x7fu) || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, entry, function, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_839B18(CpuState *cpu) {
+    return ActorBridgeCaveGridEntry(cpu, 0x839b18u, Lufia2CaveClearVisitedCells, 1u,
+                                    1u);
+}
+
+RecompReturn Lufia2DecompBridge_839B27(CpuState *cpu) {
+    return ActorBridgeCaveGridEntry(cpu, 0x839b27u, Lufia2CaveCountOccupiedCells, 1u,
+                                    1u);
+}
+
+RecompReturn Lufia2DecompBridge_839B3C(CpuState *cpu) {
+    return ActorBridgeCaveGridEntry(cpu, 0x839b3cu, Lufia2CaveOffsetStairPosition, 1u,
+                                    0u);
+}
+
+RecompReturn Lufia2DecompBridge_839B48(CpuState *cpu) {
+    return ActorBridgeCaveGridEntry(cpu, 0x839b48u, Lufia2CaveResolveCellOrigin, 1u,
+                                    0u);
+}
+
+RecompReturn Lufia2DecompBridge_839B62(CpuState *cpu) {
+    return ActorBridgeCaveGridEntry(cpu, 0x839b62u, Lufia2CaveLinkRoomCells, 1u, 1u);
+}
+
+RecompReturn Lufia2DecompBridge_839BDD(CpuState *cpu) {
+    return ActorBridgeCaveGridEntry(cpu, 0x839bddu, Lufia2CaveMergeRoomCells, 1u, 1u);
+}
+
+RecompReturn Lufia2DecompBridge_839CA0(CpuState *cpu) {
+    return ActorBridgeCaveGridEntry(cpu, 0x839ca0u, Lufia2CaveFillRoomRectangle, 1u,
+                                    0u);
+}
+
+RecompReturn Lufia2DecompBridge_839CCB(CpuState *cpu) {
+    return ActorBridgeCaveGridEntry(cpu, 0x839ccbu, Lufia2CaveResolveCellIndex, 1u, 0u);
+}
+
+RecompReturn Lufia2DecompBridge_839CD6(CpuState *cpu) {
+    return ActorBridgeCaveGridEntry(cpu, 0x839cd6u, Lufia2CaveResolveBlockOffset, 1u,
+                                    0u);
+}
+
+RecompReturn Lufia2DecompBridge_839CF3(CpuState *cpu) {
+    return ActorBridgeCaveGridEntry(cpu, 0x839cf3u, Lufia2CaveResolveTileOffset, 1u,
+                                    0u);
+}
+
+RecompReturn Lufia2DecompBridge_839D68(CpuState *cpu) {
+    return ActorBridgeCaveGridEntry(cpu, 0x839d68u, Lufia2CaveResolveWordTileOffset, 2u,
+                                    0u);
+}
+
+RecompReturn Lufia2DecompBridge_839D11(CpuState *cpu) {
+    return ActorBridgeCaveGridEntry(cpu, 0x839d11u, Lufia2CavePickUnvisitedCell, 1u,
+                                    1u);
+}
+
+RecompReturn Lufia2DecompBridge_839D23(CpuState *cpu) {
+    return ActorBridgeCaveGridEntry(cpu, 0x839d23u, Lufia2CaveFindUnvisitedCell, 1u,
+                                    1u);
+}
+
+RecompReturn Lufia2DecompBridge_839D39(CpuState *cpu) {
+    return ActorBridgeCaveGridEntry(cpu, 0x839d39u, Lufia2CaveAppendRoomLink, 1u, 1u);
+}
+
+RecompReturn Lufia2DecompBridge_839D46(CpuState *cpu) {
+    return ActorBridgeCaveGridEntry(cpu, 0x839d46u, Lufia2CaveReplaceUpperTileIndex, 0u,
+                                    1u);
+}
