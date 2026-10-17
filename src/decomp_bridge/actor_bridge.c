@@ -14007,3 +14007,26 @@ RecompReturn Lufia2DecompBridge_83AEED(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_83AF54(CpuState *cpu) {
     return ActorBridgeFieldPaletteEntry(cpu, 0x83af54u, Lufia2FieldStepWaveTable);
 }
+
+static RecompReturn ActorBridgeActorResourceEntry(CpuState *cpu, uint32_t entry,
+                                                  ActorWholeFunction function,
+                                                  uint8_t frame_size) {
+    if (cpu->PB != 0x83u || cpu->D ||
+        cpu->S < (entry == 0x83aa50u ? 0x1f20u : 0x1f00u) || cpu->S > 0x1ffcu ||
+        (entry == 0x83aa50u && (cpu->DB & 0x7fu) >= 0x40u && cpu->DB != 0x7eu)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, entry, function, frame_size);
+}
+RecompReturn Lufia2DecompBridge_83AA50(CpuState *cpu) {
+    return ActorBridgeActorResourceEntry(cpu, 0x83aa50u, Lufia2ActorAllocateSprite, 2u);
+}
+RecompReturn Lufia2DecompBridge_83DFFD(CpuState *cpu) {
+    return ActorBridgeActorResourceEntry(cpu, 0x83dffdu, Lufia2ActorLoadSecondaryScript,
+                                         3u);
+}
+RecompReturn Lufia2DecompBridge_80E92A(CpuState *cpu) {
+    return ActorBridgeFieldConditionEntry(cpu, 0x80e92au, Lufia2FieldResolveEventArea,
+                                          2u);
+}

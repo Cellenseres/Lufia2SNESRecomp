@@ -1,3 +1,74 @@
+## Actor sprite, secondary-script and event-area entries — 2026-10-17
+
+Three original entries share their existing semantic bodies: 83:AA50
+Lufia2ActorAllocateSprite, 83:DFFD Lufia2ActorLoadSecondaryScript and 80:E92A
+Lufia2FieldResolveEventArea. Existing sprite and event-area callers retain
+their original pushed frames. No copied allocation, script or area algorithm
+is introduced. Already-bound 80:E912/EA09 were excluded from this batch.
+
+AA50 accepts native M/X widths, PB83, binary arithmetic, DP0, register-mirror
+data banks or 7E and S1F20..1FFC. PHP/PLP restores the original status; the
+normal return instruction is AA7C. A zero slot count transfers at AA5F before
+the original JSL83AB7C, leaving PHP and the original call instruction intact.
+The original allocator can loop forever when that count meets occupied slots;
+this behavior is preserved, not repaired in semantic C. The old void wrapper
+keeps its original behavior. ABE9 changes M to 0 before the original word
+store at AA74; a disassembler's external-call width guess is not its contract.
+
+DFFD accepts all native widths and data banks, PB83, DP0, binary arithmetic
+and S1F00..1FFC. It shares the existing secondary-script table lookup, long
+stores and original RTL E017. X width remains meaningful; metadata records
+the ordinary M1X0 call convention, not a restriction to that mode. AA50 has
+dynamic exit status. E92A accepts PB80, M1X0, DP0, binary arithmetic, register
+mirrors or 7E and S1F00..1FFC. Its four operand paths meet at the single RTS
+E99C. The existing list-search work limit transfers at BFBC with live frames.
+
+The private combined ROM proof passes 28,672 direct and 28,672 actual producer
+states across the three new entries and four affected callers: A9BA, E15A,
+CD88 and E458. It compares CPU, full WRAM and ordered bus accesses. The actual
+21-function producer closure preserves existing A9BA admission (M1 only);
+the standalone C parent additionally covers M0. No existing guard was widened.
+The normal AA50 cohort contains 912 original pre-call boundaries and 3,184
+ordinary returns per layer. DFFD returns 4,096 times, including 256 natural
+overwrites of guest return frames through the original long script stores.
+
+Each layer also passes 912 zero-count original-instruction continuations:
+456 complete finite returns and 456 observations through 64 loop iterations.
+The latter are explicitly bounded observations, not claims that an infinite
+tail returns. A separate 1,792-state forced-return group per layer includes
+57 AA50 boundaries and 32 naturally rewritten DFFD frames. Three original
+event-area list-limit states per layer cover all 65,536 iterations. The first
+limit fixture stopped at the first occurrence of a repeated PC; only the
+fixture was corrected to count the original loop iterations. No ROM file,
+save or instruction stream was edited by these cohorts.
+
+Admission passes 393,520 semantic and 395,189 unpaired producer checks,
+including 1,669 emulation rejections. The first guard fixture expected a
+constant bank for the existing field-condition fallback; it now checks that
+adapter's actual incoming-bank protocol. Initial partial/failing fixture runs
+are excluded. A missing stddef.h for NULL was found by standalone compilers
+and added to both semantic source copies; only affected compiler checks were
+repeated. This header addition changes no tested runtime behavior.
+
+Private/public runtime tokens match; only formatting and the explicit standard
+header differ from the first private proof. Fresh public-library integration,
+actual bridge, admission, C++ linkage and deliberate fault controls are recorded
+in actor-area-resource-entries-next/ACCEPTANCE_RECEIPT.json. The large unchanged
+private cohorts are reused for their exact scope. Full decomp regression,
+new gameplay/audio replay and a measured interpreter-hit or speed claim are
+deferred. GCC, Clang, metadata and the isolated Windows Release pass (Windows437.61s).
+CLI checks reuse byte-identical accepted executables. Compiler outcomes and
+initial failed build diagnostics remain separately recorded in the receipt.
+An early public link ran before the new Windows library existed and was
+repeated after library creation. One ineffective REP30 fault for already-X16
+inputs was excluded and replaced by an effective script-offset fault. No
+unchanged successful ROM cohort was rerun for these fixture/tooling repairs.
+
+Totals after acceptance: 1,600 verified entries, 1,585 ordinary native bindings,
+752 documented WRAM locations and 466 semantic C units. Fifteen verified
+entries remain deliberately unbound. Additional entry coverage is not a
+whole-ROM completion percentage or a measured interpreter reduction.
+
 ## Field selection and palette/wave child entries — 2026-10-17
 
 Three original entries are verified and natively bound: 83:ACEF
