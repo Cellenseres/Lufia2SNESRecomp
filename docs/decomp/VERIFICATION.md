@@ -1,3 +1,72 @@
+## Menu pointer, numeric and branch operands — 2026-10-17
+
+Four original subroutines are verified and natively bound: 80:8BA7
+Lufia2MenuReadPointerOperand, 80:8BB2 Lufia2MenuReadOffsetPointerOperand,
+80:8C6C Lufia2MenuLoadNumberBytes and 80:8C9E Lufia2MenuReadBranchOperands.
+Their original RTS sites are 8BB1, 8BC9, 8C9D and 8CFB. Existing menu callers
+share the original bodies. The number loader's existing void caller still
+executes the full original algorithm. No pointer or numeric algorithm is copied.
+
+All entries require PB80, DP0, binary arithmetic, X16, register-mirror DB or
+7E and S1F00..1FFC. The number loader requires M1; the other three accept M0
+and M1 because their first instruction is REP20. All return in M1X0. Metadata
+records the ordinary M1X0 convention. Long string pointers, short indirect
+pointers, bank carries, scratch aliasing and original flags remain literal.
+
+A zero numeric format never obtains a carry from the original shifting size
+byte. The new entry transfers at 8C7B after the original three clears, format
+load and LDY0, before the first iteration. Its legacy void caller keeps the
+original endless behavior. This is an explicit original continuation, not a
+clamp or a bug fix. Both layers compare the complete prefix and 64 original
+loop iterations in 1,024 states. Nontermination is observed only through that
+bounded continuation; no completed return is claimed.
+
+Malformed signed formats 04/0C/14/1C with a negative final byte execute the
+original FF fill until Y wraps to 3. Thirty-two states per layer cover the
+four formats, DB7E/83 and all four selected stack edges. They preserve every
+write, CPU state, full WRAM and final multiplier/divider/Mode7/WMADD state.
+Every such case rewrites the guest return word. The actual producer additionally
+requires the exact rewritten target and RTS source for paired and unpaired
+returns; no cached target may silently be accepted. The bounded internal MMIO
+buffer intentionally overflows for mirror-bank fills. Its paired overflow and
+prefix are compared, while the complete external ordered bus stream proves
+all remaining MMIO accesses. Normal cases still reject unexpected overflow.
+
+The combined private proof passes 16,384 direct and 16,384 actual producer
+normal states, another 16,384 pointer-edge states per layer and 1,024 forced
+returns per layer. All leaf cases compare CPU, full WRAM and the complete
+ordered data-bus stream. The 16-function producer closure uses actual adapter
+bodies with read-only entry/return observations; every invocation must remain
+native. Admission passes 524,825 semantic and 525,728 unpaired producer cases,
+including 903 emulation rejections. Groups are separately reported, not
+summed as unique states.
+
+Four complete menu-string caller families additionally pass 4,096 standalone
+ROM states: numbers, direct member-name pointers, offset member-name pointers
+and branch operands. Every caller must actually reach the affected helper.
+These checks compare CPU, full WRAM, ordered MMIO and device state; no complete
+data-read-order or whole-parent producer-ABI claim is made for these old VM
+bodies. An initial fixture incorrectly composed their RTL as an RTS. The
+fixture was corrected to the original three-byte frame and bank; that failed
+run is excluded. Semantic source did not change for this fixture correction.
+
+Private/public semantic tokens match. Fresh public-library and actual-producer
+wiring, both entry widths, return, pointer-edge, zero-format, finite-fill,
+admission, standalone-caller and four-symbol C++ checks are recorded in
+menu-operand-entries-next/ACCEPTANCE_RECEIPT.json. Four effective heap-only ROM
+faults plus wrong incoming-stack, return-size and rewritten-target producer
+faults must fail normally. Large accepted private cohorts retain their exact
+scope; the stronger rewritten-target assertion is separately exercised on
+the 32 affected producer cases and fresh public fill cases.
+
+Compiler and byte-identical CLI outcomes are recorded separately. No full
+decomp regression, new gameplay/audio replay, timing or interpreter-hit
+measurement is claimed. ROM files, saved games, editor and rendering patches
+are unchanged. Totals after acceptance: 1,608 verified entries, 1,593 ordinary
+native bindings, 752 WRAM locations and 466 semantic C units. Fifteen verified
+entries remain intentionally unbound; these counts are not a ROM completion
+percentage or a measured speedup.
+
 ## Actor orbit, radius and signed-operand entries — 2026-10-17
 
 Four original callable entries are verified and natively bound: 83:DE76
