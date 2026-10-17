@@ -112,6 +112,18 @@ else()
     message(FATAL_ERROR "LUFIA2_QUIESCENCE_INDEX_DEFAULT must be auto, indexed or original")
 endif()
 
+# Runtime default when config.ini and LUFIA2_ROOM_VISIBILITY select none.
+set(LUFIA2_ROOM_VISIBILITY_DEFAULT "game" CACHE STRING
+    "Widescreen room visibility when nothing selects one: l2rooms or game")
+set_property(CACHE LUFIA2_ROOM_VISIBILITY_DEFAULT PROPERTY STRINGS l2rooms game)
+if(LUFIA2_ROOM_VISIBILITY_DEFAULT STREQUAL "l2rooms")
+    set(LUFIA2_ROOM_VISIBILITY_DEFAULT_MODE 0)
+elseif(LUFIA2_ROOM_VISIBILITY_DEFAULT STREQUAL "game")
+    set(LUFIA2_ROOM_VISIBILITY_DEFAULT_MODE 2)
+else()
+    message(FATAL_ERROR "LUFIA2_ROOM_VISIBILITY_DEFAULT must be l2rooms or game")
+endif()
+
 if(VITA)
     include("${CMAKE_SOURCE_DIR}/ports/vita/native.cmake")
     return()
@@ -571,6 +583,10 @@ if(LUFIA2_ENABLE_NATIVE_WAIT OR LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD OR
    LUFIA2_ENABLE_DMA_DIRECT_SOURCE_READ)
     target_include_directories(Lufia2Recomp PRIVATE "${CMAKE_SOURCE_DIR}")
 endif()
+
+target_compile_definitions(Lufia2Recomp PRIVATE
+    LUFIA2_ROOM_VISIBILITY_DEFAULT_MODE=${LUFIA2_ROOM_VISIBILITY_DEFAULT_MODE})
+message(STATUS "Widescreen room visibility default: ${LUFIA2_ROOM_VISIBILITY_DEFAULT}")
 
 if(LUFIA2_ENABLE_NATIVE_WAIT)
     target_compile_definitions(Lufia2Recomp PRIVATE LUFIA2_ENABLE_NATIVE_WAIT=1)

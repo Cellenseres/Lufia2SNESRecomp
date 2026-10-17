@@ -514,6 +514,8 @@ static bool EnsureDefaultConfig(const char *path) {
         "\n"
         "[Lufia2Features]\n"
         "FixSoundMenu = 1\n"
+        "# WidescreenRoomVisibility: l2rooms or game; unset uses the build default.\n"
+        "# WidescreenRoomVisibility = game\n"
         "\n"
         "[GamepadMap]\n"
         "EnableGamepad1 = true\n"
@@ -778,6 +780,13 @@ static bool ResolveRomWithLauncher(int argc, char **argv,
     LoadVisualConfig("config.ini");
     Lufia2SoundMenuSetFixEnabled(ReadIniBool(
         "config.ini", "Lufia2Features", "FixSoundMenu", true));
+    {
+        char visibility[32];
+        Lufia2MapWidescreenSetRoomVisibility(
+            ReadIniText("config.ini", "Lufia2Features",
+                        "WidescreenRoomVisibility", visibility,
+                        sizeof(visibility)) ? visibility : NULL);
+    }
     if (!EnsureDefaultPlatformConfig("platform.ini")) {
         fprintf(stderr,
             "[config] warning: could not create platform.ini\n");
