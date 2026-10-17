@@ -5029,7 +5029,7 @@ static RecompReturn ActorBridgeFieldSession(
     const ActorBridgeFrame frame = {
         cpu->S, cpu->host_return_valid, 0xffffffffu};
     if (cpu->emulation || cpu->_flag_D || cpu->PB != 0x83u || cpu->D ||
-        (cpu->DB != 0u && cpu->DB != 0x7eu && cpu->DB != 0x83u) ||
+        (entry != 0x83acefu && cpu->DB != 0u && cpu->DB != 0x7eu && cpu->DB != 0x83u) ||
         cpu->S < 0x1f10u || cpu->S > 0x1fffu ||
         (entry == 0x83ad23u && (!cpu->m_flag || cpu->x_flag)))
         return ActorBridgeFallback(cpu, &frame, entry);
@@ -13985,4 +13985,25 @@ RecompReturn Lufia2DecompBridge_80E78D(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_80E566(CpuState *cpu) {
     return ActorBridgeFieldConditionEntry(cpu, 0x80e566u, Lufia2FieldTestConditionList,
                                           2u);
+}
+
+RecompReturn Lufia2DecompBridge_83ACEF(CpuState *cpu) {
+    return ActorBridgeFieldSession(cpu, 0x83acefu, Lufia2FieldSelectSessionSetup);
+}
+
+static RecompReturn ActorBridgeFieldPaletteEntry(CpuState *cpu, uint32_t entry,
+                                                 ActorWholeFunction function) {
+    if (cpu->PB != 0x83u || cpu->DB != 0x7fu || cpu->D || cpu->S < 0x1f00u ||
+        cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeRunWhole(cpu, entry, function, 2u, 4u);
+}
+RecompReturn Lufia2DecompBridge_83AEED(CpuState *cpu) {
+    return ActorBridgeFieldPaletteEntry(cpu, 0x83aeedu,
+                                        Lufia2FieldAdvancePaletteCycles);
+}
+RecompReturn Lufia2DecompBridge_83AF54(CpuState *cpu) {
+    return ActorBridgeFieldPaletteEntry(cpu, 0x83af54u, Lufia2FieldStepWaveTable);
 }
