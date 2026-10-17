@@ -14307,3 +14307,52 @@ RecompReturn Lufia2DecompBridge_86D271(CpuState *cpu) {
     return ActorBridgeTileUploadEntry(cpu, 0x86d271u, Lufia2WorldMapUploadTileBlock,
                                       1u);
 }
+
+static uint8_t ActorBridgeSelectSetupContext(const CpuState *cpu,
+                                             unsigned any_accumulator) {
+    return cpu->PB == 0x86u && !cpu->D && !cpu->emulation && !cpu->_flag_D &&
+           !cpu->x_flag && (any_accumulator || cpu->m_flag) && cpu->S >= 0x1f00u &&
+           cpu->S <= 0x1ffcu;
+}
+
+RecompReturn Lufia2DecompBridge_8680DB(CpuState *cpu) {
+    if (!ActorBridgeSelectSetupContext(cpu, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x8680dbu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x8680dbu, Lufia2SelectScreenLoadGraphics, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_868157(CpuState *cpu) {
+    if (!ActorBridgeSelectSetupContext(cpu, 1u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x868157u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x868157u, Lufia2SelectScreenLoadPalette, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_86817A(CpuState *cpu) {
+    if (!ActorBridgeSelectSetupContext(cpu, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86817au);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x86817au, Lufia2SelectScreenLoadMaps, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_868033(CpuState *cpu) {
+    if (!ActorBridgeSelectSetupContext(cpu, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x868033u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x868033u, Lufia2SelectScreenConfigureDisplay,
+                                  2u);
+}
+
+RecompReturn Lufia2DecompBridge_868000(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->D || cpu->emulation || cpu->_flag_D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x868000u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x868000u, Lufia2SelectScreenRun, 3u);
+}

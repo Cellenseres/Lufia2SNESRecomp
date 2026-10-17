@@ -1,3 +1,57 @@
+# Selection-screen setup reconstructed - 2026-10-17
+
+Five original routines now have complete C entry contracts:86:80DB graphics,
+8157 palette,817A maps,8033 display setup and8000 complete setup/caller.
+New code reuses existing resource/source/transfer helpers. Three staged
+graphics resources retain their original destinations and lengths; three
+map resources retain the single initial bank write. Palette preserves both
+256-byte MVNs and DB stack accesses. Display setup preserves ordered PPU
+writes, sixteen scroll-shadow bytes and four2048-byte tilemap clears.
+Six missing official register-name constants were added without changing
+existing definitions. There is no copied algorithm or title/intro claim.
+
+PB86,DP0,binary,anyDB. Four helpers requireX16/S1F00..1FFC; palette accepts
+either incomingM, other helpers requireM1. Root forcesM1X0 and accepts all
+four incoming nativeM/X modes withS1F20..1FFC. Four helpers return at actual
+RTS8156/8179/81A8/80DA;root uses actualRTL8032. Metadata describes ordinary
+M1X0 calls. Parent APIs reject missing child callbacks before guest access.
+All nineteen original child sites retain their two-/three-byte frames.
+Input/selection8681D0,framewait868B48 and installed81A9 NMI remain their
+current original/native owner services. No scheduler or renderer replacement.
+
+One shared checkpoint combines14768 direct and14768 actual-adapter states:
+10240 normal,3584 real returns (2560RTS/1024RTL),320 composed callers and
+304 exact child unwinds per side,plus320 additional composed states per side
+with callerDB80 (default compositions useDB86). All nineteen sites also pass285 actual
+redirected-return probes. CPU,full WRAM,every ordered operand/data access,
+MMIO and live math/Mode7/WMADD state agree with original ROM execution.
+Existing decompressor/upload/OAM/request bodies and the new setup routines
+are composed with original children. Nested upload wait stays an explicit
+service; no native wait-body, gameplay timing or NMI replay is claimed.
+Actual nineteen-function producer requires native invocation and exercises
+paired/unpaired frames, root widths, DB preservation and RTL return banks.
+
+655432 semantic pre-access guards include four missing callbacks;657732
+actual unpaired guards include2304 emulation cases. The first three entries'
+cohorts are reused with unchanged relevant bodies/guards; only the two new
+entries' extension cohorts were added. An initial RTL fixture consumed its
+bank without restoringPB; fixed in the harness. A shadowed local variable
+also needed correction. Neither repair changed semantic C. Incomplete
+attempts are not counted as passing. Full decomp-verify is deferred for this
+scoped setup/caller batch; GCC,Clang,metadata and isolated Windows Release pass (Windows249.2s).
+The shared header adds six constants only; CLI checks reuse byte-identical
+executables with unchanged fixtures/dependencies.
+
+Fresh public-library checks per side:160 normal,80 real returns,40 default
+compositions,38 child unwinds,320 DB80 compositions;285 actual redirect
+probes,all guard cases and five C++ link symbols pass. Five effective heap-ROM
+faults and two production stack/frame faults are detected. Public test-bank
+parameter defaults86; unchanged earlier cohorts are retained rather than
+repeated. No semantic body changed for that added caller-bank coverage.
+ROM is read in place, never copied/exported into proofs or artifacts. No
+PPU/platform/owner build/menu-screen WIP changes. No pixel/timing/hit-rate,
+whole-ROM completion or speedup claim.
+
 # Original tile drawing/upload entry contracts - 2026-10-17
 
 Four additional callable original entries share their existing C bodies:
