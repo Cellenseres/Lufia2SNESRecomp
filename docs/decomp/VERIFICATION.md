@@ -1,3 +1,62 @@
+# Special menu effects and warp selection — 2026-10-18
+
+Nine complete admitted contracts are verified and bound: `$82:AE6F`,
+`$82:AF00`, `$82:AF8E`, `$82:AEF3`, `$82:AF78`, `$82:B14B`, `$82:9449`,
+`$82:B03F` and `$82:836A`. They handle special item/spell effects, confirmation,
+warp destination collection/selection, scroll restoration, layer restoration
+and the original item-action inline-table dispatch. All enter M1X0; the two
+confirmation helpers retain dynamic exits after their final consuming child.
+Existing font, cursor, sound, item/spell and dispatcher owners are reused.
+
+Successful item application discards five original words; spell application
+six. The original nonlocal RTS destination, stack bytes, flags and unwinding
+remain intact. The two existing selected-item/spell callers propagate these
+returns instead of continuing their ordinary menu tails. The condition-sound
+loop keeps byte counting, per-iteration sounds and original wait calls.
+Warp selection retains every input branch, destination word/map stores,
+scroll/layer restoration, frame flags and explicit child continuations.
+The collector keeps live ROM records, map flag words, high-first word RMW
+writes and its original sentinel. One newly catalogued destination word is
+neutral about its components. Existing temporary-buffer storage is reused.
+
+B14B is JSR8028 plus inline data. Its complete native thunk pushes the original
+frame and reuses the verified dispatcher. All raw byte selectors retain their
+original table reads; there is no five-slot clamp. The existing82803D menu
+checkpoint is retained and compared before STA. Hook state changes and live
+ROM-table changes retain their corresponding guest behavior. Protected internal
+WarpList helpers remain with their owner; no algorithm is duplicated.
+
+One shared original-ROM/full-CPU/full-128K-WRAM/ordered-data+MMIO/device
+checkpoint covers 14,381 positive states per side, including dispatch tails:
+9,216 normal, 1,024 actual returns, 2,304 native compositions, 48 child unwinds,
+192 live-child/status returns, 1,341 original-ROM edge/dispatch cases and 256
+existing item/spell caller compositions. Those caller cases include 68 nonlocal
+propagations per side. The 192 post-child checks at 43 sites and 48 selected
+visits include eight terminal dynamic-return checks and 184 guarded handoffs.
+1,179,729 semantic / 1,182,024 actual-ABI pre-access guards pass. Fifteen
+effective heap-ROM instruction controls per side are detected. Nine positive
+heap-ROM data controls separately prove live record/table reads; they are not
+counted as original-ROM states. The source ROM remains byte-identical.
+
+Edges include stack endpoints, five/six-word returns, 255 sound repetitions,
+all 256 map-flag bits, raw dispatch selectors, execution-checkpoint state and
+record/scratch aliasing. All nine valid actual entry admissions execute natively
+with zero entry fallback. The ABI independently checks the original nonlocal
+landing target. Fresh compiled library: 2,685 positive states per side, 192
+post-child checks, admission guards, nine positive ROM-data controls, 720 actual
+redirects, nine C++ symbols, exact twenty-helper/nine-wrapper closure, exact
+existing-caller fragments and generated source selection pass.
+Strict GCC (170.12 s), Clang (143.5 s) and isolated Windows
+Release (241.58 s) builds pass. The accepted CLI proof is reused
+only for unchanged executable/fixture hashes. Checks cover the combined final
+revision; no independent intermediate-commit proof is claimed. Full regression,
+unrelated scenes, pixels/manual checks, physical timing and whole-game profiling
+are deferred. The historical field-text PCM timing difference remains open.
+
+Tests/tools remain private. ROM and protected owner work are unchanged.
+Totals: 1,789 verified contracts, 1,765 ordinary bindings, 787 WRAM locations,
+493 semantic C units and zero drafts. The 24 verified-unbound contracts remain.
+
 # Menu preparation and glyph buffers — 2026-10-18
 
 Twelve complete admitted contracts are verified and bound: `$81:FAF5`,
