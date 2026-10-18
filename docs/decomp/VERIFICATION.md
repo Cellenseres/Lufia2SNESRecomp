@@ -1,3 +1,41 @@
+# Save portrait display - 2026-10-18
+
+Seven complete82-bank entries now use native C:F2CE/F2FE slot previews,
+F383 sprite tables,F395 placement/animation,F3DD/F3FC selection highlighting,
+andF427 level labels. The existing EF25 caller reaches F2CE atEF94;F2D9 is
+internal fallthrough. No separate artificial F2D9 contract was added.
+
+The original five-word layout stack,free/occupied cleanup,live preview/name
+pointers,byte counters,X8 table calls and live data banks remain intact.
+Positions/slot tables stay ROM-backed. F427 retains both bytes of16-bit
+position reads before masking00F8. Highlight changes retain original CMP
+carry and raw animation IDs. Existing sprite primitives are reused;no second
+renderer or copied assets. Four18-byte preview records occupy the catalogued
+72-byte range7E:A5F3..A63A,immediately after the existingA498 snapshot.
+
+One shared original-ROM/full-CPU/full-WRAM/ordered-data+MMIO checkpoint:
+1792 normal,448 actual RTS,78 child unwinds and112 nested native compositions
+per side:2430 states.136 post-child checks cover34 selected repeated
+positions,including X8 and zero-count wrap.96 more states per side mutate
+pending layout words,occupancy,preview pointers,counters,X/Y and data banks
+inside children.917567 semantic and919352 production-ABI guards pass.
+Fifteen effective heap-ROM controls per side detect bank/pointer routing,
+stack pushes,occupancy branches,counters,origin arithmetic,highlight thresholds,
+IDs,position reads,level sources and encoded child calls.
+
+Fresh library402 states/side,510 actual redirected returns across13 sites/
+34 selected iterations/five alterations/three contexts,seven C++ symbols and
+generated selection pass. Strict incremental GCC167.47s,
+Clang141.08s and isolated Windows357.98s builds pass.
+CLI binaries and fixture hashes are unchanged;their accepted proof is reused.
+Completed unchanged proofs were reused while adding only the live-field cases.
+Full regression,unrelated scenes,pixel/manual acceptance,physical APU/NMI/
+cycle/PCM checks and whole-game profile remain deferred. No measured speedup
+or cycle-exactness claim. Original quirks and frame ownership stay semantic.
+
+1721 verified contracts /1697 ordinary bindings /771 WRAM /476 C units.
+Owner files and ROM intact. Tests,fixtures and tools remain private.
+
 # Menu input waits - 2026-10-18
 
 Four complete82-bank contracts now use native C:9330 counted wait or button,
