@@ -1,3 +1,47 @@
+# Shared coordinate helpers - 2026-10-18
+
+Three complete original entries now share the existing C workers:
+80:C557 packed window position to tilemap offset,80:C52C window border row,
+and83:E018 spawned-actor fine coordinates. The old spawn opcode retains
+its exact JSL/RTL frames. Its expanded guest-operation tokens and both
+window workers are unchanged. No duplicate algorithm or new C unit.
+
+Admission is binary DP0/X16, PB80/M0 for the window helpers and PB83/M1 for
+spawn placement, S1F10..1FFC. Every DB is admitted. Unsupported states stop
+before semantic memory access; production also rejects emulation. Return
+instructions remain outside the portable bodies:80:C56D/C556 RTS,83:E032 RTL.
+
+Shared original-ROM checkpoint:81928 direct and81928 actual-production-ABI
+states compare CPU, complete WRAM, every ordered data/MMIO access and device
+state. Each case also executes its actual original RTS or RTL. C557 covers
+every packed input word; C52C/E018 each add8192 representative states across
+all256 DB values, varied full-width indices and stack/flag combinations.
+Eight additional C52C cases execute the complete65536-middle-tile underflow.
+This is boundary coverage, not an exhaustive input-space or runtime-hit claim.
+
+393276 portable pre-access guards and394056 production guards pass. Three
+effective heap-ROM mutations per side detect shifted coordinates or changed
+border alternation; the ROM file is unchanged. An initially narrow mutation
+sample missed nonzero packed row bytes; the private sample was corrected to
+vary both bytes. No assertion or production contract was weakened.
+
+Fresh public-library checks add216 states per side, including deliberate
+stack/return/DP aliases and long-address source/destination overlap. The
+production adapters must execute natively in these supported states. Their
+copied functions match production tokens, with read-only return observers.
+Three C++ API symbols and generated binding selection pass. Existing shared
+workers and legacy spawn caller remain token-conserved.
+
+Strict standalone GCC/Clang and isolated agent Windows Release pass. CLI
+executables and private fixture hashes are unchanged, permitting reuse of
+the accepted CLI proof. Owner build/windows remains untouched. No repeated
+full decomp-verify, whole-event-VM regression, pixels/gameplay or asynchronous
+NMI timing proof is claimed for this small shared-worker exposure batch.
+Tests, tools, fixtures and ROM remain private; unrelated owner hashes match.
+
+The metadata now has1693 verified contracts and1677 ordinary native bindings,
+with767 WRAM markers and473 C units. Counts do not measure whole-game work.
+
 # Complete scene text window path - 2026-10-18
 
 The native80:C23D preparation now completes its scene-window branch through

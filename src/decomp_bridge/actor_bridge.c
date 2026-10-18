@@ -14736,3 +14736,15 @@ RecompReturn Lufia2DecompBridge_80C1FD(CpuState *cpu) {
     return ActorBridgeSceneOwners(cpu, 0x80c1fdu, Lufia2TextCloseWindowWithServices,
                                   2u);
 }
+
+RecompReturn Lufia2DecompBridge_80C557(CpuState *cpu) {
+    return ActorBridgeWholeAnyWidth(cpu, 0x80c557u, Lufia2TextWindowTileOffset, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_80C52C(CpuState *cpu) {
+    return ActorBridgeWholeAnyWidth(cpu, 0x80c52cu, Lufia2TextDrawWindowBorderRow, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83E018(CpuState *cpu) {
+    return ActorBridgeWholeAnyWidth(cpu, 0x83e018u, Lufia2FieldPlaceSpawnedActor, 3u);
+}
