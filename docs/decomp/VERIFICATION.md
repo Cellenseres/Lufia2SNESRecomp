@@ -1,3 +1,54 @@
+# Targeted actions and enemy graphics placement - 2026-10-18
+
+Two complete entry contracts:85:CE6F BattlePrepareTargetedAction and85:E02D
+BattleFindEnemyGraphicsPlacement. Both extend the existing battle_followup.c
+owner; no duplicate implementations or new C units. Two WRAM markers name
+the target count and dispatcher result byte. The window-size bytes and text
+name buffer retain their original reuse as target bits and column workspace.
+
+CE6F counts the six low target bits, retains the side bit, scales signed
+six-byte fields and remaining words, copies the original136-byte action,
+and visits each selected target. Hardware division keeps its original word/
+byte register writes and saved-X traffic. Negative fields use the existing
+80:834C service. Original target-bias, result and action children retain their
+owners;85:D0CD remains original. Retry failure hands off at BRK85:CF55.
+
+E02D marks existing enemy columns, rounds widths literally, measures free runs
+in descending order and chooses the original center-out candidate. Raw widths
+can spill beyond the32-byte workspace; no bounds clamp or host allocator was
+added. Graphics lookup children retain existing owners. Allocation failure
+returns FF; its original assertion hands off at85:E0E0 with exact live state.
+
+Both entries admit PB85,DP0,binary,M1X16,S1F20..1FFC. CE6F requires writable
+low-WRAM DB banks; immutable counters can preserve original nontermination
+and remain interpreter-owned. E02D admits every DB. Eight encoded JSR/JSL
+sites retain their frames and original child-return redirects.
+
+One shared checkpoint per side:4096 normal states,1024 return states,128 child
+unwinds,64 allocation-workspace invalidations,64 fault-path states and1024
+real action-buffer states =6400 direct and6400 actual producer states.
+CPU/full WRAM/every ordered data and MMIO/math/WMADD state agree. Per side,
+1152 real RTS and512 real RTL execute. Both original BRKs are also executed
+after handoff:64 allocation assertions plus8 target assertions per side.
+The workspace-invalidation fixture applies the same synthetic external write
+on both sides; it does not claim an NMI timing or real gameplay reproduction.
+
+262350 semantic and262736 actual entry guards pass; two fresh public null-child
+checks supplement semantic guards. All120 actual child-return redirect probes
+pass. Three heap-only ROM mutations are detected per side. The ROM file was
+hash-checked and never changed or copied. Source publication preserves exact
+tokens apart from checked equal-valued WRAM names; existing owner text remains
+unchanged. Fresh public-library/direct/actual/C++ links and generated binding
+selection pass. Public proofs add148 states per side and two C++ symbols.
+
+One combined strict GCC/Clang and isolated Windows Release checkpoint passes.
+Unchanged resource CLI executable bytes and fixture justify prior-result reuse.
+After the initial shared checkpoint, only missing real-buffer/fault evidence
+and fresh public links ran; unchanged normal/guard groups were not repeated.
+Full decomp-verify, complete old-caller regressions and gameplay/pixel/NMI-cycle
+replay are deferred. No whole-ROM completion, global hit-rate or speedup claim.
+Tests and proof tooling stay private and are excluded from both commits.
+
 # Native entries for existing semantic workers - 2026-10-17
 
 Four real original call targets now expose their existing shared implementations:

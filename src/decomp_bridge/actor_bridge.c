@@ -14643,3 +14643,24 @@ RecompReturn Lufia2DecompBridge_859265(CpuState *cpu) {
     return ActorBridgeWholeAnyWidth(cpu, 0x859265u, Lufia2BattleClearActionWorkspace,
                                     3u);
 }
+
+static uint8_t ActorBridgeTargetBank(uint8_t bank) {
+    return bank < 0x40u || (bank >= 0x7eu && bank < 0xc0u);
+}
+RecompReturn Lufia2DecompBridge_85CE6F(CpuState *cpu) {
+    if (cpu->S < 0x1f20u || !ActorBridgeTargetBank(cpu->DB) ||
+        !ActorBridgeActionWorkContext(cpu, 0x85u, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x85ce6fu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x85ce6fu, Lufia2BattlePrepareTargetedAction,
+                                  2u);
+}
+RecompReturn Lufia2DecompBridge_85E02D(CpuState *cpu) {
+    if (cpu->S < 0x1f20u || !ActorBridgeActionWorkContext(cpu, 0x85u, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x85e02du);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x85e02du,
+                                  Lufia2BattleFindEnemyGraphicsPlacement, 3u);
+}
