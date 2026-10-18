@@ -1,3 +1,46 @@
+# Menu item and spell actions — 2026-10-18
+
+Fifteen complete contracts are reconstructed and bound: `$82:AAFF`, `$82:AB46`,
+`$82:AB5B`, `$82:AB89`, `$82:AB9A`, `$82:ABB1`, `$82:B42D`, `$82:B45B`,
+`$82:B564`, `$82:B58A`, `$82:B59A`, `$82:B5CF`, `$82:FBEE`, `$82:FC08`
+and `$82:FC1F`. They cover list-action dispatch, selection clearing, inventory
+and spell swaps, discarding, item/spell use, target markers and selected records.
+The existing native list-input owner reaches the dispatcher at `$82:A770`.
+
+Retries, rejection, cancellation, MP equality, target toggles, saved registers,
+live pointers/data banks and carry exits preserve the original behavior.
+Zero target counts retain the original 256-iteration byte loop. Shared tails
+retain their real frames; no synthetic call or second record engine was added.
+Input/effect services remain explicit original child contracts; their internal
+algorithms are not claimed by this batch. One existing WRAM byte is catalogued.
+
+Shared ROM/full-CPU/full-WRAM/ordered-data+MMIO/device-state proof: 7,680 ordinary,
+3,840 actual-return, 148 child-unwind and 960 native-composition states per side.
+Another 296 live-child and 128 pointer-overlap cases pass per side: 13,052 states.
+The 592 post-child checks cover 79 call sites and 148 selected repeated visits.
+Pre-access guards: 1,966,215 semantic and 1,970,040 production ABI. Twenty-nine
+effective heap-ROM controls per side detect changes in dispatch, target counts,
+stack/width handling, record flags, MP gates and swaps.
+
+Fresh compiled library: 1,772 states and 592 post-child checks per side, the
+guards, 2,220 actual redirects, fifteen C++ symbols and generated source selection
+pass. Strict GCC (205.61 s), Clang (178.08 s) and isolated Windows
+Release (366.23 s) builds pass. Unchanged CLI executable/fixture proofs
+are reused only after matching hashes. Checks cover the combined final state.
+Full regression, unrelated scenes, pixels/manual acceptance, physical timing
+and whole-game profiling remain deferred. No measured speedup is claimed.
+
+During integration review, a new source-path collision was corrected before
+commit: the existing inventory-selection module was restored byte-for-byte;
+new actions live in inventory_actions.c. Six existing source labels were also
+restored. Their provenance-only correction kept generated runtime configuration
+byte-identical; unchanged compiler results are reused. A pointer control exposed
+a private seed gap, now covered. The original ROM and protected owner work are
+intact. Tests, proof programs and fixtures remain private; nothing is pushed.
+
+Totals: 1,742 verified contracts; 1,718 ordinary bindings; 775 WRAM locations;
+479 semantic C units. Twenty-four verified contracts remain without a binding.
+
 # Menu list sorting and spell-member selection — 2026-10-18
 
 Five complete contracts now use native C:
