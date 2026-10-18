@@ -1,3 +1,36 @@
+# Menu input waits - 2026-10-18
+
+Four complete82-bank contracts now use native C:9330 counted wait or button,
+9353 sprite-frame countdown,935D ordered button masks,and9380 sprite motion
+or button. Existing button and frame services remain original child contracts.
+Both pressed bytes are checked.935D retains word BIT flags,first-mask
+priority and clear/set carry exits.9353 keeps the original256-frame wait
+for count zero. Counters stay on the guest stack and are reread after children.
+1567 is a sprite-motion request,not a generic timer. Three memory-map notes
+clarify existing storage;no new allocation or duplicate input/OAM code.
+
+Shared original-ROM/full-CPU/full-WRAM/ordered-data+MMIO checkpoint per side:
+1536 normal states,384 actual RTS/RTL,154 child unwinds,192 compositions
+through the scenario viewer and selection-message caller:2266 states.
+140 post-child checks sample first,last,midpoint and zero-wrap iterations;
+24 additional states mutate live stack counters inside children.524452
+semantic and525472 unpaired production-ABI guards pass. Twelve effective
+heap-ROM controls per side detect count masks,button bytes,count steps,
+mask priority,carry polarity,motion source and encoded child routing.
+No semantic mismatch or changed expectation was needed.
+
+Fresh public library308 states/side,525 actual redirected child returns
+across7 sites/35 selected iterations/five alterations/three contexts,
+four C++ symbols and generated native selection pass. Strict incremental
+GCC49.42s,Clang46.05s,isolated Windows298.2s
+builds pass. Unchanged CLI binaries and fixture reuse accepted CLI proofs.
+Full regression,unrelated scenes,pixel/manual acceptance,physical APU/NMI
+cycle/PCM checks and whole-game profile remain deferred. No timing shortcut,
+cycle-exactness or measured speedup claim. Original frame ownership remains.
+
+1714 verified contracts /1690 ordinary bindings /770 WRAM /475 C units.
+Tests,fixtures and tools remain private. Owner files and ROM are intact.
+
 # Scenario viewer - 2026-10-18
 
 The existing82:EEF2 caller now reaches verified8E:E5EF native C. Its three
