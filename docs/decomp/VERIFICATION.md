@@ -1,3 +1,54 @@
+# Actor flash and palette grayscale - 2026-10-18
+
+Complete85:E5C2 FlashActionActor and81:B336/B367 palette wrappers now use
+semantic C. Existing81:AFC4 reaches the actor routine through its original
+JSL sites. Both palette wrappers call the already verified81:B54A gray
+worker with original JSR frames; no second color conversion was added.
+The buffer variant retains full16-bit inversion,including bit15. Both
+wrappers preserve15 entries,skipped first color,raw palette indices,word
+counter initialization and byte decrements,source/buffer routing and dirty flag.
+
+The root retains normal enemy,special enemy,party andcapsule paths. Original
+five-frame repeats and final single calls keep all nested JSR frames,counter
+bytes,sprite rebuild requests and frame-input calls. Capsule waits do not
+invent sprite rebuilds. Normal palettes copy32 bytes,gray the staged group,
+invert it and alternate original/temporary palette states. The special enemy
+path retains its incoming sprite offset. PHP/PHB and full A/X/Y are restored;
+exit_mx is dynamic because PLP restores the entry widths and flags.
+Entry PB85,DP0,binary,S1F20..1FFC,either M/X;children resumeM1X16 or hand off
+at the exact next PC. Palette wrappers usePB81,M1X16,DP0,binary,S1F00..1FFC.
+Data bank stays dynamic. Existing indexed palette and sprite bases are reused;
+two memory-map notes clarify phase-specific fields without new allocations.
+
+Shared original-ROM/full-CPU/full-WRAM/ordered-data+MMIO checkpoint per side:
+12288 normal,768 actual RTL,272 child unwinds and384 native grayscale
+compositions:13712states.1088 post-child M/X/DP/decimal checks cover every
+one of16 repeated/final occurrences,including the different single-call
+stack shape. All17 JSL sites and four root returns are witnessed. Fifteen
+effective heap-ROM controls/side detect palette count/high counter byte,
+inversion,source routing,dirty flag,PHP/PLP,slot/stride,frame count,branch
+palette selection,child bank and rebuild address.393270 semantic and394805
+unpaired production-ABI guards pass. Existing ColorToGray executes natively
+inside palette and root compositions. No disk ROM modification/distribution.
+
+Fresh public library:308states/side,1380 actual redirected returns spanning
+17sites/92occurrences/five alterations/three owner contexts,three C++ symbols
+and the null-child boundary pass. Production helper/producer tokens and new
+generated native selections match. Existing presentation/brightness workers
+retain their tokens; old metadata rows and generated WRAM definitions are
+unchanged. Two differently worded negative-control diagnostics were correctly
+detected and classified; no production behavior or comparison was weakened.
+Completed unchanged controls were reused while finishing the remaining cases.
+
+Strict incremental GCC80.67s,Clang74.45s and isolated Windows Release
+325.05s builds pass. CLI executable/fixture byte hashes remain unchanged,
+so their accepted proof is reused. Full decomp-verify,unrelated gameplay,
+pixel/manual acceptance,physical APU/NMI timing and whole-game profiling
+remain deferred. No cycle,PCM,FPS or full-game completeness claim.
+
+1709verified contracts/1685ordinary bindings/770WRAM/473C units.
+Owner/ROM hashes intact. Tests,fixtures and tools remain private and uncommitted.
+
 # Enemy insertion and dependent record ordering - 2026-10-18
 
 Three complete85-bank contracts now use semantic C: E174 ReorderEnemies,
