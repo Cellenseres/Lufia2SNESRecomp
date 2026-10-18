@@ -1,3 +1,64 @@
+# Complete scene text window path - 2026-10-18
+
+The native80:C23D preparation now completes its scene-window branch through
+80:C2A1..C304. Three new complete contracts are80:C2A1 scene interior,
+80:C1FD close-window services and80:9D3E open-window command. The existing
+C23D metadata now names its complete WithServices owner. Its legacy API
+retains the previous exact prefix/continuation contract for old callers.
+
+The previously missing interior keeps both original BF0B NMI-counter waits,
+the C61D upload clear, alignment, full word height and original tile loops.
+BF0B remains an original child, with no invented cycles or fast-forward.
+Zero width and zero doubled height still underflow; neither is clamped or
+optimized away. The height word includes125D, shared with scene-label
+placement. Existing WRAM labels are reused; no overlapping allocation added.
+
+Opening and closing share their existing workers, preserving legacy guest
+operations and call frames exactly. The service-enabled text VM now uses
+the completed open-window command, including opcode08. It consumes the
+normal9D00 continuation inside its existing loop and restores host-only
+resume bookkeeping. No second interpreter or synthetic return was added.
+
+Shared checkpoint:11538 direct and11538 ABI-adapter states:8192 normal,
+2048 original-return,1024 native-child composition,128 complete existing
+TextEngineStepWithServices calls,144 child unwinds and two zero-counter
+cases. The VM group composes real text measurement, glyph clearing, scene
+interior and upload clearing through the new path.1536 actual RTS and128
+RTL execute per side. Nine original child sites are all observed.135 actual
+redirect probes cover their host-return modes.524384 semantic and525408
+production guard states pass.288 additional post-child boundary cases per
+side cover changed M/X widths, DP and decimal state. Five effective heap-only
+ROM mutations per side demonstrate CPU/WRAM mismatch detection.
+
+Comparisons cover CPU, all WRAM, every ordered data/MMIO access and device
+state. Child interiors outside composed owners remain explicit controlled
+services or their separately verified originals. Both zero-counter cases
+execute the full original65536-step wrap; the combined zero/zero worst-case
+input is not enumerated and no exhaustive input-space claim is made.
+
+Fresh public library checks add168 states per side, four C++ symbol links
+and four null-child boundaries. Published adapters for C2A1/C23D/C1FD and
+the existing9CB8 VM owner match the tested production functions. The9D3E
+opcode has a private ABI test adapter only; it is integrated inside the
+existing VM and receives no independent zero-hit binding. New ordinary
+bindings are C2A1 and C1FD; C23D replaces its prior partial consumer path.
+
+Legacy worker expansion is token-identical in guest operations. Publication
+preserves semantic tokens after proven constant aliases and formatting.
+Compiler gates caught a missing stddef include and an early wrapper using
+later helper definitions. The include and definition order were repaired;
+affected GCC/Clang and incremental Windows checks pass on the final state.
+CLI binaries/fixture are unchanged, so their accepted proof is reused.
+The owner build/windows directory remains untouched. No repeated full
+decomp-verify or unrelated VM regression; gameplay, pixels, asynchronous
+NMI cycle timing and current whole-game interpreter hit rates are deferred.
+Tests, proofs and tooling remain private; ROM and owner hashes are preserved.
+
+The frontier survey also distinguishes existing internal menu-string control
+paths from genuinely missing entries. Explicit PC anchors are documented as
+internal C without new native/verified claims. Prefix-only VM bindings that
+previously produced zero additional hits remain disabled.
+
 # Complete battle target action dispatcher - 2026-10-18
 
 85:D0CD BattleApplyTargetAction now owns the complete original730-instruction
