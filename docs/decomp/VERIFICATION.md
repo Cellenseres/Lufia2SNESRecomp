@@ -1,3 +1,51 @@
+# Menu list sorting and spell-member selection — 2026-10-18
+
+Five complete contracts now use native C:
+
+- `$82:A9B5`: inventory sorting through the original twelve category buckets.
+- `$82:B3AD`: stable two-group spell-list sorting.
+- `$82:B5ED`: selected member's MP and spell-list pointer.
+- `$82:B60A`: previous/next eligible spell-list member.
+- `$81:F1AB`: item-record word at offset seven.
+
+The native list-input callers reach these routines. Category masks, counter
+pointers and group pointers remain ROM-backed. The original item/spell record
+helpers are reused. Live counters, saved loop indices, record IDs, data banks
+and return status remain observable; no second list or record engine was added.
+Three existing WRAM fields are catalogued, without allocating guest storage.
+
+One shared original-ROM/full-CPU/full-WRAM/ordered data+MMIO checkpoint covers
+1,280 ordinary states, 320 actual returns, 152 child unwinds and 160 native
+compositions per side: 1,912 states. Another 96 states per side change live
+child-owned IDs, counters, pointers, data banks and pending stack values.
+All twelve buckets are witnessed. The 112 post-child checks cover 19 call
+sites and 28 selected repeated iterations. Pre-access guards: 655,404 semantic
+and 656,935 production ABI. Nineteen effective heap-ROM mutations per side
+detect grouping, vacancy, copy bounds, member wrap and record-field drift.
+
+Eight bounded original nonterminating skip-loop prefixes also match CPU,
+WRAM and bus order across both WRAM banks, both directions and counts zero
+and four. Production retains the loop; no artificial exit or timing shortcut
+was introduced. These prefix checks make no whole-timeline timing claim.
+
+Fresh compiled library: 534 states per side, the guards, five C++ symbols,
+generated source selection and 420 actual redirected returns pass. Redirects
+cover 19 sites, 28 selected iterations, five alterations and three contexts.
+Strict GCC (197.23 s), Clang (159.67 s) and isolated Windows
+Release (366.16 s) builds pass. CLI executable and private fixture
+hashes remain unchanged; their accepted CLI proof is reused. Full regression,
+unrelated scenes, pixel/manual acceptance, physical APU/NMI/cycle/PCM checks
+and whole-game profiling remain deferred. No measured speedup is claimed.
+
+The existing `$82:9214`/`$82:922D` metadata now declares dynamic exit widths.
+The prior stack-alias proof already shows that PLP can restore changed status;
+their semantic source, producers and used macro values remain unchanged.
+The shared checkpoint covers the combined final state, not each intermediate
+commit independently. Tests, fixtures and tools remain private.
+
+Totals: 1,727 verified contracts; 1,703 ordinary bindings; 774 WRAM locations;
+477 semantic C units. Protected owner work and the original ROM remain intact.
+
 # Secondary menu sprite mask - 2026-10-18
 
 82:922D now has a complete verified contract and ordinary binding. It clears
