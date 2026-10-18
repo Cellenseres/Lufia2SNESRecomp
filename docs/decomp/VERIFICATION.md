@@ -1,3 +1,58 @@
+# Event party refresh and conditional regions - 2026-10-18
+
+Complete opcode owners80:D5BC/D5EB refresh party actors,80:DB9D centers
+layers, and80:D5F2 updates conditional object regions. All share the existing
+event-VM workers and EventRun child services. Their original continuation is
+80:CC35; none receives an independent runtime binding. The existing CBAE
+producer uses these services. No duplicate VM, child algorithm or C unit.
+
+Party refresh now permits the existing verified actor-slot children to
+complete rather than forcing the old callback's interpreter handoff. Two
+legacy witnesses stop at83:D508; native compositions continue through the
+original83:C7F8/D508 children.83:BBF3 is excluded by this parent's state bit
+and is not claimed covered here. Old null-service operations remain conserved.
+
+D5F2 retains the original literal search under complete services. All65536
+initial Y values reach a fixed supported-ROM FF sentinel within11241 visits;
+RAM/MMIO are conservatively non-sentinels in that bound. A differential long
+fixture actually visits2761 entries. Legacy contexts keep their bounded
+handoff. Original indexed bank carry, record reads, flags, saved Y/DB and
+child frames remain visible. Diagnostic child DB is restored by original
+PLB, not constrained unnecessarily. Low-stack children may use the interpreter.
+
+Admission is binary PB80,DP0,M1X16,S1F20..1FFC,any DB,nonnull child. Changed
+child widths/DP/decimal/PB stop at original next instructions; explicit
+unwinds preserve pending frames. Child interiors outside composed witnesses
+remain scoped child contracts, not new decompilation claims.
+
+Shared checkpoint per side:16384 normal,1024 composed,352 forced-unwind,
+128 full-VM,256 additional active-actor composed,64 active-actor full-VM,
+and one long-search state:18209 states. CPU, full WRAM, ordered data/MMIO
+and device state compare.352 post-child boundaries per side also pass.
+524448 semantic and525472 private ABI-adapter pre-access guards pass.
+Six effective heap-ROM mutants per side are detected. Root VM returns
+execute192 actual RTL instructions; composed children execute real returns.
+
+Fresh public library:493 states per side,4 C++ symbols and4 null-child
+boundaries pass. Extra checks add32 conditional stack endpoints and16
+low-stack full-VM states per side. Rejected child guards delegate to a
+separate interp816 instance and compare against the original reference.
+The initial extra fixture incorrectly required every child guard to admit;
+its correction changes no production source or comparison expectation.
+
+Redirect checks cover165 private opcode-adapter cases plus75 actual CBAE
+producer cases, across five redirect types and three owner contexts.
+Only CBAE is an installed producer here; four opcode adapters stay private.
+Exact production helper tokens and generated selection pass. Strict GCC,
+Clang and isolated Windows Release incremental builds pass. CLI executable
+and fixture hashes are unchanged, so accepted CLI proofs are reused.
+Full decomp-verify, unrelated VMs, gameplay/pixels, asynchronous NMI timing
+and current whole-game hit rates are deferred, not passing claims.
+
+Current metadata:1700 verified contracts,1678 ordinary bindings,767 WRAM
+markers,473 C units. No tests/tools/fixtures or ROM are committed. Owner
+sources and build/windows remain untouched. Counts are not game coverage.
+
 # Event cell-probe service chain - 2026-10-18
 
 80:D2FB now owns the complete event-position/object-state probe through its
