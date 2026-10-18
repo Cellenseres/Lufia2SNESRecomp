@@ -1,3 +1,60 @@
+# Menu preparation and glyph buffers — 2026-10-18
+
+Twelve complete admitted contracts are verified and bound: `$81:FAF5`,
+`$82:9D55`, `$82:9DD3`, `$82:F9C9`, `$82:9984`, `$82:942F`, `$82:9073`,
+`$82:90F6`, `$82:9113`, `$82:9133`, `$82:8345` and `$8E:B7E2`.
+They resolve the action actor, prepare/refresh item selection, select equipment
+attributes and party highlights, subtract three-byte experience totals,
+build/pad/upload original glyph buffers, place glyph tile rectangles, preserve
+both tile layers, and count object conditions across the original map group.
+Existing font, cursor, equipment and object-condition engines retain ownership.
+
+The text parser retains all control-byte branches, the original source-pointer
+word wrap, three separate length increments, high-first word RMW writes and
+low-byte-only row-padding test. It does not clip the original text stream to
+the nominal width. Rectangle writes retain their two tile rows and bank carry.
+The field counter retains byte overflow, original ROM tables, live child state
+and PLP followed by PLX/PLY in the original swapped order. The actor's zero
+mask retains its original nonreturning interpreter path through untouched entry
+handoff. Zero packed text/rectangle dimensions likewise retain their original
+interpreter owner; the native admitted contract requires both dimensions nonzero.
+No cap, timing shortcut, rendered-text substitute or original bug fix is added.
+Three WRAM locations are documented. Equipment attributes occupy five newly
+catalogued bytes plus the existing battle sprite-timer byte at152A in menu phase;
+no overlapping metadata allocation or duplicate function is introduced.
+
+One shared original-ROM/full-CPU/full-128K-WRAM/ordered-data+MMIO/device
+checkpoint covers 8,452 positive states per side: 3,072 normal, 1,536 actual
+returns, 3,328 native compositions, 89 child unwinds, 356 live-child/status
+returns and 71 valid stack/dimension/pointer/alias edges with actual returns.
+The compositions include 256 existing81F34D spell-target callers with the new
+native81FAF5 actor resolver, fresh-library linkage and actual returns per side.
+Its twenty-helper/nine-wrapper production closure remains token-identical.
+There are 356 post-child checks at 28 primary sites and 89 selected visits.
+The edge proof covers dimensions255x255, long-address bank carry, text pointer
+wrap, length overflow, zero/low-byte padding counts, experience scratch aliases
+and valid stack endpoints. Seven exceptional admission cases per side preserve
+CPU and memory untouched. All twelve valid entry admissions execute natively
+with zero entry fallback. 1,572,972 semantic and 1,576,032 actual-ABI pre-access
+guards pass. Fifteen effective heap-ROM instruction controls per side are caught.
+
+Fresh compiled library: 1,924 positive states and 356 post-child checks per side,
+admission guards, seven exceptional admissions, 1,335 actual redirects, twelve
+C++ symbols, exact twenty-helper production closure and generated source
+selection pass. Strict GCC (196.02 s), Clang (163.25 s) and
+isolated Windows Release (377.98 s) builds pass. The accepted CLI
+proof is reused only when executable and private fixture hashes are unchanged.
+Checks cover the combined final revision; intermediate commits are not claimed
+as separately tested. Full decomp-verify, unrelated scenes, manual/pixel checks,
+physical timing and whole-game profiling remain deferred. The prior field-text
+PCM timing difference remains open and is outside this checkpoint.
+
+Tests, fixtures and tools remain private. Original ROM and protected owner work
+are unchanged. Totals: 1,780 verified contracts, 1,756 ordinary bindings,
+786 WRAM locations and 491 semantic C units. The 24 verified-unbound contracts
+remain unchanged. Special item/spell nonlocal exits and warp selection are next;
+no partial implementations of those routines are promoted here.
+
 # Menu target eligibility and list cursors — 2026-10-18
 
 Seven complete original contracts are verified and bound: `$85:D711`,
