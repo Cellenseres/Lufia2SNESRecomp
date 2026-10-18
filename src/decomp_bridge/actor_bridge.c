@@ -14702,3 +14702,12 @@ RecompReturn Lufia2DecompBridge_85DA5F(CpuState *cpu) {
     }
     return ActorBridgeWholeAnyWidth(cpu, 0x85da5fu, Lufia2BattleCharacterFromActor, 3u);
 }
+
+RecompReturn Lufia2DecompBridge_85D0CD(CpuState *cpu) {
+    if (cpu->S < 0x1f20u || !ActorBridgeTargetBank(cpu->DB) ||
+        !ActorBridgeActionWorkContext(cpu, 0x85u, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x85d0cdu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x85d0cdu, Lufia2BattleApplyTargetAction, 2u);
+}

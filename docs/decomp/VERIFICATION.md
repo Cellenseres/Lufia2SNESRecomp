@@ -1,3 +1,57 @@
+# Complete battle target action dispatcher - 2026-10-18
+
+85:D0CD BattleApplyTargetAction now owns the complete original730-instruction
+routine through D710. The existing31 child sites retain their13 original
+targets; none of those already verified children was reimplemented. The C
+separates eligibility/scripts, signed HP/MP scaling, attribute percentages,
+status rolls, resource application, damage IP and defeat/rewards into phases.
+
+Original semantics remain literal: the negative MP path complements without
+incrementing, the HP path complements and increments, and the high reward
+increments remain16-bit read-modify-writes. Every original B8 pointer access
+and actor/work field is read live. An overlapping actor HP/action delta case
+proves the later sign check cannot reuse a cached pre-write value. Saved X
+remains on the stack at original BRK85:D243/D2AB; the actual BRK instructions
+are executed in the private comparison, not replaced by a successful return.
+
+Admission: native binary PB85,DP0,M1X16,S1F20..1FFC and writable low-WRAM DB
+banks. Unknown child exits remain exact child unwinds. Four real RTS exits
+and both BRK boundaries are checked. Four new WRAM markers name requested
+HP/MP deltas and added/removed statuses; the existing action buffer is reused.
+
+Shared checkpoint:14879 direct and14879 actual-production-adapter states.
+Per side:4096 normal,1024 return,2048 edge,2048 native-child composition,
+1024 composed-edge and4639 discovery/unwind states. All31 original JSR/JSL
+sites have independent unwind witnesses. Each side executes3387 real RTS
+and1719 original BRKs in that shared group.465 additional actual redirect
+probes cover all31sites across paired/unpaired/mismatched host-return modes;
+their4608 discovery states are additional, not another independent function.
+131238 semantic and131368 production pre-access guards pass. Five effective
+heap-only ROM mutations per side demonstrate CPU/WRAM mismatch detection.
+
+CPU, all WRAM, ordered data/MMIO accesses and math/device state agree. Native
+compositions exercise the real actor lookup, RNG, multiplication, division
+and character lookup; other child interiors retain their separately verified
+owners or controlled services. This is a complete parent contract, not a
+claim that every descendant or all possible synthetic states were enumerated.
+Supplemental alias/resource checks close three otherwise unobserved resource
+branches. All730 original instruction nodes are observed, including both
+BRKs, without claiming exhaustive branch-edge or input-space coverage.
+
+Public code preserves tested semantic tokens after four equal WRAM aliases.
+Fresh public library/actual adapter checks add128 states per side, plus a C++
+symbol and null-child boundary check. The production producer closure remains
+token-identical to the tested copy; generated selection includes the new
+binding. Guards and unchanged sources reuse the completed shared checkpoint.
+
+Strict GCC/Clang library and isolated Windows Release builds pass. Resource
+CLI binaries and the private fixture remain byte-identical, justifying reuse
+of their accepted contract; no repeated unchanged CLI run. Owner build/windows
+is untouched. Full decomp-verify, whole-VM regression, gameplay/pixels/NMI cycle
+timing and a current whole-game interpreter profile are deferred, not passed.
+Tests, proof programs, fixtures and tooling remain private and uncommitted.
+The ROM and unrelated owner work retain their hashes. No push is authorized.
+
 # Battle action support and shared actor lookup - 2026-10-18
 
 Five complete entries:81:FB1A BattleRollEnemyItemDrop,85:C168
