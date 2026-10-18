@@ -15109,3 +15109,45 @@ RecompReturn Lufia2DecompBridge_85CD5D(CpuState *cpu) {
                                   2u, BATTLE_BRIDGE_M1X0, 0,
                                   BATTLE_BRIDGE_ANY_BANK, 0);
 }
+
+RecompReturn Lufia2DecompBridge_85D711(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x85d711u, 0, Lufia2BattleCheckAnyMenuEffectTarget,
+                                  3u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_85D7CE(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x85d7ceu, 0, Lufia2BattleCheckMenuEffectTarget,
+                                  2u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_85D82C(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x85d82cu, 0, Lufia2BattleBuildRequestedEffectMasks,
+                                  2u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_85D8B9(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x85d8b9u, 0, Lufia2BattleBuildTargetEffectMasks,
+                                  2u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_85D8A1(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x85d8a1u, 0, Lufia2BattleAddRequestedStatChange,
+                                  2u, BATTLE_BRIDGE_M0X0, 0,
+                                  BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_829C7D(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x829c7du, 0, Lufia2MenuConfigureListCursor,
+                                  2u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_829DF3(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x829df3u, 0, Lufia2MenuConfigureItemUseCursor,
+                                  2u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_ANY_BANK, 0);
+}

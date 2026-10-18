@@ -1,3 +1,48 @@
+# Menu target eligibility and list cursors — 2026-10-18
+
+Seven complete original contracts are verified and bound: `$85:D711`,
+`$85:D7CE`, `$85:D82C`, `$85:D8B9`, `$85:D8A1`, `$82:9C7D` and `$82:9DF3`.
+The item/spell callers now reach native target eligibility, requested stat and
+status masks, and per-character availability checks. Two list-cursor owners
+retain their original grid/style IDs, conditional instruction text and flags.
+The existing cursor and record engines remain with their original owners.
+
+The original eligibility root shifts A six times, counts bits in Y, then
+stores shifted A as its divider. It deliberately does not substitute Y.
+Zero division, the forty hardware divisions, both byte/word scaling loops,
+PHX/PLX writes, 330 record-clear writes and the early carry return remain.
+No host division, clamping or scheduling shortcut is introduced. Three WRAM
+words are catalogued; the existing phase-dependent scratch aliases remain.
+The M0X0 stat-change leaf keeps A intact during its memory ASL. Other new
+entries use M1X0. Original record/cursor children retain explicit frames.
+
+One shared ROM/full-CPU/full-WRAM/ordered-data+MMIO/device-state checkpoint
+covers 8,302 positive states per side across seven new entries and two existing
+item/spell callers: 4,608 ordinary, 1,152 actual returns, 2,304 native
+compositions, 31 child unwinds, 124 live-child/status returns, 36 valid stack
+edges, seven divider/mask witnesses and forty alias/high-bit returns. There
+are 124 post-child checks at 26 primary sites and 31 selected positions.
+The explicit witnesses include all four divisors, 200 hardware division
+transactions, six-target traversal and early success. High-bit shifts and
+live pointer/scratch overlap retain their original flags and bus ordering.
+1,179,729 semantic and 1,182,024 actual-ABI admission guards pass.
+Twenty-seven effective ROM instruction controls per side are detected.
+
+Fresh compiled library: 1,374 positive states and 124 post-child checks per
+side, admission guards, 465 actual redirects, nine C++ symbols, exact
+20-helper production closure and generated source selection pass. Strict
+GCC (198.47 s), Clang (168.67 s) and isolated Windows
+Release (401.61 s) builds pass. Unchanged CLI executable/fixture
+hashes permit reuse of the accepted CLI proof. These checks cover the combined
+final revision. Full regression, unrelated scenes, pixels/manual acceptance,
+physical divider timing and whole-game profiling remain deferred.
+
+Early ROM analysis recovered D7BB's carry exit behind an unresolved child
+boundary. It was included before validation. No partial prefix is promoted.
+Tests and tooling remain private. Original ROM and protected owner work are
+unchanged. Totals: 1,768 verified contracts; 1,744 ordinary bindings; 783 WRAM
+locations; 485 semantic C units. The 24 verified-unbound contracts are unchanged.
+
 # Menu item and spell application — 2026-10-18
 
 Seven complete original contracts are verified and bound: `$81:EF93`,
