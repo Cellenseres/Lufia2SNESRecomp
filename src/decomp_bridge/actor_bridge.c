@@ -1577,6 +1577,25 @@ RecompReturn Lufia2DecompBridge_8596BE(CpuState *cpu) {
                                   3u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
 }
 
+RecompReturn Lufia2DecompBridge_85E174(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x85e174u, Lufia2BattleReorderEnemies, 0,
+                                  3u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_85E412(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x85e412u, 0, Lufia2BattleInsertEnemy,
+                                  3u, BATTLE_BRIDGE_ANY_WIDTH, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_85E4E5(CpuState *cpu) {
+    if (cpu->x_flag) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x85e4e5u);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x85e4e5u, 0, Lufia2BattlePrepareEnemyInsertion,
+                                  3u, BATTLE_BRIDGE_ANY_WIDTH, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
 RecompReturn Lufia2DecompBridge_AB78(CpuState *cpu) {
     return ActorBridgeBattleEntry(cpu, 0x85ab78u, Lufia2BattleStageTransfer, 0, 3u,
                                   BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_WRAM_BANK, 0);

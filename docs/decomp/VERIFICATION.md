@@ -1,3 +1,55 @@
+# Enemy insertion and dependent record ordering - 2026-10-18
+
+Three complete85-bank contracts now use semantic C: E174 ReorderEnemies,
+E412 InsertEnemy andE4E5 PrepareEnemyInsertion. The existing81:AC72 action
+reachesE412 at81:ACED. Placement,stat,graphics,palette and frame children
+reuse their existing contracts; no duplicate loader or renderer was added.
+
+E174 preserves the ordered fast return,equal-key swaps and six-slot
+permutation. Eight display arrays,seven-byte auxiliary records,190-byte
+battlers and12-byte actions retain their original copy order and hardware
+multiplies. The internalE3F9 worker keeps all18 fixed JSR sites and the live
+turn-queue site. It remaps both enemy-action targets,party actions,current
+action and queued actors; FF queue entries remain untouched. No queue clamp,
+identity shortcut or original flag/register behavior was optimized away.
+
+E412 preserves PHB and full saved A/X/Y,free-slot scan,record allocation,
+variant roll,display geometry and all18 child sites. E4E5 retains12 child
+sites,three queue/frame stages,WMDATA clearing and up to six live enemy tile
+draws. Changed child M/X,DP,decimal or PB returns stop at the exact next PC;
+nonlocal children keep pending frames. Entry PB85,DP0,binary,S1F20..1FFC,
+dynamic DB;E174 requiresM1X16,E412 accepts either width,andE4E5 either M
+withX16. E412 returnsM1X16 after its original REP/SEP normalization.
+
+Shared ROM/full-CPU/full-WRAM/ordered-data/MMIO checkpoint per side:
+12288 normal,768 actual RTL,480 forced-child unwinds and384 native
+compositions:13920states.960 post-child boundaries/side pass. All30 primary
+sites and two nested placement calls are witnessed.848 more states/side
+cover all720 permutations and64 occupancy masks against two WRAM patterns;
+all256 input masks reach the original internal remapper. Fourteen effective
+heap-ROM mutations per side detect ordering,record-length,target-mask,
+geometry,variant,MMIO and rebuild errors.393334 semantic and395124 actual-
+bridge pre-access guards pass. No disk ROM modification or distribution.
+
+Fresh public library adds360 states/side,450 redirected returns across30
+sites/five alterations/three owner contexts,three C++ symbols and two null-
+child boundaries. Exact production helper/producer tokens and generated
+native selection pass. The existing followup helpers retain their tokens;
+older metadata/memory-map rows remain unchanged. Three newly catalogued
+addresses describe the trailing display bytes,auxiliary-record base and
+enemy-action array. The14BC base overlaps menu-phase fields,so only its
+base is catalogued; no separate42-byte allocation is claimed.
+
+Strict incremental GCC165.59s,Clang138.17s and isolated Windows Release
+248.89s builds pass. Unchanged resource-CLI executable/fixture hashes justify
+proof reuse. Validation is shared across all three routines. Full decomp-
+verify,whole-game profiling,physical APU/NMI timing,manual gameplay and
+pixel-level rendering acceptance remain deferred. Existing non-cycle-exact
+field-text PCM evidence is unchanged. No FPS or whole-game coverage claim.
+
+1706verified contracts/1682ordinary bindings/770WRAM/473C units.
+Owner/ROM hashes intact. Tests,fixtures and tools stay private and uncommitted.
+
 # Restore battle item reservations - 2026-10-18
 
 85:96BE Lufia2BattleRestoreSelectedItems completes the missing81:C739
