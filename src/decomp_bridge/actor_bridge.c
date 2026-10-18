@@ -1572,6 +1572,11 @@ RecompReturn Lufia2DecompBridge_96B0(CpuState *cpu) {
                                   BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_WRAM_BANK, 0);
 }
 
+RecompReturn Lufia2DecompBridge_8596BE(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x8596beu, 0, Lufia2BattleRestoreSelectedItems,
+                                  3u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
 RecompReturn Lufia2DecompBridge_AB78(CpuState *cpu) {
     return ActorBridgeBattleEntry(cpu, 0x85ab78u, Lufia2BattleStageTransfer, 0, 3u,
                                   BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_WRAM_BANK, 0);

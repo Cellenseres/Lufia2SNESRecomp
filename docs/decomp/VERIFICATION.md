@@ -1,3 +1,60 @@
+# Restore battle item reservations - 2026-10-18
+
+85:96BE Lufia2BattleRestoreSelectedItems completes the missing81:C739
+command-selection child at81:CAE2. Revisiting a previous party command first
+restores the saved battle inventory work area through85:96B0, then consumes
+items reserved by the earlier selected actions through81:F15B/81:F114.
+Those existing algorithms are reused, with no second inventory implementation.
+Three original unrolled records use the existing7F:F564/F570/F57C constants.
+The spare RTL at85:972D is not counted as another semantic routine.
+
+The original PHX/PLX and four JSL sites remain. Full-width X is saved inDP54,
+CPX reads that word, and the two later DEC operations alter only its low byte.
+Zero,1/2/3,larger and high-byte-only indices preserve original behavior;
+there is no invented clamp. Each item masks9ID bits and reserves one unit
+through0200 before the original child. Data bank remains dynamic. Entry:
+PB85,binary,M1X16,DP0,S1F00..1FFC,nonnull child. Unsupported contexts hand off
+before guest access. Changed child M/X,DP or decimal status stops at its exact
+next instruction; nonlocal child exits retain pending parent frames.
+
+One shared ROM/full-CPU/full-WRAM/ordered-data+MMIO checkpoint per side:
+4096 normal states,256 actual RTL returns,64 forced unwinds and512 complete
+restore/inventory compositions:4928states.128 post-child boundaries/side pass.
+All four original caller sites and the nested81:F18F consume site are reached.
+Four effective heap-ROM controls/side alter DP scratch,action type,item mask
+or requested quantity and are detected. A high-mask-bit mutation was initially
+ineffective in its first64low-ID samples; that result remains recorded. The
+effective mask control clears a witnessed low bit instead. No ROM was modified
+on disk.131081 semantic and131336 actual-bridge pre-access guards pass.
+
+Fresh MSVC public library:96states/side,60redirects across four sites/five
+return alterations/three owner contexts,C++ linkage and null-child boundary
+pass. Extracted production bridge helpers match actual source tokens; generated
+source selection installs the verified85:96BE binding. Eight complete81:C739
+caller cases run the new semantic parent and existing inventory children;
+all eight revisit an earlier command and consume its reserved item. Full CPU,
+WRAM and streamed write/MMIO order match the ROM. This is synthetic acceptance,
+not a claim of manual gameplay or whole-game runtime hit-rate coverage.
+
+Private fixture corrections:full child composition uses sufficient stack for
+existing inventory admission; a missing-child check stops at the parent RTL.
+The older caller fixture's512write buffer was insufficient, so a65536event
+streaming observer now compares every write and rejects overflow. Cancellation
+state resets separately for reference/native replay. An old signed comparison
+and a quoted Windows compiler output path were corrected in private tooling.
+No semantic expectation or production behavior was weakened for these fixes.
+
+Strict incremental GCC65.06s,Clang59.09s and isolated Windows Release204.25s
+builds pass. Resource CLI executables and fixture hashes remain unchanged;
+their accepted CLI proof is reused. Necessary public ABI checks use the fresh
+library after formatting. Full decomp-verify,unrelated gameplay,cycle-accurate
+APU/NMI timing and performance profiling are deferred,not reported passing.
+Existing non-cycle-exact field-text PCM evidence remains separate and unchanged.
+
+1703 verified contracts/1679ordinary bindings/767WRAM/473C units.
+All previous battle-loop helpers retain their tokens. Owner/ROM hashes intact.
+Tests,fixtures,tools and captures stay private and uncommitted.
+
 # Preserve field-to-text child services - 2026-10-18
 
 80:9C72 already accepted consumer child services but discarded them in
