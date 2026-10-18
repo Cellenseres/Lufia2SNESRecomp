@@ -1,3 +1,65 @@
+# Preserve field-to-text child services - 2026-10-18
+
+80:9C72 already accepted consumer child services but discarded them in
+FinishFieldTextTick. Its active-text and prompt-continuation branches now
+pass the same services to the existing TextEngineRun worker. Optional internal
+body/prompt entry wrappers preserve the caller's early-return result. Legacy
+APIs still pass NULL. No extra interpreter, command algorithm, public API,
+metadata contract, binding, C unit or WRAM field was introduced.
+
+The unchanged prompt operations preserve timer comparison, button consumption,
+close/release behavior and fallthrough into the text VM. Shared TextEngineRun,
+legacy step-body and standalone WithServices workers are token-identical.
+Original PHB/PHP, child JSR/JSL, exact unwind and return boundaries remain.
+The original lower-level children remain separate contracts; this is caller
+integration of existing verified semantic C, not an inventory-count increase.
+
+Current-head private input-driven profiling identified this missing path.
+The profile links the isolated agent build and uses a fresh private working
+directory, leaving owner saves/config/build untouched. Before/after replay
+covers6814 cold-boot, title, new-game, dialogue, close and field-input frames.
+All13628 CPU-WRAM andPPU-picture frame hashes match exactly. PCM differs on
+4184frames starting at frame2594. A repeat of the unchanged baseline reproduces
+all20442hashes, establishing that this is real execution-model timing variation.
+The read-only port observer compares8856writes during frames2300..2700: every
+frame,address,value and ordering matches. The first changed sound request at
+frame2588 occurs2546master clocks earlier; maximum observed within-frame
+difference is2738clocks. Native dispatch is not cycle exact, as documented
+in the existing verification contract. PCM/timestamp equality is explicitly
+NOT claimed. Sound scheduler, wait owners and APU logic remain unchanged.
+No artificial delay was added to reproduce the old mixed native/interpreted
+clock. Original-ROM CPU/WRAM/bus semantics remain the acceptance contract.
+
+Interpreted instruction observations change from3912506 to3916407
+(3901 more); no performance gain is claimed. Native text routing improves,
+while altered sound polling phase adds instructions elsewhere. This bounded
+replay is not wall-time/FPS or whole-game coverage. Sound-upload/reply polling
+still dominates reported transition residuals; those algorithms already have
+native semantic owners. Cycle-accurate APU equivalence remains separate work.
+
+Shared original-ROM checkpoint per side:4096 idle/prompt/close/delay/window
+states,256 actual RTL returns and64 forced-child unwinds:4416states.
+128 post-child width/DP/decimal boundaries per side also pass. CPU, full WRAM,
+ordered data/MMIO accesses and device state compare. Four effective ROM
+mutations per side detect changed prompt mask, timer source, close mask or
+continuation mask, including skipped required child arrivals. An initial
+synthetic glyph destination accidentally overlapped the return stack; the
+fixture now uses the real D000 glyph workspace. A missing pressed-button bit
+was exposed by a negative control and corrected. No production fix or
+comparison expectation was weakened for either fixture correction.
+
+Fresh public library adds80states per side and60 real9C72 redirected-return
+cases across four original call sites, five redirect types and three owner
+contexts. Exact production helper/producer tokens and generated selection
+pass. No private opcode adapter is installed or needed in this batch.
+GCC/Clang/isolated Windows incremental builds pass in31.27/28.81/12.48seconds.
+Unchanged CLI executable and fixture hashes justify accepted proof reuse.
+No broad unchanged full regression was repeated. Full decomp-verify, other
+scenes, asynchronous APU/NMI timing and whole-game profiling remain deferred.
+
+1702verified contracts/1678ordinary bindings/767WRAM/473C units remain.
+Owner/ROM hashes are unchanged. Tests, tools and profile data stay private.
+
 # Event area-transition and sound owners - 2026-10-18
 
 Complete80:E50B area-transition and80:D2BB immediate-sound opcode owners
