@@ -15067,3 +15067,45 @@ RecompReturn Lufia2DecompBridge_80D2FB(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu, 0x80d2fbu, Lufia2FieldProbeEventCell, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_81EF93(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x81ef93u, 0, Lufia2ApplyMenuItem,
+                                  3u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_81EFDF(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x81efdfu, 0, Lufia2CheckMenuItemTargets,
+                                  3u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_81F2E7(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x81f2e7u, 0, Lufia2ApplyMenuSpell,
+                                  3u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_81F34D(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x81f34du, 0, Lufia2CheckMenuSpellTargets,
+                                  3u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_81F3BC(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x81f3bcu, 0, Lufia2ConsumeMenuSpellMp,
+                                  3u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_85CD10(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x85cd10u, 0, Lufia2BattleCollectMenuEffectValues,
+                                  3u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_85CD5D(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x85cd5du, 0, Lufia2BattleReadMenuEffectValue,
+                                  2u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_ANY_BANK, 0);
+}

@@ -1,3 +1,44 @@
+# Menu item and spell application — 2026-10-18
+
+Seven complete original contracts are verified and bound: `$81:EF93`,
+`$81:EFDF`, `$81:F2E7`, `$81:F34D`, `$81:F3BC`, `$85:CD10` and `$85:CD5D`.
+Item/spell application now connects to native per-member effect collection.
+Target checks retain the original MP comparison, target-service carry result
+and stack restoration. MP consumption retains unsigned underflow and uses the
+original cost byte. Five shells restore live PHP status and have dynamic exit
+widths. No frame or script behavior is replaced by a timing shortcut.
+
+The original actor-pointer helper81FAF5, relative scripts and target checker
+85D711 remain explicit child services. Their internals are not claimed here.
+Original clear/save action helpers and the new effect collectors are exercised
+in native composition. Effect lookup retains live data-bank reads, long index
+carry, stale values for empty results and four original three-byte records.
+The0A37 base marker intentionally aliases the existing0A38 preview storage.
+No second record loader, interpreter or number-rendering algorithm is added.
+
+One shared original-ROM/full-CPU/full-WRAM/ordered-data+MMIO/device-state
+checkpoint covers6,496 positive states per side:3,584 ordinary,896 actual
+returns,1,792 native compositions,28 child unwinds,56 live-child changes and
+112 additional live-status/actual-return states and28 valid stack-edge/return
+states.112 post-child checks cover
+all28 primary sites. Status tests restore M0X0, M1X1 and decimal flags from
+the correct live stack slots.917,567 semantic and919,352 production-ABI
+pre-access guards pass.17 effective ROM instruction controls per side are
+detected; one equivalent REP control was rejected during fixture preparation.
+
+Fresh compiled library:1,080 positive states and112 post-child checks per
+side, the admission guards,420 actual redirects,seven C++ symbols, exact
+20-helper production closure and generated source selection pass. Strict
+GCC(168.92 s),Clang(142.67 s) and isolated Windows
+Release(243.77 s) builds pass. CLI executable/fixture hashes are
+unchanged; the accepted CLI proof is reused. Checks cover this combined final
+revision. Full regression, unrelated scenes, pixels/manual acceptance,
+physical timing and whole-game profiling are deferred. No speedup is claimed.
+
+Tests and tooling remain private. ROM and protected owner work are unchanged.
+Totals:1,761 verified contracts;1,737 ordinary bindings;780 WRAM locations;
+483 semantic C units.24 verified contracts remain without a binding.
+
 # Menu effect presentation — 2026-10-18
 
 Twelve complete contracts are verified and bound: `$82:AE64`, `$82:9588`,
