@@ -1,3 +1,38 @@
+# Scenario viewer - 2026-10-18
+
+The existing82:EEF2 caller now reaches verified8E:E5EF native C. Its three
+internal routines draw scenario pages,clear two tile layers and initialize
+seven portrait sprites. The original pages1..3 wrap back through portrait
+setup; selection carry chooses next page or exit. All local JSR,PHY,PHB,
+8-bit sprite-table calls,live DB,DP pointers and ordered writes are retained.
+Existing text,input,graphics,sound and sprite contracts remain children;
+their internals are not newly claimed. No duplicated sprite renderer or
+invented scenario data. E642/E688/E6A7 stay internal,without extra bindings.
+
+One affected checkpoint covers2065 original-ROM states per side,including
+1024 ordinary,512 actual RTS/RTL,256 native compositions and273 child
+unwinds.364 post-child checks cover all91 repeated occurrences across12
+external sites;32 more states per side redirect pending local JSR returns.
+Full CPU,WRAM,ordered data/MMIO and device state agree.131113 semantic and
+131368 actual-ABI guards pass;11 effective heap-ROM controls per side detect
+page wrap,sprite count/stride,positions,clear size,requests and child routing.
+One wrong-width control ran into a trace cap; it is retained but excluded
+from the accepted controls,replaced by a precise encoded-child-bank change.
+Initial private caller RTS/old-boundary assumptions were corrected; no
+production mismatch or relaxed original comparison was involved.
+
+Fresh library212 states per side,1365 actual redirected returns spanning
+91 occurrences/five alterations/three contexts,C++ linkage and generated
+selection pass. Existing caller and native sprite compositions are included.
+Strict GCC49.17s,Clang44.72s,isolated Windows283.16s builds pass. CLI binaries
+and fixture hashes are unchanged; prior CLI proof is reused. Completed
+unchanged normal/return/composition cases were reused while extending only
+repeated-boundary coverage. Full regression,unrelated scenes,pixel/manual
+acceptance,physical APU/NMI/cycle/PCM checks and whole-game profile deferred.
+
+1710 verified contracts,1686 ordinary bindings,770 WRAM locations,474 C units.
+Owner files and ROM intact. Tests,fixtures and tools remain local/uncommitted.
+
 # Actor flash and palette grayscale - 2026-10-18
 
 Complete85:E5C2 FlashActionActor and81:B336/B367 palette wrappers now use
