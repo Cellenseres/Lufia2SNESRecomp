@@ -14748,3 +14748,11 @@ RecompReturn Lufia2DecompBridge_80C52C(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_83E018(CpuState *cpu) {
     return ActorBridgeWholeAnyWidth(cpu, 0x83e018u, Lufia2FieldPlaceSpawnedActor, 3u);
 }
+
+RecompReturn Lufia2DecompBridge_80D2FB(CpuState *cpu) {
+    if (cpu->S < 0x1f10u || !ActorBridgeActionWorkContext(cpu, 0x80u, 0u)) {
+        const ActorBridgeFrame f = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &f, 0x80d2fbu);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x80d2fbu, Lufia2FieldProbeEventCell, 2u);
+}

@@ -1,3 +1,58 @@
+# Event cell-probe service chain - 2026-10-18
+
+80:D2FB now owns the complete event-position/object-state probe through its
+original80:E8B9 byte reader,80:EA09 position resolver and83:FB51 object-state
+child. Both80:D2E1/D2EE conditional callers share their existing branch and
+goto/skip operations. Their complete opcode contracts continue at80:CC35;
+they are integrated inside the existing event VM and remain independently
+unbound. Only the ordinary D2FB entry receives a new native binding.
+
+The existing EventOpCellType chooses the same shared branch worker directly,
+passing its current EventRun services. No extra interpreter or host-only
+continuation roundtrip is needed. Null-service and unsupported-context callers
+retain the old position/probe/branch operations and original frames. The old
+pieces remain token-conserved. No child algorithm, C unit or WRAM allocation
+was duplicated. Normal admission: binary PB80,DP0,M1X16,S1F10..1FFC,any DB.
+Changed child widths/DP/decimal/PB stop at the exact original next instruction;
+unwinds retain the pushed child and pending PHY frames.
+
+Shared original-ROM checkpoint per side:12288 normal,3072 return,1536 native
+composition and160 forced-unwind states. It also covers128 complete existing
+event-timer/VM calls,256 null-service branch states and128 whole-VM unwinds:
+17568 states per side. These include1024 actual root RTS and128 root RTL;
+composed children also execute their original returns. CPU, all WRAM, every
+ordered data/MMIO access and device state are compared. Both branch senses,
+bank/window boundaries, full-width operand samples and all primary sites are
+covered; this is not an exhaustive-input or runtime-hit-rate claim.
+
+Additional post-child checks:200 direct and160 production boundaries.
+The direct set includes deliberately changed PB. A normal production paired
+return normalizes the callee's leftover PB; mismatched actual return PCs are
+instead covered by105 real production redirect probes across all five primary
+sites and both whole-VM branch senses.393288 portable pre-access guards and
+394056 actual producer guards pass. Five effective heap-ROM mutations per
+side detect changed stores, byte exchange, branch sense or restored index.
+
+Fresh public-library checks add416 states per side, including the actual
+D2FB/CBAE producers, nested composition, full VM and its unwinds, plus the
+legacy route. D2E1/D2EE use private ABI test adapters only. Production function
+tokens,3 C++ symbols,3 null-child boundaries and generated selection pass.
+The final direct shared-worker VM cleanup was rechecked with the affected
+256 legacy,128 whole-VM and128 VM-unwind states per side; unchanged entry
+proofs/guards are reused rather than repeated.
+
+GCC/Clang initially caught a missing stddef header; it was added. Final strict
+GCC/Clang and isolated Windows Release incremental builds pass. Unchanged CLI
+executables/private fixture hashes justify prior CLI-proof reuse. A synthetic
+VM seed also needed the actual script DB's redraw byte initialized. No ROM
+expectation or production contract was weakened. Owner build/windows and
+unrelated sources/ROM hashes are unchanged. Tests/tools/fixtures remain local.
+Full decomp-verify, unrelated VM regression, gameplay/pixels, asynchronous NMI
+timing and current whole-game hit profiling remain deferred, not passing claims.
+
+Current metadata:1696 verified contracts,1678 ordinary native bindings,
+767 WRAM markers,473 C units. These counts do not measure whole-game coverage.
+
 # Shared coordinate helpers - 2026-10-18
 
 Three complete original entries now share the existing C workers:
