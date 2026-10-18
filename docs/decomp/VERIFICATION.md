@@ -1,3 +1,47 @@
+# Menu effect presentation — 2026-10-18
+
+Twelve complete contracts are verified and bound: `$82:AE64`, `$82:9588`,
+`$82:9E2F`, `$81:F034`, `$82:95BF`, `$82:95FA`, `$82:970B`, `$82:975D`,
+`$82:9765`, `$82:9770`, `$82:977B` and `$82:9786`. They extend the existing
+native item/spell-use owners through target masks, effect reset, capacity hints,
+consume-one requests, effect placement, digit animation and staged reveals.
+
+The reveal dispatch reads the original `$82:978E` table, including bank-local
+pointer wrapping. That table is not a function. Existing sprite, quantity and
+number algorithms retain their owners; the protected number implementation was
+not duplicated. The original frame calls remain explicit services. Three live
+WRAM fields are catalogued; the phase-dependent use of `$7E:0A38` is documented.
+Saved status/register words remain live, including the consume-one shell's
+dynamic PLP exit widths. No animation or timing patch is introduced.
+
+One shared ROM/full-CPU/full-WRAM/ordered-data+MMIO/device-state checkpoint
+covers 9,510 original-ROM states per side: 6,144 ordinary, 1,536 actual returns,
+1,664 native compositions, 39 child unwinds, 78 live-child and 49 raw-index
+states. All five indirect handlers and all three digit loads are witnessed.
+The 156 post-child checks cover sixteen primary call sites and 39 selected
+visits; native composition also covers one existing consume-helper child site.
+Another 768 states per side accept a changed ROM table byte, demonstrating
+dynamic table use. Twenty-two effective instruction controls per side fail as
+expected. Pre-access guards: 1,572,972 semantic and 1,576,032 production ABI.
+
+Fresh library: 1,766 states and 156 post-child checks per side, the guards,
+585 actual redirects, twelve C++ symbols, exact production-helper closure and
+generated source selection pass. Strict GCC (255.25 s), Clang
+(222.25 s) and isolated Windows Release (261.41 s) builds pass.
+Unchanged CLI executable/fixture hashes permit reuse of the accepted CLI proof.
+Checks cover the combined final state. Full regression, unrelated scenes,
+pixels/manual acceptance, physical timing and whole-game profiling are deferred.
+
+Early reconstruction found seven instructions hidden behind unresolved decoder
+exits: two further digit loads, their index steps and the reveal index reload.
+These were restored before acceptance. Private ABI scaffolding was extended for
+JSR(abs,X); its RTL observer now derives the return bank from its own live stack.
+Nested composition seeds respect existing child admission. No test or tool is
+committed. Original ROM bytes and protected owner work remain intact.
+
+Totals: 1,754 verified contracts; 1,730 ordinary bindings; 778 WRAM locations;
+481 semantic C units. Twenty-four verified contracts remain without a binding.
+
 # Menu item and spell actions — 2026-10-18
 
 Fifteen complete contracts are reconstructed and bound: `$82:AAFF`, `$82:AB46`,
