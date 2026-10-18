@@ -1,3 +1,60 @@
+# Battle action support and shared actor lookup - 2026-10-18
+
+Five complete entries:81:FB1A BattleRollEnemyItemDrop,85:C168
+BattleResolveActorRecord,85:DA11 BattleRunEquipmentScripts,85:DA43
+BattleRunEquipmentItemScript and85:DA5F BattleCharacterFromActor.
+Four new bodies share battle_action_support.c. The actor lookup reuses its
+existing BattleScriptSlot worker; no second algorithm or new WRAM allocation.
+Metadata only documents additional uses of existing scratch/record storage.
+
+The drop scanner reads the original bank96 descriptors, preserves the two
+separate random calls, and retains every zero/skip/store case. No probability
+or random-call optimization was introduced. Equipment scripts keep their six
+original offsets in their original order, save the live script byte, and use
+the current X left by each child. DA43 saves X only around the item loader and
+retains the original relative-script base, bank and offset. Actor-to-character
+lookup keeps the original byte-index truncation and full saved X/Y values.
+
+C168 exposes the shared worker with its two real RTS boundaries, preserving
+both original callers' simulated JSR/RTS frames. Its original CPU/bus/stack
+operations remain identical after expansion; a side-effect-free context flag
+is captured only to identify the exit PC. No full legacy BattleScript VM
+regression was repeated. The new independent contract is checked against ROM.
+
+All five admit native binary PB81/85,DP0,M1X16,S1F20..1FFC. C168 restricts DB
+to writable low-WRAM banks; immutable shifting-bit storage remains original.
+Other entries retain every DB. Ten primary JSR/JSL sites plus one existing
+nested relative-script site are checked. Item and relative-script owners are
+composed with their real bodies; only the existing VM service is controlled.
+Every primary site and nested81:FAE9 is observed, including entry case0.
+
+One combined checkpoint per side:10240 normal,2560 original-return,320 parent/
+new-child compositions,640 deeper compositions,40 nested-coverage states and
+160 child unwinds =13960 direct and13960 actual producer states. All CPU,
+full WRAM, every ordered data/MMIO access and device state agree. Each side
+executes1024 real RTS and1536 real RTL.150 actual redirect probes pass.
+655686 semantic and656840 actual guards pass; three fresh null-child API
+checks supplement the semantic guards. Four heap-only ROM mutations are
+detected per side. No ROM bytes were copied to artifacts or changed on disk.
+
+Public library, exact current production adapters, five C++ symbol links and
+generated binding selection pass. Fresh public checks add300 states per side.
+Publication preserves tokens; the new identical bank guard was replaced by
+its existing owner. Original worker expansion and equal WRAM aliases are
+recorded privately. Tests and tooling remain local and uncommitted.
+
+One shared strict GCC/Clang/isolated Windows Release checkpoint passes.
+Unchanged resource CLI bytes and fixture justify prior-result reuse. Only
+new nested evidence, negative probes and public links supplement the shared
+normal/guard checkpoint. No repeated full decomp-verify; full old-VM regression,
+gameplay/pixel/NMI timing and current global interpreter profiles are deferred.
+
+81:FAC9 preserves incoming status. These M1X16 caller compositions are verified;
+its older nominal M0X0 metadata must not be used as a guessed M0 exit for these
+M1 callers. The existing child's implementation and metadata were not changed.
+All13 distinct direct children at31 observed sites in85:D0CD now have their own
+verified native bindings. The dispatcher itself remains original and next.
+
 # Targeted actions and enemy graphics placement - 2026-10-18
 
 Two complete entry contracts:85:CE6F BattlePrepareTargetedAction and85:E02D

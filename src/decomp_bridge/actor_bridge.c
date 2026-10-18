@@ -14664,3 +14664,41 @@ RecompReturn Lufia2DecompBridge_85E02D(CpuState *cpu) {
     return ActorBridgeSceneOwners(cpu, 0x85e02du,
                                   Lufia2BattleFindEnemyGraphicsPlacement, 3u);
 }
+
+RecompReturn Lufia2DecompBridge_81FB1A(CpuState *cpu) {
+    if (cpu->S < 0x1f20u || !ActorBridgeActionWorkContext(cpu, 0x81u, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x81fb1au);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x81fb1au, Lufia2BattleRollEnemyItemDrop, 3u);
+}
+RecompReturn Lufia2DecompBridge_85C168(CpuState *cpu) {
+    if (cpu->S < 0x1f20u || !ActorBridgeTargetBank(cpu->DB) ||
+        !ActorBridgeActionWorkContext(cpu, 0x85u, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x85c168u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x85c168u, Lufia2BattleResolveActorRecord, 2u);
+}
+RecompReturn Lufia2DecompBridge_85DA11(CpuState *cpu) {
+    if (cpu->S < 0x1f20u || !ActorBridgeActionWorkContext(cpu, 0x85u, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x85da11u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x85da11u, Lufia2BattleRunEquipmentScripts, 3u);
+}
+RecompReturn Lufia2DecompBridge_85DA43(CpuState *cpu) {
+    if (cpu->S < 0x1f20u || !ActorBridgeActionWorkContext(cpu, 0x85u, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x85da43u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x85da43u, Lufia2BattleRunEquipmentItemScript,
+                                  2u);
+}
+RecompReturn Lufia2DecompBridge_85DA5F(CpuState *cpu) {
+    if (cpu->S < 0x1f20u || !ActorBridgeActionWorkContext(cpu, 0x85u, 0u)) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x85da5fu);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x85da5fu, Lufia2BattleCharacterFromActor, 3u);
+}
