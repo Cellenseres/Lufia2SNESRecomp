@@ -7264,6 +7264,14 @@ RecompReturn Lufia2DecompBridge_829214(CpuState *cpu) {
     return ActorBridgeSceneOwners(cpu, 0x829214u, Lufia2MenuClearSpriteMask, 3u);
 }
 
+RecompReturn Lufia2DecompBridge_82922D(CpuState *cpu) {
+    if (cpu->PB != 0x82u || !cpu->m_flag || cpu->x_flag) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x82922du);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x82922du, Lufia2MenuClearSecondarySpriteMask, 3u);
+}
+
 RecompReturn Lufia2DecompBridge_82891E(CpuState *cpu) {
     if (cpu->PB != 0x82u || !cpu->m_flag || cpu->x_flag) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);

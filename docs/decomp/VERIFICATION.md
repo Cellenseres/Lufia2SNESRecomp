@@ -1,3 +1,31 @@
+# Secondary menu sprite mask - 2026-10-18
+
+82:922D now has a complete verified contract and ordinary binding. It clears
+slots16..31 using X's16-bit mask;82:9214 clears slots0..15. Both reuse one
+loop in menu_cursor_callers.c. Existing9214 API admission and producer are
+unchanged. Original PHP/REP/LSR/STZ/PLP order,DB-relative addresses,flags and
+stack-overlap effects remain literal. No separate sprite engine.
+
+Shared affected checkpoint:all65536 masks plus4096 stack/bank-alias cases
+per entry,139264 states per side with actual RTL,full CPU/full WRAM and
+ordered data/MMIO/device-state comparison. Production ABI reports69632
+native invocations per entry and zero fallback.128 existing native-parent
+prefixes execute256 complete mask calls per side;remaining children retain
+explicit original boundaries. Prefix proofs do not claim complete parent
+behavior.516 semantic /1540 producer pre-access guards pass. Eight heap-ROM
+controls per side detect shift,destination,loop-limit and PLP drift.
+
+Fresh production library10240 states/side plus128 parent prefixes,guards,
+one C++ symbol and generated selection PASS. Production helper/producer
+closure matches exact tokens apart from read-only test observers.
+GCC76.3s /Clang71.56s /isolated Windows106.31s pass.
+CLI executable and fixture hashes unchanged;accepted CLI proof reused.
+Full regression,unrelated scenes,pixels/manual,physical APU/NMI/cycle/PCM
+and profiling deferred. No measured speedup claim. No test/tool commits.
+
+1722 verified /1698 ordinary bindings /771 WRAM /476 C units.
+Owner-dirty menu_screen.c and protected owner/ROM hashes remain intact.
+
 # Save portrait display - 2026-10-18
 
 Seven complete82-bank entries now use native C:F2CE/F2FE slot previews,
