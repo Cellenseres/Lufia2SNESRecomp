@@ -1,3 +1,51 @@
+# Event area-transition and sound owners - 2026-10-18
+
+Complete80:E50B area-transition and80:D2BB immediate-sound opcode owners
+now share the existing EventRun services inside CBAE. Both retain their
+original80:CC35 continuation and remain independently unbound. The existing
+transition, header lookup, actor-slot save/restore and sound algorithms are
+reused. The shared conditional-call adapter is now named EventActorCall;
+its legacy guest operations stay intact, with explicit host handoff propagation.
+No new VM, algorithm, source unit, WRAM field or production bridge.
+
+The old callbacks force handoffs for area branch7 at83:B82F and the sound
+acknowledgement at80:9A0A. New composition reaches these original child
+sites through the consumer. All five primary and seven nested call sites
+are witnessed. Nested menu/sound reply interiors are explicit child contracts;
+APU handshake timing and menu pixel rendering are not newly verified here.
+Null-service and unsupported contexts retain the legacy callbacks.
+
+Public admission:binary PB80,DP0,M1X16,S1F20..1FFC,any DB,nonnull child.
+Each child keeps its encoded JSR/JSL frame, pending PHB/PHY and exact unwind
+site. Changed child widths/DP/decimal/PB stop at the original next instruction.
+The original byte readers, byte exchange, header stride9 and family6,
+area state, sound command and final saved Y/DB are preserved.
+
+Shared ROM/CPU/full-WRAM/ordered-data/MMIO checkpoint per side:16384 normal,
+1024 composed,160 forced-unwind and128 full existing VM calls:17696 states.
+Direct200 and ABI160 post-child boundaries pass. Production paired returns
+normalize callee PB; actual rewritten returns are checked separately rather
+than pretending leftover PB can redirect a real paired RTL.262224 portable
+and262736 private opcode-adapter guards pass. Four effective heap-ROM mutants
+per side detect changed family/stride setup, saved bank or encoded child.
+
+64 direct legacy ROM states and128 affected D5F2 native compositions pass.
+Legacy area/sound/return workers and the conditional worker are token-conserved
+apart from the shared helper rename. Fresh public library adds180 states per
+side,2 C++ symbols and2 null-child boundaries.150 redirect checks comprise
+75 private opcode-adapter cases and75 actual CBAE cases at all five primary
+sites, across five redirect types and three owner contexts. Only CBAE is an
+installed producer; both opcode adapters remain private. Exact production
+helper tokens and generated selection pass.
+
+Strict GCC/Clang and isolated Windows Release incremental builds pass.
+Unchanged CLI executable and fixture hashes justify prior CLI-proof reuse.
+Full decomp-verify, unrelated VMs, gameplay/pixels, APU/NMI scheduling and
+current whole-game hit profiling are deferred, not passing claims. Owner
+sources, ROM and build/windows remain untouched. No tests/tools/fixtures
+are committed.1702verified contracts/1678ordinary bindings/767WRAM/473C units
+are inventory counts, not whole-game coverage or measured performance gains.
+
 # Event party refresh and conditional regions - 2026-10-18
 
 Complete opcode owners80:D5BC/D5EB refresh party actors,80:DB9D centers
