@@ -21,6 +21,11 @@ enum {
     LUFIA2_ROOM_PATCH_BAND = 8,
     LUFIA2_ROOM_MAX_PATCH_BAND = 64,
     LUFIA2_ROOM_PATCH_NONE = 0xffff,
+    LUFIA2_ROOM_PATCH_FILL = 0xfffe,
+    LUFIA2_ROOM_PATCH_TRANSPARENT = 0xfffd,
+    LUFIA2_ROOM_EXTEND_FILL = 0,
+    LUFIA2_ROOM_EXTEND_MAP = 1,
+    LUFIA2_ROOM_EXTEND_VISIBLE = 2,
     /* Old files: one paint table per room. */
     LUFIA2_ROOM_MAX_TABLES = 32,
 };
@@ -41,6 +46,14 @@ typedef struct Lufia2MapPaint {
     /* Fill past the map edges, per logical layer. */
     Lufia2RoomVoid bg1;
     Lufia2RoomVoid bg2;
+    /* Index by logical layer: BG2=0, BG1=1. */
+    uint8_t extend[2];
+    /* Two bits per direction (left, right, up, down): 0/1/2 = 1/2/3 cells. */
+    uint8_t repeat;
+    /* v6 cache: row starts and sorted x/BG1/BG2 triples. */
+    const uint32_t *paint_rows;
+    const uint16_t *paint_cells;
+    uint32_t paint_cell_count;
     /* Searched in order; the first painted layer wins. */
     uint32_t table_count;
     uint32_t patch_offset[LUFIA2_ROOM_MAX_TABLES];

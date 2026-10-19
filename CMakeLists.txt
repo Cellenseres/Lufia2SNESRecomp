@@ -495,6 +495,7 @@ set(LUFIA2_HOST_SOURCES
     src/lufia2_battle_ui.c
     src/lufia2_menu_ui.c
     src/lufia2_room_data.c
+    src/lufia2_room_inflate.c
     src/lufia2_intro_margins.c
     src/lufia2_intro_trees.c
     src/lufia2_intro_widescreen.c

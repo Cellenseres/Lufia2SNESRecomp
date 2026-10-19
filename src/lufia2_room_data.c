@@ -6,9 +6,10 @@
 
 #include "crc32.h"
 #include "lufia2_log.h"
+#include "lufia2_room_inflate.h"
 
 enum {
-    LUFIA2_ROOM_VERSION = 5,
+    LUFIA2_ROOM_VERSION = 6,
     LUFIA2_ROOM_HEADER_SIZE = 64,
     LUFIA2_ROOM_DIRECTORY_SIZE = 48,
     LUFIA2_ROOM_PATCH_SIZE = 8,
@@ -39,6 +40,7 @@ static uint32_t s_strings_offset;
 static bool s_load_attempted;
 static bool s_load_valid;
 static const char *s_last_error;
+static void *s_paint_storage;
 
 static struct {
     bool valid;
@@ -157,7 +159,7 @@ static void EnsureLoaded(void) {
     LUFIA2_LOG(
         "[room-data] loaded %u authored map(s), format version %u%s: %s\n",
         (unsigned)s_map_count, (unsigned)s_version,
-        s_version < LUFIA2_ROOM_VERSION ? " (rooms merged per map)" : "",
+        s_version < 5 ? " (rooms merged per map)" : "",
         path);
 }
 
@@ -166,7 +168,7 @@ static const uint8_t *FindMapDirectory(uint8_t map_id) {
         const uint8_t *entry = s_data + s_directory_offset +
             index * LUFIA2_ROOM_DIRECTORY_SIZE;
         /* Version 5: other kinds are for later readers. */
-        if (s_version >= LUFIA2_ROOM_VERSION && Read16(entry + 4) != 0)
+        if (s_version >= 5 && Read16(entry + 4) != 0)
             continue;
         if (Read16(entry) == map_id)
             return entry;
@@ -258,6 +260,148 @@ static Lufia2RoomLookupResult ReadMapV5(
         paint->patch_count[0] = patch_count;
         paint->table_count = 1;
     }
+    return LUFIA2_ROOM_FOUND;
+}
+
+static bool PaintValueIsValid(uint16_t value) {
+    return value <= 0x3ffu || value >= LUFIA2_ROOM_PATCH_TRANSPARENT;
+}
+
+static Lufia2RoomLookupResult ReadMapV6(
+    const uint8_t *payload, uint32_t size, Lufia2MapPaint *paint) {
+    if (size < 64 || memcmp(payload, "MAP6", 4) || Read32(payload + 4) != size)
+        return InvalidData("invalid v6 map header");
+    const uint32_t header = Read16(payload + 8);
+    const uint32_t offset = Read32(payload + 36);
+    const uint32_t count = Read32(payload + 40);
+    const uint32_t extra = Read32(payload + 44);
+    const uint32_t extra_size = Read32(payload + 48);
+    const uint32_t encoded_size = Read32(payload + 52);
+    const uint32_t decoded_size = Read32(payload + 56);
+    const unsigned codec = payload[60];
+    paint->band = Read16(payload + 18);
+    paint->extend[1] = payload[61];
+    paint->extend[0] = payload[62];
+    paint->repeat = payload[63];
+    if (header < 64 || header > size || paint->band > LUFIA2_ROOM_MAX_PATCH_BAND ||
+        codec > 2 || payload[61] > 2 || payload[62] > 2 ||
+        (paint->repeat & (paint->repeat >> 1) & 0x55u))
+        return InvalidData("unsupported v6 map settings");
+    const uint32_t width = paint->map_width + 2u * paint->band;
+    const uint32_t height = paint->map_height + 2u * paint->band;
+    const uint32_t area = width * height;
+    if (!paint->map_width || !paint->map_height || count > area ||
+        offset < header || !RangeIsValid(offset, encoded_size, size) ||
+        !RangeIsValid(extra, extra_size, size) ||
+        (extra_size && (extra < header ||
+         (offset < extra + extra_size && extra < offset + encoded_size))))
+        return InvalidData("v6 map sections are invalid");
+    if (!ReadVoid(payload + 20, paint->map_width, paint->map_height, &paint->bg1) ||
+        !ReadVoid(payload + 28, paint->map_width, paint->map_height, &paint->bg2) ||
+        (paint->bg1.mode == LUFIA2_ROOM_VOID_BLOCK && paint->bg1.block > 0x3ffu) ||
+        (paint->bg2.mode == LUFIA2_ROOM_VOID_BLOCK && paint->bg2.block > 0x3ffu))
+        return InvalidData("v6 fill is invalid");
+    if ((!count && (codec || encoded_size || decoded_size)) ||
+        (codec == 0 && (encoded_size != count * 8u || decoded_size != encoded_size)) ||
+        (codec != 0 && (decoded_size < count * 5u || decoded_size > count * 7u)) ||
+        (codec == 1 && encoded_size != decoded_size))
+        return InvalidData("v6 paint size is invalid");
+    if (!count) {
+        free(s_paint_storage);
+        s_paint_storage = NULL;
+        return LUFIA2_ROOM_FOUND;
+    }
+    uint8_t *inflated = NULL;
+    const uint8_t *stream = payload + offset;
+    if (codec == 2) {
+        inflated = (uint8_t *)malloc(decoded_size);
+        if (!inflated)
+            return InvalidData("cannot allocate v6 inflate buffer");
+        if (!Lufia2RoomInflate(stream, encoded_size, inflated, decoded_size)) {
+            free(inflated);
+            return InvalidData("invalid compressed v6 paint");
+        }
+        stream = inflated;
+    }
+    const size_t rows_size = (size_t)(height + 1u) * sizeof(uint32_t);
+    uint32_t *rows = (uint32_t *)calloc(1, rows_size + (size_t)count * 6u);
+    if (!rows) {
+        free(inflated);
+        return InvalidData("cannot allocate v6 paint cache");
+    }
+    uint16_t *cells = (uint16_t *)((uint8_t *)rows + rows_size);
+    uint32_t cursor = 0, next_position = 0, next_row = 0;
+    bool valid = true;
+    for (uint32_t i = 0; i < count && valid; i++) {
+        uint32_t position, x, y;
+        uint16_t bg1, bg2;
+        if (codec == 0) {
+            const int32_t px = (int16_t)Read16(stream + cursor);
+            const int32_t py = (int16_t)Read16(stream + cursor + 2);
+            const int32_t band = paint->band;
+            if (px < -band || py < -band || px >= (int32_t)paint->map_width + band ||
+                py >= (int32_t)paint->map_height + band) {
+                valid = false;
+                break;
+            }
+            x = (uint32_t)(px + band);
+            y = (uint32_t)(py + band);
+            position = y * width + x;
+            bg1 = Read16(stream + cursor + 4);
+            bg2 = Read16(stream + cursor + 6);
+            cursor += 8;
+        } else {
+            uint32_t gap = 0;
+            unsigned shift = 0;
+            for (;;) {
+                if (cursor >= decoded_size || shift > 14) {
+                    valid = false;
+                    break;
+                }
+                const unsigned byte = stream[cursor++];
+                gap |= (uint32_t)(byte & 127u) << shift;
+                if (!(byte & 128u)) {
+                    if (shift && !byte)
+                        valid = false;
+                    break;
+                }
+                shift += 7;
+            }
+            if (!valid || gap >= area || next_position >= area || gap >= area - next_position ||
+                decoded_size - cursor < 4) {
+                valid = false;
+                break;
+            }
+            position = next_position + gap;
+            x = position % width;
+            y = position / width;
+            bg1 = Read16(stream + cursor);
+            bg2 = Read16(stream + cursor + 2);
+            cursor += 4;
+        }
+        if (position < next_position || !PaintValueIsValid(bg1) || !PaintValueIsValid(bg2)) {
+            valid = false;
+            break;
+        }
+        next_position = position + 1;
+        while (next_row <= y)
+            rows[next_row++] = i;
+        cells[i * 3u] = (uint16_t)x;
+        cells[i * 3u + 1] = bg1;
+        cells[i * 3u + 2] = bg2;
+    }
+    free(inflated);
+    if (!valid || cursor != decoded_size) {
+        free(rows);
+        return InvalidData("invalid v6 paint records");
+    }
+    while (next_row <= height)
+        rows[next_row++] = count;
+    free(s_paint_storage);
+    s_paint_storage = rows;
+    paint->paint_rows = rows;
+    paint->paint_cells = cells;
+    paint->paint_cell_count = count;
     return LUFIA2_ROOM_FOUND;
 }
 
@@ -355,7 +499,9 @@ static Lufia2RoomLookupResult ReadMap(
     paint->map_height = map_height;
     paint->payload = payload;
     paint->payload_size = payload_size;
-    if (s_version >= LUFIA2_ROOM_VERSION)
+    if (s_version == 6)
+        return ReadMapV6(payload, payload_size, paint);
+    if (s_version == 5)
         return ReadMapV5(payload, payload_size, paint);
     return ReadMapRooms(directory, payload, payload_size, paint);
 }
@@ -422,7 +568,7 @@ bool Lufia2RoomDataPatchBlock(
     int32_t cell_y,
     int logical_layer,
     uint16_t *block) {
-    if (!paint || !paint->table_count || !paint->payload)
+    if (!paint || !block || (logical_layer != 0 && logical_layer != 1))
         return false;
     const int32_t band = paint->band;
     if (cell_x < -band || cell_y < -band ||
@@ -430,6 +576,26 @@ bool Lufia2RoomDataPatchBlock(
         cell_y >= (int32_t)paint->map_height + band) {
         return false;
     }
+    if (paint->paint_rows) {
+        const uint32_t row = (uint32_t)(cell_y + band);
+        const uint16_t x = (uint16_t)(cell_x + band);
+        uint32_t low = paint->paint_rows[row], high = paint->paint_rows[row + 1];
+        while (low < high) {
+            const uint32_t middle = low + (high - low) / 2u;
+            const uint16_t *cell = paint->paint_cells + middle * 3u;
+            if (cell[0] < x)
+                low = middle + 1;
+            else if (cell[0] > x)
+                high = middle;
+            else {
+                *block = cell[logical_layer == 1 ? 1 : 2];
+                return *block != LUFIA2_ROOM_PATCH_NONE;
+            }
+        }
+        return false;
+    }
+    if (!paint->table_count || !paint->payload)
+        return false;
     for (uint32_t table = 0; table < paint->table_count; table++) {
         if (FindPatch(paint->payload + paint->patch_offset[table],
                       paint->patch_count[table], cell_x, cell_y,

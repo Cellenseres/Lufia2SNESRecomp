@@ -98,6 +98,9 @@ static uint64_t s_rejected_map_signature;
 static Lufia2RuntimeMap s_map;
 static bool s_paint_active;
 static Lufia2MapPaint s_paint;
+static uint32_t s_paint_check_generation = UINT32_MAX;
+static uint64_t s_paint_check_signature;
+static bool s_paint_blocks_valid;
 
 /* Last reported paint lookup. */
 static Lufia2RoomLookupResult s_last_lookup = LUFIA2_ROOM_NOT_AUTHORED;
@@ -139,6 +142,13 @@ static unsigned s_hidden_report_frames;
 
 /* Cell tables of the frame being drawn. */
 static Lufia2FieldCellView s_cell_view;
+static struct {
+    bool scanned;
+    int16_t left;
+    int16_t right;
+    uint8_t left_run;
+    uint8_t right_run;
+} s_extent_rows[2][256];
 
 /* The margins follow the game's hidden cells. */
 static bool s_game_driven;
@@ -295,6 +305,8 @@ static void ReleaseShownCells(void) {
 
 /* The cells as the native screen still shows them. */
 static void OpenShownCellView(Lufia2FieldCellView *view) {
+    if (view == &s_cell_view)
+        memset(s_extent_rows, 0, sizeof(s_extent_rows));
     if (s_game_driven && s_shown_pending)
         Lufia2FieldCellViewOpen(view, s_shown_bank);
     else
@@ -417,7 +429,108 @@ static void ResolveGameCell(
         memcpy(tiles, cell.tiles, sizeof(cell.tiles));
 }
 
-/* Paint overrides cells; fills apply only beyond map edges. */
+static void ResolvePaintFill(
+    const Lufia2RuntimeMap *map, const Lufia2MapPaint *paint,
+    int logical_layer, uint16_t tiles[4]) {
+    const Lufia2RoomVoid *fill = logical_layer == 1 ? &paint->bg1 : &paint->bg2;
+    if (fill->mode == LUFIA2_ROOM_VOID_SOURCE_CELL)
+        (void)ResolveMapCell(map, logical_layer, fill->x, fill->y, tiles);
+    else if (fill->mode == LUFIA2_ROOM_VOID_BLOCK)
+        (void)ResolveBlockCell(map, fill->block, tiles);
+}
+
+static bool ValidatePaintBlocks(const Lufia2MapPaint *paint, unsigned block_count) {
+    if (Lufia2RoomDataVersion() < 6)
+        return true;
+    if ((paint->bg1.mode == LUFIA2_ROOM_VOID_BLOCK && paint->bg1.block >= block_count) ||
+        (paint->bg2.mode == LUFIA2_ROOM_VOID_BLOCK && paint->bg2.block >= block_count))
+        return false;
+    for (uint32_t i = 0; i < paint->paint_cell_count; i++) {
+        for (unsigned layer = 1; layer <= 2; layer++) {
+            const uint16_t value = paint->paint_cells[i * 3u + layer];
+            if (value < LUFIA2_ROOM_PATCH_TRANSPARENT && value >= block_count)
+                return false;
+        }
+    }
+    return true;
+}
+
+static unsigned RepeatSteps(const Lufia2MapPaint *paint, Lufia2Direction direction) {
+    return ((paint->repeat >> (2u * (unsigned)direction)) & 3u) + 1u;
+}
+
+/* Inputs are map-cell coordinates, not tile coordinates. Modulo operands
+   stay nonnegative so the strip phase agrees on every C implementation. */
+static int32_t RepeatAxis(
+    int32_t position, int32_t low, int32_t high,
+    unsigned negative_steps, unsigned positive_steps) {
+    const unsigned span = (unsigned)(high - low + 1);
+    if (position < low) {
+        const unsigned steps = negative_steps < span ? negative_steps : span;
+        if (steps == 1)
+            return low;
+        const uint32_t distance = (uint32_t)low - 1u - (uint32_t)position;
+        const uint32_t phase = steps == 2 ? distance & 1u : distance % 3u;
+        return low + (int32_t)steps - 1 - (int32_t)phase;
+    }
+    if (position > high) {
+        const unsigned steps = positive_steps < span ? positive_steps : span;
+        if (steps == 1)
+            return high;
+        const uint32_t distance = (uint32_t)position - (uint32_t)high - 1u;
+        const uint32_t phase = steps == 2 ? distance & 1u : distance % 3u;
+        return high - (int32_t)steps + 1 + (int32_t)phase;
+    }
+    return position;
+}
+
+static bool ResolveVisibleExtent(
+    const Lufia2RuntimeMap *map, const Lufia2MapPaint *paint,
+    int layer, int32_t x, int32_t y,
+    uint16_t tiles[4]) {
+    if (y < 0 || y >= map->height)
+        return false;
+    if (!s_extent_rows[layer][y].scanned) {
+        s_extent_rows[layer][y].left = -1;
+        s_extent_rows[layer][y].right = -1;
+        s_extent_rows[layer][y].left_run = 0;
+        s_extent_rows[layer][y].right_run = 0;
+        unsigned run = 0;
+        for (unsigned column = 0; column < map->width; column++) {
+            Lufia2FieldDisplayedCell cell;
+            if (!Lufia2FieldCellDisplayed(&s_cell_view, (unsigned)layer, column,
+                                         (unsigned)y, &cell) || cell.hidden) {
+                run = 0;
+                continue;
+            }
+            if (run < 3)
+                run++;
+            if (s_extent_rows[layer][y].left < 0)
+                s_extent_rows[layer][y].left = (int16_t)column;
+            if (column == (unsigned)s_extent_rows[layer][y].left +
+                          s_extent_rows[layer][y].left_run &&
+                s_extent_rows[layer][y].left_run < 3)
+                s_extent_rows[layer][y].left_run++;
+            s_extent_rows[layer][y].right = (int16_t)column;
+            s_extent_rows[layer][y].right_run = (uint8_t)run;
+        }
+        s_extent_rows[layer][y].scanned = true;
+    }
+    const int left = s_extent_rows[layer][y].left;
+    const int right = s_extent_rows[layer][y].right;
+    if (left < 0 || (x >= left && x <= right))
+        return false;
+    unsigned left_steps = RepeatSteps(paint, LUFIA2_DIRECTION_LEFT);
+    unsigned right_steps = RepeatSteps(paint, LUFIA2_DIRECTION_RIGHT);
+    if (left_steps > s_extent_rows[layer][y].left_run)
+        left_steps = s_extent_rows[layer][y].left_run;
+    if (right_steps > s_extent_rows[layer][y].right_run)
+        right_steps = s_extent_rows[layer][y].right_run;
+    ResolveGameCell(layer, RepeatAxis(x, left, right, left_steps, right_steps), y, tiles);
+    return true;
+}
+
+/* Rules affect only the additional widescreen cells. */
 static void ResolveWideCell(
     const Lufia2RuntimeMap *map, const Lufia2MapPaint *paint,
     int logical_layer, int32_t cell_x, int32_t cell_y, uint16_t tiles[4]) {
@@ -425,12 +538,18 @@ static void ResolveWideCell(
     uint16_t block;
     if (paint && Lufia2RoomDataPatchBlock(
             paint, cell_x, cell_y, logical_layer, &block)) {
-        (void)ResolveBlockCell(map, block, tiles);
+        if (block == LUFIA2_ROOM_PATCH_FILL)
+            ResolvePaintFill(map, paint, logical_layer, tiles);
+        else if (block != LUFIA2_ROOM_PATCH_TRANSPARENT)
+            (void)ResolveBlockCell(map, block, tiles);
         return;
     }
 
     const bool inside = cell_x >= 0 && cell_y >= 0 &&
         cell_x < map->width && cell_y < map->height;
+    if (paint && paint->extend[logical_layer] == LUFIA2_ROOM_EXTEND_VISIBLE &&
+        ResolveVisibleExtent(map, paint, logical_layer, cell_x, cell_y, tiles))
+        return;
     if (inside) {
         if (s_game_driven && !RoomDebugTint()) {
             ResolveGameCell(logical_layer, cell_x, cell_y, tiles);
@@ -446,11 +565,15 @@ static void ResolveWideCell(
         return;
     }
 
-    const Lufia2RoomVoid *fill = logical_layer == 1 ? &paint->bg1 : &paint->bg2;
-    if (fill->mode == LUFIA2_ROOM_VOID_SOURCE_CELL)
-        (void)ResolveMapCell(map, logical_layer, fill->x, fill->y, tiles);
-    else if (fill->mode == LUFIA2_ROOM_VOID_BLOCK)
-        (void)ResolveBlockCell(map, fill->block, tiles);
+    if (paint->extend[logical_layer] == LUFIA2_ROOM_EXTEND_MAP) {
+        const int32_t x = RepeatAxis(cell_x, 0, map->width - 1,
+            RepeatSteps(paint, LUFIA2_DIRECTION_LEFT), RepeatSteps(paint, LUFIA2_DIRECTION_RIGHT));
+        const int32_t y = RepeatAxis(cell_y, 0, map->height - 1,
+            RepeatSteps(paint, LUFIA2_DIRECTION_UP), RepeatSteps(paint, LUFIA2_DIRECTION_DOWN));
+        if (ResolveMapCell(map, logical_layer, x, y, tiles))
+            return;
+    }
+    ResolvePaintFill(map, paint, logical_layer, tiles);
 }
 
 static uint16_t ResolveWideTile(
@@ -1405,6 +1528,20 @@ Lufia2MapWidescreenResult Lufia2PrepareMapWidescreen(
     if (lookup == LUFIA2_ROOM_MAP_NOT_READY) {
         Lufia2DeactivateMapWidescreen();
         return NotReadyYet();
+    }
+    if (lookup == LUFIA2_ROOM_FOUND) {
+        const uint64_t signature = MapSignature(&map);
+        if (s_paint_check_generation != generation || s_paint_check_signature != signature) {
+            s_paint_check_generation = generation;
+            s_paint_check_signature = signature;
+            s_paint_blocks_valid = ValidatePaintBlocks(&paint, map.block_count);
+            if (!s_paint_blocks_valid)
+                fprintf(stderr, "[room-data] paint block exceeds loaded blockset\n");
+        }
+        if (!s_paint_blocks_valid) {
+            Lufia2DeactivateMapWidescreen();
+            return LUFIA2_MAP_WIDESCREEN_DISABLED;
+        }
     }
     return PrepareGameDrivenMap(
         ppu, &map, MapSignature(&map),
