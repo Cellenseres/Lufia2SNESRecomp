@@ -1,3 +1,51 @@
+# Field actor installation continuations - 2026-10-19
+
+The optional FieldActorInstallStep API exposes all seventy-three boundaries
+of actor installation, $83:B30D through $83:B3CC, under three existing verified
+session owners. Initialization, the nominal sixty-three-record pass, six
+original child calls and the optional actor tail retain their CPU/bus contracts.
+The preceding B309 bytes are not an entry; B3CF belongs to the next operation.
+Existing semantic bodies and public declarations, including FieldFrameStep,
+remain unchanged. No canonical function, ordinary binding or hook is added.
+
+TDC retains its full accumulator and flags. Indexed accesses carry into the
+next bank; the SDK's read-page and indexed-store clocks remain distinct.
+Index stack/width changes and direct-page wrap remain literal. Original word
+services handle both the LDX operand and wide DP index reads without duplicate
+fetches. The consumer retains generic children, returns, NMI, clocks and
+progress. Unsupported widths, emulation, pending interrupts and unknown
+PCs/opcodes remain interpreted. The API and all three named, addressed verified
+session owners gate activation; older headers compile without new dependencies.
+
+One shared checkpoint passes 5,827,072 direct and 5,827,072 actual-producer
+original-ROM/CPU/full-WRAM/ordered-bus cases across every stack/DP/accumulator/
+index word, all statuses and accepted widths, all DB banks and twenty-one
+edge addresses. Code/DP word claims, fallback and claimed DP-word wrap agree.
+Another 37,839 producer, 280,711 API no-access and 65,463 unknown-PC guards
+pass. Ten effective faults are detected. Nineteen CMake contexts, standalone
+GCC/Clang, C++17 linkage and isolated MSVC Release pass. An unsigned comparison
+cleanup required only an incremental consumer rebuild; portable sources were
+unchanged. Identical CLI executable/fixture hashes retain accepted CLI checks.
+
+All seventy-three points execute natively in 15,714 paired hardware contexts,
+covering every accepted width contract and three DB/DP/stack/clock classes.
+Actual bank carry, DP APU reads/writes, code/DP words, full TDC, stack wrap,
+exact exits and one original control step per case agree. Public yield/
+exclusion APIs stop before all six children; the generic kernel is unchanged.
+Normal paired 10,607-frame runs retain all 77,840 observations and prior-main
+artifacts, including real children at 5 of the six call sites. The remaining
+call has controlled boundary coverage, not claimed normal replay execution.
+
+Actual decoding falls from 37,180 to 35,213 through 1,967 additional
+native phases. Control visits remain 179,420, including 144,207 native slot
+phases. Previous native counts, graphics/audio, clocks, epochs and cache agree.
+These replay counts are not whole-game coverage or a production speed claim.
+
+Totals remain 1,818 verified / 1,786 ordinary bindings / 32 verified unbound /
+791 WRAM fields / 499 C units / zero drafts; 193 hooks remain registered.
+Unrelated full regression, other platforms and manual gameplay are deferred.
+Tests, proofs and ROM remain local; parallel owner work is unchanged.
+
 # Field frame continuations - 2026-10-19
 
 The optional field_phase.h API exposes all seventy-seven contiguous dispatcher
