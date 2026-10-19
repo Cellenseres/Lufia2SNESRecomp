@@ -1,3 +1,29 @@
+# Shared battle status owners - 2026-10-20
+
+Status snapshots, selected-record clearing and five-party status markers now
+have one original algorithm each. Outcome and frame-upkeep callers share the
+same bodies with the canonical entries. Existing public guards, child services,
+stack frames, banks and observed CPU/bus behavior remain intact. Marker-bank
+selection preserves the legacy frame owner's fixed bank and public PHK context.
+No public API, canonical entry, binding or instruction-PC switch is added.
+
+One combined checkpoint passes 5,632 original-ROM CPU/full-WRAM/ordered-data-bus/
+device cases across the algorithms and complete outcome, upkeep and party-reset
+callers; 4,608 unchanged no-access guards; and 1,536 actual production bridge
+CPU/full-WRAM cases with zero fallback. Two in-memory operand faults are caught:
+record status offset and new-marker sentinel. GCC/Clang and isolated Windows
+Release pass. Unchanged CLI executable/fixture hashes reuse prior CLI proofs;
+public headers are unchanged. Full regression and a new gameplay replay are
+deferred. The upkeep fixture disables unrelated sprite rendering; preceding
+sprite-renderer proofs cover that unchanged subtree. No whole-game claim.
+
+The first synthetic fixture set the sprite-count field rather than the renderer
+mode and exceeded its trace bound. The corrected fixture sets the original
+renderer-mode field; no production behavior or expectations were weakened.
+All 1,819 existing functions remain verified; no new functions are counted.
+Tests, probes and receipts remain local. The combined final state was tested;
+individual intermediate edits were not separately validated.
+
 # Shared battle sprite algorithms - 2026-10-20
 
 Five existing algorithms now have one shared implementation each: ordinary
