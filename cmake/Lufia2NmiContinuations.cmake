@@ -103,6 +103,13 @@ function(lufia2_add_nmi_continuations target core_root)
                             if(_api MATCHES "Lufia2FrameWaitCounterStep[(]" AND
                                _cave_wait_contract MATCHES "status[ \t]*=[ \t]*\"verified\"")
                                 list(APPEND _definitions LUFIA2_HAVE_NATIVE_FRAME_COUNTER_STEPS=1)
+                                string(REGEX MATCH
+                                    "\\[\\[function\\]\\][^[]*address[ \t]*=[ \t]*\"80:BF0B\"[^[]*"
+                                    _text_wait_contract "${_metadata}")
+                                if(_api MATCHES "Lufia2TextWaitForNextFrame[(]" AND
+                                   _text_wait_contract MATCHES "status[ \t]*=[ \t]*\"verified\"")
+                                    list(APPEND _definitions LUFIA2_HAVE_NATIVE_TEXT_FRAME_WAIT=1)
+                                endif()
                             endif()
                         endif()
                         if(_api MATCHES "Lufia2SoundPollIteration[(]" AND

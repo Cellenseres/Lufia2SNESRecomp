@@ -3224,12 +3224,25 @@ static void ActorBridgeSoundPollRun(CpuState *cpu, uint32_t entry) {
 }
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS)
-static const uint32_t frame_poll_entries[] = {
-    0x8293c8u, 0x8293cau, 0x83900eu, 0x839010u, 0x8eb552u,
-    0x8eb554u, 0x868b4eu, 0x868b50u, 0x869752u, 0x869754u,
+typedef struct ActorFramePollEntry {
+    uint32_t address;
+    bool branch;
+} ActorFramePollEntry;
+
+static const ActorFramePollEntry frame_poll_entries[] = {
+    {0x8293c8u, false}, {0x8293cau, true},
+    {0x83900eu, false}, {0x839010u, true},
+    {0x8eb552u, false}, {0x8eb554u, true},
+    {0x868b4eu, false}, {0x868b50u, true},
+    {0x869752u, false}, {0x869754u, true},
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_COUNTER_STEPS)
-    0x8293c6u, 0x83900cu, 0x8eb550u, 0x868b4cu, 0x869750u,
-    0x848d4du, 0x848d4fu, 0x848d51u,
+    {0x8293c6u, false}, {0x83900cu, false},
+    {0x8eb550u, false}, {0x868b4cu, false},
+    {0x869750u, false}, {0x848d4du, false},
+    {0x848d4fu, false}, {0x848d51u, true},
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_TEXT_FRAME_WAIT)
+    {0x80bf0bu, false}, {0x80bf0du, false}, {0x80bf0fu, true},
 #endif
 };
 
@@ -3238,11 +3251,11 @@ static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
         return;
     unsigned index = 0u;
     while (index < sizeof frame_poll_entries / sizeof frame_poll_entries[0] &&
-           frame_poll_entries[index] != entry)
+           frame_poll_entries[index].address != entry)
         ++index;
     if (index == sizeof frame_poll_entries / sizeof frame_poll_entries[0])
         return;
-    const bool branch = index < 10u ? (index & 1u) != 0u : entry == 0x848d51u;
+    const bool branch = frame_poll_entries[index].branch;
     const bool read_counter = !branch;
     ActorTimedBus bus = {0};
     const ActorTimedOpcode opcode = {
@@ -3289,7 +3302,7 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS)
     for (unsigned i = 0u; i < sizeof frame_poll_entries / sizeof frame_poll_entries[0];
          ++i)
-        interp_bridge_set_pre_opcode_hook(frame_poll_entries[i],
+        interp_bridge_set_pre_opcode_hook(frame_poll_entries[i].address,
                                           ActorBridgeFramePollStep);
 #endif
     static const uint32_t entries[] = {0x8293ccu, 0x868b52u, 0x869756u, 0x868b6fu};

@@ -1,3 +1,30 @@
+# Text frame wait and explicit opcode properties - 2026-10-19
+
+The complete $80:BF0B text frame wait is verified. Existing scene, window
+and recovery callers retain their original child boundary. The consumer now
+runs its LDA, CMP and BEQ separately, preserving the original scheduler and
+quiescence checks. Its ordinary HLE binding stays absent. Frame-hook records
+carry an explicit branch property, replacing array-position assumptions.
+
+The combined seven-family checkpoint passes 43,008 original-ROM/producer
+opcode states and 25,108 whole-wait states, including 4,176 new text cases.
+CPU, full WRAM, ordered bus, open bus and opcode timing agree. Another
+430,545 rejection checks, 168 positive edges and six effective ROM fault
+controls pass. Isolated Windows Release, standalone GCC/Clang, C++ linkage,
+13 CMake contexts and three compiled feature contexts pass. CLI executables
+are unchanged; prior CLI evidence is reused by checked hashes.
+
+Current and accepted-baseline producers match over 10,607 input-driven
+startup, intro, field, world and menu frames, including CPU, WRAM pages,
+PPU/pixels, PCM, APU/SPC/DSP, beam, clocks and ordered port timestamps.
+The new text hooks execute 2 loads, 10,639 comparisons and 10,641 branches.
+Interpreter instructions fall from 679,806 to 658,524 in this replay. This
+is neither whole-game equivalence nor a production benchmark. Full unrelated
+regression, other scenes/platforms and manual gameplay remain deferred.
+
+Totals: 1,814 verified / 1,786 ordinary bindings / 28 verified unbound /
+791 WRAM fields / 499 C units / zero drafts. Tests and tools stay local.
+
 # Frame counter loads and Cave wait - 2026-10-19
 
 The complete $84:8D4D Ancient-Cave frame wait is verified. Its bounded
