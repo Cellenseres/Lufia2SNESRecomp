@@ -1,3 +1,39 @@
+# Primary actor party commands - 2026-10-19
+
+The child-enabled primary actor VM now reconstructs commands $49/$4E at
+$83:CAE1/$83:CB71. Shared record scans use ordinary C; original readiness,
+release/rebuild/action children, slot search, temporary slot selection and
+five follow-slot writes retain their original order and CPU boundaries.
+The readiness scan skips slot zero. A missing $FD actor leaves X=$FFFF;
+the temporary slot word and subsequent byte restore remain literal.
+
+Lufia2ActorPrimaryUpdateWithChildren uses the existing pushed-child contract.
+The legacy API delegates without a child service and keeps its previous
+unknown-handler boundaries. Existing handlers and the old VM loop are
+unchanged outside the new command selection. The consumer C7F8 bridge reuses
+its unchanged child/return helpers. No instruction-PC switch is introduced.
+
+One checkpoint passes 20,992 original-ROM boundary comparisons each for the
+command workers, full primary VM and selected production bridge: 34,828
+controlled child frames, 896 child unwinds and 724 changed-child context
+handoffs per arm. Another 2,048 composed VM cases include 1,408 actual ROM/
+native record-offset child returns; other children remain controlled services.
+All compare CPU/full WRAM and ordered bus effects. The ABI fixture uses exact
+production entry/state/child/return functions with controlled SDK bus/dispatch;
+it does not claim physical device timing or gameplay coverage.
+
+65,536 unsupported-context/no-child guards perform no bus access. Two injected
+faults in readiness bounds and slot-word writes are detected. Strict MSVC,
+isolated Windows Release, incremental GCC/Clang and C++17 linkage pass.
+Unchanged CLI executable/fixture hashes reuse accepted CLI results. Shared
+bridge helper proofs are retained by source equivalence. Full regression and
+manual gameplay are deferred; no speed improvement is claimed.
+
+These are two newly reconstructed internal VM handlers, not separate callable
+RTS functions. The verified C7F8 owner and its ordinary binding remain the
+canonical entry. Totals stay 1,818 verified/1,786 ordinary bindings/zero drafts;
+there are now 500 C units. Tests, proofs and ROM remain private.
+
 # Readable party derived totals - 2026-10-19
 
 The existing 81:F4D5 contract now delegates its seven base/modifier totals,

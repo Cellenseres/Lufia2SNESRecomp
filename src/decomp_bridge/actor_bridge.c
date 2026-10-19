@@ -345,10 +345,6 @@ static RecompReturn ActorBridgeWholeX16(
     return ActorBridgeRunWhole(cpu, entry_pc24, run, frame_size, 3);
 }
 
-RecompReturn Lufia2DecompBridge_C7F8(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x83c7f8u, Lufia2ActorPrimaryUpdate, 2);
-}
-
 RecompReturn Lufia2DecompBridge_D508(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x83d508u, Lufia2ActorSecondaryUpdate, 2);
 }
@@ -1193,6 +1189,27 @@ static uint8_t ActorBridgePushedChild(
     ActorBridgeLoad(call->cpu, state);
     state->program_bank = call->cpu->PB;
     return 1;
+}
+
+RecompReturn Lufia2DecompBridge_C7F8(CpuState *cpu) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
+        ActorBridgeExecutionCheckpoint, cpu};
+    ActorPushedCall call = {cpu, frame, RECOMP_RETURN_NORMAL};
+    Lufia2CpuState state;
+
+    if (!ActorBridgeSupported(cpu, 1, 0))
+        return ActorBridgeFallback(cpu, &frame, 0x83c7f8u);
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result = Lufia2ActorPrimaryUpdateWithChildren(
+        &memory, &state, ActorBridgePushedChild, &call);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)call.unwound - 1);
+    ActorBridgeStore(cpu, &state);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return ActorBridgeReturn(cpu, &frame, 2u, result.pc);
 }
 
 RecompReturn Lufia2DecompBridge_9E31(CpuState *cpu) {
