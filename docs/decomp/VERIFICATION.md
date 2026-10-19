@@ -1,3 +1,32 @@
+# Frame counter clock boundaries - 2026-10-19
+
+All 45 existing frame-counter instruction boundaries can complete across a
+scanline or scheduler deadline. Prior admission is retained; the extra route
+requires coherent clocks, beam HDMA disabled and existing CPU/stack/IRQ/DMA
+checks. Each callback executes one original instruction. Arbitrary direct page,
+MMIO reads, word wrapping, flags, open bus, refresh and progress epochs remain
+literal. The registered hook identity and separate wait-fast-forward policy
+are unchanged. No new semantic API, canonical function or binding is added.
+
+Shared verification passes 1,152,000 original-ROM/actual-producer cases,
+36,225 rejection guards, 4,365 positive boundaries and 45 effective ROM fault
+controls. Both M/X widths, status combinations, ten direct-page classes and
+both ROM speeds are covered. Four compiled older API contexts preserve their
+10/18/21/45 sites in both old and extra timing windows. Windows incremental
+Release passes. Unchanged semantic/API/CLI/compiler evidence is reused; full
+unrelated regression, other platforms and manual gameplay remain deferred.
+
+The paired 10,607-frame replay matches 172,006 CPU/memory/picture/audio/hardware
+observation rows and its artifacts. It compares 47,083 extra contexts, including
+7,540 scanline crossings, 29 deadline crossings and 669 refresh charges.
+Interpreted instructions fall from 274,066 to 226,983 in that workload; this is
+not a production speedup or whole-game claim. Another 5,400 controlled hardware
+cases cover all 45 sites, four M/X modes, ten direct pages and three positions.
+Their terminal CPU/WRAM/PPU/controller state, APU/FIFO and actual progress epochs
+and dynamic-value cache match. All observers keep the original hook identity.
+Totals remain 1,817 verified / 1,786 ordinary bindings / 31 verified unbound /
+791 WRAM fields / 499 C units / zero drafts. Tests, tools and ROM stay private.
+
 # Original sound transfer continuations - 2026-10-19
 
 The existing payload and boot-upload owners expose 58 individual CPU-facing

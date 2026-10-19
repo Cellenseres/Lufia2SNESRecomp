@@ -3037,7 +3037,7 @@ static bool ActorBridgeSoundWindowSupported(const CpuState *cpu, uint32_t entry,
                                                fence - budget - 1u, budget);
 }
 
-static bool ActorBridgeSoundOpcodeSupported(const CpuState *cpu, uint32_t entry,
+static bool ActorBridgeSingleOpcodeSupported(const CpuState *cpu, uint32_t entry,
                                              unsigned budget) {
     if (ActorBridgeSoundWindowSupported(cpu, entry, 0x1fffu, budget))
         return true;
@@ -3091,7 +3091,7 @@ static void ActorBridgeSoundBranch(CpuState *cpu, uint32_t entry) {
         Lufia2SoundPollBranchTarget(entry, cpu->_flag_Z, cpu->_flag_V);
     const unsigned budget =
         2u * cpu_region_speed(entry) + 6u + SOUND_TRANSFER_REFRESH_CLOCKS;
-    if (next == entry || !ActorBridgeSoundOpcodeSupported(cpu, entry, budget))
+    if (next == entry || !ActorBridgeSingleOpcodeSupported(cpu, entry, budget))
         return;
     bool progress = false;
     (void)Lufia2DecompFrameReturnReadByte(cpu, entry, &progress);
@@ -3207,7 +3207,7 @@ static void ActorBridgeSoundPollStep(CpuState *cpu, uint32_t entry, unsigned fet
     const unsigned budget = fetched * cpu_region_speed(entry) +
                             data * SOUND_TRANSFER_BUS_CLOCKS +
                             SOUND_TRANSFER_REFRESH_CLOCKS;
-    if (!ActorBridgeSoundOpcodeSupported(cpu, entry, budget))
+    if (!ActorBridgeSingleOpcodeSupported(cpu, entry, budget))
         return;
     ActorTimedBus bus = {0};
     const ActorTimedOpcode opcode = {
@@ -3268,7 +3268,7 @@ static void ActorBridgeSoundTransferOpcode(CpuState *cpu, uint32_t entry) {
                             (opcode->indexed && cpu->Y >= 0x100u);
     const unsigned budget = cycles * SOUND_TRANSFER_BUS_CLOCKS +
                             SOUND_TRANSFER_REFRESH_CLOCKS;
-    if (!ActorBridgeSoundOpcodeSupported(cpu, entry, budget))
+    if (!ActorBridgeSingleOpcodeSupported(cpu, entry, budget))
         return;
     ActorTimedBus bus = {0};
     bus.cpu = cpu;
@@ -3313,8 +3313,18 @@ static const ActorFramePollEntry frame_poll_entries[] = {
 #endif
 };
 
+static bool ActorBridgeFramePollSupported(const CpuState *cpu, uint32_t entry) {
+    if (ActorBridgePollRunSupported(cpu, entry))
+        return true;
+    if (!g_snes || !g_snes->hdmaBeamOff ||
+        cpu->coprocessor_master_cycles != cpu->master_cycles)
+        return false;
+    return ActorBridgeSingleOpcodeSupported(
+        cpu, entry, 5u * SOUND_TRANSFER_BUS_CLOCKS + SOUND_TRANSFER_REFRESH_CLOCKS);
+}
+
 static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
-    if (!ActorBridgePollRunSupported(cpu, entry))
+    if (!ActorBridgeFramePollSupported(cpu, entry))
         return;
     unsigned index = 0u;
     while (index < sizeof frame_poll_entries / sizeof frame_poll_entries[0] &&
