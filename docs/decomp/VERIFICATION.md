@@ -1,3 +1,50 @@
+# Timed sound polling — 2026-10-19
+
+The six existing verified sound parents now expose a bounded sound-port poll
+service. `Lufia2SoundPollStep` executes one original CMP or LDA at fifteen
+identified wait sites. The original following branch, child calls, returns,
+interrupt sampling and wait duration retain their interpreter owner. This is
+an instruction boundary service, not fifteen additional functions or a whole
+sound-loop replacement. Existing parent sources and poll limits are unchanged.
+
+The portable service retains live DB/DP, decimal state and both index widths;
+80:9C18 uses a 16-bit accumulator, the other sites use 8-bit. The consumer
+requires native mode, a safe WRAM stack, synchronized beam, inactive DMA/IRQ
+and at least 256 clocks to the next deadline. Original data reads use the
+existing bus and APU progress handling. Unsupported contexts stay original.
+Activation requires the new API and all six verified parent contracts.
+
+Original-ROM verification covers 15,360 actual producer cases and the same
+15,360 cases continued through their real following branch. CPU, full WRAM,
+ordered data bus, open bus and per-instruction CPU/master charges match.
+A fresh standalone archive passes both sets; five changed-ROM negative
+controls are detected. Admission checks cover 1,966,021 consumer states and
+76,981 portable states. The shared timing-guard extraction agrees with its
+previous implementation in 590,121 states. All seventeen fixture helper
+bodies match the production tokens. A further 512 component states check
+mixed read caches, wide reads, progress, scheduler and pending APU debt using
+the actual cycle include and a mock flush recorder. C++ API linkage passes.
+
+The paired current-production replay compares only the new poll hooks on/off.
+Both sides share every other native feature and the same observed core.
+The 1,500-frame boot and 10,607-frame input/controlled-world/menu replay match
+per-frame CPU, WRAM pages, PPU/VRAM/OAM/pixels, PCM, APU/SPC/DSP, beam/open bus,
+CPU/master clocks and ordered port values/timestamps. Word and byte port
+reads are observed consistently, including the first pre-flush state and
+each returned byte. Controlled world/script entry cases are not unrestricted
+gameplay coverage. The longer run executes 4,395,570 interpreter instructions
+versus 5,212,855 without these hooks; the boot run removes 307,152. These are
+workload instruction counts, not a whole-game completion or speed estimate.
+
+Standalone GCC/Clang and isolated Windows Release builds pass together.
+Unchanged CLI executable hashes retain their prior accepted CLI evidence.
+The 27 feature/metadata compatibility cases pass. Full regression, unrelated
+scenes, other platforms and manual gameplay acceptance were deferred.
+Historical field-text audio timing questions remain outside this comparison.
+Private tests and probes remain local; no ROM or extracted assets are added.
+Totals remain 1,812 verified, 1,786 ordinary bindings, 26 verified without an
+ordinary binding and 791 WRAM fields. There are 499 C units and zero drafts.
+
 # Text scene actor and window setup — 2026-10-19
 
 Three complete contracts are verified: 80:BC98 places the next script actor,
