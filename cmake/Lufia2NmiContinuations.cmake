@@ -97,6 +97,13 @@ function(lufia2_add_nmi_continuations target core_root)
                         endif()
                         if(_frame_polls)
                             list(APPEND _definitions LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS=1)
+                            string(REGEX MATCH
+                                "\\[\\[function\\]\\][^[]*address[ \t]*=[ \t]*\"84:8D4D\"[^[]*"
+                                _cave_wait_contract "${_metadata}")
+                            if(_api MATCHES "Lufia2FrameWaitCounterStep[(]" AND
+                               _cave_wait_contract MATCHES "status[ \t]*=[ \t]*\"verified\"")
+                                list(APPEND _definitions LUFIA2_HAVE_NATIVE_FRAME_COUNTER_STEPS=1)
+                            endif()
                         endif()
                         if(_api MATCHES "Lufia2SoundPollIteration[(]" AND
                            _api MATCHES "Lufia2SoundPollBranchTarget[(]")

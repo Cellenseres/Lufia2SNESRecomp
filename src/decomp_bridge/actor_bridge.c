@@ -3226,7 +3226,12 @@ static void ActorBridgeSoundPollRun(CpuState *cpu, uint32_t entry) {
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS)
 static const uint32_t frame_poll_entries[] = {
     0x8293c8u, 0x8293cau, 0x83900eu, 0x839010u, 0x8eb552u,
-    0x8eb554u, 0x868b4eu, 0x868b50u, 0x869752u, 0x869754u};
+    0x8eb554u, 0x868b4eu, 0x868b50u, 0x869752u, 0x869754u,
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_COUNTER_STEPS)
+    0x8293c6u, 0x83900cu, 0x8eb550u, 0x868b4cu, 0x869750u,
+    0x848d4du, 0x848d4fu, 0x848d51u,
+#endif
+};
 
 static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
     if (!ActorBridgePollRunSupported(cpu, entry))
@@ -3237,19 +3242,20 @@ static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
         ++index;
     if (index == sizeof frame_poll_entries / sizeof frame_poll_entries[0])
         return;
-    const bool compare = !(index & 1u);
+    const bool branch = index < 10u ? (index & 1u) != 0u : entry == 0x848d51u;
+    const bool read_counter = !branch;
     ActorTimedBus bus = {0};
     const ActorTimedOpcode opcode = {
         (uint16_t)entry,
         2u,
-        (uint8_t)(compare ? 3u + !cpu->m_flag + ((cpu->D & 0xffu) != 0u) : 2u),
+        (uint8_t)(read_counter ? 3u + !cpu->m_flag + ((cpu->D & 0xffu) != 0u) : 2u),
         0u,
         0u,
-        !compare};
+        branch};
     bus.cpu = cpu;
     bus.opcode = &opcode;
     bus.cycles = opcode.cycles;
-    bus.word_start = compare && !cpu->m_flag ? 2u : 0u;
+    bus.word_start = read_counter && !cpu->m_flag ? 2u : 0u;
     bus.word_bank_wrap = true;
     for (unsigned byte = 0u; byte < 2u; ++byte)
         (void)ActorBridgeTimedRead(&bus, entry + byte);
@@ -3257,7 +3263,11 @@ static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
     Lufia2CpuState state;
     ActorBridgeLoad(cpu, &state);
     const Lufia2ExecutionResult result =
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_COUNTER_STEPS)
+        Lufia2FrameWaitCounterStep(&memory, &state, entry);
+#else
         Lufia2FrameWaitPollStep(&memory, &state, entry);
+#endif
     ActorBridgeTimedFinish(&bus, result.pc);
     ActorBridgeStore(cpu, &state);
     Lufia2DecompFrameReturnComplete(1u, bus.progress_mask);

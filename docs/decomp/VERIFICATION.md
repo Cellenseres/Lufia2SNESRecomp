@@ -1,3 +1,30 @@
+# Frame counter loads and Cave wait - 2026-10-19
+
+The complete $84:8D4D Ancient-Cave frame wait is verified. Its bounded
+continuation preserves the original comparison loop and RTS boundary. It has
+no ordinary HLE binding: the consumer executes each original load, comparison
+and branch separately through scheduler-aware hooks. Six frame-wait families
+now include their initial counter loads; eight previously interpreted opcode
+boundaries are added. The prior poll API keeps its existing entry contract.
+
+The shared checkpoint passes 36,864 original-ROM/producer opcode states and
+20,932 complete-wait states, including 4,176 Cave cases. CPU, WRAM, ordered
+bus, open bus and per-opcode timing agree. Another 425,211 rejection checks,
+144 positive edges and eight effective ROM fault controls pass. GCC, Clang,
+isolated Windows Release, C++ linkage and nine CMake admission contexts pass.
+The CLI executables are unchanged; prior CLI evidence is reused by hash.
+
+Current and accepted-baseline producers match across 10,607 input-driven
+frames, including startup, intro, field, world and menu transitions: CPU,
+WRAM pages, PPU/pixels, PCM, APU/SPC/DSP, beam, clocks and ordered port times.
+Interpreter instructions decrease from 688,844 to 679,806 in this replay.
+Cave and item-region wait hooks are covered by synthetic ROM/producer cases,
+not by scene coverage in this replay. No whole-game or production performance
+claim is made. Full unrelated regression and manual gameplay are deferred.
+
+Totals: 1,813 verified / 1,786 ordinary bindings / 27 verified unbound /
+791 WRAM fields / 499 C units / zero drafts. Tests and proof tools stay local.
+
 # Sound poll edge steps — 2026-10-19
 
 Fifteen original sound polls now execute one native LDA/CMP when a complete
