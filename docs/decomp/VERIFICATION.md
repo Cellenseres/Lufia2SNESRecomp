@@ -1,3 +1,59 @@
+# Text scene actor and window setup — 2026-10-19
+
+Three complete contracts are verified: 80:BC98 places the next script actor,
+80:BC3D handles conditional placement (opcode 68), and 80:BCBC selects window
+mode (opcode 69). BC98 has an ordinary binding. The two commands execute
+under the existing 80:9CB8 text engine and have no separate dispatch binding.
+Existing operand, actor-offset, actor-attribute and actor-cell children retain
+their owners. Compatibility entry points without child services are unchanged.
+
+M1X0/PB80/DP0/binary, stack1F10..1FFC and live script DB are admitted.
+Original actor-slot increment, skipped operands, 32-byte MVN palette copy,
+DB/Y saves, DP73 upload request, frame wait and register restoration remain.
+The palette is read through the ROM bus; no extracted asset is introduced.
+Unknown children, changed widths/DP/decimal and nested unwinds retain their
+actual guest frames and original continuation points. No wait is skipped.
+
+Combined semantic/consumer fixtures pass 2,560 normal original-ROM states
+per harness: 1,536 direct contracts and 1,024 engine callers. The consumer
+fixture uses the actual BC98 and existing 9CB8 bridge bodies for 1,536 of
+those states; unbound command entry tests call semantic C directly. A further
+384 actual RTS/RTL chains, 64 direct native-placement compositions, 20 direct/
+engine nested unwinds, 40 live-child changes and 768 live-data-bank states
+pass per harness. The latter cover all 256 DB values for all three entries;
+BC98 adds 256 actual producer cases. Total counted positive executions are
+3,836 per harness. 60 post-child cases cover ten physical sites through the
+direct entries and engine. Repeated composition-mode controls and command
+return-mode controls are excluded from these positive totals. The engine's
+already-counted native placement compositions have no additional count.
+
+Real original C0B7 operand-reader and BF0B frame-wait instructions execute
+inside the fixtures. Other already-verified child implementations remain
+explicit services. Native composition uses stack>=1F20 for its nested child;
+ordinary entry cases retain1F10 and1FFC admission edges. 393,291 semantic
+and131,352 actual-BC98-ABI pre-access guards and four effective heap-ROM
+instruction controls per harness pass. A no-effect BCAB byte change is not
+an accepted control. The nested dispatcher fixture was corrected to preserve
+a deeper live PB on unwind, matching current cpu_dispatch_call_pc_pushed;
+production dispatch and shared bridge helpers were unchanged.
+
+Fresh final archive: 1,260 counted positive executions per harness including
+all-DB cases, 60 post-child cases, three C++ API symbols and exact eleven-
+helper/two-wrapper production closure pass. Strict GCC, Clang and isolated
+Windows Release builds pass. The CLI executable and private-fixture hashes
+are unchanged, so the prior accepted CLI proof is reused. The owner Windows
+build directory was untouched. The actual production-object1,500-frame
+cold/splash/intro/title check keeps identical picture/PCM/WRAM/CPU digests
+and2,031,721 interpreted instructions. No new cold/title reduction is claimed
+for this scene-command batch or extrapolated to whole-game runtime.
+
+One combined final-source checkpoint covers these dependent changes. Full
+regression, unrelated scenes, manual acceptance, physical timing and a whole-
+game profile are deferred. Historical field-text PCM timing remains open.
+Tests/tools stay private; original ROM and protected owner work are intact.
+Totals:1,812 verified contracts,1,786 ordinary bindings,26 verified-unbound,
+791 WRAM locations,498 semantic C units and zero drafts.
+
 # Select-screen resumptions — 2026-10-19
 
 Four complete continuation contracts are verified and bound: 86:8333 fade,

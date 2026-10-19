@@ -15464,3 +15464,12 @@ RecompReturn Lufia2DecompBridge_8682FC(CpuState *cpu) {
                                   2u, BATTLE_BRIDGE_M1X0, 0,
                                   BATTLE_BRIDGE_WRAM_BANK, 0);
 }
+
+RecompReturn Lufia2DecompBridge_80BC98(CpuState *cpu) {
+    if (cpu->PB != 0x80u || !cpu->m_flag || cpu->x_flag || cpu->D ||
+        cpu->_flag_D || cpu->S < 0x1f10u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x80bc98u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x80bc98u, Lufia2TextPlaceActorFromScript, 2u);
+}
