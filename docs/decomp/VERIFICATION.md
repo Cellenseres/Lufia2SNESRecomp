@@ -1,3 +1,60 @@
+# Select-screen resumptions — 2026-10-19
+
+Four complete continuation contracts are verified and bound: 86:8333 fade,
+86:8352 input countdown, 86:82CE object wait and 86:82FC object-wait repeat.
+They share the existing select-screen workers, with four existing owners
+86:8305/830F/8339/82C8 covered in the same checkpoint. Entry is M1X0,
+PB86/DB7E/DP0, decimal clear, stack 1F00..1FFC. Input resumption begins
+above its saved X word. Original flags, stack traffic, child frames,
+nonlocal unwinds, live child state and the 4096-iteration budget remain.
+Changed child widths, DP, decimal or bank stop at the original continuation.
+No child implementation or additional canonical owner is invented.
+
+Original-ROM differential proof covers 3,035 positive states per side:
+2,048 normal, 512 actual returns, 36 child unwinds, 144 live-child returns,
+36 stack/count edges, three literal budget prefixes and 256 native-owner /
+frame-unwind / resumption chains without another guest frame. 180 post-child
+handoffs cover 20 physical call sites and 36 selected visits. 1,050,688
+pre-access guards and six effective instruction controls pass per side.
+A former 512-case composition-mode switch had no matching children; those
+redundant cases are excluded. This is not a native-child composition claim.
+Fresh final archive: 1,115 positive states per side, 180 post-child checks,
+admission guards, 540 actual redirects and eight original C++ symbols pass.
+
+Ordinary function bindings alone do not intercept interpreter RTS landings
+or branch arrivals. A separate bounded step API stops before the first
+original child call or terminal RTS; it never creates a replacement frame.
+Three conservative pre-op hooks execute the useful prefixes. The zero-work
+82CE arrival remains under its existing interpreter/call owner. All guest
+waits, child dispatch, IRQ/NMI and DMA behavior remain owned by the original
+scheduler. Hooks require synchronized safe beam state, no IRQ/NMI/DMA,
+valid native CPU context and at least 256 master clocks to the deadline.
+
+3,072 original-ROM producer-prefix cases and 3,072 following real JSR/JSL/RTS
+chains check full CPU/128K WRAM/ordered bus and per-opcode CPU/master clocks.
+590,580 admission guards, 4,096 cache/read/write/progress/clock/scheduler
+checkpoint states, three ROM instruction controls, two effective adapter
+controls, nine C++ API symbols, exact 14-helper hook closure and 21 CMake
+availability cases pass. The actual ordinary bridge closure is also checked.
+Fast/slow ROM, saved-X zero/one/wraparound, stack edges and original return
+frames are included. Existing read-only timing/cache infrastructure is reused;
+new stack writes preserve the interpreter's progress epochs and flush points.
+
+An actual production-object cold/splash/intro/title run of 1,500 frames
+reduces interpreter instructions from 2,033,360 to 2,031,721: 1,639 fewer.
+Per-frame aggregate picture, PCM, WRAM and CPU/resume/cycle digests match.
+This is a small measured reduction for that workload, not a whole-game ratio.
+GCC, Clang and isolated Windows Release builds pass. A missing stddef include
+found by GCC/Clang was repaired before the final compiler checkpoint.
+CLI acceptance is reused only for unchanged executable/private-fixture hashes.
+
+This checkpoint covers the combined final source state, not each intermediate
+commit independently. Full regression, unrelated scenes, manual acceptance,
+physical timing and whole-game profiling are deferred. Historical field-text
+PCM timing remains open. Tests/tools remain private; ROM and owner WIP intact.
+Totals: 1,809 verified contracts, 1,785 ordinary bindings, 791 WRAM locations,
+497 semantic C units, 24 verified-unbound entries and zero drafts.
+
 # Pending items and record descriptions — 2026-10-19
 
 Sixteen complete admitted contracts are verified and bound:

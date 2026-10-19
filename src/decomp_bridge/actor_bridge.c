@@ -8,6 +8,9 @@
 #include "snes/dma.h"
 #include "decomp_bridge/frame_returns.h"
 #include "decomp_bridge/frame_return_timing.h"
+#if defined(LUFIA2_HAVE_NATIVE_SELECT_RESUMPTIONS)
+#include "decomp_bridge/select_resume_timing.h"
+#endif
 #endif
 
 
@@ -2620,8 +2623,16 @@ void Lufia2DecompInstallNmiHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
 static bool ActorBridgeFrameReturnSupported(const CpuState *cpu, uint32_t entry) {
     unsigned stack_limit = 0x1ff8u;
+#if defined(LUFIA2_HAVE_NATIVE_SELECT_RESUMPTIONS)
+    const bool selection = entry == 0x868333u || entry == 0x868352u ||
+                           entry == 0x8682fcu;
+    if (selection && (cpu->DB != 0x7eu || cpu->D || cpu->_flag_D || cpu->x_flag))
+        return false;
+#else
+    const bool selection = false;
+#endif
     if (entry != 0x8293ccu && entry != 0x868b52u && entry != 0x869756u &&
-        entry != 0x868b6fu)
+        entry != 0x868b6fu && !selection)
         return false;
     if (entry == 0x868b6fu) {
         stack_limit = 0x1ff7u;
@@ -2691,10 +2702,66 @@ static void ActorBridgeFrameReturn(CpuState *cpu, uint32_t entry) {
     interp_bridge_pre_opcode_redirect(result.pc);
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_SELECT_RESUMPTIONS)
+typedef struct ActorBridgeSelectResumeBus {
+    CpuState *cpu;
+    unsigned progress_mask;
+} ActorBridgeSelectResumeBus;
+
+static uint8_t ActorBridgeSelectResumeRead(void *context, uint32_t address) {
+    ActorBridgeSelectResumeBus *bus = context;
+    bool progress = false;
+    const uint8_t value = Lufia2DecompFrameReturnReadByte(bus->cpu, address, &progress);
+    if (progress)
+        bus->progress_mask |= 1u;
+    return value;
+}
+
+static void ActorBridgeSelectResumeWrite(void *context, uint32_t address,
+                                          uint8_t value) {
+    ActorBridgeSelectResumeBus *bus = context;
+    bool progress = false;
+    Lufia2DecompFrameReturnWriteByte(bus->cpu, address, value, &progress);
+    if (progress)
+        bus->progress_mask |= 1u << 3u;
+}
+
+static void ActorBridgeSelectResume(CpuState *cpu, uint32_t entry) {
+    if (!ActorBridgeFrameReturnSupported(cpu, entry))
+        return;
+    ActorBridgeSelectResumeBus bus = {cpu, 0u};
+    const Lufia2Memory memory = {ActorBridgeSelectResumeRead,
+                                 ActorBridgeSelectResumeWrite, &bus, NULL, NULL};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result =
+        Lufia2SelectScreenStepResumption(&memory, &state, entry);
+    if (result.flow != LUFIA2_EXECUTION_BOUNDARY || result.pc == entry)
+        return;
+    const Lufia2SelectResumeSchedule schedule =
+        Lufia2SelectResumeScheduleFor(entry, result.pc);
+    const unsigned fetch_speed = cpu_region_speed(entry);
+    ActorBridgeStore(cpu, &state);
+    for (unsigned step = 0; step < schedule.count; ++step) {
+        const Lufia2SelectResumeOpcode opcode = schedule.opcodes[step];
+        Lufia2DecompFrameReturnAccountOpcode(
+            cpu, opcode.cycles, Lufia2SelectResumeMasterClocks(opcode, fetch_speed),
+            (bus.progress_mask & (1u << step)) != 0u);
+    }
+    Lufia2DecompFrameReturnComplete(schedule.count, bus.progress_mask);
+    interp_bridge_pre_opcode_redirect(result.pc);
+}
+#endif
+
 void Lufia2DecompInstallFrameReturnHooks(void) {
     static const uint32_t entries[] = {0x8293ccu, 0x868b52u, 0x869756u, 0x868b6fu};
     for (unsigned i = 0; i < sizeof entries / sizeof entries[0]; ++i)
         interp_bridge_set_pre_opcode_hook(entries[i], ActorBridgeFrameReturn);
+#if defined(LUFIA2_HAVE_NATIVE_SELECT_RESUMPTIONS)
+    static const uint32_t selection_entries[] = {0x868333u, 0x868352u, 0x8682fcu};
+    for (unsigned i = 0; i < sizeof selection_entries / sizeof selection_entries[0]; ++i)
+        interp_bridge_set_pre_opcode_hook(selection_entries[i], ActorBridgeSelectResume);
+#endif
 }
 #endif
 
@@ -15372,4 +15439,28 @@ RecompReturn Lufia2DecompBridge_8282E2(CpuState *cpu) {
     return ActorBridgeBattleEntry(cpu, 0x8282e2u, 0, Lufia2MenuDrawWindowDivider,
                                   2u, BATTLE_BRIDGE_M0X0, 0,
                                   BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_868333(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x868333u, 0, Lufia2SelectScreenResumeFade,
+                                  2u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_WRAM_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_868352(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x868352u, 0, Lufia2SelectScreenResumeInputWait,
+                                  2u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_WRAM_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_8682CE(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x8682ceu, 0, Lufia2SelectScreenResumeObjectWait,
+                                  2u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_WRAM_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_8682FC(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x8682fcu, 0, Lufia2SelectScreenRepeatObjectWait,
+                                  2u, BATTLE_BRIDGE_M1X0, 0,
+                                  BATTLE_BRIDGE_WRAM_BANK, 0);
 }

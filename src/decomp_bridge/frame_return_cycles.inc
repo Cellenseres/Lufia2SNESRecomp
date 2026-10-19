@@ -1,6 +1,13 @@
 static unsigned s_frame_return_opcodes;
 static unsigned s_frame_return_progress_mask;
 
+void Lufia2DecompFrameReturnWriteByte(CpuState *cpu, uint32_t address,
+                                      uint8_t value, bool *progress) {
+    const uint64_t before = g_interp_bridge_write_epoch;
+    bridge_bus_write(cpu, address, value);
+    *progress = before != g_interp_bridge_write_epoch;
+}
+
 uint8_t Lufia2DecompFrameReturnReadByte(CpuState *cpu, uint32_t address,
                                         bool *progress) {
     const uint64_t before = s_interp_dynamic_progress_epoch;
