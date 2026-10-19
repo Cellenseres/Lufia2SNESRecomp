@@ -1,3 +1,43 @@
+# Menu input continuations - 2026-10-19
+
+The optional menu_input_phase.h API exposes all thirty-three M1X0 instruction
+boundaries of the existing verified menu input loop. It retains button reads,
+cursor decisions, redraw requests, cursor blinking and sprite-frame calls.
+All five original JSR/JSL frames keep their return words and complete banks.
+Absolute indexed addresses retain carry into the next bank. The old semantic
+functions and declarations remain unchanged; no canonical alias is added.
+
+The consumer executes these phases at the original opcode slot, preserving
+operand/data/stack bus order, indexed-store clock accounting and atomic word
+claims. Generic child dispatch, returns, interrupts, progress and hardware
+clocks stay original. Other widths, emulation, pending interrupts and unknown
+PCs/opcodes retain interpretation. The named verified owner and optional API
+gate activation. Old headers compile without new menu-symbol dependencies.
+
+One shared checkpoint passes 2,314,752 direct and 2,314,752 actual-producer
+original-ROM/CPU/full-WRAM/ordered-bus cases across every stack/index/accumulator
+word and data bank, with eighteen boundary addresses and word claims/fallbacks.
+Another 17,127 producer guards, 74,050 API no-access guards and 65,503 unknown-PC
+checks pass. Six effective faults detect wrong call banks/targets, loop offsets,
+data operands and a lost cached word byte. Eleven CMake contexts, MSVC Release,
+standalone GCC/Clang and C++17 linkage pass. Unchanged CLI contracts are reused.
+
+All thirty-three points execute natively in 2,673 paired hardware contexts.
+These cover three data banks, index/stack classes and clock positions, including
+APU accesses, address carry and stack wrap. Existing public yield and bounce
+exclusion APIs stop before original children; the kernel is unchanged. Each
+case checks one original control step and its exact exit. Normal paired
+10,607-frame runs additionally retain actual compiled child execution at all
+five calls, with all 77,840 observations and artifacts identical to prior main.
+Actual interpreter decoding falls from 80,874 to 67,986 through 12,888 additional
+native phases. Original bridge control steps stay 179,420; prior native counts,
+graphics/audio, clocks, progress epochs and cache agree.
+
+Totals remain 1,818 verified / 1,786 ordinary bindings / 32 verified unbound /
+791 WRAM fields / 499 C units / zero drafts; 193 hooks remain registered.
+Unrelated full regression, other platforms, manual gameplay and production
+speed measurements are deferred. Tests, proofs and ROM remain local.
+
 # Frame register continuations - 2026-10-19
 
 Two optional frame_wait.h APIs expose twenty wait-register points and nine
