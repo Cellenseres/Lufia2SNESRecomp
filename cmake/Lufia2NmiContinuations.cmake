@@ -49,6 +49,7 @@ function(lufia2_add_nmi_continuations target core_root)
     set(_frame_register_boundaries FALSE)
     set(_menu_input_boundaries FALSE)
     set(_sound_frame_boundaries FALSE)
+    set(_field_frame_boundaries FALSE)
     set(_request_boundaries FALSE)
     set(_select_transition_boundaries FALSE)
     if(_api MATCHES "Lufia2FrameWaitRestoreRegisters[(]" AND
@@ -77,6 +78,8 @@ function(lufia2_add_nmi_continuations target core_root)
                         lufia2_select_transition_boundaries_available(_select_transition_boundaries)
                         include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2RequestBoundaries.cmake")
                         lufia2_request_boundaries_available(_request_boundaries)
+                        include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2FieldFrameBoundaries.cmake")
+                        lufia2_field_frame_boundaries_available(_field_frame_boundaries)
                         if(_calls_api MATCHES "Lufia2NmiInvokeCallback[(]" AND
                            _calls_api MATCHES "Lufia2NmiReturnCallback[(]")
                             set(_nmi_callback_boundaries TRUE)
@@ -301,6 +304,13 @@ function(lufia2_add_nmi_continuations target core_root)
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunRequestBoundary(Interp816 *, uint32_t, uint8_t);\n")
                     string(APPEND _timing_suffix
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/request_boundaries.inc\"\n")
+                endif()
+                if(_field_frame_boundaries)
+                    string(APPEND _native_opcode "        if (!_cyc)\n            _cyc = Lufia2DecompRunFieldFrameBoundary(&in, pc_before, op);\n")
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunFieldFrameBoundary(Interp816 *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/field_frame_boundaries.inc\"\n")
                 endif()
                 string(APPEND _native_opcode "        if (!_cyc)\n            _cyc = interp816_runOpcode(&in);")
                 string(REPLACE "${_original_opcode}" "${_native_opcode}"

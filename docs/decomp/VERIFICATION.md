@@ -1,3 +1,48 @@
+# Field frame continuations - 2026-10-19
+
+The optional field_phase.h API exposes all seventy-seven contiguous dispatcher
+boundaries from $83:8000 through $83:80CA under two existing verified owners.
+The original nineteen calls retain their full targets, banks and stack frames.
+Frame waiting, service dispatch, map-word exchange, request-bit clearing,
+sound/text/input tests and loop branches keep literal CPU and bus behavior.
+PHK/PLB publish the live data bank. Existing semantic bodies and public
+declarations stay unchanged; no canonical function or binding is added.
+
+The consumer keeps original generic child/return, interrupt, clock and progress
+ownership. Word loads delegate the original word service exactly once. The
+actual M1 byte and M0 map contracts, independent control/stack widths and
+conditional branch clocks remain explicit. Emulation, pending interrupts,
+unknown PCs/opcodes and unsupported widths stay interpreted. The optional API
+and both named, addressed verified owners gate use; older headers compile
+without new field-phase dependencies.
+
+One shared checkpoint passes 6,368,768 direct and 6,368,768 actual-producer
+original-ROM/CPU/full-WRAM/ordered-bus cases across every stack/DP word,
+all statuses and accepted widths, and twenty-one edge addresses. Data-word
+callback claims and fallback agree. Another 39,871 producer, 281,687 API
+no-access and 65,459 unknown-PC guards pass. Nine effective faults are detected.
+Fifteen CMake contexts, standalone GCC/Clang, C++17 linkage and isolated MSVC
+Release pass; unchanged CLI executable/fixture contracts are reused.
+
+All seventy-seven points execute natively in 19,926 paired hardware contexts,
+covering every accepted width contract and three DB/DP/stack/clock classes.
+Map words, DP APU BIT reads, TRB, bank restoration, stack wrap, exact exits and
+one original control step per case agree. Public yield/exclusion APIs stop
+before all nineteen children; the generic kernel is unchanged. Normal paired
+10,607-frame runs retain all 77,840 observations and prior-main artifacts,
+including real children at 10 of the nineteen call sites. Remaining calls
+have controlled boundary coverage, not claimed normal replay execution.
+
+Actual decoding falls from 38,578 to 37,180 through 1,398 additional
+native phases. Control visits remain 179,420, including 142,240 native slot
+phases. Prior native counts, graphics/audio, clocks, epochs and cache agree.
+These replay counts are not whole-game coverage or a production speed claim.
+
+Totals remain 1,818 verified / 1,786 ordinary bindings / 32 verified unbound /
+791 WRAM fields / 499 C units / zero drafts; 193 hooks remain registered.
+Unrelated full regression, other platforms and manual gameplay are deferred.
+Tests, proofs and ROM remain local; parallel owner work is unchanged.
+
 # Sound and window request continuations - 2026-10-19
 
 Two optional APIs expose nineteen sound-command/mode boundaries and twelve
