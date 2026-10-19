@@ -1,3 +1,39 @@
+# NMI call and return boundaries - 2026-10-19
+
+Optional nmi_calls.h exposes five original NMI child-call frames and the
+terminal native-mode interrupt return. Existing whole NMI bodies are unchanged.
+The consumer selects these phases in the original opcode execution slot,
+keeping all original call/return bookkeeping, stop rules, progress counters,
+bus timing and coprocessor accounting. No call is skipped by a PC redirect.
+Unsupported ownership, CPU modes and stack contexts retain interpretation.
+The RTI phase permits the original cleared NMI latch and stack byte at $2000.
+
+Shared checks pass 393,216 direct and 393,216 actual-producer ROM states,
+394,846 producer guards and 67,061 API no-access guards. CPU, full WRAM and
+ordered bus agree across all six boundaries, status/width combinations and
+stack edges. Sixteen effective in-memory ROM faults exercise the unchanged
+semantic phase bodies. Thirteen CMake contexts preserve prior properties and
+older APIs. MSVC Release, standalone GCC/Clang and C++17 linkage pass; unchanged
+CLI executables and fixtures reuse accepted checks. The final source cleanup
+only expands switch formatting without changing tokens.
+
+Paired 10,607-frame runs match all 77,840 observations and artifacts against
+prior main. Actual interp816 decoding falls from 179,420 to 127,441 instructions:
+51,979 additional phases run natively. Original bridge control steps remain
+179,420, preserving scheduler bookkeeping. Another 528 hardware contexts cover
+432 event/restore paths and 96 complete NMI call compositions, including all
+eight request combinations, four saved status modes, three clock positions
+and real RAM JSL/RTL/RTS callbacks. All six boundaries have positive native hits.
+
+An initial positive-count assertion exposed the already-cleared NMI latch;
+that run was rejected. Only corrected, positively exercised integration is
+accepted. Unrelated full regression, other platforms, manual gameplay and
+production speed measurements remain deferred. This is no whole-game claim.
+No canonical function or ordinary binding is added. Totals remain 1,818 verified,
+1,786 ordinary bindings, 32 verified unbound, 791 WRAM fields, 499 C units and
+zero drafts. The 193 hooks are unchanged. Tests/tools/ROM remain local;
+concurrent owner changes are outside the pinned compiled snapshot.
+
 # NMI restore-width continuation - 2026-10-19
 
 The verified NMI owner now exposes the complete status-width transition at

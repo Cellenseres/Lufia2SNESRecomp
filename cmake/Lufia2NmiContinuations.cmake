@@ -43,6 +43,7 @@ function(lufia2_add_nmi_continuations target core_root)
     endif()
     set(_frame_returns FALSE)
     set(_nmi_restore_width FALSE)
+    set(_nmi_call_boundaries FALSE)
     if(_api MATCHES "Lufia2FrameWaitRestoreRegisters[(]" AND
        EXISTS "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h")
         file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h" _menu_api)
@@ -51,6 +52,14 @@ function(lufia2_add_nmi_continuations target core_root)
             lufia2_frame_returns_available(_frame_returns ${target})
             if(_frame_returns)
                 list(APPEND _definitions LUFIA2_HAVE_NATIVE_FRAME_RETURNS=1)
+                set(_calls_header "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/nmi_calls.h")
+                if(EXISTS "${_calls_header}")
+                    file(READ "${_calls_header}" _calls_api)
+                    if(_calls_api MATCHES "Lufia2NmiBeginChild[(]" AND
+                       _calls_api MATCHES "Lufia2NmiReturnInterrupt[(]")
+                        set(_nmi_call_boundaries TRUE)
+                    endif()
+                endif()
                 set(_finish_header "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/nmi_finish.h")
                 if(_api MATCHES "Lufia2NmiDisplayAndClock[(]" AND
                    _api MATCHES "Lufia2NmiRestoreInterruptFrame[(]" AND
@@ -221,6 +230,20 @@ function(lufia2_add_nmi_continuations target core_root)
             set(_output "${CMAKE_BINARY_DIR}/generated/decomp-nmi/interp_bridge.c")
             file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/generated/decomp-nmi")
             set(_timing_suffix "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/nmi_cycles.inc\"\n")
+            if(_nmi_call_boundaries)
+                set(_original_opcode "        int _cyc = interp816_runOpcode(&in);   /* executes the opcode; pushes/pops frames */")
+                string(FIND "${_text}" "${_original_opcode}" _opcode_offset)
+                if(_opcode_offset EQUAL -1)
+                    message(FATAL_ERROR "Native NMI calls require reviewed opcode execution")
+                endif()
+                string(REPLACE "${_original_opcode}"
+                    "        int _cyc = Lufia2DecompNmiRunCallBoundary(\n            &in, pc_before, op, stop_on_rti, auto_quiescent);\n        if (!_cyc)\n            _cyc = interp816_runOpcode(&in);"
+                    _text "${_text}")
+                string(PREPEND _text
+                    "#include \"interp816.h\"\nstatic int Lufia2DecompNmiRunCallBoundary(Interp816 *, uint32_t, uint8_t, int, int);\n")
+                string(APPEND _timing_suffix
+                    "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/nmi_calls.inc\"\n")
+            endif()
             if(_frame_returns)
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2OpcodeHookPages.cmake")
                 lufia2_filter_opcode_hook_pages(_text "${_text}")
