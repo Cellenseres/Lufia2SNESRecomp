@@ -1,3 +1,26 @@
+# Literal battle-list read order - 2026-10-20
+
+The existing IP/spell/item entry helpers and 81:DFA2 list owner retain two
+original access boundaries. IP glyph mode is read after the entry palette
+and header advance; tile attributes are read after both glyph writes.
+Previously eager C argument evaluation moved these reads earlier. Shared
+helpers now own the reads at the original points, preserving overlapping
+output/scratch behavior. Local entry-count and list-mode DP names document
+the operation. No new function, public API, binding or gameplay patch is added.
+
+The shared checkpoint passes 12,288 original-ROM comparisons across all
+three internal entry renderers and the complete eight-row parent, including
+DP/high-index and scratch/output alias cases. CPU, full WRAM, ordered data
+bus and device state match. Another 1,024 actual production-object bridge
+cases match original-ROM CPU/full-WRAM state with zero interpreter fallback.
+Independent controls detect each original early-read defect. Incremental
+GCC/Clang and isolated Windows Release pass; CLI executable/fixture hashes
+remain unchanged. Public C++ declarations are unchanged. Unaffected source
+functions retain their prior proofs. Full regression and a new battle replay
+are deferred; this is not evidence for a specific reported visual bug.
+Internal E019/E094/E100 ownership is recorded without adding duplicate APIs.
+All 1,819 existing functions remain verified; tests and ROM remain private.
+
 # Save record-tail copies - 2026-10-20
 
 The 85:C954/85:C60E save owners now share portable copy logic for the
