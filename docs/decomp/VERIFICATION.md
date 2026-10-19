@@ -1,3 +1,28 @@
+# Save record-tail copies - 2026-10-20
+
+The 85:C954/85:C60E save owners now share portable copy logic for the
+63-byte saved Capsule-stat region and 28-byte battle-submenu choices.
+Names follow the existing WRAM catalogue. X descends through saved state,
+Y advances through the record, and original signed DEX termination and
+M/X behavior remain literal. No new canonical entry or binding is counted.
+Four bounded loop paths use the existing clock/fetch-only consumer and
+retain deadlines, page penalties, bus order and final branch timing.
+
+One checkpoint passes 16,360 bounded/full-width ROM comparisons, 15,220
+consumer CPU/full-WRAM/fetch/data/clock cases (12,574 native, 2,646 fallback),
+7,168 portable and 16,384 consumer no-access guards. Affected prior save
+checks pass 15,184 spans, 77,464 consumer cases, 23,552 guards and 4,385
+complete-parent/child-unwind cases. Two injected faults are detected.
+Incremental GCC/Clang, isolated Windows Release and C++17 linkage pass.
+CLI results reuse unchanged executable/fixture hashes. Unchanged common
+bus, menu and injection sources retain the preceding Stop/Yield proof.
+Full regression remains deferred; checks cover the combined final batch.
+
+All 3,000 production frame CPU/WRAM/image/audio hash rows match the prior
+accepted build. Actual decoded instructions fall from 15,151 to 11,511
+in this local read-only save/menu/field scenario. No whole-game coverage
+or wall-clock speedup is claimed. Tests, SRAM and ROM remain private.
+
 # Clocked save snapshot spans - 2026-10-20
 
 The original 85:C954 pack and 85:C60E restore share a readable field/count
