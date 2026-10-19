@@ -1,3 +1,28 @@
+# Shared battle sprite algorithms - 2026-10-20
+
+Five existing algorithms now have one shared implementation each: ordinary
+and mirrored OAM grids, two-row tile grids, character sprite words and packed
+sprite coordinates. Canonical public routines retain their original guards;
+frame and popup callers use the same unchecked internal bodies with their
+original frames. Operation-local DP names describe grid inputs and progress.
+No public API, canonical entry, binding, C unit or instruction-PC switch is added.
+
+The shared checkpoint passes 11,368 original-ROM algorithm cases, including
+widths, decimal arithmetic, zero counters and boundary destinations; 4,096
+complete frame-renderer cases; and 3,072 complete popup-caller cases. CPU,
+full WRAM, ordered data bus and device state match. Another 1,024 existing
+parent-context and 3,072 public lookup/mirror guards access no bus. Ten actual
+production bridges pass 2,560 CPU/full-WRAM cases with zero fallback. Two
+faults detect OAM stepping and lookup-table offsets. Incremental GCC/Clang
+and isolated Windows Release pass; unchanged public headers and CLI hashes
+reuse preceding linkage/CLI proofs. Full regression and a new replay are deferred.
+
+The initial parent fixture bypassed existing party/tilemap decimal guards,
+visited unseeded records and exceeded its trace bound. Final parent tests
+verify those exact contexts as unchanged no-access handoffs; the shared
+algorithms retain independent decimal-mode ROM coverage. No production guard
+was changed. All 1,819 existing functions remain verified; tests stay private.
+
 # Record pointer source admission - 2026-10-20
 
 The direct 81:F45E/F46B/F476 consumer bridges now admit table reads only
