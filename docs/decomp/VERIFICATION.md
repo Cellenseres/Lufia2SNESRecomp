@@ -1,3 +1,39 @@
+# Additional original frame waits - 2026-10-19
+
+Three complete waits are verified: $80:9378 preserves status, $84:A5A8
+preserves accumulator and status, and $8E:B288 waits without saving registers.
+The first two expose dynamic exit widths because they restore live status.
+Their original stack effects, counter reads, timeout continuations and RTS
+boundaries remain. They have no ordinary busy-wait HLE bindings.
+
+Eight additional literal counter-loop sites now expose 24 individual native
+LDA/CMP/BEQ phases. All 15 detected copies of that original loop can execute
+with a scheduler boundary after every opcode. The existing counter and poll
+APIs keep their accepted entries. A new capability requires the extended API
+and seven verified owner contracts. No wait fast-forward was added.
+
+The shared checkpoint passes 92,160 original-ROM/producer opcode states and
+37,636 complete-wait cases, including 12,528 new-root cases. CPU, full WRAM,
+ordered bus, open bus and opcode costs agree. Another 537,502 rejection
+checks, 360 positive edges and 15 effective ROM fault controls pass. Isolated
+Windows Release, standalone GCC/Clang, C++ linkage, 35 CMake contexts and four
+compiled capability contexts pass. CLI binaries are unchanged; prior CLI
+proof is reused by hash. Unaffected semantic and producer code is unchanged.
+
+Normal current/baseline replays match over 10,607 frames, including CPU,
+WRAM pages, PPU/pixels, PCM, APU/SPC/DSP, beam, clocks and port timestamps.
+Those scenes do not visit the new sites; their LLE count stays at 658,524.
+A separate real-NMI/APU/PPU replay covers all 15 wait loops in both accumulator
+widths: 30 controlled contexts and 90 frames after a cold baseline. Every new
+phase executes, including both battle waits. CPU and hardware observations
+match at each original loop tail and each frame. A common test redirect stops
+before the following original instructions; this is not complete battle-scene
+or hardware epilogue coverage. Whole-function ROM checks cover the epilogues.
+Full unrelated regression, other platforms and manual gameplay are deferred.
+
+Totals: 1,817 verified / 1,786 ordinary bindings / 31 verified unbound /
+791 WRAM fields / 499 C units / zero drafts. Tests and tools stay local.
+
 # Text frame wait and explicit opcode properties - 2026-10-19
 
 The complete $80:BF0B text frame wait is verified. Existing scene, window

@@ -110,6 +110,22 @@ function(lufia2_add_nmi_continuations target core_root)
                                    _text_wait_contract MATCHES "status[ \t]*=[ \t]*\"verified\"")
                                     list(APPEND _definitions LUFIA2_HAVE_NATIVE_TEXT_FRAME_WAIT=1)
                                 endif()
+                                set(_additional_waits FALSE)
+                                if(_api MATCHES "Lufia2FrameWaitAdditionalStep[(]")
+                                    set(_additional_waits TRUE)
+                                    foreach(_wait_address IN ITEMS "80:9378" "84:A5A8" "8E:B288"
+                                                                  "84:8363" "85:851C" "85:EC81" "8E:C1DE")
+                                        string(REGEX MATCH
+                                            "\\[\\[function\\]\\][^[]*address[ \t]*=[ \t]*\"${_wait_address}\"[^[]*"
+                                            _wait_contract "${_metadata}")
+                                        if(NOT _wait_contract MATCHES "status[ \t]*=[ \t]*\"verified\"")
+                                            set(_additional_waits FALSE)
+                                        endif()
+                                    endforeach()
+                                endif()
+                                if(_additional_waits)
+                                    list(APPEND _definitions LUFIA2_HAVE_NATIVE_ADDITIONAL_FRAME_WAITS=1)
+                                endif()
                             endif()
                         endif()
                         if(_api MATCHES "Lufia2SoundPollIteration[(]" AND

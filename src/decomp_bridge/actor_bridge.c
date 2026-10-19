@@ -3230,19 +3230,23 @@ typedef struct ActorFramePollEntry {
 } ActorFramePollEntry;
 
 static const ActorFramePollEntry frame_poll_entries[] = {
-    {0x8293c8u, false}, {0x8293cau, true},
-    {0x83900eu, false}, {0x839010u, true},
-    {0x8eb552u, false}, {0x8eb554u, true},
-    {0x868b4eu, false}, {0x868b50u, true},
+    {0x8293c8u, false}, {0x8293cau, true},  {0x83900eu, false}, {0x839010u, true},
+    {0x8eb552u, false}, {0x8eb554u, true},  {0x868b4eu, false}, {0x868b50u, true},
     {0x869752u, false}, {0x869754u, true},
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_COUNTER_STEPS)
-    {0x8293c6u, false}, {0x83900cu, false},
-    {0x8eb550u, false}, {0x868b4cu, false},
-    {0x869750u, false}, {0x848d4du, false},
-    {0x848d4fu, false}, {0x848d51u, true},
+    {0x8293c6u, false}, {0x83900cu, false}, {0x8eb550u, false}, {0x868b4cu, false},
+    {0x869750u, false}, {0x848d4du, false}, {0x848d4fu, false}, {0x848d51u, true},
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_TEXT_FRAME_WAIT)
     {0x80bf0bu, false}, {0x80bf0du, false}, {0x80bf0fu, true},
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_ADDITIONAL_FRAME_WAITS)
+    {0x80937bu, false}, {0x80937du, false}, {0x80937fu, true},  {0x848363u, false},
+    {0x848365u, false}, {0x848367u, true},  {0x84a5acu, false}, {0x84a5aeu, false},
+    {0x84a5b0u, true},  {0x85851cu, false}, {0x85851eu, false}, {0x858520u, true},
+    {0x85ec94u, false}, {0x85ec96u, false}, {0x85ec98u, true},  {0x85ecb7u, false},
+    {0x85ecb9u, false}, {0x85ecbbu, true},  {0x8eb288u, false}, {0x8eb28au, false},
+    {0x8eb28cu, true},  {0x8ec2c4u, false}, {0x8ec2c6u, false}, {0x8ec2c8u, true},
 #endif
 };
 
@@ -3276,7 +3280,9 @@ static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
     Lufia2CpuState state;
     ActorBridgeLoad(cpu, &state);
     const Lufia2ExecutionResult result =
-#if defined(LUFIA2_HAVE_NATIVE_FRAME_COUNTER_STEPS)
+#if defined(LUFIA2_HAVE_NATIVE_ADDITIONAL_FRAME_WAITS)
+        Lufia2FrameWaitAdditionalStep(&memory, &state, entry);
+#elif defined(LUFIA2_HAVE_NATIVE_FRAME_COUNTER_STEPS)
         Lufia2FrameWaitCounterStep(&memory, &state, entry);
 #else
         Lufia2FrameWaitPollStep(&memory, &state, entry);
