@@ -49,6 +49,7 @@ function(lufia2_add_nmi_continuations target core_root)
     set(_frame_register_boundaries FALSE)
     set(_menu_input_boundaries FALSE)
     set(_sound_frame_boundaries FALSE)
+    set(_select_transition_boundaries FALSE)
     if(_api MATCHES "Lufia2FrameWaitRestoreRegisters[(]" AND
        EXISTS "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h")
         file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h" _menu_api)
@@ -71,6 +72,8 @@ function(lufia2_add_nmi_continuations target core_root)
                         lufia2_menu_input_boundaries_available(_menu_input_boundaries)
                         include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2SoundFrameBoundaries.cmake")
                         lufia2_sound_frame_boundaries_available(_sound_frame_boundaries)
+                        include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2SelectTransitionBoundaries.cmake")
+                        lufia2_select_transition_boundaries_available(_select_transition_boundaries)
                         if(_calls_api MATCHES "Lufia2NmiInvokeCallback[(]" AND
                            _calls_api MATCHES "Lufia2NmiReturnCallback[(]")
                             set(_nmi_callback_boundaries TRUE)
@@ -281,6 +284,13 @@ function(lufia2_add_nmi_continuations target core_root)
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunSoundFrameBoundary(Interp816 *, uint32_t, uint8_t);\n")
                     string(APPEND _timing_suffix
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/sound_frame_boundaries.inc\"\n")
+                endif()
+                if(_select_transition_boundaries)
+                    string(APPEND _native_opcode "        if (!_cyc)\n            _cyc = Lufia2DecompRunSelectTransitionBoundary(&in, pc_before, op);\n")
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunSelectTransitionBoundary(Interp816 *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/select_transition_boundaries.inc\"\n")
                 endif()
                 string(APPEND _native_opcode "        if (!_cyc)\n            _cyc = interp816_runOpcode(&in);")
                 string(REPLACE "${_original_opcode}" "${_native_opcode}"

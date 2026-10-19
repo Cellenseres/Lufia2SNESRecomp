@@ -1,3 +1,43 @@
+# Select transition continuations - 2026-10-19
+
+The optional select_phase.h API exposes all sixty-three M1X0 boundaries across
+object waiting, fade-in/out and input waiting under eight existing verified
+owners. Twenty original JSR/JSL sites retain their actual return frames and
+complete program banks. Button tests, fade RAM, DP upload flags, index stack,
+loop branches, carry results and RTS remain literal. Existing semantic bodies
+and public declarations are unchanged; no canonical alias or binding is added.
+
+The consumer uses the original opcode slot and keeps generic child/return,
+progress, interrupt and hardware clock ownership. Unknown PCs/opcodes, other
+widths, emulation and pending interrupts remain interpreted. The optional API
+and all eight named, correctly addressed verified owners gate activation. Old
+headers compile without new select-symbol dependencies.
+
+One combined checkpoint passes 4,435,200 direct and 4,435,200 actual-producer
+original-ROM/CPU/full-WRAM/ordered-bus cases. Every stack/DP/accumulator/index
+word and data bank, nineteen edge addresses and all M1X0 status combinations
+are covered.
+Another 32,697 producer, 81,790 API no-access and 65,473 unknown-PC guards pass.
+These byte/stack operations never claim a word callback. Eight effective faults
+cover call banks/targets, button bits, branch offsets, upload/fade operands and
+return type. Thirty-nine CMake contexts, MSVC Release, standalone GCC/Clang and
+C++17 linkage pass; unchanged CLI executable/fixture contracts are reused.
+
+All sixty-three points execute natively in 5,103 paired hardware contexts,
+including three data banks, DP/stack classes and clock positions, APU DP stores
+and wrap. Each checks one original control step and its exact exit. Existing
+public yield/exclusion APIs stop before children; the kernel is unchanged.
+Normal paired 10,607-frame runs additionally execute nineteen of the twenty
+call sites with actual children. All 77,840 observations and artifacts match
+prior main. Actual decoding falls from 56,088 to 41,056 through 15,032 additional
+native phases. Bridge control steps remain 179,420; previous native counts,
+graphics/audio, clocks, progress epochs and cache agree.
+
+Totals remain 1,818 verified / 1,786 ordinary bindings / 32 verified unbound /
+791 WRAM fields / 499 C units / zero drafts; 193 hooks remain registered.
+Unrelated full regression, other platforms, manual gameplay and production
+speed measurements are deferred. Tests, proofs and ROM remain local.
+
 # Sound frame continuations - 2026-10-19
 
 Two optional sound_phase.h APIs expose eighteen resource-header phases and
