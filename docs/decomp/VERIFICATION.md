@@ -1,3 +1,35 @@
+# Layered menu rectangles - 2026-10-19
+
+The complete $82:83B5 rectangle clear is verified in shared readable C with
+$82:83EB. The former clears both tilemaps, the latter only the back tilemap.
+Both retain scratch writes, ordered cell writes, stack contents, bank restore
+and caller-visible registers/flags. The contract accepts nonempty, aligned,
+in-bounds rectangles in M0X0/D0/binary; other inputs hand off before access.
+The existing embedded implementation in the parallel menu owner is untouched.
+
+Thirty original CPU boundaries expose the full $82:83B5 body with exact current
+consumer timing. Original call/RTS ownership remains. There is no ordinary HLE
+binding: its generated entry watchdog adds a clock charge not present at the
+original entry. No clock rewind, SDK clock change or wider ABI change is used.
+Capability requires the optional header and verified owner metadata.
+
+Shared checks pass 590,336 original-ROM whole-function cases, covering every
+278,784 legal rectangle for each variant. The retained $82:83EB producer passes
+4,096 ABI cases and 5,376 rejection guards. Timed continuation checks pass
+307,200 ROM/producer cases, 24,276 rejection guards, 720 positives and 138,782
+no-access API guards. Sixty-two effective ROM fault controls and eleven CMake
+contexts pass. Windows Release, GCC/Clang archives and C++17 linkage pass;
+unchanged CLI binaries/fixtures reuse their accepted checks.
+
+Paired 10,607-frame replays match 77,840 observations and their artifacts. They
+also match the previous accepted main in CPU/clocks/WRAM/video/audio/hardware
+observations. All thirty sites execute: 16,344 native contexts, 179/192 hooks.
+Interpreted instructions fall from 226,983 to 210,639 in that workload. This
+is not a whole-game or production-speedup claim. Full unrelated regression,
+other platforms and manual gameplay remain deferred. Totals: 1,818 verified /
+1,786 ordinary bindings / 32 verified unbound / 791 WRAM fields / 499 C units /
+zero drafts. Tests, tools and ROM stay private.
+
 # Frame counter clock boundaries - 2026-10-19
 
 All 45 existing frame-counter instruction boundaries can complete across a

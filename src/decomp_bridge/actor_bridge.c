@@ -2819,6 +2819,9 @@ static void ActorBridgeSoundPoll(CpuState *cpu, uint32_t entry) {
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_UPLOAD_STEPS)
+#if defined(LUFIA2_HAVE_NATIVE_MENU_RECTANGLE_STEPS)
+#include "lufia2/menu_rectangle.h"
+#endif
 static const uint32_t sound_upload_entries[] = {0x809969u, 0x80997du, 0x809988u,
                                                 0x80998bu, 0x80999du};
 
@@ -3286,6 +3289,89 @@ static void ActorBridgeSoundTransferOpcode(CpuState *cpu, uint32_t entry) {
     interp_bridge_pre_opcode_redirect(result.pc);
 }
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_MENU_RECTANGLE_STEPS)
+typedef struct ActorMenuRectangleOpcode {
+    ActorTimedOpcode timing;
+    uint8_t accumulator_8;
+} ActorMenuRectangleOpcode;
+
+static const ActorMenuRectangleOpcode menu_rectangle_opcodes[] = {
+    {{0x83b5u, 2u, 4u, 0u, 0u, 0u}, 0u},
+    {{0x83b7u, 2u, 4u, 0u, 0u, 0u}, 0u},
+    {{0x83b9u, 2u, 4u, 0u, 0u, 0u}, 0u},
+    {{0x83bbu, 1u, 2u, 0u, 0u, 0u}, 0u},
+    {{0x83bcu, 2u, 3u, 0u, 0u, 0u}, 0u},
+    {{0x83beu, 2u, 3u, 0u, 0u, 0u}, 1u},
+    {{0x83c0u, 1u, 3u, 0u, 0u, 0u}, 1u},
+    {{0x83c1u, 2u, 3u, 0u, 0u, 0u}, 1u},
+    {{0x83c3u, 2u, 3u, 0u, 0u, 0u}, 1u},
+    {{0x83c5u, 1u, 3u, 0u, 0u, 0u}, 0u},
+    {{0x83c6u, 2u, 3u, 0u, 0u, 0u}, 0u},
+    {{0x83c8u, 2u, 2u, 0u, 0u, 0u}, 1u},
+    {{0x83cau, 1u, 3u, 0u, 0u, 0u}, 1u},
+    {{0x83cbu, 1u, 4u, 0u, 0u, 0u}, 1u},
+    {{0x83ccu, 2u, 3u, 0u, 0u, 0u}, 1u},
+    {{0x83ceu, 2u, 4u, 0u, 0u, 0u}, 0u},
+    {{0x83d0u, 2u, 4u, 0u, 0u, 0u}, 0u},
+    {{0x83d2u, 3u, 7u, 0u, 0u, 0u}, 0u},
+    {{0x83d5u, 3u, 7u, 0u, 0u, 0u}, 0u},
+    {{0x83d8u, 1u, 2u, 0u, 0u, 0u}, 0u},
+    {{0x83d9u, 1u, 2u, 0u, 0u, 0u}, 0u},
+    {{0x83dau, 1u, 2u, 0u, 0u, 0u}, 0u},
+    {{0x83dbu, 2u, 2u, 0u, 0u, 1u}, 0u},
+    {{0x83ddu, 2u, 4u, 0u, 0u, 0u}, 0u},
+    {{0x83dfu, 1u, 2u, 0u, 0u, 0u}, 0u},
+    {{0x83e0u, 3u, 3u, 0u, 0u, 0u}, 0u},
+    {{0x83e3u, 2u, 4u, 0u, 0u, 0u}, 0u},
+    {{0x83e5u, 2u, 7u, 0u, 0u, 0u}, 0u},
+    {{0x83e7u, 2u, 2u, 0u, 0u, 1u}, 0u},
+    {{0x83e9u, 1u, 4u, 0u, 0u, 0u}, 0u},
+};
+
+static void ActorBridgeMenuRectangleStep(CpuState *cpu, uint32_t entry) {
+    const ActorMenuRectangleOpcode *selected = NULL;
+    for (unsigned i = 0;
+         i < sizeof menu_rectangle_opcodes / sizeof menu_rectangle_opcodes[0]; ++i)
+        if ((0x820000u | menu_rectangle_opcodes[i].timing.pc) == entry) {
+            selected = menu_rectangle_opcodes + i;
+            break;
+        }
+    if (!selected || cpu->m_flag != selected->accumulator_8 || cpu->x_flag ||
+        cpu->D || cpu->_flag_D || !g_snes || !g_snes->hdmaBeamOff ||
+        cpu->coprocessor_master_cycles != cpu->master_cycles)
+        return;
+    if ((entry == 0x8283d2u || entry == 0x8283d5u) &&
+        (cpu->DB != 0x7eu || cpu->X >= 0x0800u || (cpu->X & 1u)))
+        return;
+    const ActorTimedOpcode *opcode = &selected->timing;
+    const unsigned budget = (opcode->cycles + opcode->branch) *
+                                SOUND_TRANSFER_BUS_CLOCKS +
+                            SOUND_TRANSFER_REFRESH_CLOCKS;
+    if (!ActorBridgeSingleOpcodeSupported(cpu, entry, budget))
+        return;
+    ActorTimedBus bus = {0};
+    bus.cpu = cpu;
+    bus.opcode = opcode;
+    bus.cycles = opcode->cycles;
+    if (entry == 0x8283ceu || entry == 0x8283d0u || entry == 0x8283ddu ||
+        entry == 0x8283e5u)
+        bus.word_start = opcode->fetched;
+    bus.word_bank_wrap = true;
+    for (unsigned i = 0; i < opcode->fetched; ++i)
+        (void)ActorBridgeTimedRead(&bus, entry + i);
+    const Lufia2Memory memory = {ActorBridgeTimedRead, ActorBridgeTimedWrite,
+                                 &bus, NULL, NULL};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result =
+        Lufia2MenuClearLayerRectangleStep(&memory, &state, entry);
+    ActorBridgeTimedFinish(&bus, result.pc);
+    ActorBridgeStore(cpu, &state);
+    Lufia2DecompFrameReturnComplete(1u, bus.progress_mask);
+    interp_bridge_pre_opcode_redirect(result.pc);
+}
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS)
 typedef struct ActorFramePollEntry {
     uint32_t address;
@@ -3378,6 +3464,12 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_MENU_RECTANGLE_STEPS)
+    for (unsigned i = 0;
+         i < sizeof menu_rectangle_opcodes / sizeof menu_rectangle_opcodes[0]; ++i)
+        interp_bridge_set_pre_opcode_hook(0x820000u | menu_rectangle_opcodes[i].timing.pc,
+                                          ActorBridgeMenuRectangleStep);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS)
     for (unsigned i = 0u; i < sizeof frame_poll_entries / sizeof frame_poll_entries[0];
          ++i)

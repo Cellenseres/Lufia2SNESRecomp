@@ -128,6 +128,18 @@ function(lufia2_add_nmi_continuations target core_root)
                                 endif()
                             endif()
                         endif()
+                        set(_rectangle_header "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu_rectangle.h")
+                        if(_frame_polls AND EXISTS "${_rectangle_header}")
+                            file(READ "${_rectangle_header}" _rectangle_api)
+                            string(REGEX MATCH
+                                "\\[\\[function\\]\\][^[]*name[ \t]*=[ \t]*\"Lufia2MenuClearLayerRectangle\"[^[]*"
+                                _rectangle_contract "${_metadata}")
+                            if(_rectangle_api MATCHES "Lufia2MenuClearLayerRectangleStep[(]" AND
+                               _rectangle_contract MATCHES "address[ \t]*=[ \t]*\"82:83B5\"" AND
+                               _rectangle_contract MATCHES "status[ \t]*=[ \t]*\"verified\"")
+                                list(APPEND _definitions LUFIA2_HAVE_NATIVE_MENU_RECTANGLE_STEPS=1)
+                            endif()
+                        endif()
                         if(_api MATCHES "Lufia2SoundPollIteration[(]" AND
                            _api MATCHES "Lufia2SoundPollBranchTarget[(]")
                             list(APPEND _definitions LUFIA2_HAVE_NATIVE_SOUND_POLL_RUNS=1)
