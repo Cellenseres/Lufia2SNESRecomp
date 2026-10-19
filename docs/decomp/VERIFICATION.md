@@ -1,3 +1,23 @@
+# Record pointer source admission - 2026-10-20
+
+The direct 81:F45E/F46B/F476 consumer bridges now admit table reads only
+when both source bytes address mapped ROM or low WRAM. Original shifted
+16-bit indexing, 24-bit bank carry and the negative IP early exit determine
+the source without touching guest state or reading the bus. Device/unmapped
+sources use the existing original fallback before return-frame inspection.
+Portable semantics, original out-of-table behavior and public guards remain
+unchanged. This does not fix the separate C129 invalid-equipment edge.
+
+The shared checkpoint compares 196,608 inputs against original-ROM data
+accesses: 135,164 admitted and 61,444 unchanged-state fallback cases.
+Private dispatch-boundary observers verify the fallback wiring; two faults
+detect removed admission and an unchecked second byte. Another 3,072 actual
+production-object bridge cases with ROM-backed records pass CPU/full-WRAM
+comparison with zero fallback. Isolated Windows Release passes. Unchanged
+portable sources, public declarations and CLI linked inputs reuse their
+preceding ROM/compiler/linkage/CLI proofs. Full regression is deferred.
+No decomp entry, binding or function count is added; tests remain private.
+
 # Shared IP record owner - 2026-10-20
 
 The IP list builder no longer duplicates the 81:F45E pointer calculation.

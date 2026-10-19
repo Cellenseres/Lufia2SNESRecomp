@@ -6312,6 +6312,29 @@ RecompReturn Lufia2DecompBridge_81AA2E(CpuState *cpu) {
     return ActorBridgeActionPhase(cpu, 0x81aa2eu, Lufia2BattleItemAction, 3u);
 }
 
+static int ActorBridgeActionRecordSourceMapped(const CpuState *cpu, uint32_t entry) {
+    uint16_t index = cpu->A;
+    uint32_t table;
+    if (entry == 0x81f45eu) {
+        --index;
+        if (index & 0x8000u)
+            return 1;
+        table = 0x848f10u;
+    } else if (entry == 0x81f46bu)
+        table = 0x95f1efu;
+    else if (entry == 0x81f476u)
+        table = 0x97f63bu;
+    else
+        return 0;
+    const uint32_t address = table + (uint16_t)(index << 1);
+    for (unsigned byte = 0; byte < 2u; ++byte) {
+        const uint16_t offset = (uint16_t)(address + byte);
+        if (offset >= 0x2000u && offset < 0x8000u)
+            return 0;
+    }
+    return 1;
+}
+
 static RecompReturn ActorBridgeActionRecord(
     CpuState *cpu, uint32_t entry, ActorWholeFunction lookup) {
     ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
@@ -6321,7 +6344,8 @@ static RecompReturn ActorBridgeActionRecord(
     Lufia2ExecutionResult result;
 
     if (cpu->emulation || cpu->m_flag || cpu->x_flag || cpu->_flag_D ||
-        cpu->PB != 0x81u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu)
+        cpu->PB != 0x81u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu ||
+        !ActorBridgeActionRecordSourceMapped(cpu, entry))
         return ActorBridgeFallback(cpu, &frame, entry);
     frame = ActorBridgeEnter(cpu);
     ActorBridgeLoad(cpu, &state);
