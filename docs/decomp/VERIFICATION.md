@@ -1,3 +1,42 @@
+# Live NMI callback frames - 2026-10-19
+
+The original runtime initializer writes two RAM JSL/RTS templates at
+$00:0067 and $00:006C. New optional nmi_calls.h phases read each live target,
+preserve its complete bank and push the original long-call frame. Their
+returns consume the live short-call frame with original address wrap.
+These are dynamic RAM continuations under the verified NMI owner, not new
+canonical ROM functions. Existing semantic bodies remain unchanged.
+
+The consumer extends the existing opcode-slot selector at four RAM boundaries.
+Original generic call/return bookkeeping and clock/bus accounting remain
+unchanged. Unsupported opcodes and contexts retain interpretation. Previous
+headers still compile without new symbol dependencies; fifteen CMake contexts
+preserve prior properties and enable the extension only with both new APIs.
+
+Original-ROM execution of the 24-instruction runtime initializer supplies the
+template opcodes. Shared interp816 comparisons pass 262,144 direct and 262,144
+actual-producer cases across all target banks and stack positions, including
+overlap and wrap. Another 263,228 producer and 132,088 API guards pass. The
+previous six boundaries pass 393,216 direct and 393,216 producer cases in each
+of two feature configurations. Two effective fault controls catch lost bank
+bits and a wrong return increment. MSVC Release, standalone GCC/Clang and C++17
+linkage pass; unchanged CLI executable/fixture contracts are reused.
+
+Paired 10,607-frame runs preserve all 77,840 observations and artifacts against
+prior main. Another 20,178 instructions run natively: actual interp816 decoding
+falls from 127,441 to 107,263; bridge control steps remain unchanged. All four
+RAM boundaries have positive hardware coverage in 528 controlled contexts.
+Both callbacks repeatedly change address and bank; their actual PHK/PLA/STA/RTL
+bodies confirm unmasked banks $80/$7E/$BF. Original callback bookkeeping,
+hardware/audio state, clocks, progress epochs and dynamic cache remain equal.
+
+No canonical function, ordinary binding or hook is added. Totals remain 1,818
+verified / 1,786 ordinary bindings / 32 verified unbound / 791 WRAM fields /
+499 C units / zero drafts; 193 hooks remain registered. Full unrelated regression,
+other platforms, manual gameplay and production speed measurements are deferred.
+Tests/tools/ROM remain local; concurrent owner work is separate from this
+checkpoint's pinned compiled snapshot.
+
 # NMI call and return boundaries - 2026-10-19
 
 Optional nmi_calls.h exposes five original NMI child-call frames and the

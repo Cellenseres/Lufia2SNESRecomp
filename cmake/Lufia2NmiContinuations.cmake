@@ -44,6 +44,7 @@ function(lufia2_add_nmi_continuations target core_root)
     set(_frame_returns FALSE)
     set(_nmi_restore_width FALSE)
     set(_nmi_call_boundaries FALSE)
+    set(_nmi_callback_boundaries FALSE)
     if(_api MATCHES "Lufia2FrameWaitRestoreRegisters[(]" AND
        EXISTS "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h")
         file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h" _menu_api)
@@ -58,6 +59,10 @@ function(lufia2_add_nmi_continuations target core_root)
                     if(_calls_api MATCHES "Lufia2NmiBeginChild[(]" AND
                        _calls_api MATCHES "Lufia2NmiReturnInterrupt[(]")
                         set(_nmi_call_boundaries TRUE)
+                        if(_calls_api MATCHES "Lufia2NmiInvokeCallback[(]" AND
+                           _calls_api MATCHES "Lufia2NmiReturnCallback[(]")
+                            set(_nmi_callback_boundaries TRUE)
+                        endif()
                     endif()
                 endif()
                 set(_finish_header "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/nmi_finish.h")
@@ -241,6 +246,9 @@ function(lufia2_add_nmi_continuations target core_root)
                     _text "${_text}")
                 string(PREPEND _text
                     "#include \"interp816.h\"\nstatic int Lufia2DecompNmiRunCallBoundary(Interp816 *, uint32_t, uint8_t, int, int);\n")
+                if(_nmi_callback_boundaries)
+                    string(PREPEND _text "#define LUFIA2_HAVE_NATIVE_NMI_CALLBACK_BOUNDARIES 1\n")
+                endif()
                 string(APPEND _timing_suffix
                     "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/nmi_calls.inc\"\n")
             endif()
