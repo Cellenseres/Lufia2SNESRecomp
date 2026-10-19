@@ -1,3 +1,67 @@
+# Sound handshakes and boot block phases — 2026-10-19
+
+Seventeen original BNE/BEQ/BVS sound branches and six bounded SPC boot-transfer
+phases now have native continuations. They belong to existing verified sound
+parents; no additional whole-function entries or HLE bindings are counted.
+`Lufia2SoundPollBranchTarget` shares the flag-only branch calculation between
+the portable execution service and consumer, avoiding unnecessary CPU copies.
+Boot continuations share block-setup, source-read and pair-output workers with
+the complete original boot uploader. Its operation stream is unchanged.
+Original polls, ADC retry, bank wrapping, overflow selection, temporary stack
+byte, saved status and later PLP/RTS remain literal. No wait is skipped.
+
+The boot adapter uses the existing guarded timing interface with native M1X0
+(or M0X0 at 9C3B), DP0, binary arithmetic, synchronized beam, safe WRAM stack,
+no active DMA/IRQ, horizontal position at most 400 and 1,024 clocks of room.
+The one-instruction branch adapter retains both valid widths and live DP and
+decimal state; it keeps the existing 256-clock/position-800 envelope.
+Original instruction fetches, data operations, per-opcode CPU states and
+cycle charges are preserved. Word loads/stores delegate to the original
+consumer word bus, including its atomic APU-port synchronization. Unsupported
+word claims retain the original byte fallback. Existing byte-cycle helper
+bodies are unchanged. Feature selection requires the new APIs and all six
+verified sound parents; older public APIs retain their previous selection.
+
+The final standalone archive passes 28,672 original-ROM cases through actual
+producer bodies: 17,408 branch cases, 6,144 boot phase cases and 5,120 prior
+payload phase regressions. The same number of additional DP-context runs
+includes ordinary admitted branch cases and boot/payload semantic-service
+cases using the same bus/timing helpers with admission deliberately bypassed;
+56 DP0 executions overlap. These do not broaden runtime admission. CPU,
+full WRAM, complete fetch/data bus, open bus, each opcode's entry CPU state
+and CPU/master costs agree. All DB values, branch widths/flags, source wraps,
+counter edges and ROM speeds are exercised. Eight effective in-memory ROM
+mutations are detected; changed branch paths may hit the nonarrival limit.
+The initial proposed unchanged displacement was excluded from fault evidence.
+
+The full boot parent also matches its accepted baseline in 512 synthetic
+immediate-reply states covering all entry widths, mirrored DB and source-bank
+crossings. Consumer pre-access guards pass 35,489 states, portable guards
+148,616. Actual word-interface code passes 1,536 mock-backend delegation cases
+for atomic claims, byte fallback, address/order/open bus and epoch progress.
+Those are component evidence; real APU behavior is checked separately below.
+Twenty-four producer helper bodies and five tables match fixture tokens;
+prior frame-cycle helpers retain their original tokens. C++ API linkage and
+31 API/metadata/feature cases pass. GCC/Clang and isolated Windows Release
+builds pass. Unchanged CLI hashes reuse prior accepted CLI evidence.
+
+Current-production on/off replays match for 1,500 boot and 10,607 input plus
+controlled-world/menu frames: CPU, every WRAM page, PPU/VRAM/OAM/pixels, PCM,
+APU/SPC/DSP, beam/open bus, clocks and ordered port timestamps. Native counters
+confirm 817,399 branch hits, 9,888 boot phases, two word reads and 4,727 word
+writes in the longer run. Interpreter instructions fall from 3,600,345 to
+2,734,664. This does not establish a production speedup: the final instrumented
+pair used 82.188/82.672 CPU seconds and 88.20/91.50 wall seconds respectively.
+The earlier version's extra branch-state copies were removed and affected
+checks repeated. Unchanged boot-parent and word-component evidence was reused.
+
+Full regression, unrelated scenes/platforms and manual gameplay acceptance
+were deferred. Historical field-text audio timing questions remain outside
+this bounded replay. Private tests/probes stay local, and no ROM or owner
+build output is added. Totals remain 1,812 verified, 1,786 ordinary bindings,
+26 verified without an ordinary binding, 791 WRAM fields, 499 C units and zero
+drafts. These continuation counts are not additional complete game functions.
+
 # Sound payload transfer phases — 2026-10-19
 
 `Lufia2SoundUploadStep` exposes five exact transfer continuations within the

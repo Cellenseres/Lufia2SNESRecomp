@@ -1,8 +1,8 @@
 static unsigned s_frame_return_opcodes;
 static unsigned s_frame_return_progress_mask;
 
-void Lufia2DecompFrameReturnWriteByte(CpuState *cpu, uint32_t address,
-                                      uint8_t value, bool *progress) {
+void Lufia2DecompFrameReturnWriteByte(CpuState *cpu, uint32_t address, uint8_t value,
+                                      bool *progress) {
     const uint64_t before = g_interp_bridge_write_epoch;
     bridge_bus_write(cpu, address, value);
     *progress = before != g_interp_bridge_write_epoch;
@@ -14,6 +14,28 @@ uint8_t Lufia2DecompFrameReturnReadByte(CpuState *cpu, uint32_t address,
     const uint8_t value = bridge_bus_read(cpu, address);
     *progress = before != s_interp_dynamic_progress_epoch;
     return value;
+}
+
+uint16_t Lufia2DecompFrameReturnReadWord(CpuState *cpu, uint32_t low, uint32_t high,
+                                         bool *progress) {
+    const uint64_t before = s_interp_dynamic_progress_epoch;
+    uint16_t value;
+    if (!bridge_bus_read_word(cpu, low, high, &value)) {
+        value = bridge_bus_read(cpu, low);
+        value |= (uint16_t)bridge_bus_read(cpu, high) << 8;
+    }
+    *progress = before != s_interp_dynamic_progress_epoch;
+    return value;
+}
+
+void Lufia2DecompFrameReturnWriteWord(CpuState *cpu, uint32_t low, uint32_t high,
+                                      uint16_t value, bool *progress) {
+    const uint64_t before = g_interp_bridge_write_epoch;
+    if (!bridge_bus_write_word(cpu, low, high, value, false)) {
+        bridge_bus_write(cpu, low, (uint8_t)value);
+        bridge_bus_write(cpu, high, (uint8_t)(value >> 8));
+    }
+    *progress = before != g_interp_bridge_write_epoch;
 }
 
 void Lufia2DecompFrameReturnAccountOpcode(CpuState *cpu, unsigned cycles,

@@ -2835,7 +2835,23 @@ static const ActorSoundUploadOpcode sound_upload_opcodes[] = {
     {0x999fu, 2u, 5u, 1u, 0u, 0u}, {0x99a1u, 3u, 3u, 0u, 0u, 0u},
     {0x99a4u, 1u, 2u, 0u, 0u, 0u}, {0x99a5u, 1u, 2u, 0u, 0u, 0u},
     {0x99a6u, 2u, 2u, 0u, 0u, 1u}, {0x99a8u, 2u, 2u, 0u, 0u, 0u},
-    {0x99aau, 4u, 5u, 0u, 0u, 0u}};
+    {0x99aau, 4u, 5u, 0u, 0u, 0u}, {0x9c23u, 2u, 6u, 1u, 0u, 0u},
+    {0x9c25u, 1u, 2u, 0u, 0u, 0u}, {0x9c26u, 1u, 3u, 0u, 0u, 0u},
+    {0x9c27u, 2u, 2u, 0u, 0u, 0u}, {0x9c29u, 2u, 3u, 0u, 0u, 0u},
+    {0x9c2bu, 1u, 3u, 0u, 0u, 0u}, {0x9c2cu, 2u, 6u, 1u, 0u, 0u},
+    {0x9c2eu, 1u, 2u, 0u, 0u, 0u}, {0x9c2fu, 1u, 3u, 0u, 0u, 0u},
+    {0x9c35u, 1u, 2u, 0u, 0u, 0u}, {0x9c36u, 2u, 3u, 0u, 0u, 0u},
+    {0x9c38u, 3u, 5u, 0u, 0u, 0u}, {0x9c3bu, 2u, 3u, 0u, 0u, 0u},
+    {0x9c3du, 1u, 2u, 0u, 0u, 0u}, {0x9c3eu, 2u, 2u, 0u, 0u, 1u},
+    {0x9c49u, 1u, 3u, 0u, 0u, 0u}, {0x9c4au, 2u, 3u, 0u, 0u, 0u},
+    {0x9c4cu, 2u, 7u, 1u, 0u, 0u}, {0x9c4eu, 1u, 2u, 0u, 0u, 0u},
+    {0x9c4fu, 1u, 2u, 0u, 0u, 0u}, {0x9c50u, 1u, 2u, 0u, 0u, 0u},
+    {0x9c51u, 2u, 7u, 1u, 0u, 0u}, {0x9c53u, 1u, 2u, 0u, 0u, 0u},
+    {0x9c54u, 1u, 2u, 0u, 0u, 0u}, {0x9c55u, 3u, 5u, 0u, 0u, 0u},
+    {0x9c58u, 2u, 3u, 0u, 0u, 0u}, {0x9c5au, 3u, 3u, 0u, 0u, 0u},
+    {0x9c5du, 2u, 2u, 0u, 0u, 0u}, {0x9c5fu, 1u, 2u, 0u, 0u, 0u},
+    {0x9c60u, 3u, 4u, 0u, 0u, 0u}, {0x9c63u, 2u, 2u, 0u, 0u, 0u},
+    {0x9c65u, 1u, 4u, 0u, 0u, 0u}, {0x9c66u, 3u, 4u, 0u, 0u, 0u}};
 
 typedef struct ActorSoundUploadBus {
     CpuState *cpu;
@@ -2845,6 +2861,7 @@ typedef struct ActorSoundUploadBus {
     unsigned cycles;
     unsigned count;
     unsigned progress_mask;
+    uint16_t word_value;
     bool progress;
 } ActorSoundUploadBus;
 
@@ -2868,8 +2885,19 @@ static uint8_t ActorBridgeSoundUploadRead(void *context, uint32_t address) {
     ActorSoundUploadBus *bus = context;
     bool progress = false;
     bus->master += cpu_region_speed(address);
-    ++bus->transfers;
-    const uint8_t value = Lufia2DecompFrameReturnReadByte(bus->cpu, address, &progress);
+    const unsigned transfer = bus->transfers++;
+    const bool wide_source =
+        bus->opcode && (bus->opcode->pc == 0x9c4cu || bus->opcode->pc == 0x9c51u);
+    uint8_t value;
+    if (wide_source && transfer == 5u) {
+        bus->word_value = Lufia2DecompFrameReturnReadWord(
+            bus->cpu, address, (address + 1u) & 0xffffffu, &progress);
+        value = (uint8_t)bus->word_value;
+    } else if (wide_source && transfer == 6u) {
+        value = (uint8_t)(bus->word_value >> 8);
+    } else {
+        value = Lufia2DecompFrameReturnReadByte(bus->cpu, address, &progress);
+    }
     bus->progress |= progress;
     return value;
 }
@@ -2879,8 +2907,18 @@ static void ActorBridgeSoundUploadWrite(void *context, uint32_t address,
     ActorSoundUploadBus *bus = context;
     bool progress = false;
     bus->master += cpu_region_speed(address);
-    ++bus->transfers;
-    Lufia2DecompFrameReturnWriteByte(bus->cpu, address, value, &progress);
+    const unsigned transfer = bus->transfers++;
+    const bool wide_port =
+        bus->opcode && (bus->opcode->pc == 0x9c38u || bus->opcode->pc == 0x9c55u);
+    if (wide_port && transfer == bus->opcode->fetched) {
+        bus->word_value = value;
+    } else if (wide_port) {
+        const uint16_t word = bus->word_value | (uint16_t)value << 8;
+        Lufia2DecompFrameReturnWriteWord(bus->cpu, address - 1u, address, word,
+                                         &progress);
+    } else {
+        Lufia2DecompFrameReturnWriteByte(bus->cpu, address, value, &progress);
+    }
     bus->progress |= progress;
 }
 
@@ -2931,6 +2969,56 @@ static void ActorBridgeSoundUpload(CpuState *cpu, uint32_t entry) {
     interp_bridge_pre_opcode_redirect(result.pc);
 }
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_HANDSHAKE_STEPS)
+static const uint32_t sound_branch_entries[] = {
+    0x80994fu, 0x80999bu, 0x8098fau, 0x809811u, 0x80986cu, 0x809a13u,
+    0x809a1bu, 0x809a2au, 0x809a30u, 0x80939du, 0x8093a5u, 0x809c1bu,
+    0x809c33u, 0x809c43u, 0x809c6cu, 0x809c47u, 0x809c6eu};
+static const uint32_t boot_sound_entries[] = {0x809c23u, 0x809c2bu, 0x809c35u,
+                                              0x809c36u, 0x809c3bu, 0x809c49u};
+
+static void ActorBridgeSoundBranch(CpuState *cpu, uint32_t entry) {
+    if (!g_snes || !g_snes->apu ||
+        !ActorBridgeTimedStepSupported(cpu, entry, 0x1ff8u, true))
+        return;
+    const uint32_t next =
+        Lufia2SoundPollBranchTarget(entry, cpu->_flag_Z, cpu->_flag_V);
+    if (next == entry)
+        return;
+    bool progress = false;
+    (void)Lufia2DecompFrameReturnReadByte(cpu, entry, &progress);
+    (void)Lufia2DecompFrameReturnReadByte(cpu, entry + 1u, &progress);
+    const unsigned taken = next != entry + 2u;
+    Lufia2DecompFrameReturnAccountOpcode(
+        cpu, 2u + taken, 2u * cpu_region_speed(entry) + taken * 6u, false);
+    Lufia2DecompFrameReturnComplete(1u, 0u);
+    interp_bridge_pre_opcode_redirect(next);
+}
+static void ActorBridgeBootSound(CpuState *cpu, uint32_t entry) {
+    if (!g_snes || !g_snes->apu || cpu->x_flag || cpu->D || cpu->_flag_D ||
+        cpu->m_flag != (entry != 0x809c3bu) ||
+        !ActorBridgeTimedStepSupported(cpu, entry, 0x1ff8u, true))
+        return;
+    if (g_snes->hPos > 400u ||
+        Lufia2DecompFrameReturnDeadline() - cpu->master_cycles < 1024u)
+        return;
+    ActorSoundUploadBus bus = {0};
+    bus.cpu = cpu;
+    const Lufia2Memory memory = {ActorBridgeSoundUploadRead,
+                                 ActorBridgeSoundUploadWrite, &bus,
+                                 ActorBridgeSoundUploadCheckpoint, &bus};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result =
+        Lufia2BootSoundTransferStep(&memory, &state, entry);
+    if (result.flow != LUFIA2_EXECUTION_BOUNDARY || result.pc == entry)
+        return;
+    ActorBridgeSoundUploadFinish(&bus, result.pc);
+    ActorBridgeStore(cpu, &state);
+    Lufia2DecompFrameReturnComplete(bus.count, bus.progress_mask);
+    interp_bridge_pre_opcode_redirect(result.pc);
+}
+#endif
 void Lufia2DecompInstallFrameReturnHooks(void) {
     static const uint32_t entries[] = {0x8293ccu, 0x868b52u, 0x869756u, 0x868b6fu};
     for (unsigned i = 0; i < sizeof entries / sizeof entries[0]; ++i)
@@ -2947,6 +3035,12 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_UPLOAD_STEPS)
     for (unsigned i = 0u; i < sizeof sound_upload_entries / sizeof sound_upload_entries[0]; ++i)
         interp_bridge_set_pre_opcode_hook(sound_upload_entries[i], ActorBridgeSoundUpload);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_HANDSHAKE_STEPS)
+    for (unsigned i = 0u; i < sizeof sound_branch_entries / sizeof sound_branch_entries[0]; ++i)
+        interp_bridge_set_pre_opcode_hook(sound_branch_entries[i], ActorBridgeSoundBranch);
+    for (unsigned i = 0u; i < sizeof boot_sound_entries / sizeof boot_sound_entries[0]; ++i)
+        interp_bridge_set_pre_opcode_hook(boot_sound_entries[i], ActorBridgeBootSound);
 #endif
 }
 #endif
