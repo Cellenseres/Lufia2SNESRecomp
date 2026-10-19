@@ -1,3 +1,45 @@
+# Bounded sound poll iterations — 2026-10-19
+
+Fifteen existing sound poll sites now expose one complete original CMP/LDA
+and BNE/BEQ iteration. Shared port selection keeps the prior single-step
+service unchanged. The consumer joins at most eight iterations per hook,
+retaining every original read, branch, flag, opcode cost and progress event.
+The IPL word comparison uses the original atomic word interface. No wait or
+guest time is skipped, and these continuations add no canonical functions.
+
+Each pair requires a synchronized beam, safe stack, no DMA/IRQ, at least 128
+master clocks before the deadline and horizontal position at most 1240.
+Visible beam-HDMA lines additionally stop admission at 896. Admission is
+rechecked between pairs; the prior 800/256 timing wrapper remains equivalent.
+Unknown entries and unsupported CPU contexts return before bus access.
+
+Final archive verification covers 30,720 actual-producer original-ROM states
+across 15 families, both ROM speeds, all DB/DP contexts, both index widths,
+decimal state and immediate/late/pending replies. CPU, complete WRAM, fetch
+and data bus, open bus, per-opcode CPU starts and CPU/master costs agree.
+Another 30,720 prior-step cases compare data bus, final CPU and costs; that
+legacy check excludes instruction fetches and opcode-start CPU assertions.
+Further checks: 2,880 changing run-boundary/progress cases,13,981 consumer
+pre-access guards,76,981 portable guards,263,681 old-window equivalence
+cases, eight effective in-memory ROM mutations, C++ linkage and 32 feature
+selection cases. 28 producer bodies, five tables and three structs match.
+GCC/Clang and isolated Windows Release pass; unchanged CLI proof is reused.
+Final formatting preserves the tested semantic token stream.
+
+Paired 1,500-frame boot and 10,607-frame input/world/menu replays match CPU,
+WRAM pages, PPU, pixels, PCM, APU/SPC/DSP, beam, clocks, open bus and ordered
+port values/timestamps. The longer run completes 2,534,914 native opcodes in
+217,649 bounded calls; interpreted instructions fall 2,734,664 ->1,803,370.
+This does not establish a production speedup: instrumented CPU times were
+75. 031/77. 031 s and wall times 80. 56/84. 48 s. No expectations were weakened.
+An initial private counter probe altered a word-read condition; it was fixed
+before acceptance. Initial divergent logs are excluded from proof.
+
+Full regression, unrelated scenes/platforms, manual gameplay and whole-game
+performance remain deferred. Tests/tools stay local; ROM and owner builds
+are preserved. Totals remain 1,812 verified / 1,786 ordinary bindings / 26
+verified unbound / 791 WRAM fields / 499 C units / zero drafts.
+
 # Sound handshakes and boot block phases — 2026-10-19
 
 Seventeen original BNE/BEQ/BVS sound branches and six bounded SPC boot-transfer
