@@ -45,6 +45,7 @@ function(lufia2_add_nmi_continuations target core_root)
     set(_nmi_restore_width FALSE)
     set(_nmi_call_boundaries FALSE)
     set(_nmi_callback_boundaries FALSE)
+    set(_frame_wait_boundaries FALSE)
     if(_api MATCHES "Lufia2FrameWaitRestoreRegisters[(]" AND
        EXISTS "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h")
         file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h" _menu_api)
@@ -59,6 +60,8 @@ function(lufia2_add_nmi_continuations target core_root)
                     if(_calls_api MATCHES "Lufia2NmiBeginChild[(]" AND
                        _calls_api MATCHES "Lufia2NmiReturnInterrupt[(]")
                         set(_nmi_call_boundaries TRUE)
+                        include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2FrameWaitBoundaries.cmake")
+                        lufia2_frame_wait_boundaries_available(_frame_wait_boundaries)
                         if(_calls_api MATCHES "Lufia2NmiInvokeCallback[(]" AND
                            _calls_api MATCHES "Lufia2NmiReturnCallback[(]")
                             set(_nmi_callback_boundaries TRUE)
@@ -241,8 +244,16 @@ function(lufia2_add_nmi_continuations target core_root)
                 if(_opcode_offset EQUAL -1)
                     message(FATAL_ERROR "Native NMI calls require reviewed opcode execution")
                 endif()
-                string(REPLACE "${_original_opcode}"
-                    "        int _cyc = Lufia2DecompNmiRunCallBoundary(\n            &in, pc_before, op, stop_on_rti, auto_quiescent);\n        if (!_cyc)\n            _cyc = interp816_runOpcode(&in);"
+                set(_native_opcode "        int _cyc = Lufia2DecompNmiRunCallBoundary(\n            &in, pc_before, op, stop_on_rti, auto_quiescent);\n")
+                if(_frame_wait_boundaries)
+                    string(APPEND _native_opcode "        if (!_cyc)\n            _cyc = Lufia2DecompRunFrameWaitBoundary(&in, pc_before, op);\n")
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunFrameWaitBoundary(Interp816 *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/frame_wait_boundaries.inc\"\n")
+                endif()
+                string(APPEND _native_opcode "        if (!_cyc)\n            _cyc = interp816_runOpcode(&in);")
+                string(REPLACE "${_original_opcode}" "${_native_opcode}"
                     _text "${_text}")
                 string(PREPEND _text
                     "#include \"interp816.h\"\nstatic int Lufia2DecompNmiRunCallBoundary(Interp816 *, uint32_t, uint8_t, int, int);\n")

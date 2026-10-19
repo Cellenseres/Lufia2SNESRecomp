@@ -1,3 +1,45 @@
+# Frame-wait decoder boundaries - 2026-10-19
+
+The existing frame-counter APIs now execute at the original opcode slot when
+prior native hooks cannot handle that context. The selector covers 45 loads,
+comparisons and branches under fourteen verified owners. A complete optional
+frame_wait.h return API preserves twelve original RTS boundaries, including
+stack/address wrap. ROM bytes confirm RTS; no RTL behavior is substituted.
+Existing semantic function bodies and declarations are unchanged.
+
+The consumer keeps the original generic scheduler, quiescence, return-frame,
+bus and clock accounting. Its transient word adapter delegates to the same
+interpreter word callback, consuming the returned high byte without another
+access. Declined word claims retain the original two byte accesses. Unsupported
+PCs, opcodes, emulation and pending-interrupt contexts retain interpretation.
+All fourteen named verified contracts and both phase APIs gate the feature.
+
+One combined checkpoint passes 4,887,552 actual-producer ROM/CPU/WRAM/bus cases,
+786,432 direct return cases, 29,469 producer mode guards, 458,695 unknown-PC
+producer guards and 461,800 API no-access guards. Counter tests vary every DP
+word and both accumulator widths; return tests vary every stack word. Synthetic
+register robustness states are separate from valid physical width contexts.
+Atomic word claims/fallbacks and four effective opcode/operand/cache faults
+pass. Sixty-eight CMake contexts preserve prior properties. The actual generated
+old-API core compiles without new symbol dependencies. MSVC Release, standalone
+GCC/Clang and C++17 linkage pass; unchanged CLI contracts are reused.
+
+Paired 10,607-frame runs preserve all 77,840 observations and artifacts against
+prior main. Another 19,738 instructions run natively: actual interp816 decoding
+falls from 107,263 to 87,525 while bridge control steps remain 179,420. All 57
+boundaries have positive native coverage in 1,764 hardware contexts using the
+unmodified public kernel stop-PC API. Each executes exactly one original
+control step. Actual exits, valid widths, APU words, bank-zero wrap, three clock
+positions and two ROM speeds agree, including CPU/WRAM, hardware/audio, clock,
+progress epochs and dynamic cache. Legacy NMI phases are unchanged.
+
+No canonical function, ordinary binding or hook is added. Totals remain 1,818
+verified / 1,786 ordinary bindings / 32 verified unbound / 791 WRAM fields /
+499 C units / zero drafts; 193 hooks remain registered. Unrelated full regression,
+other platforms, manual gameplay and production-speed measurements are deferred.
+Tests/tools/ROM stay local; concurrent owner work is outside this checkpoint's
+pinned compiled snapshot.
+
 # Live NMI callback frames - 2026-10-19
 
 The original runtime initializer writes two RAM JSL/RTS templates at
