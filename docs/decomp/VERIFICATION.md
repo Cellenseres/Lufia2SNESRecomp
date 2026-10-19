@@ -1,3 +1,34 @@
+# Frame wait register entry phases - 2026-10-19
+
+Five verified wait owners expose twelve original PHA/PHP/SEP entry boundaries.
+Accumulator and index widths, status, stack order, DP/DB, decimal mode and
+ordered bus behavior stay literal. Existing readable whole wait routines and
+ordinary bindings are unchanged. The optional frame_wait.h API is enabled only
+with its declaration and all five verified owner contracts. Original calls,
+wait polling, returns, interrupt ownership and frame-poll hook identity remain.
+
+One shared checkpoint passes 393,216 original-ROM/actual-producer cases across
+both M/X widths, status values, eight timing contexts and both ROM speeds.
+Another 24,576 direct semantic states include eleven stack boundary classes.
+The producer rejects 9,660 unsupported contexts without access; 1,152 positive
+boundary contexts pass. The API rejects 1,057,684 unknown-PC, wrong-bank and
+malformed-width contexts before access. Twelve effective in-memory ROM faults
+are detected. Twenty-eight CMake contexts preserve all prior properties;
+the actual producer compiles without the new feature and has no new API link
+dependency. Windows Release, GCC/Clang and C++17 linkage pass. Unchanged CLI
+executables and fixtures reuse accepted evidence by hashes.
+
+Paired 10,607-frame replays match 77,840 observations and all artifacts. There
+are 10,186 new native contexts: interpreted instructions fall from 210,639 to
+200,453 in that workload. All twelve sites additionally pass 144 controlled
+real scheduler contexts, comparing CPU, WRAM, clocks, PPU/controller state,
+APU/SPC/FIFO, progress epochs and the dynamic-value cache. Hook use is 191/192.
+This is not a whole-game or production-speedup claim. Full unrelated regression,
+other platforms and manual gameplay remain deferred. No new canonical function
+or ordinary binding is counted: 1,818 verified, 1,786 ordinary bindings, 32
+verified unbound, 791 WRAM fields, 499 C units and zero drafts. Concurrent owner
+edits remain separate from the pinned accepted build. Tests/tools/ROM stay local.
+
 # Layered menu rectangles - 2026-10-19
 
 The complete $82:83B5 rectangle clear is verified in shared readable C with

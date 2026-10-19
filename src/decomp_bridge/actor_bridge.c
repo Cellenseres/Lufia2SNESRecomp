@@ -2822,6 +2822,9 @@ static void ActorBridgeSoundPoll(CpuState *cpu, uint32_t entry) {
 #if defined(LUFIA2_HAVE_NATIVE_MENU_RECTANGLE_STEPS)
 #include "lufia2/menu_rectangle.h"
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_SAVE_STEPS)
+#include "lufia2/frame_wait.h"
+#endif
 static const uint32_t sound_upload_entries[] = {0x809969u, 0x80997du, 0x809988u,
                                                 0x80998bu, 0x80999du};
 
@@ -3289,6 +3292,57 @@ static void ActorBridgeSoundTransferOpcode(CpuState *cpu, uint32_t entry) {
     interp_bridge_pre_opcode_redirect(result.pc);
 }
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_SAVE_STEPS)
+typedef struct ActorFrameSaveEntry {
+    uint32_t address;
+    uint8_t fetched;
+    bool saves_accumulator;
+} ActorFrameSaveEntry;
+
+static const ActorFrameSaveEntry frame_save_entries[] = {
+    {0x8293c2u, 1u, true}, {0x8293c3u, 1u, false}, {0x8293c4u, 2u, false},
+    {0x868b48u, 1u, true}, {0x868b49u, 1u, false}, {0x868b4au, 2u, false},
+    {0x86974fu, 1u, true}, {0x809378u, 1u, false}, {0x809379u, 2u, false},
+    {0x84a5a8u, 1u, true}, {0x84a5a9u, 1u, false}, {0x84a5aau, 2u, false}
+};
+
+static void ActorBridgeFrameSaveStep(CpuState *cpu, uint32_t entry) {
+    const ActorFrameSaveEntry *selected = NULL;
+    for (unsigned i = 0; i < sizeof frame_save_entries / sizeof frame_save_entries[0];
+         ++i)
+        if (frame_save_entries[i].address == entry) {
+            selected = frame_save_entries + i;
+            break;
+        }
+    if (!selected)
+        return;
+    const unsigned cycles = 3u + (selected->saves_accumulator && !cpu->m_flag);
+    const unsigned budget = cycles * SOUND_TRANSFER_BUS_CLOCKS +
+                            SOUND_TRANSFER_REFRESH_CLOCKS;
+    if (!ActorBridgeSingleOpcodeSupported(cpu, entry, budget))
+        return;
+    const ActorTimedOpcode opcode = {
+        (uint16_t)entry, selected->fetched, (uint8_t)cycles, 0u, 0u, 0u
+    };
+    ActorTimedBus bus = {0};
+    bus.cpu = cpu;
+    bus.opcode = &opcode;
+    bus.cycles = cycles;
+    for (unsigned i = 0; i < opcode.fetched; ++i)
+        (void)ActorBridgeTimedRead(&bus, entry + i);
+    const Lufia2Memory memory = {ActorBridgeTimedRead, ActorBridgeTimedWrite,
+                                 &bus, NULL, NULL};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result =
+        Lufia2FrameWaitSaveRegistersStep(&memory, &state, entry);
+    ActorBridgeTimedFinish(&bus, result.pc);
+    ActorBridgeStore(cpu, &state);
+    Lufia2DecompFrameReturnComplete(1u, bus.progress_mask);
+    interp_bridge_pre_opcode_redirect(result.pc);
+}
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_MENU_RECTANGLE_STEPS)
 typedef struct ActorMenuRectangleOpcode {
     ActorTimedOpcode timing;
@@ -3464,6 +3518,12 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_SAVE_STEPS)
+    for (unsigned i = 0; i < sizeof frame_save_entries / sizeof frame_save_entries[0];
+         ++i)
+        interp_bridge_set_pre_opcode_hook(frame_save_entries[i].address,
+                                          ActorBridgeFrameSaveStep);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_MENU_RECTANGLE_STEPS)
     for (unsigned i = 0;
          i < sizeof menu_rectangle_opcodes / sizeof menu_rectangle_opcodes[0]; ++i)

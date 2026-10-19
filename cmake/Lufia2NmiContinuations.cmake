@@ -128,6 +128,34 @@ function(lufia2_add_nmi_continuations target core_root)
                                 endif()
                             endif()
                         endif()
+                        set(_save_header "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/frame_wait.h")
+                        if(_frame_polls AND EXISTS "${_save_header}")
+                            file(READ "${_save_header}" _save_api)
+                            set(_save_steps TRUE)
+                            if(NOT _save_api MATCHES "Lufia2FrameWaitSaveRegistersStep[(]")
+                                set(_save_steps FALSE)
+                            endif()
+                            foreach(_save_owner IN ITEMS
+                                    "Lufia2WaitMenuFrameChange|82:93C2"
+                                    "Lufia2MenuWaitForNextFrame|86:8B48"
+                                    "Lufia2WorldWaitForNextFrame|86:974F"
+                                    "Lufia2WaitFramePreserveStatus|80:9378"
+                                    "Lufia2WaitFramePreserveAccumulator|84:A5A8")
+                                string(REPLACE "|" ";" _save_fields "${_save_owner}")
+                                list(GET _save_fields 0 _save_name)
+                                list(GET _save_fields 1 _save_address)
+                                string(REGEX MATCH
+                                    "\\[\\[function\\]\\][^[]*name[ \t]*=[ \t]*\"${_save_name}\"[^[]*"
+                                    _save_contract "${_metadata}")
+                                if(NOT _save_contract MATCHES "address[ \t]*=[ \t]*\"${_save_address}\"" OR
+                                   NOT _save_contract MATCHES "status[ \t]*=[ \t]*\"verified\"")
+                                    set(_save_steps FALSE)
+                                endif()
+                            endforeach()
+                            if(_save_steps)
+                                list(APPEND _definitions LUFIA2_HAVE_NATIVE_FRAME_SAVE_STEPS=1)
+                            endif()
+                        endif()
                         set(_rectangle_header "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu_rectangle.h")
                         if(_frame_polls AND EXISTS "${_rectangle_header}")
                             file(READ "${_rectangle_header}" _rectangle_api)
