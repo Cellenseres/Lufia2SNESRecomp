@@ -1,3 +1,58 @@
+# Sound payload transfer phases — 2026-10-19
+
+`Lufia2SoundUploadStep` exposes five exact transfer continuations within the
+already verified 80:9945 payload owner: 9969, 997D, 9988, 998B and 999D.
+They share the original pair-output, read-ahead and sequence-counter workers.
+The original complete payload, resource-header and queued-chunk entry points
+retain their operation streams and emit no additional checkpoints. Poll limits
+and original quirks, including CPX-before-DEX carry and counter underflow, stay.
+
+The bounded service preserves live DB/DP, accumulator high byte, flags and
+existing guest frames in M1X0/binary/native PB80 context. It stops before the
+original reply CMP, source-bank-wrap JSR or final wait JSR. Wrap paths retain
+their actual high-byte/pre-read phases; they never restart the transfer.
+Checkpoints identify each original instruction without moving data accesses.
+The consumer executes original fetches, retains every ordered data access and
+charges each opcode separately, including branch, page and internal cycles.
+It uses the existing APU/cache/progress/scheduler interface. Admission additionally
+requires DP0, synchronized beam, no active DMA/IRQ, safe WRAM stack and at least
+512 clocks before the existing deadline. Unsupported contexts remain original.
+The feature requires the new API and the six existing verified sound parents.
+No extra whole-function metadata entries or independent HLE bindings are added.
+
+The shared checkpoint passes 5,120 original-ROM cases through the actual
+production adapter and another 5,120 portable cases spanning nonzero DP through its
+same timing/bus helpers with the adapter admission guard deliberately bypassed.
+The second group is semantic-service evidence, not broader runtime admission.
+Both compare CPU/full WRAM, complete instruction-fetch/data bus, open bus and
+CPU/master charges for each executed instruction. All DB values, source wraps,
+length-counter edges and fast/slow ROM are covered. The fresh standalone archive
+passes both groups. Five changed-ROM negative controls are detected, including
+a CPX threshold whose altered path cannot reach the native boundary within the
+fixture limit. The 576 accepted-baseline comparisons of all three complete
+parents preserve CPU, WRAM, bus order, child frames and checkpoint counts;
+they use explicit synthetic immediate device replies. Consumer pre-access
+checks cover 6,591 states and five 512-clock admission edges; portable guards
+cover 69,361 states. Twenty-two producer helper bodies and two tables match
+fixture tokens. C++ linkage and 28 build-feature/metadata cases pass.
+
+Current production phase hooks on/off replays match across 1,500 boot frames
+and 10,607 input/controlled-world/menu frames: CPU, all WRAM pages, PPU/VRAM/OAM,
+pixels, PCM, APU/SPC/DSP, beam/open bus, clocks and ordered port timestamps.
+The longer replay executes 3,600,345 interpreter instructions versus 4,395,570
+without these phase hooks, 795,225 fewer. Existing native poll hooks are active
+on both sides. This comparison is bounded workload evidence; it does not prove
+whole-game equivalence or a wall-clock speedup. Historical unrelated field-text
+audio timing questions remain open. Full regression, unrelated scenes/platforms
+and manual gameplay acceptance were deferred. Unchanged shared scheduler code
+retains its prior component evidence; the current replay checks its new use.
+
+Standalone GCC/Clang and isolated Windows Release builds pass as one checkpoint.
+Unchanged CLI executable hashes reuse their accepted CLI evidence. Private
+fixtures and tests remain local. No ROM, extracted assets or owner build output
+are added. Totals remain 1,812 verified, 1,786 ordinary bindings, 26 verified
+without an ordinary binding, 791 WRAM fields, 499 C units and zero drafts.
+
 # Timed sound polling — 2026-10-19
 
 The six existing verified sound parents now expose a bounded sound-port poll
