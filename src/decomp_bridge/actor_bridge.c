@@ -2825,6 +2825,9 @@ static void ActorBridgeSoundPoll(CpuState *cpu, uint32_t entry) {
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_SAVE_STEPS)
 #include "lufia2/frame_wait.h"
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_MENU_CURSOR_POLL)
+#include "lufia2/menu_input_phase.h"
+#endif
 static const uint32_t sound_upload_entries[] = {0x809969u, 0x80997du, 0x809988u,
                                                 0x80998bu, 0x80999du};
 
@@ -3292,6 +3295,67 @@ static void ActorBridgeSoundTransferOpcode(CpuState *cpu, uint32_t entry) {
     interp_bridge_pre_opcode_redirect(result.pc);
 }
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_MENU_CURSOR_POLL)
+static const ActorTimedOpcode cursor_poll_opcodes[] = {
+    {0x8b0cu, 3u, 5u, 0u, 0u, 0u},
+    {0x8b0fu, 1u, 2u, 0u, 0u, 0u}, {0x8b10u, 1u, 2u, 0u, 0u, 0u},
+    {0x8b11u, 1u, 2u, 0u, 0u, 0u}, {0x8b12u, 1u, 2u, 0u, 0u, 0u},
+    {0x8b13u, 1u, 2u, 0u, 0u, 0u},
+    {0x8b14u, 3u, 4u, 0u, 0u, 0u},
+    {0x8b17u, 2u, 2u, 0u, 0u, 0u},
+    {0x8b19u, 3u, 6u, 0u, 0u, 0u}
+};
+
+static void ActorBridgeCursorPollCheckpoint(void *context, Lufia2CpuState *state,
+                                            uint32_t pc) {
+    ActorTimedBus *bus = context;
+    ActorBridgeTimedFinish(bus, pc);
+    ActorBridgeStore(bus->cpu, state);
+    const ActorTimedOpcode *opcode = NULL;
+    for (unsigned i = 0; i < sizeof cursor_poll_opcodes / sizeof cursor_poll_opcodes[0];
+         ++i)
+        if (cursor_poll_opcodes[i].pc == (uint16_t)pc) {
+            opcode = cursor_poll_opcodes + i;
+            break;
+        }
+    if (!opcode)
+        return;
+    bus->opcode = opcode;
+    bus->word_start = pc == 0x828b0cu ? opcode->fetched : 0u;
+    bus->word_bank_wrap = false;
+    bus->master = 0u;
+    bus->transfers = 0u;
+    bus->progress = false;
+    bus->cycles = opcode->cycles + (pc == 0x828b14u && state->x >= 0x3fu);
+    for (unsigned i = 0; i < opcode->fetched; ++i)
+        (void)ActorBridgeTimedRead(bus, pc + i);
+}
+
+static void ActorBridgePrepareCursorPoll(CpuState *cpu, uint32_t entry) {
+    if (entry != 0x828b0cu || cpu->m_flag != 1u || cpu->x_flag ||
+        !(cpu->DB < 0x40u || cpu->DB == 0x7eu ||
+          (cpu->DB >= 0x80u && cpu->DB < 0xc0u)) ||
+        !ActorBridgeSoundWindowSupported(cpu, entry, 0x1fffu,
+                                         28u * SOUND_TRANSFER_BUS_CLOCKS +
+                                         SOUND_TRANSFER_REFRESH_CLOCKS))
+        return;
+    const uint16_t cursor = cpu->ram[0x14a9u] | (uint16_t)cpu->ram[0x14aau] << 8;
+    if ((uint16_t)(cursor - 5u) > 0xffu)
+        return;
+    ActorTimedBus bus = {0};
+    bus.cpu = cpu;
+    const Lufia2Memory memory = {ActorBridgeTimedRead, ActorBridgeTimedWrite,
+                                 &bus, ActorBridgeCursorPollCheckpoint, &bus};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result = Lufia2MenuPrepareCursorPoll(&memory, &state);
+    ActorBridgeTimedFinish(&bus, result.pc);
+    ActorBridgeStore(cpu, &state);
+    Lufia2DecompFrameReturnComplete(bus.count, bus.progress_mask);
+    interp_bridge_pre_opcode_redirect(result.pc);
+}
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_SAVE_STEPS)
 typedef struct ActorFrameSaveEntry {
     uint32_t address;
@@ -3518,6 +3582,9 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_MENU_CURSOR_POLL)
+    interp_bridge_set_pre_opcode_hook(0x828b0cu, ActorBridgePrepareCursorPoll);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_SAVE_STEPS)
     for (unsigned i = 0; i < sizeof frame_save_entries / sizeof frame_save_entries[0];
          ++i)

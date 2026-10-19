@@ -128,6 +128,18 @@ function(lufia2_add_nmi_continuations target core_root)
                                 endif()
                             endif()
                         endif()
+                        set(_cursor_header "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu_input_phase.h")
+                        if(_frame_polls AND EXISTS "${_cursor_header}")
+                            file(READ "${_cursor_header}" _cursor_api)
+                            string(REGEX MATCH
+                                "\\[\\[function\\]\\][^[]*name[ \t]*=[ \t]*\"Lufia2MenuInputLoop\"[^[]*"
+                                _cursor_contract "${_metadata}")
+                            if(_cursor_api MATCHES "Lufia2MenuPrepareCursorPoll[(]" AND
+                               _cursor_contract MATCHES "address[ \t]*=[ \t]*\"82:8B08\"" AND
+                               _cursor_contract MATCHES "status[ \t]*=[ \t]*\"verified\"")
+                                list(APPEND _definitions LUFIA2_HAVE_NATIVE_MENU_CURSOR_POLL=1)
+                            endif()
+                        endif()
                         set(_save_header "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/frame_wait.h")
                         if(_frame_polls AND EXISTS "${_save_header}")
                             file(READ "${_save_header}" _save_api)

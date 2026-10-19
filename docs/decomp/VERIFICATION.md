@@ -1,3 +1,40 @@
+# Menu cursor poll preparation - 2026-10-19
+
+The existing verified menu input owner exposes its complete cursor-preparation
+phase at $82:8B0C..8B1B. It converts the selected slot into a table index and
+retains the persistent cursor flag. All nine original CPU boundaries preserve
+registers, flags, widths, bank carry, ordered bus and checkpoints. The existing
+readable parent remains unchanged. Execution stops before the original JSL at
+$82:8B1C; call/return and wait ownership stay original.
+
+The producer runs the whole phase only with its complete conservative timing
+window and validated WRAM/index context. The optional menu_input_phase.h API
+also exposes literal semantics for general data banks and cursor values.
+Capability requires that API and its verified owner. One extra hook reaches
+the current table capacity of 192/192; further hooks require deliberate work.
+
+Shared verification passes 524,288 original-ROM/actual-producer cases: all
+256 valid indices and 256 flag bytes, status variations, four timing windows
+and both ROM speeds. Another 65,536 direct semantic states vary all 256 data
+banks, cursor words, DP and stack. The producer passes 66,216 pre-access guard
+cases and 4,644 positive contexts; the API passes 765 no-access mode guards.
+Nine effective in-memory ROM faults, twelve CMake contexts and two actual
+producer feature configurations pass. Existing CMake properties are unchanged.
+Windows Release, GCC/Clang and C++17 linkage pass; unchanged CLI executable
+and fixture hashes reuse accepted checks.
+
+Paired 10,607-frame runs match 77,840 observations and all artifacts. Exactly
+1,163 native groups replace 10,467 interpreted instructions: 200,453 becomes
+189,986 in this workload. Another 144 actual kernel/hardware contexts compare
+four index classes around the page boundary, status, three WRAM banks and
+three clock positions. They stop before the JSL and compare CPU/WRAM/PPU,
+APU/SPC/FIFO/clocks, progress epochs and the dynamic-value cache. This is not
+whole-game or production-speedup proof. Unrelated full regression, other
+platforms and manual gameplay remain deferred. Totals remain 1,818 verified /
+1,786 ordinary bindings / 32 verified unbound / 791 WRAM fields / 499 C units /
+zero drafts. Tests/tools/ROM stay local. Concurrent owner work is separate
+from the accepted compiled snapshot.
+
 # Frame wait register entry phases - 2026-10-19
 
 Five verified wait owners expose twelve original PHA/PHP/SEP entry boundaries.
