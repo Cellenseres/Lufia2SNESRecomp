@@ -1,3 +1,37 @@
+# Single sound reads at clock boundaries - 2026-10-19
+
+Fifteen existing scalar sound polls can now complete one original CMP/LDA
+across a scanline or scheduler deadline. They share the accepted one-opcode
+admission guard with sound branches. Original guarded admissions and grouped
+poll/transfer/frame windows remain. The additional path requires beam HDMA
+disabled, coherent clocks and existing CPU/stack/IRQ/DMA restrictions. Original
+operand fetches, port order, atomic wide reads, flags, progress epochs, refresh
+charges and APU synchronization remain unchanged. No semantic API or new
+canonical entry/binding is added.
+
+The shared affected checkpoint passes 524,288 original-ROM/producer cases
+across 15 reads, 17 branches and eight timing contexts, including existing
+grouped contexts. CPU, WRAM, full bus, open bus and per-opcode costs agree.
+Another 25,775 rejection guards, 1,208 positive boundaries and 15 effective
+in-memory ROM opcode fault controls pass. Exact source checks cover 36 helpers;
+unrelated actor code and semantic source/API/metadata/timing helpers are
+unchanged. Isolated Windows Release passes. Unaffected standalone/CLI evidence
+is reused by checked inputs; no new full unrelated regression is claimed.
+
+Paired cold and normal input-driven replays match over 1,500 and 10,607 frames.
+The normal replay additionally compares 83,235 read contexts immediately before
+and after execution, including 33,462 scanline crossings, 113 deadline crossings
+and 1,801 refresh charges. All 371,656 observation rows and memory/video/audio/
+APU/SPC/DSP/clock/port artifacts agree. LLE instructions fall 594,851 -> 511,616.
+A separate controlled hardware probe covers every read at three positions with
+one clock of budget: 45 exact one-opcode cases, including the atomic 16-bit IPL
+read. Final CPU, full WRAM, progress epochs, SPC/FIFO/port timing and clocks
+agree. These are controlled kernel contexts, not complete child/gameplay proof.
+No whole-game or production-speedup claim. Other platforms and manual gameplay
+remain deferred. Counts stay 1,817 verified / 1,786 ordinary bindings /
+31 verified unbound / 791 WRAM fields / 499 C units / zero drafts.
+Tests, tooling and ROM remain private.
+
 # Single sound branches at clock boundaries - 2026-10-19
 
 Seventeen existing verified sound branches can now execute natively when
