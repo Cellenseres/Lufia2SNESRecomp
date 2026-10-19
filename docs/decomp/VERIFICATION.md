@@ -1,3 +1,29 @@
+# Shared IP record owner - 2026-10-20
+
+The IP list builder no longer duplicates the 81:F45E pointer calculation.
+It shares one internal helper with Lufia2IpRecordPointer. The canonical
+public guard remains unchanged; the original internal caller retains its
+unguarded CPU/bus contract. Original subtraction, negative exit, TDC,
+indexed ROM read, flags and near/long child frames remain literal.
+No public API, binding, canonical entry or function count is added.
+
+A shared checkpoint passes 131,072 original-ROM pointer cases covering
+every accumulator value with two DP contexts, 1,024 complete IP builders
+and 12,288 affected list/entry cases. CPU, full WRAM, ordered data bus and
+device state agree under the explicit verifier bus model. Three actual
+production bridges pass 3,072 CPU/full-WRAM cases with zero fallback using
+ROM-backed item/IP records and original negative/sentinel paths. Two faults
+are detected. Incremental GCC/Clang and isolated Windows Release pass;
+unchanged public declarations and CLI executable/fixture hashes retain
+prior linkage/CLI proofs. Full regression and a new replay are deferred.
+
+Synthetic out-of-table item/IP values can address unmapped space, whose
+open-bus behavior differs between the fixture and SDK. The committed
+pre-refactor source reproduces the invalid-item discrepancy. Those cases
+remain documented for a separate consumer audit; no production equivalence
+for arbitrary invalid records is claimed. ROM tables bound 467 item and
+168 IP pointers before their first records. Tests and ROM remain private.
+
 # Literal battle-list read order - 2026-10-20
 
 The existing IP/spell/item entry helpers and 81:DFA2 list owner retain two
