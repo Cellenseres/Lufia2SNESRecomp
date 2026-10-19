@@ -1,3 +1,34 @@
+# Bounded menu field-buffer restores - 2026-10-20
+
+The two original 82:F682 copy loops now share a readable byte-copy helper.
+Lufia2MenuRestoreFieldBufferSpan exposes a bounded part of either field or
+message snapshot. X remains the original byte index; memory order and CPU
+flags remain literal. The complete existing entry retains its contract.
+No instruction-PC switch, canonical function, ordinary binding or draft
+is added. Totals remain 1,819 verified functions and 500 C units.
+
+The consumer executes at most fourteen complete iterations within the current
+master deadline, retaining original instruction fetches, data bus order and
+indexed-store timing. Insufficient budget or unsupported contexts use the
+existing fallback. A partial iteration can still cross a frame as before.
+The portable code owns copy semantics; the consumer owns clocks and fetches.
+Activation requires the verified original owner and the new portable API.
+
+One shared checkpoint passes 15,513 original-ROM span comparisons, 1,032
+complete-parent comparisons and 20,172 selected-production CPU/full-WRAM/
+fetch/data-bus/clock comparisons (15,216 native and 4,956 fallback cases).
+Another 3,072 portable and 6,144 consumer guards access no bus. Two fault
+controls detect a destination offset and an indexed-store timing error.
+GCC, Clang, isolated Windows Release and C++17 linkage pass. Unchanged CLI
+executables and fixtures reuse accepted CLI proofs. Full regression is deferred.
+
+A 3,000-frame production-object run covers startup, both splashes, intro,
+local save loading, savepoint menus and field movement. All 3,001 per-frame/
+final CPU, full-WRAM, PPU/image, APU, DSP and PCM hash rows match the original
+production baseline. Actual decoder instructions fall from 104,621 to 34,751
+in this scenario. These counts do not establish whole-game coverage or a
+wall-clock speedup. Tests, scenario data and ROM remain private.
+
 # Literal reset entry - 2026-10-19
 
 Lufia2ResetSystem reconstructs the complete $80:8000 reset through the
