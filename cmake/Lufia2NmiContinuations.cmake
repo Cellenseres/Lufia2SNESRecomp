@@ -54,6 +54,7 @@ function(lufia2_add_nmi_continuations target core_root)
     set(_request_boundaries FALSE)
     set(_select_transition_boundaries FALSE)
     set(_menu_buffer_spans FALSE)
+    set(_save_buffer_spans FALSE)
     if(_api MATCHES "Lufia2FrameWaitRestoreRegisters[(]" AND
        EXISTS "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h")
         file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h" _menu_api)
@@ -86,6 +87,8 @@ function(lufia2_add_nmi_continuations target core_root)
                         lufia2_field_actor_boundaries_available(_field_actor_boundaries)
                         include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2MenuBufferSpans.cmake")
                         lufia2_menu_buffer_spans_available(_menu_buffer_spans)
+                        include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2SaveBufferSpans.cmake")
+                        lufia2_save_buffer_spans_available(_save_buffer_spans)
                         if(_calls_api MATCHES "Lufia2NmiInvokeCallback[(]" AND
                            _calls_api MATCHES "Lufia2NmiReturnCallback[(]")
                             set(_nmi_callback_boundaries TRUE)
@@ -326,11 +329,18 @@ function(lufia2_add_nmi_continuations target core_root)
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/field_actor_boundaries.inc\"\n")
                 endif()
                 if(_menu_buffer_spans)
-                    string(APPEND _native_opcode "        if (!_cyc)\n            _cyc = Lufia2DecompRunMenuBufferSpan(&in, cpu, pc_before, op);\n")
+                    string(APPEND _native_opcode "        if (!_cyc && !n_stop && (!yield_pc || auto_quiescent))\n            _cyc = Lufia2DecompRunMenuBufferSpan(&in, cpu, pc_before, op);\n")
                     string(PREPEND _text
                         "#include \"interp816.h\"\n#include \"cpu_state.h\"\nstatic int Lufia2DecompRunMenuBufferSpan(Interp816 *, CpuState *, uint32_t, uint8_t);\n")
                     string(APPEND _timing_suffix
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/menu_buffer_spans.inc\"\n")
+                endif()
+                if(_save_buffer_spans)
+                    string(APPEND _native_opcode "        if (!_cyc && !n_stop && (!yield_pc || auto_quiescent))\n            _cyc = Lufia2DecompRunSaveBufferSpan(&in, cpu, pc_before, op);\n")
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\n#include \"cpu_state.h\"\nstatic int Lufia2DecompRunSaveBufferSpan(Interp816 *, CpuState *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/save_buffer_spans.inc\"\n")
                 endif()
                 string(APPEND _native_opcode "        if (!_cyc)\n            _cyc = interp816_runOpcode(&in);")
                 string(REPLACE "${_original_opcode}" "${_native_opcode}"

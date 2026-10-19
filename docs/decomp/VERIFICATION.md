@@ -1,3 +1,36 @@
+# Clocked save snapshot spans - 2026-10-20
+
+The original 85:C954 pack and 85:C60E restore share a readable field/count
+copy helper. The four bounded paths preserve banked accesses, signed DEY
+termination, CPU widths, flags and ordered bus accesses. The complete parents
+retain their original child and stack contracts. The inventory name follows
+82:FCED packed count evidence; phase-dependent WRAM overlap remains explicit.
+No new canonical function, ordinary binding, C unit or draft is added.
+Totals remain 1,819 verified functions, 500 C units and 1,786 own bindings.
+
+The consumer runs at most fourteen complete iterations inside its deadline,
+with original fetch order, source page penalties and indexed-store clocks.
+Shared plumbing handles only fetches and CPU transfer. Explicit stop PCs and
+custom yield conditions disable bulk execution. Waiting, stopped or pending
+interrupt states retain fallback. Whole-entry bank guards remain unchanged.
+
+The shared checkpoint passes 15,184 bounded/full signed-width ROM cases,
+4,385 complete-parent/child-unwind cases and 77,464 production-consumer CPU,
+full-WRAM, ordered fetch/data bus and clock cases (67,639 native, 9,825
+fallback). Another 7,168 API and 16,384 consumer guards access no bus.
+Affected menu checks pass 15,513 spans, 20,172 consumer cases, 3,072 API
+and 8,192 consumer guards. Two injected ROM faults detect destination and
+signed-branch errors. Production Stop and Yield regressions now pass.
+Incremental GCC/Clang, isolated Windows Release and C++17 linkage pass.
+Unchanged CLI executable/fixture hashes reuse accepted CLI results.
+Full regression is deferred; all checks cover the combined final batch.
+
+All 3,000 production frame rows match the preceding accepted build in CPU,
+full WRAM, PPU/image, APU, DSP and PCM hashes. Actual decoder instructions
+fall from 34,751 to 15,151 in the same read-only save/menu/field scenario.
+This does not establish whole-game coverage or a wall-clock speedup.
+Tests, local SRAM and ROM remain private; no save file is written.
+
 # Bounded menu field-buffer restores - 2026-10-20
 
 The two original 82:F682 copy loops now share a readable byte-copy helper.
@@ -23,8 +56,8 @@ GCC, Clang, isolated Windows Release and C++17 linkage pass. Unchanged CLI
 executables and fixtures reuse accepted CLI proofs. Full regression is deferred.
 
 A 3,000-frame production-object run covers startup, both splashes, intro,
-local save loading, savepoint menus and field movement. All 3,001 per-frame/
-final CPU, full-WRAM, PPU/image, APU, DSP and PCM hash rows match the original
+local save loading, savepoint menus and field movement. All 3,000 per-frame
+CPU, full-WRAM, PPU/image, APU, DSP and PCM hash rows match the original
 production baseline. Actual decoder instructions fall from 104,621 to 34,751
 in this scenario. These counts do not establish whole-game coverage or a
 wall-clock speedup. Tests, scenario data and ROM remain private.
