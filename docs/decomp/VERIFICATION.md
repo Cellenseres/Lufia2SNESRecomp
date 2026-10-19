@@ -1,3 +1,44 @@
+# Sound frame continuations - 2026-10-19
+
+Two optional sound_phase.h APIs expose eighteen resource-header phases and
+seventeen reply phases under the existing verified owners. They preserve source
+pointer/byte access, APU stores and polls, source-bank wrap, the original JSR
+frame, TDC's full sixteen bits, saved status, dynamic widths and RTS. Existing
+semantic bodies and declarations are unchanged; no canonical alias is added.
+
+The consumer retains the original generic child/return, progress, interrupt and
+clock accounting. Its transient adapter delegates atomic pointer words once,
+even when later byte data aliases the pointer. The original sixteen-bit LDY
+immediate also uses the word service; its ROM operand is read without duplicate
+fetches and retains the X-width clock. Unsupported widths, emulation, pending
+interrupts and unknown PCs/opcodes stay interpreted. Both APIs and both named,
+correctly addressed verified owners gate activation. Old headers compile
+without new sound-symbol dependencies.
+
+One combined corrected checkpoint passes 2,686,212 direct and 2,686,212 actual-
+producer original-ROM/CPU/full-WRAM/ordered-bus cases across every stack/DP word,
+all statuses and accepted widths, with twenty-one edge addresses. Atomic pointer
+and code words, fallback, wrap and pointer/data alias cases pass. Another 18,162
+producer, 542,205 API and 65,501 unknown-PC guards pass. Eight effective faults
+cover pointer/port/bank/branch/call/return and repeated-word access. Sixteen CMake
+contexts, MSVC Release, standalone GCC/Clang and C++17 linkage pass. Unchanged
+CLI executable/fixture contracts are reused.
+
+All thirty-five points execute natively in 5,913 paired hardware contexts,
+covering every accepted width contract, three data banks, DP/stack classes and
+clock positions. Actual APU pointer words, wrap and exact exits agree. Existing
+public yield/exclusion APIs stop before the original child; the kernel is
+unchanged. Every case checks one original control step. Normal paired 10,607-
+frame runs also retain actual child execution and all 77,840 observations and
+artifacts against prior main. Actual decoding falls from 67,986 to 56,088
+through 11,898 additional native phases. Bridge control steps remain 179,420;
+previous native counts, graphics/audio, clocks, progress and cache agree.
+
+Totals remain 1,818 verified / 1,786 ordinary bindings / 32 verified unbound /
+791 WRAM fields / 499 C units / zero drafts; 193 hooks remain registered.
+Unrelated full regression, other platforms, manual gameplay and production
+speed measurements are deferred. Tests, proofs and ROM remain local.
+
 # Menu input continuations - 2026-10-19
 
 The optional menu_input_phase.h API exposes all thirty-three M1X0 instruction
