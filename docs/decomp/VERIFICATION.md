@@ -1,3 +1,48 @@
+# Pending items and record descriptions — 2026-10-19
+
+Sixteen complete admitted contracts are verified and bound:
+82:B183/B1CE/B1FE/9E07/9E1B/FD81/FEC8/FDEC/FDF6/FE44/FE98/FEC0/
+FEFE/FF3A/FF99/82E2. They handle pending-item actions and targets,
+item-menu closure, primary/secondary descriptions, original layout dispatch,
+window masks, centered record names and window dividers. All enter M1X0
+except the M0X0 divider. Four description words are catalogued.
+Existing item, spell, text, cursor, layer and dispatcher owners are reused;
+protected window/equipment helpers keep their original owner.
+
+The original one-word nonlocal close and caller propagation remain literal.
+FDEC reuses the existing inline-table dispatcher and its 82803D checkpoint.
+Its table has two ordinary targets; all raw byte selectors retain their
+original ROM reads without clamping. The divider preserves its original
+pattern reset and wrapping word counter. Name centering ignores final spaces
+only when calculating padding, copies the original source unchanged, and
+retains unsigned padding underflow. MMIO and ordered bus accesses remain.
+
+One shared original-ROM/full-CPU/full-128K-WRAM/ordered-data+MMIO/device
+checkpoint passes 7,814 positive states per side: 4,096 normal, 960 actual
+returns, 1,024 native compositions, 90 child unwinds, 360 live-child/status
+returns, 1,156 original-ROM edge/dispatch cases and 128 existing B104 caller
+compositions. Those caller cases include 40 nonlocal propagations per side.
+360 post-child boundary cases cover 74 physical sites and 90 selected visits.
+2,097,296 semantic and 2,101,376 actual-ABI pre-access guards pass. Sixteen
+effective heap-ROM instruction controls per side are detected. Ten positive
+heap-ROM data controls are separate from original-ROM state counts.
+
+Fresh compiled library: 3,254 positive original-ROM states per side, 360
+post-child cases, admission guards, ten positive ROM-data controls, 1,350
+actual redirects, sixteen C++ symbols, exact twenty-helper/sixteen-wrapper
+production closure, the existing caller bridge and generated selection pass.
+Strict GCC (149.7 s), Clang (129.88 s) and isolated Windows
+Release (170.52 s) builds pass. Accepted CLI proof is reused only
+for unchanged executable and private-fixture hashes. This is one checkpoint
+on the combined final revision; intermediate commits have no separate claim.
+Full regression, unrelated scenes, pixels/manual acceptance, physical timing
+and whole-game profiling are deferred. Historical field-text PCM timing
+remains open. No claim of whole-game equivalence is made.
+
+Tests/tools remain private. ROM and protected owner work are intact.
+Totals: 1,805 verified contracts, 1,781 ordinary bindings, 791 WRAM locations,
+497 semantic C units and zero drafts. The 24 verified-unbound entries remain.
+
 # Special menu effects and warp selection — 2026-10-18
 
 Nine complete admitted contracts are verified and bound: `$82:AE6F`,
