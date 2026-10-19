@@ -1,3 +1,53 @@
+# Native frame poll phases — 2026-10-19
+
+Five original frame-counter waits now expose their CMP $40 and BEQ phases
+through `Lufia2FrameWaitPollStep`. Both opcodes execute natively, with the
+original scheduler retaining its check between them. These phases belong
+to verified parents at 82:93C2, 83:900C, 8E:B550, 86:8B48 and 86:974F;
+no duplicate whole functions or additional ordinary bindings are counted.
+Existing parent operation streams remain unchanged.
+
+A shared timed bus handles sound transfers and frame comparisons. Wide
+Direct-Page reads wrap within bank 0 and delegate to the original word bus;
+SPC source words retain their bank-crossing behavior. Stack-neutral polls
+accept safe WRAM stacks through $1FFF, including the observed $1FFA sound
+initializer context. Stack-mutating return/transfer helpers retain their
+prior limits. Every original read, flag, instruction cost and wait remains.
+
+The initial paired frame adapter passed isolated ROM cases but changed the
+scheduler's quiescence checkpoints and disabled an existing consumer wait
+patch. It failed at cold frame 376 and was replaced before acceptance.
+Individual native phases retain the original checks. The existing patch
+recognizes only this exact native callback pointer; foreign hooks continue
+to suppress it. Semantic decomp code never fast-forwards original waits.
+
+Final archive/actual-producer proof passes 51,200 ROM states: 30,720 sound
+runs and 20,480 individual frame phases. CPU, WRAM, full fetch/data bus,
+open bus, opcode-entry CPU and CPU/master charges agree. Both widths, all
+DB values, varied sound DP and 16 explicit frame DP contexts cover counter
+wraps, bank boundaries, mirrored MMIO, decimal state and both ROM speeds.
+Affected original sound branches, boot phases and payload phases pass
+28,672 additional states. Also green: 23,266 consumer guards, 25 positive
+128-clock/position-1240 edges, 175 high-stack admissions, 2,880 changing
+sound-run/progress cases, 346,745 portable guards, 18 effective ROM fault
+controls, C++ linkage and 48 API/metadata/feature cases. Thirty producer
+bodies, three structs, six tables and the separate hook-identity body match
+source; prior frame parents and word-interface bodies remain unchanged.
+GCC, Clang and isolated Windows Release pass. Unchanged CLI and word-bus
+component evidence is reused; full unrelated regression remains deferred.
+
+Paired current/accepted-baseline replays match across 1,500 boot and 10,607
+input/world/menu frames: CPU, every WRAM page, PPU, pixels, PCM, APU/SPC/DSP,
+beam, open bus, clocks and ordered port values/timestamps. Native frame
+phases execute 446,453 opcodes; newly admitted sound contexts add 195,950.
+Interpreter instructions fall from 1,803,370 to 1,160,967 (-642,403).
+Instrumented CPU times were 73.625/71.672s, wall times 78.73/77.61s.
+These observations do not establish whole-game or production performance.
+
+Tests and tools remain local. Owner files, ROM and build/windows are intact;
+nothing is pushed. Totals stay 1,812 verified / 1,786 ordinary bindings /
+26 verified unbound / 791 WRAM fields / 499 C units / zero drafts.
+
 # Bounded sound poll iterations — 2026-10-19
 
 Fifteen existing sound poll sites now expose one complete original CMP/LDA

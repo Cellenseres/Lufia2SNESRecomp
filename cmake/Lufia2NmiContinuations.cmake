@@ -82,6 +82,22 @@ function(lufia2_add_nmi_continuations target core_root)
                     list(APPEND _definitions LUFIA2_HAVE_NATIVE_SOUND_POLLS=1)
                     if(_api MATCHES "Lufia2SoundUploadStep[(]")
                         list(APPEND _definitions LUFIA2_HAVE_NATIVE_SOUND_UPLOAD_STEPS=1)
+                        set(_frame_polls FALSE)
+                        if(_api MATCHES "Lufia2FrameWaitPollStep[(]")
+                            set(_frame_polls TRUE)
+                            foreach(_frame_address IN ITEMS "82:93C2" "83:900C" "8E:B550"
+                                                            "86:8B48" "86:974F")
+                                string(REGEX MATCH
+                                    "\\[\\[function\\]\\][^[]*address[ \t]*=[ \t]*\"${_frame_address}\"[^[]*"
+                                    _frame_contract "${_metadata}")
+                                if(NOT _frame_contract MATCHES "status[ \t]*=[ \t]*\"verified\"")
+                                    set(_frame_polls FALSE)
+                                endif()
+                            endforeach()
+                        endif()
+                        if(_frame_polls)
+                            list(APPEND _definitions LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS=1)
+                        endif()
                         if(_api MATCHES "Lufia2SoundPollIteration[(]" AND
                            _api MATCHES "Lufia2SoundPollBranchTarget[(]")
                             list(APPEND _definitions LUFIA2_HAVE_NATIVE_SOUND_POLL_RUNS=1)
@@ -129,6 +145,17 @@ function(lufia2_add_nmi_continuations target core_root)
                     "#include <stdint.h>\nstatic int s_frame_return_auto_quiescent;\nstatic void Lufia2DecompFrameReturnContinue(long *, int, uint64_t *, uint64_t *);\n")
                 string(APPEND _timing_suffix
                     "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/frame_return_cycles.inc\"\n")
+            endif()
+            if(_frame_polls)
+                set(_wait_hook_guard "                    _l2_hooked = 1;")
+                string(FIND "${_text}" "${_wait_hook_guard}" _wait_hook_offset)
+                if(NOT _wait_hook_offset EQUAL -1)
+                    string(REPLACE "${_wait_hook_guard}"
+                        "                    if (Lufia2DecompFramePollHookIsNative(s_pre_opcode_hooks[_l2_hi].hook))\n                        continue;\n${_wait_hook_guard}"
+                        _text "${_text}")
+                    string(PREPEND _text
+                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/frame_returns.h\"\n")
+                endif()
             endif()
             file(WRITE "${_output}.tmp" "${_text}${_timing_suffix}")
             execute_process(COMMAND "${CMAKE_COMMAND}" -E copy_if_different

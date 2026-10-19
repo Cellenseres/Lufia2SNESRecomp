@@ -2809,8 +2809,8 @@ static void ActorBridgeSoundPoll(CpuState *cpu, uint32_t entry) {
     const unsigned fetched = result.pc - entry;
     const uint64_t master = fetched * cpu_region_speed(entry) + bus.data_master;
     ActorBridgeStore(cpu, &state);
-    Lufia2DecompFrameReturnAccountOpcode(
-        cpu, fetched + bus.data_bytes, master, bus.progress_mask != 0u);
+    Lufia2DecompFrameReturnAccountOpcode(cpu, fetched + bus.data_bytes, master,
+                                         bus.progress_mask != 0u);
     Lufia2DecompFrameReturnComplete(1u, bus.progress_mask);
     interp_bridge_pre_opcode_redirect(result.pc);
 }
@@ -2821,16 +2821,16 @@ static void ActorBridgeSoundPoll(CpuState *cpu, uint32_t entry) {
 static const uint32_t sound_upload_entries[] = {0x809969u, 0x80997du, 0x809988u,
                                                 0x80998bu, 0x80999du};
 
-typedef struct ActorSoundUploadOpcode {
+typedef struct ActorTimedOpcode {
     uint16_t pc;
     uint8_t fetched;
     uint8_t cycles;
     uint8_t direct;
     uint8_t indexed;
     uint8_t branch;
-} ActorSoundUploadOpcode;
+} ActorTimedOpcode;
 
-static const ActorSoundUploadOpcode sound_upload_opcodes[] = {
+static const ActorTimedOpcode sound_upload_opcodes[] = {
     {0x9969u, 2u, 3u, 1u, 0u, 0u}, {0x996bu, 4u, 5u, 0u, 0u, 0u},
     {0x996fu, 2u, 3u, 1u, 0u, 0u}, {0x9971u, 4u, 5u, 0u, 0u, 0u},
     {0x9975u, 2u, 3u, 1u, 0u, 0u}, {0x9977u, 2u, 2u, 0u, 0u, 0u},
@@ -2861,22 +2861,24 @@ static const ActorSoundUploadOpcode sound_upload_opcodes[] = {
     {0x9c60u, 3u, 4u, 0u, 0u, 0u}, {0x9c63u, 2u, 2u, 0u, 0u, 0u},
     {0x9c65u, 1u, 4u, 0u, 0u, 0u}, {0x9c66u, 3u, 4u, 0u, 0u, 0u}};
 
-typedef struct ActorSoundUploadBus {
+typedef struct ActorTimedBus {
     CpuState *cpu;
-    const ActorSoundUploadOpcode *opcode;
+    const ActorTimedOpcode *opcode;
     uint64_t master;
     unsigned transfers;
     unsigned cycles;
     unsigned count;
     unsigned progress_mask;
     uint16_t word_value;
+    unsigned word_start;
+    bool word_bank_wrap;
     bool progress;
-} ActorSoundUploadBus;
+} ActorTimedBus;
 
-static void ActorBridgeSoundUploadFinish(ActorSoundUploadBus *bus, uint32_t next) {
+static void ActorBridgeTimedFinish(ActorTimedBus *bus, uint32_t next) {
     if (!bus->opcode)
         return;
-    const ActorSoundUploadOpcode *op = bus->opcode;
+    const ActorTimedOpcode *op = bus->opcode;
     const unsigned cycles =
         bus->cycles +
         (op->branch && (uint16_t)next != (uint16_t)(op->pc + op->fetched));
@@ -2889,21 +2891,18 @@ static void ActorBridgeSoundUploadFinish(ActorSoundUploadBus *bus, uint32_t next
     bus->opcode = NULL;
 }
 
-static uint8_t ActorBridgeSoundUploadRead(void *context, uint32_t address) {
-    ActorSoundUploadBus *bus = context;
+static uint8_t ActorBridgeTimedRead(void *context, uint32_t address) {
+    ActorTimedBus *bus = context;
     bool progress = false;
     bus->master += cpu_region_speed(address);
     const unsigned transfer = bus->transfers++;
-    const bool wide_source =
-        bus->opcode && (bus->opcode->pc == 0x9c4cu || bus->opcode->pc == 0x9c51u ||
-                        bus->opcode->pc == 0x9c18u);
     uint8_t value;
-    const unsigned word_start = bus->opcode && bus->opcode->pc == 0x9c18u ? 3u : 5u;
-    if (wide_source && transfer == word_start) {
+    if (bus->word_start && transfer == bus->word_start) {
         bus->word_value = Lufia2DecompFrameReturnReadWord(
-            bus->cpu, address, (address + 1u) & 0xffffffu, &progress);
+            bus->cpu, address,
+            (address + 1u) & (bus->word_bank_wrap ? 0xffffu : 0xffffffu), &progress);
         value = (uint8_t)bus->word_value;
-    } else if (wide_source && transfer == word_start + 1u) {
+    } else if (bus->word_start && transfer == bus->word_start + 1u) {
         value = (uint8_t)(bus->word_value >> 8);
     } else {
         value = Lufia2DecompFrameReturnReadByte(bus->cpu, address, &progress);
@@ -2912,9 +2911,8 @@ static uint8_t ActorBridgeSoundUploadRead(void *context, uint32_t address) {
     return value;
 }
 
-static void ActorBridgeSoundUploadWrite(void *context, uint32_t address,
-                                        uint8_t value) {
-    ActorSoundUploadBus *bus = context;
+static void ActorBridgeTimedWrite(void *context, uint32_t address, uint8_t value) {
+    ActorTimedBus *bus = context;
     bool progress = false;
     bus->master += cpu_region_speed(address);
     const unsigned transfer = bus->transfers++;
@@ -2934,10 +2932,10 @@ static void ActorBridgeSoundUploadWrite(void *context, uint32_t address,
 
 static void ActorBridgeSoundUploadCheckpoint(void *context, Lufia2CpuState *state,
                                              uint32_t pc) {
-    ActorSoundUploadBus *bus = context;
-    ActorBridgeSoundUploadFinish(bus, pc);
+    ActorTimedBus *bus = context;
+    ActorBridgeTimedFinish(bus, pc);
     ActorBridgeStore(bus->cpu, state);
-    const ActorSoundUploadOpcode *op = NULL;
+    const ActorTimedOpcode *op = NULL;
     for (unsigned i = 0u;
          i < sizeof sound_upload_opcodes / sizeof sound_upload_opcodes[0]; ++i)
         if (sound_upload_opcodes[i].pc == (uint16_t)pc) {
@@ -2947,13 +2945,15 @@ static void ActorBridgeSoundUploadCheckpoint(void *context, Lufia2CpuState *stat
     if (!op)
         return;
     bus->opcode = op;
+    bus->word_start = op->pc == 0x9c4cu || op->pc == 0x9c51u ? 5u : 0u;
+    bus->word_bank_wrap = false;
     bus->master = 0u;
     bus->transfers = 0u;
     bus->progress = false;
     bus->cycles = op->cycles + (op->direct && (state->direct_page & 0xffu)) +
                   (op->indexed && state->y >= 0x100u);
     for (unsigned byte = 0u; byte < op->fetched; ++byte)
-        (void)ActorBridgeSoundUploadRead(bus, pc + byte);
+        (void)ActorBridgeTimedRead(bus, pc + byte);
 }
 
 static void ActorBridgeSoundUpload(CpuState *cpu, uint32_t entry) {
@@ -2963,17 +2963,16 @@ static void ActorBridgeSoundUpload(CpuState *cpu, uint32_t entry) {
     const uint64_t deadline = Lufia2DecompFrameReturnDeadline();
     if (deadline - cpu->master_cycles < 512u)
         return;
-    ActorSoundUploadBus bus = {0};
+    ActorTimedBus bus = {0};
     bus.cpu = cpu;
-    const Lufia2Memory memory = {ActorBridgeSoundUploadRead,
-                                 ActorBridgeSoundUploadWrite, &bus,
+    const Lufia2Memory memory = {ActorBridgeTimedRead, ActorBridgeTimedWrite, &bus,
                                  ActorBridgeSoundUploadCheckpoint, &bus};
     Lufia2CpuState state;
     ActorBridgeLoad(cpu, &state);
     const Lufia2ExecutionResult result = Lufia2SoundUploadStep(&memory, &state, entry);
     if (result.flow != LUFIA2_EXECUTION_BOUNDARY || result.pc == entry)
         return;
-    ActorBridgeSoundUploadFinish(&bus, result.pc);
+    ActorBridgeTimedFinish(&bus, result.pc);
     ActorBridgeStore(cpu, &state);
     Lufia2DecompFrameReturnComplete(bus.count, bus.progress_mask);
     interp_bridge_pre_opcode_redirect(result.pc);
@@ -3012,10 +3011,9 @@ static void ActorBridgeBootSound(CpuState *cpu, uint32_t entry) {
     if (g_snes->hPos > 400u ||
         Lufia2DecompFrameReturnDeadline() - cpu->master_cycles < 1024u)
         return;
-    ActorSoundUploadBus bus = {0};
+    ActorTimedBus bus = {0};
     bus.cpu = cpu;
-    const Lufia2Memory memory = {ActorBridgeSoundUploadRead,
-                                 ActorBridgeSoundUploadWrite, &bus,
+    const Lufia2Memory memory = {ActorBridgeTimedRead, ActorBridgeTimedWrite, &bus,
                                  ActorBridgeSoundUploadCheckpoint, &bus};
     Lufia2CpuState state;
     ActorBridgeLoad(cpu, &state);
@@ -3023,110 +3021,187 @@ static void ActorBridgeBootSound(CpuState *cpu, uint32_t entry) {
         Lufia2BootSoundTransferStep(&memory, &state, entry);
     if (result.flow != LUFIA2_EXECUTION_BOUNDARY || result.pc == entry)
         return;
-    ActorBridgeSoundUploadFinish(&bus, result.pc);
+    ActorBridgeTimedFinish(&bus, result.pc);
     ActorBridgeStore(cpu, &state);
     Lufia2DecompFrameReturnComplete(bus.count, bus.progress_mask);
     interp_bridge_pre_opcode_redirect(result.pc);
 }
 #endif
-#if defined(LUFIA2_HAVE_NATIVE_SOUND_POLL_RUNS)
-typedef struct ActorSoundPollRun {
-    ActorSoundUploadBus bus;
-    ActorSoundUploadOpcode poll;
-    ActorSoundUploadOpcode branch;
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_POLL_RUNS) ||                                     \
+    defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS)
+typedef struct ActorPollRun {
+    ActorTimedBus bus;
+    ActorTimedOpcode poll;
+    ActorTimedOpcode branch;
     uint32_t entry;
-} ActorSoundPollRun;
+} ActorPollRun;
 
-static bool ActorBridgeSoundPollRunSupported(const CpuState *cpu, uint32_t entry) {
-    if (!g_snes || !g_snes->apu || cpu->m_flag != (entry != 0x809c18u) ||
-        !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1ff8u, true, 1240u, 128u))
+static bool ActorBridgePollRunSupported(const CpuState *cpu, uint32_t entry) {
+    if (!g_snes || !g_snes->apu ||
+        !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, true, 1240u, 128u))
         return false;
     if (!g_snes->hdmaBeamOff && g_snes->vPos < 225u && g_snes->hPos >= 896u)
         return false;
     return true;
 }
 
-static void ActorBridgeSoundPollRunCheckpoint(void *context, Lufia2CpuState *state,
-                                              uint32_t pc) {
-    ActorSoundPollRun *run = context;
-    ActorSoundUploadBus *bus = &run->bus;
-    ActorBridgeSoundUploadFinish(bus, pc);
+static void ActorBridgePollRunCheckpoint(void *context, Lufia2CpuState *state,
+                                         uint32_t pc) {
+    ActorPollRun *run = context;
+    ActorTimedBus *bus = &run->bus;
+    ActorBridgeTimedFinish(bus, pc);
     ActorBridgeStore(bus->cpu, state);
-    const ActorSoundUploadOpcode *op = pc == run->entry ? &run->poll : &run->branch;
+    const ActorTimedOpcode *op = pc == run->entry ? &run->poll : &run->branch;
     bus->opcode = op;
+    bus->word_start =
+        op == &run->poll && !state->accumulator_is_8_bit ? op->fetched : 0u;
+    bus->word_bank_wrap = false;
     bus->master = 0u;
     bus->transfers = 0u;
     bus->progress = false;
     bus->cycles = op->cycles;
     for (unsigned byte = 0u; byte < op->fetched; ++byte)
-        (void)ActorBridgeSoundUploadRead(bus, pc + byte);
+        (void)ActorBridgeTimedRead(bus, pc + byte);
 }
 
-static void ActorBridgeSoundPollRun(CpuState *cpu, uint32_t entry) {
-    if (!ActorBridgeSoundPollRunSupported(cpu, entry))
+typedef Lufia2ExecutionResult (*ActorPollIteration)(const Lufia2Memory *,
+                                                    Lufia2CpuState *, uint32_t);
+
+static void ActorBridgePollRun(CpuState *cpu, uint32_t entry,
+                               ActorPollIteration iteration, unsigned fetched) {
+    if (!ActorBridgePollRunSupported(cpu, entry))
         return;
-    const bool absolute = entry == 0x8098f7u || entry == 0x809c18u ||
-                          entry == 0x809c30u || entry == 0x809c40u ||
-                          entry == 0x809c69u;
-    const unsigned fetched = absolute ? 3u : 4u;
-    ActorSoundPollRun run = {0};
+    ActorPollRun run = {0};
     run.entry = entry;
     run.bus.cpu = cpu;
-    run.poll = (ActorSoundUploadOpcode){(uint16_t)entry,
-                                        (uint8_t)fetched,
-                                        (uint8_t)(fetched + (cpu->m_flag ? 1u : 2u)),
-                                        0u,
-                                        0u,
-                                        0u};
-    run.branch =
-        (ActorSoundUploadOpcode){(uint16_t)(entry + fetched), 2u, 2u, 0u, 0u, 1u};
-    const Lufia2Memory memory = {ActorBridgeSoundUploadRead, NULL, &run.bus,
-                                 ActorBridgeSoundPollRunCheckpoint, &run};
+    run.poll = (ActorTimedOpcode){(uint16_t)entry,
+                                  (uint8_t)fetched,
+                                  (uint8_t)(fetched + (cpu->m_flag ? 1u : 2u)),
+                                  0u,
+                                  0u,
+                                  0u};
+    run.branch = (ActorTimedOpcode){(uint16_t)(entry + fetched), 2u, 2u, 0u, 0u, 1u};
+    const Lufia2Memory memory = {ActorBridgeTimedRead, NULL, &run.bus,
+                                 ActorBridgePollRunCheckpoint, &run};
     Lufia2CpuState state;
     ActorBridgeLoad(cpu, &state);
     uint32_t next = entry;
     do {
-        const Lufia2ExecutionResult result =
-            Lufia2SoundPollIteration(&memory, &state, entry);
+        const Lufia2ExecutionResult result = iteration(&memory, &state, entry);
         if (result.flow != LUFIA2_EXECUTION_BOUNDARY || !run.bus.opcode)
             break;
-        ActorBridgeSoundUploadFinish(&run.bus, result.pc);
+        ActorBridgeTimedFinish(&run.bus, result.pc);
         next = result.pc;
         ActorBridgeStore(cpu, &state);
     } while (next == entry && run.bus.count < 16u &&
-             ActorBridgeSoundPollRunSupported(cpu, entry));
+             ActorBridgePollRunSupported(cpu, entry));
     if (!run.bus.count)
         return;
     Lufia2DecompFrameReturnComplete(run.bus.count, run.bus.progress_mask);
     interp_bridge_pre_opcode_redirect(next);
 }
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_POLL_RUNS)
+static void ActorBridgeSoundPollRun(CpuState *cpu, uint32_t entry) {
+    if (cpu->m_flag != (entry != 0x809c18u))
+        return;
+    const bool absolute = entry == 0x8098f7u || entry == 0x809c18u ||
+                          entry == 0x809c30u || entry == 0x809c40u ||
+                          entry == 0x809c69u;
+    ActorBridgePollRun(cpu, entry, Lufia2SoundPollIteration, absolute ? 3u : 4u);
+}
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS)
+static const uint32_t frame_poll_entries[] = {
+    0x8293c8u, 0x8293cau, 0x83900eu, 0x839010u, 0x8eb552u,
+    0x8eb554u, 0x868b4eu, 0x868b50u, 0x869752u, 0x869754u};
+
+static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
+    if (!ActorBridgePollRunSupported(cpu, entry))
+        return;
+    unsigned index = 0u;
+    while (index < sizeof frame_poll_entries / sizeof frame_poll_entries[0] &&
+           frame_poll_entries[index] != entry)
+        ++index;
+    if (index == sizeof frame_poll_entries / sizeof frame_poll_entries[0])
+        return;
+    const bool compare = !(index & 1u);
+    ActorTimedBus bus = {0};
+    const ActorTimedOpcode opcode = {
+        (uint16_t)entry,
+        2u,
+        (uint8_t)(compare ? 3u + !cpu->m_flag + ((cpu->D & 0xffu) != 0u) : 2u),
+        0u,
+        0u,
+        !compare};
+    bus.cpu = cpu;
+    bus.opcode = &opcode;
+    bus.cycles = opcode.cycles;
+    bus.word_start = compare && !cpu->m_flag ? 2u : 0u;
+    bus.word_bank_wrap = true;
+    for (unsigned byte = 0u; byte < 2u; ++byte)
+        (void)ActorBridgeTimedRead(&bus, entry + byte);
+    const Lufia2Memory memory = {ActorBridgeTimedRead, NULL, &bus, NULL, NULL};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result =
+        Lufia2FrameWaitPollStep(&memory, &state, entry);
+    ActorBridgeTimedFinish(&bus, result.pc);
+    ActorBridgeStore(cpu, &state);
+    Lufia2DecompFrameReturnComplete(1u, bus.progress_mask);
+    interp_bridge_pre_opcode_redirect(result.pc);
+}
+#endif
+#endif
+
+bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS)
+    return hook == ActorBridgeFramePollStep;
+#else
+    (void)hook;
+    return false;
+#endif
+}
+
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS)
+    for (unsigned i = 0u; i < sizeof frame_poll_entries / sizeof frame_poll_entries[0];
+         ++i)
+        interp_bridge_set_pre_opcode_hook(frame_poll_entries[i],
+                                          ActorBridgeFramePollStep);
+#endif
     static const uint32_t entries[] = {0x8293ccu, 0x868b52u, 0x869756u, 0x868b6fu};
     for (unsigned i = 0; i < sizeof entries / sizeof entries[0]; ++i)
         interp_bridge_set_pre_opcode_hook(entries[i], ActorBridgeFrameReturn);
 #if defined(LUFIA2_HAVE_NATIVE_SELECT_RESUMPTIONS)
     static const uint32_t selection_entries[] = {0x868333u, 0x868352u, 0x8682fcu};
-    for (unsigned i = 0; i < sizeof selection_entries / sizeof selection_entries[0]; ++i)
-        interp_bridge_set_pre_opcode_hook(selection_entries[i], ActorBridgeSelectResume);
+    for (unsigned i = 0; i < sizeof selection_entries / sizeof selection_entries[0];
+         ++i)
+        interp_bridge_set_pre_opcode_hook(selection_entries[i],
+                                          ActorBridgeSelectResume);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_POLLS)
-    for (unsigned i = 0u; i < sizeof sound_poll_entries / sizeof sound_poll_entries[0]; ++i)
+    for (unsigned i = 0u; i < sizeof sound_poll_entries / sizeof sound_poll_entries[0];
+         ++i)
         interp_bridge_set_pre_opcode_hook(sound_poll_entries[i],
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_POLL_RUNS)
-                                         ActorBridgeSoundPollRun);
+                                          ActorBridgeSoundPollRun);
 #else
-                                         ActorBridgeSoundPoll);
+                                          ActorBridgeSoundPoll);
 #endif
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_UPLOAD_STEPS)
-    for (unsigned i = 0u; i < sizeof sound_upload_entries / sizeof sound_upload_entries[0]; ++i)
-        interp_bridge_set_pre_opcode_hook(sound_upload_entries[i], ActorBridgeSoundUpload);
+    for (unsigned i = 0u;
+         i < sizeof sound_upload_entries / sizeof sound_upload_entries[0]; ++i)
+        interp_bridge_set_pre_opcode_hook(sound_upload_entries[i],
+                                          ActorBridgeSoundUpload);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_HANDSHAKE_STEPS)
-    for (unsigned i = 0u; i < sizeof sound_branch_entries / sizeof sound_branch_entries[0]; ++i)
-        interp_bridge_set_pre_opcode_hook(sound_branch_entries[i], ActorBridgeSoundBranch);
-    for (unsigned i = 0u; i < sizeof boot_sound_entries / sizeof boot_sound_entries[0]; ++i)
+    for (unsigned i = 0u;
+         i < sizeof sound_branch_entries / sizeof sound_branch_entries[0]; ++i)
+        interp_bridge_set_pre_opcode_hook(sound_branch_entries[i],
+                                          ActorBridgeSoundBranch);
+    for (unsigned i = 0u; i < sizeof boot_sound_entries / sizeof boot_sound_entries[0];
+         ++i)
         interp_bridge_set_pre_opcode_hook(boot_sound_entries[i], ActorBridgeBootSound);
 #endif
 }
@@ -3135,7 +3210,7 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 RecompReturn Lufia2DecompBridge_808638(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
-        ActorBridgeExecutionCheckpoint, cpu};
+                                 ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -3146,18 +3221,16 @@ RecompReturn Lufia2DecompBridge_808638(CpuState *cpu) {
     call.frame = frame;
     call.unwound = RECOMP_RETURN_NORMAL;
     ActorBridgeLoad(cpu, &state);
-    result = Lufia2MainNmi(
-        &memory, &state, ActorBridgePushedChild,
-        ActorBridgePlayTimeTick, &call);
+    result = Lufia2MainNmi(&memory, &state, ActorBridgePushedChild,
+                           ActorBridgePlayTimeTick, &call);
     if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
         return (RecompReturn)((int)call.unwound - 1);
     ActorBridgeStore(cpu, &state);
-    return interp_tier_dispatch_tail(
-        cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    return interp_tier_dispatch_tail(cpu, result.pc, result.pc, frame.entry_s,
+                                     frame.hrv);
 }
 
-static void ActorBridgeMapLoad(
-    void *context, Lufia2CpuState *state, uint32_t pc) {
+static void ActorBridgeMapLoad(void *context, Lufia2CpuState *state, uint32_t pc) {
     ActorPushedCall *call = (ActorPushedCall *)context;
     ActorBridgeStore(call->cpu, state);
     if (pc == 0x83b548u)
@@ -3170,7 +3243,7 @@ static void ActorBridgeMapLoad(
 RecompReturn Lufia2DecompBridge_83B53B(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
-        ActorBridgeExecutionCheckpoint, cpu};
+                                 ActorBridgeExecutionCheckpoint, cpu};
     ActorPushedCall call;
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
