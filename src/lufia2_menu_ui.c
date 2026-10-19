@@ -16,6 +16,7 @@ enum { WIDTH = LUFIA2_UI_NATIVE_WIDTH, HEIGHT = LUFIA2_UI_HEIGHT,
        WINDOW = 0, TEXT = 1, SPRITE = 2, GROUP = 3, CURSOR = 4,
        CURSOR_POINT = 5, TEXT_REGION = 6, SPRITE_SLOT = 7, WINDOW_SOURCE = 8 };
 enum { PARTY_HIGHLIGHT = 9 };
+enum { LIST_VIEWPORT_TOP = 0x1532, LIST_ROW_SPACING = 12, LIST_ROW_GAP = 4 };
 enum { MAIN_MENU_SCENE = 0x6098f96f, TIME_GOLD_WINDOW = 0x1000150e,
        GOLD_TEXT = 0x20001916, LEGACY_GOLD_SUFFIX = 0x2000191c };
 typedef struct MenuLayoutRecord {
@@ -43,6 +44,7 @@ static uint16_t s_background_priority[HEIGHT][WIDTH];
 static uint8_t s_sprite_owner[HEIGHT][WIDTH], s_oam_slot[128], s_line_owner[WIDTH];
 static uint8_t s_coverage[3][HEIGHT][WIDTH];
 static uint16_t s_text_owner[HEIGHT][WIDTH];
+static bool s_list_slot[LUFIA2_MENU_UI_MAX_OBJECTS];
 static unsigned s_rows;
 static int s_text_scroll[HEIGHT];
 static bool s_text_rows;
@@ -280,28 +282,34 @@ static bool TextOwnsPoint(int x, int y) {
     for (unsigned i = 0; i < s_count; ++i) {
         const Lufia2MenuUiObject *o = &s_objects[i];
         if (o->kind == TEXT &&
-            x >= o->x && x < o->x + o->width && y >= o->y && y < o->y + o->height) return true;
+            x >= o->x && x < o->x + o->width && y >= o->y &&
+            y < o->y + o->height + (s_list_slot[i] ? LIST_ROW_GAP : 0)) return true;
     }
     return false;
 }
 static void CollectListSlots(const Ppu *ppu) {
-    if (s_theme != 2 && s_theme != 3) return;
+    if ((s_theme != 2 && s_theme != 3) || !s_text_rows) return;
     /* $82:AC84 and $82:8526 reserve six rows. */
     unsigned columns = s_theme == 3 ? 2 : 1;
     for (unsigned row = 0; row < 6; ++row) for (unsigned column = 0; column < columns; ++column) {
         unsigned tile = (0x3448u - 0x3000u + row * 0x80u + column * 0x1cu) / 2;
         int x = (tile % 32) * 8 - ppu->hScroll[2];
-        int y = TextRowY(ppu, tile / 32);
+        /* Capture screen bands across the original tile transitions. */
+        int y = (g_ram[LIST_VIEWPORT_TOP] | (unsigned)g_ram[LIST_VIEWPORT_TOP + 1] << 8)
+            - 1 + row * LIST_ROW_SPACING;
         for (unsigned i = 0; i < s_count; ++i) {
             const Lufia2MenuUiObject *window = &s_objects[i];
-            if (window->kind != WINDOW || x < window->x + 8 || y < window->y + 8 ||
+            if (window->kind != WINDOW || x < window->x + 8 || y < window->y + 6 ||
                 x + 8 > window->x + window->width - 8 ||
-                window->height < 64 || TextRowY(ppu, 17) + 8 > window->y + window->height) continue;
+                window->height < 64 || y + LIST_ROW_SPACING > window->y + window->height - 2) continue;
             unsigned remaining = window->x + window->width - 8 - x;
             unsigned width = columns == 2 && remaining > 112 ? 112 : remaining;
             uint32_t parent = window->id;
             int index = AddObject(0x20000000u | (tile / 32) << 8 | (tile % 32), TEXT, x, y, width, 8, 255);
-            if (index >= 0) s_objects[index].parent = parent;
+            if (index >= 0) {
+                s_objects[index].parent = parent;
+                s_list_slot[index] = true;
+            }
             break;
         }
     }
@@ -619,6 +627,7 @@ void Lufia2MenuUiPrepare(Ppu *ppu, bool enabled, unsigned width) {
         PPU_bgTileAdr(ppu, 0) != 0x4000 || PPU_bgTileAdr(ppu, 2) != 0x6000 ||
         (ppu->obsel >> 5) != 0 || PPU_forcedBlank(ppu)) return;
     s_count = 0; s_width = width;
+    memset(s_list_slot, 0, sizeof s_list_slot);
     s_layout_coordinates = false;
     s_text_hscroll = ppu->hScroll[2]; s_text_vscroll = ppu->vScroll[2];
     ReadTextRowScroll();
@@ -688,7 +697,7 @@ void Lufia2MenuUiPrepare(Ppu *ppu, bool enabled, unsigned width) {
         const Lufia2MenuUiObject *o = &s_objects[i];
         if (o->kind == GROUP || o->kind == PARTY_HIGHLIGHT) continue;
         unsigned plane = o->kind == WINDOW ? 0 : o->kind == TEXT ? 1 : 2;
-        for (unsigned y = 0; y < o->height; ++y) {
+        for (unsigned y = 0; y < o->height + (s_list_slot[i] ? LIST_ROW_GAP : 0u); ++y) {
             memset(&s_coverage[plane][o->y + y][o->x], 1, o->width);
             if (plane == 1) for (unsigned x = 0; x < o->width; ++x)
                 s_text_owner[o->y + y][o->x + x] = (uint16_t)i;
@@ -701,7 +710,7 @@ void Lufia2MenuUiPrepare(Ppu *ppu, bool enabled, unsigned width) {
         int index = FindObject(l->id);
         if (index < 0) continue;
         const Lufia2MenuUiObject *o = &s_objects[index];
-        for (unsigned y = 0; y < o->height; ++y) for (unsigned x = 0; x < o->width; ++x)
+        for (unsigned y = 0; y < o->height + (s_list_slot[index] ? LIST_ROW_GAP : 0u); ++y) for (unsigned x = 0; x < o->width; ++x)
             s_text_owner[o->y + y][o->x + x] = (uint16_t)index;
     }
     memset(s_line_owner, 255, sizeof s_line_owner);
@@ -926,7 +935,7 @@ static uint32_t SampleObjectPixel(unsigned index, unsigned x, unsigned y, uint16
         sx = FrameSliceCoordinate(x, s_targets[index].width, o->width);
         sy = FrameSliceCoordinate(y, s_targets[index].height, o->height);
     }
-    if (sx >= o->width || sy >= o->height) return 0;
+    if (sx >= o->width || sy >= o->height + (s_list_slot[index] ? LIST_ROW_GAP : 0u)) return 0;
     sx += o->x; sy += o->y;
     if (sx >= WIDTH || sy >= HEIGHT) return 0;
     if (plane == 2 && s_sprite_owner[sy][sx] != o->slot) return 0;
@@ -1007,6 +1016,8 @@ void Lufia2MenuUiCompose(uint8_t *pixels, unsigned width, unsigned height, bool 
         if (o->kind == GROUP || !d->visible) continue;
         unsigned draw_width = o->kind == WINDOW || o->kind == PARTY_HIGHLIGHT || d->width < o->width ? d->width : o->width;
         unsigned draw_height = o->kind == WINDOW || o->kind == PARTY_HIGHLIGHT || d->height < o->height ? d->height : o->height;
+        /* Keep the four inter-row pixels during the original scroll animation. */
+        if (s_list_slot[i] && draw_height == o->height) draw_height += LIST_ROW_GAP;
         for (unsigned y = 0; y < draw_height; ++y) for (unsigned x = 0; x < draw_width; ++x) {
             int dx = d->x + x, dy = d->y + y;
             if (dx < 0 || dx >= (int)width || dy < 0 || dy >= HEIGHT) continue;
