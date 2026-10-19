@@ -1,3 +1,38 @@
+# Single sound branches at clock boundaries - 2026-10-19
+
+Seventeen existing verified sound branches can now execute natively when
+only one clock of scheduler budget remains or the instruction crosses a
+scanline. Each callback completes exactly one original branch. Its two ROM
+fetches, CPU state, bus/open-bus behavior and clocks remain literal. The
+additional admission requires coherent CPU/coprocessor/beam/refresh state,
+beam HDMA disabled, positive deadline room and the existing CPU/stack/IRQ/DMA
+restrictions. Prior admission is preserved. Grouped sound and frame waits,
+transfer windows, semantic C and public APIs are unchanged.
+
+The affected checkpoint passes 278,528 original-ROM/producer states across
+all 17 branches and eight timing contexts. CPU, full WRAM, fetch bus, open bus,
+opcode costs and refresh charging agree. Another 13,685 rejection guards,
+833 positive boundaries and 17 effective ROM displacement controls pass.
+Exact source checks cover 36 producer helpers; unrelated actor code and
+semantic sources/APIs/metadata are unchanged. The isolated Windows build
+passes; unchanged standalone GCC/Clang/C++/CLI evidence is reused by checked
+inputs. No repeated full unrelated regression is claimed.
+
+Current and accepted-baseline producers match over 1,500 cold and 10,607
+input-driven replay frames, including full per-frame memory, video, audio,
+APU/SPC/DSP, beam, clocks and port timestamps. In the longer replay, 63,673
+previously interpreted branch sites also match CPU and hardware-clock state
+immediately before and after execution: 19,882 scanline crossings, 67 budget
+crossings and 836 refresh charges are included. Per-edge observations include
+SPC state and queued-port timing; complete memory/audio/video observations
+are per-frame. LLE instructions fall from 658,524 to 594,851 in this replay.
+This is not a whole-game or production-performance claim. Other platforms,
+manual gameplay and full unrelated regression remain deferred.
+
+Counts remain 1,817 verified / 1,786 ordinary bindings / 31 verified unbound /
+791 WRAM fields / 499 C units / zero drafts. No new canonical entries or
+ordinary bindings are added. Tests, tooling and ROM remain private.
+
 # Additional original frame waits - 2026-10-19
 
 Three complete waits are verified: $80:9378 preserves status, $84:A5A8
