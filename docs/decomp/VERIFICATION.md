@@ -1,3 +1,27 @@
+# Readable party derived totals - 2026-10-19
+
+The existing 81:F4D5 contract now delegates its seven base/modifier totals,
+cap, overrides and two derived totals to a record-based C core. CPU state is
+confined to the existing entry/checkpoint shell. Chained carries, decimal
+arithmetic, wrapped 24-bit addresses, live bus reads and write order remain.
+No cached record, new instruction dispatcher, public API or binding is added.
+
+One checkpoint passes 2,731 whole-routine original-ROM CPU/full-WRAM/MMIO
+comparisons and 8,192 prior/new C CPU/ordered-bus/checkpoint comparisons.
+Normal record cases cover the cap boundary and overrides; arbitrary alias
+cases cover stack/DP/index/bank edges against the prior implementation.
+Two negative controls detect a changed cap and a dropped chained carry.
+An initial cap mutant exposed missing exact-boundary input; that input was
+added before acceptance. Arbitrary invalid return-stack cases are not claimed
+as successful whole-ROM calls. MSVC strict proof, isolated Windows Release,
+and incremental standalone GCC/Clang builds pass. Unchanged CLI executable
+and fixture hashes reuse the prior CLI result. Full regression is deferred.
+
+This is semantic reconstruction quality work on one existing verified owner,
+not another canonical function or a measured runtime optimization. Totals
+remain 1,818 verified, zero drafts and 1,786 ordinary bindings. Tests and ROM
+remain private; unrelated owner work is untouched.
+
 # Field actor installation continuations - 2026-10-19
 
 The optional FieldActorInstallStep API exposes all seventy-three boundaries
