@@ -1,3 +1,44 @@
+# Sound and window request continuations - 2026-10-19
+
+Two optional APIs expose nineteen sound-command/mode boundaries and twelve
+menu-window request boundaries under three existing verified owners. Dynamic
+accumulator stack, status restoration, long APU stores, original call/return
+frames, window flags and word-immediate reads remain literal. Existing semantic
+bodies and declarations are unchanged; no canonical function or binding is added.
+
+The consumer retains generic child/return, interrupts, clocks and progress.
+Unsupported widths, emulation, pending interrupts and unknown PCs/opcodes stay
+interpreted. Both APIs and all three named, addressed verified owners gate use.
+Older headers compile without dependencies on either new API. The earlier
+boot-NMI/logo polling path is outside this batch and remains unchanged.
+
+One shared checkpoint passes 2,450,944 direct and 2,450,944 actual-producer
+original-ROM/CPU/full-WRAM/ordered-bus cases, covering all stack/DP words,
+statuses, accepted widths and twenty-one edge addresses. Word callback claims
+and fallback agree. Another 16,073 producer, 532,177 API no-access and 131,041
+unknown-PC guards pass. Eight effective faults are detected. Twenty-one CMake
+contexts, standalone GCC/Clang, C++17 linkage and isolated MSVC Release pass;
+unchanged CLI executable/fixture contracts are reused.
+
+All thirty-one points execute natively in 6,318 paired hardware contexts with
+every accepted width contract, three DB/DP/stack classes and clock positions.
+APU stores, DP TSB, word operands, stack wrap, exact exits and one original
+control step per case agree. Supported yield/exclusion APIs stop before calls;
+the generic kernel is unchanged. Normal paired 10,607-frame runs retain all
+77,840 observations and artifacts against prior main. The window upload call
+executes its real child normally; both sound calls have controlled boundary
+coverage and are not claimed as normal replay hits.
+
+Actual decoding falls from 41,056 to 38,578 through 2,478 additional native
+phases. Control visits remain 179,420, including 140,842 native slot phases.
+Prior native counts, graphics/audio, clocks, epochs and cache agree. These
+counts describe this replay, not whole-game coverage or production speedup.
+
+Totals remain 1,818 verified / 1,786 ordinary bindings / 32 verified unbound /
+791 WRAM fields / 499 C units / zero drafts; 193 hooks remain registered.
+Unrelated full regression, other platforms and manual gameplay are deferred.
+Tests, proofs and ROM stay local; parallel owner work is unchanged.
+
 # Select transition continuations - 2026-10-19
 
 The optional select_phase.h API exposes all sixty-three M1X0 boundaries across
