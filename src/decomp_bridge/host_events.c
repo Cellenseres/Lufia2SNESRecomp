@@ -77,6 +77,7 @@ static void GameFileEventRemove(
 
 static CpuEventList equipment_list_draw_event;
 static CpuEventList play_time_tick_event;
+static Lufia2DecompPlayTimeTickEvent play_time_tick_continuation;
 static CpuEventList menu_number_event;
 static CpuEventList map_load_begin_event;
 static CpuEventList map_load_committed_event;
@@ -109,6 +110,12 @@ void Lufia2DecompSetEquipmentListDrawEvent(
 
 void Lufia2DecompPlayTimeTick(CpuState *cpu, uint32_t pc) {
     CpuEventDispatch(&play_time_tick_event, cpu, pc);
+    if (play_time_tick_continuation)
+        play_time_tick_continuation(cpu, pc);
+}
+
+void Lufia2DecompSetPlayTimeTickContinuation(Lufia2DecompPlayTimeTickEvent callback) {
+    play_time_tick_continuation = callback;
 }
 
 void Lufia2DecompSetPlayTimeTickEvent(Lufia2DecompPlayTimeTickEvent callback) {

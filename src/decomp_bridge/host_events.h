@@ -14,6 +14,7 @@ void Lufia2DecompEquipmentListDraw(CpuState *cpu, uint32_t pc);
 /* After the original clock tick and before REP #$20 at $80:8699. */
 typedef void (*Lufia2DecompPlayTimeTickEvent)(CpuState *, uint32_t);
 void Lufia2DecompSetPlayTimeTickEvent(Lufia2DecompPlayTimeTickEvent callback);
+void Lufia2DecompSetPlayTimeTickContinuation(Lufia2DecompPlayTimeTickEvent callback);
 void Lufia2DecompPlayTimeTick(CpuState *cpu, uint32_t pc);
 
 /* Resolved value pointer and digit start, before PHY at $80:8922. */

@@ -1,3 +1,39 @@
+# NMI restore-width continuation - 2026-10-19
+
+The verified NMI owner now exposes the complete status-width transition at
+$80:8699 through optional nmi_finish.h. Original whole NMI bodies are unchanged.
+The consumer preserves play-time subscribers before executing the transition,
+including callback order, nested dispatch and pending redirects. Native use
+requires the concrete interrupt-owned opcode; task and auto-quiescent contexts
+retain interpretation. Original RTI and call bookkeeping remain in place.
+
+The reviewed generated hook registry now has 256 slots. Its 192 prior entries
+remain intact; the missing tick forwarder occupies entry 193. Installation
+preserves existing foreign hooks. The original SDK source is unchanged.
+An initial equal replay with zero new native hits was rejected, exposing the
+full registry. Only the corrected, positively exercised integration is accepted.
+
+Shared checks pass 65,536 direct original-ROM states, 763 API guards, 17,408
+retained ROM states, 1,664 legacy and 13,312 owned callback compositions,
+1,280 interpreted-RTI cases, 835 producer guards and 512 positive cases.
+Fourteen event scenarios, two effective ROM faults, twelve CMake contexts,
+registry capacity/mirroring/overflow and feature-off compatibility pass.
+Windows Release, standalone GCC/Clang and C++17 linkage pass; unchanged CLI
+executables and fixtures reuse their accepted contract checks.
+
+Paired 10,607-frame runs match all 77,840 observations and artifacts against
+the prior main. Exactly 10,566 additional native transitions reduce interpreted
+instructions from 189,986 to 179,420 in this workload. Another 432 real interrupt
+contexts compare status, clock rollover, callback mutations and pending
+redirects through the original RTI, including CPU/WRAM, hardware, audio,
+clock/refresh, progress epochs and dynamic cache. Full unrelated regression,
+other platforms, manual gameplay and production speed measurements are deferred.
+
+No new canonical function or ordinary binding is added. Totals remain 1,818
+verified / 1,786 ordinary bindings / 32 verified unbound / 791 WRAM fields /
+499 C units / zero drafts. Tests, tools and ROM remain local. Concurrent owner
+changes are outside this checkpoint's pinned compiled snapshot.
+
 # Menu cursor poll preparation - 2026-10-19
 
 The existing verified menu input owner exposes its complete cursor-preparation

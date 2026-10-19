@@ -21,6 +21,10 @@
 #include "decomp_bridge/nmi_timing.h"
 #include "decomp_bridge/nmi_resume.h"
 extern Snes *g_snes;
+#if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_WIDTH)
+#include "lufia2/nmi_finish.h"
+#include "decomp_bridge/nmi_owner.h"
+#endif
 #endif
 
 typedef struct ActorBridgeFrame {
@@ -2606,6 +2610,27 @@ static void ActorBridgeNmiResume(CpuState *cpu, uint32_t pc) {
     interp_bridge_pre_opcode_redirect(result.pc);
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_WIDTH)
+static void ActorBridgeNmiPrepareFrameRestore(CpuState *cpu, uint32_t pc) {
+    if (pc != 0x808699u || !g_snes || !g_snes->inNmi || !cpu->ram || cpu->emulation ||
+        cpu->PB != 0x80u || cpu->master_cycles > UINT64_MAX - 64u ||
+        !Lufia2DecompNmiHasInterruptOwner())
+        return;
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result = Lufia2NmiPrepareFrameRestore(&state);
+    if (result.flow != LUFIA2_EXECUTION_BOUNDARY || result.pc != 0x80869bu)
+        return;
+    (void)Lufia2DecompNmiReadByte(cpu, 0x808699u);
+    (void)Lufia2DecompNmiReadByte(cpu, 0x80869au);
+    ActorBridgeStore(cpu, &state);
+    Lufia2DecompNmiAccountCycles(cpu, 3u,
+                                 2u * cpu_region_speed(0x808699u) + 6u);
+    Lufia2DecompFrameReturnComplete(1u, 0u);
+    interp_bridge_pre_opcode_redirect(result.pc);
+}
+#endif
+
 void Lufia2DecompInstallNmiHooks(void) {
     static const uint32_t entries[] = {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_ENTRY)
@@ -2618,6 +2643,10 @@ void Lufia2DecompInstallNmiHooks(void) {
     };
     for (unsigned i = 0; i < sizeof entries / sizeof entries[0]; ++i)
         interp_bridge_set_pre_opcode_hook(entries[i], ActorBridgeNmiResume);
+#if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_WIDTH)
+    Lufia2DecompSetPlayTimeTickContinuation(ActorBridgeNmiPrepareFrameRestore);
+    Lufia2DecompNmiInstallTickHook();
+#endif
 }
 #endif
 
