@@ -6,6 +6,7 @@
 #include "../lufia2_sprite_visibility.h"
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
 #include "snes/dma.h"
+#include "common_cpu_infra.h"
 #include "decomp_bridge/frame_returns.h"
 #include "decomp_bridge/frame_return_timing.h"
 #if defined(LUFIA2_HAVE_NATIVE_SELECT_RESUMPTIONS)
@@ -2956,12 +2957,77 @@ static void ActorBridgeSoundUploadCheckpoint(void *context, Lufia2CpuState *stat
         (void)ActorBridgeTimedRead(bus, pc + byte);
 }
 
+enum {
+    SOUND_TRANSFER_BUS_CLOCKS = 12,
+    SOUND_TRANSFER_REFRESH_CLOCKS = 40,
+    SOUND_TRANSFER_SCANLINE_CLOCKS = 1364,
+    SOUND_TRANSFER_HDMA_POSITION = 1024
+};
+
+static unsigned ActorBridgeSoundTransferBudget(uint32_t entry) {
+    unsigned cycles;
+    switch (entry) {
+    case 0x809969u:
+        cycles = 26u;
+        break;
+    case 0x80997du:
+        cycles = 31u;
+        break;
+    case 0x809988u:
+        cycles = 18u;
+        break;
+    case 0x80998bu:
+        cycles = 13u;
+        break;
+    case 0x80999du:
+        cycles = 27u;
+        break;
+    case 0x809c23u:
+        cycles = 16u;
+        break;
+    case 0x809c2bu:
+        cycles = 14u;
+        break;
+    case 0x809c35u:
+        cycles = 18u;
+        break;
+    case 0x809c36u:
+        cycles = 16u;
+        break;
+    case 0x809c3bu:
+        cycles = 8u;
+        break;
+    case 0x809c49u:
+        cycles = 59u;
+        break;
+    default:
+        return 0u;
+    }
+    return cycles * SOUND_TRANSFER_BUS_CLOCKS + SOUND_TRANSFER_REFRESH_CLOCKS;
+}
+
+static bool ActorBridgeSoundTransferSupported(const CpuState *cpu, uint32_t entry) {
+    if (!g_snes || !g_snes->apu || cpu->x_flag || cpu->D || cpu->_flag_D)
+        return false;
+    const unsigned budget = ActorBridgeSoundTransferBudget(entry);
+    if (!budget)
+        return false;
+    uint64_t refresh_phase, refresh_clock;
+    snes_refresh_state_get(&refresh_phase, &refresh_clock);
+    if (refresh_phase >= SOUND_TRANSFER_SCANLINE_CLOCKS ||
+        (refresh_clock && refresh_clock != cpu->master_cycles))
+        return false;
+    const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
+                               ? SOUND_TRANSFER_HDMA_POSITION
+                               : SOUND_TRANSFER_SCANLINE_CLOCKS;
+    if (budget >= fence)
+        return false;
+    return ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1ff8u, true,
+                                               fence - budget - 1u, budget);
+}
+
 static void ActorBridgeSoundUpload(CpuState *cpu, uint32_t entry) {
-    if (!g_snes || !g_snes->apu || cpu->m_flag != 1u || cpu->x_flag || cpu->D ||
-        cpu->_flag_D || !ActorBridgeTimedStepSupported(cpu, entry, 0x1ff8u, false))
-        return;
-    const uint64_t deadline = Lufia2DecompFrameReturnDeadline();
-    if (deadline - cpu->master_cycles < 512u)
+    if (cpu->m_flag != 1u || !ActorBridgeSoundTransferSupported(cpu, entry))
         return;
     ActorTimedBus bus = {0};
     bus.cpu = cpu;
@@ -3004,12 +3070,8 @@ static void ActorBridgeSoundBranch(CpuState *cpu, uint32_t entry) {
     interp_bridge_pre_opcode_redirect(next);
 }
 static void ActorBridgeBootSound(CpuState *cpu, uint32_t entry) {
-    if (!g_snes || !g_snes->apu || cpu->x_flag || cpu->D || cpu->_flag_D ||
-        cpu->m_flag != (entry != 0x809c3bu) ||
-        !ActorBridgeTimedStepSupported(cpu, entry, 0x1ff8u, true))
-        return;
-    if (g_snes->hPos > 400u ||
-        Lufia2DecompFrameReturnDeadline() - cpu->master_cycles < 1024u)
+    if (cpu->m_flag != (entry != 0x809c3bu) ||
+        !ActorBridgeSoundTransferSupported(cpu, entry))
         return;
     ActorTimedBus bus = {0};
     bus.cpu = cpu;

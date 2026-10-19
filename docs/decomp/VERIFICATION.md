@@ -1,3 +1,40 @@
+# Sound transfer timing windows — 2026-10-19
+
+Eleven existing verified sound phases now use separate consumer timing
+windows. Their original C operations and opcode schedules are unchanged.
+Conservative upper bounds range from 8 to 59 CPU cycles: at most 12 master
+clocks per cycle plus one 40-clock DRAM refresh. A valid refresh remainder
+and current (or initially zero) charge watermark prevent deferred debt.
+Each phase finishes before the scanline edge, visible beam-HDMA edge and
+active deadline. Prior CPU width, DP0, decimal, stack, IRQ and DMA guards
+remain. No original instruction, word transaction or wait is skipped.
+
+The shared checkpoint passes 56,320 original-ROM/actual-producer states
+across all eleven phases: original admission, latest safe position/exact
+room, worst refresh remainder, visible HDMA and vblank contexts. CPU,
+WRAM, full fetch/data bus, open bus and every opcode's entry state and cost
+match. The literal refresh accountant also matches an independent final
+clock formula. Another 12,412 pre-access guards and 198 positive edges
+cover malformed CPU/device/refresh state, debt, overflow and boundaries.
+Twelve effective in-memory ROM mutations are detected. Exact producer
+bodies, constants, structs and tables match; unrelated actor tokens are
+unchanged. The isolated Windows build passes. Unchanged semantic source,
+public APIs, GCC/Clang/CLI, feature/C++ and word-interface component proof
+is reused by checked source and executable hashes, without another run.
+
+Current/accepted-baseline replays match for 1,500 boot and 10,607 input,
+world and menu frames, including CPU, WRAM pages, PPU/pixels, PCM, APU/SPC/
+DSP, beam, open bus, clocks and ordered port values/timestamps. Interpreter
+instructions fall from 1,160,967 to 879,466 (-281,501). Instrumented full
+CPU times were 46.484/45.625s, wall times 47.48/46.61s. These bounded
+observations do not establish whole-game or production performance.
+
+No new semantic functions or ordinary bindings are counted. Totals stay
+1,812 verified / 1,786 ordinary bindings / 26 verified unbound / 791 WRAM
+fields / 499 C units / zero drafts. Full unrelated regression, other scenes/
+platforms and manual gameplay are deferred. Tests/tools stay local; ROM,
+owner files and build/windows are preserved. No push.
+
 # Native frame poll phases — 2026-10-19
 
 Five original frame-counter waits now expose their CMP $40 and BEQ phases
