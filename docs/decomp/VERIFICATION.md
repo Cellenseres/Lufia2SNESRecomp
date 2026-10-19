@@ -1,3 +1,42 @@
+# Frame register continuations - 2026-10-19
+
+Two optional frame_wait.h APIs expose twenty wait-register points and nine
+sprite-frame points under six existing verified owners. They preserve live
+status, accumulator/index widths, stack byte order and complete native stack
+wrap. The sprite-frame return retains its original RTL bank; simple wait
+returns retain RTS. Existing semantic bodies and declarations are unchanged.
+No canonical entry, ordinary binding or hook is added.
+
+The consumer selects these complete phases at the original opcode slot.
+Generic call/return ownership, progress accounting, interrupt handling and
+hardware clocks remain unchanged. Unsupported PCs, opcodes, emulation and
+pending interrupts retain interpretation. Both APIs and all six named,
+correctly addressed verified owners gate the optional integration. Old headers
+produce an actual compilable core without new register-symbol dependencies.
+
+One combined checkpoint passes 2,494,464 direct and 2,494,464 actual-producer
+ROM/CPU/full-WRAM/ordered-bus comparisons. Coverage includes every stack word,
+all status bytes and four widths at twenty boundary addresses, plus raw high
+index robustness states. Another 14,993 producer and 539,165 API guards and
+262,115 unknown-PC checks pass. Stack accesses never claim a word callback.
+Four effective faults detect incorrect width masks and an RTL return error.
+Thirty-two CMake contexts, MSVC Release, standalone GCC/Clang and C++17 linkage
+pass. Unchanged CLI executable/fixture contracts are reused.
+
+Paired 10,607-frame runs retain all 77,840 observations and artifacts against
+prior main. Actual interpreter decoding falls from 87,525 to 80,874 through
+6,651 additional native phases; original bridge control steps remain 179,420.
+All twenty-nine points have positive coverage in 1,044 hardware contexts,
+including four valid widths, three stack classes, three RTL banks and three
+clock positions. CPU, WRAM, graphics/audio hardware, clocks, progress epochs
+and cache agree. The existing public stop-PC API handles wrapped returns;
+the SDK's original unsigned stack-depth watermark is not changed.
+
+Totals remain 1,818 verified / 1,786 ordinary bindings / 32 verified unbound /
+791 WRAM fields / 499 C units / zero drafts; 193 hooks remain registered.
+Unrelated full regression, other platforms, manual gameplay and production
+speed measurements are deferred. Tests, proofs and ROM remain local.
+
 # Frame-wait decoder boundaries - 2026-10-19
 
 The existing frame-counter APIs now execute at the original opcode slot when

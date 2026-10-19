@@ -46,6 +46,7 @@ function(lufia2_add_nmi_continuations target core_root)
     set(_nmi_call_boundaries FALSE)
     set(_nmi_callback_boundaries FALSE)
     set(_frame_wait_boundaries FALSE)
+    set(_frame_register_boundaries FALSE)
     if(_api MATCHES "Lufia2FrameWaitRestoreRegisters[(]" AND
        EXISTS "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h")
         file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h" _menu_api)
@@ -62,6 +63,8 @@ function(lufia2_add_nmi_continuations target core_root)
                         set(_nmi_call_boundaries TRUE)
                         include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2FrameWaitBoundaries.cmake")
                         lufia2_frame_wait_boundaries_available(_frame_wait_boundaries)
+                        include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2FrameRegisterBoundaries.cmake")
+                        lufia2_frame_register_boundaries_available(_frame_register_boundaries)
                         if(_calls_api MATCHES "Lufia2NmiInvokeCallback[(]" AND
                            _calls_api MATCHES "Lufia2NmiReturnCallback[(]")
                             set(_nmi_callback_boundaries TRUE)
@@ -251,6 +254,13 @@ function(lufia2_add_nmi_continuations target core_root)
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunFrameWaitBoundary(Interp816 *, uint32_t, uint8_t);\n")
                     string(APPEND _timing_suffix
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/frame_wait_boundaries.inc\"\n")
+                endif()
+                if(_frame_register_boundaries)
+                    string(APPEND _native_opcode "        if (!_cyc)\n            _cyc = Lufia2DecompRunFrameRegisterBoundary(&in, pc_before, op);\n")
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunFrameRegisterBoundary(Interp816 *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/frame_register_boundaries.inc\"\n")
                 endif()
                 string(APPEND _native_opcode "        if (!_cyc)\n            _cyc = interp816_runOpcode(&in);")
                 string(REPLACE "${_original_opcode}" "${_native_opcode}"
