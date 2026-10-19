@@ -1,3 +1,42 @@
+# Sound poll edge steps — 2026-10-19
+
+Fifteen original sound polls now execute one native LDA/CMP when a complete
+bounded poll iteration cannot fit. Seventeen existing native branches use
+their individual time bounds and stack-neutral range through $1FFF. The
+wide IPL comparison retains the original atomic word interface. Every opcode,
+flag, read, branch, elapsed clock and scheduler boundary is preserved.
+
+Eleven transfer windows now weight known ROM fetches at the current region
+speed, retaining 12 clocks for other cycles and 40 for a possible refresh.
+The phase cannot change MEMSEL; every scheduled opcode contributes a positive
+upper bound. Original CPU/DP/stack/IRQ/DMA and refresh-debt restrictions stay.
+Each admitted step/phase finishes before scanline, visible HDMA and deadline.
+No original semantic function or opcode schedule changes.
+
+The shared original-ROM/actual-producer checkpoint passes 196,608 grouped/
+individual poll and branch states plus 56,320 transfer states. CPU, full WRAM,
+fetch/data bus, open bus, per-opcode CPU and master costs agree, including the
+literal refresh accountant. Guards pass 28,221 edge and 11,816 transfer cases,
+with 576 and 198 positive boundaries. Twenty effective ROM fault controls are
+detected. Exact producer source, constants, tables, structs and phase bounds
+match; unrelated actor code stays unchanged. The isolated Windows build
+passes. Unchanged standalone, CLI, C++/feature and word-component evidence is
+reused by checked hashes; no repeated unchanged full regression is claimed.
+
+Current/accepted-baseline replays match for 1,500 cold and 10,607 input/world/
+menu frames: CPU, WRAM pages, PPU/pixels, PCM, APU/SPC/DSP, beam, open bus,
+clocks and ordered port values/timestamps. An additional 1,500-frame actual
+APU variant forces the otherwise unobserved IPL scalar path and also matches.
+Interpreter instructions fall from 879,466 to 688,844 (-190,622) in the
+controlled longer run. Instrumented CPU times were 45.562/45.062s, wall times
+46.44/45.59s; this does not establish production or whole-game performance.
+
+Totals remain 1,812 verified / 1,786 ordinary bindings / 26 verified unbound /
+791 WRAM fields / 499 C units / zero drafts. No duplicate semantic entries or
+ordinary bindings are added. Tests/tools stay local, protected files and ROM
+are intact, owner build/windows is untouched and nothing is pushed. Other
+scenes/platforms, manual gameplay and full unrelated regression are deferred.
+
 # Sound transfer timing windows — 2026-10-19
 
 Eleven existing verified sound phases now use separate consumer timing

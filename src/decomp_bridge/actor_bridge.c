@@ -2965,52 +2965,63 @@ enum {
 };
 
 static unsigned ActorBridgeSoundTransferBudget(uint32_t entry) {
-    unsigned cycles;
+    unsigned cycles, fetched;
     switch (entry) {
     case 0x809969u:
         cycles = 26u;
+        fetched = 20u;
         break;
     case 0x80997du:
         cycles = 31u;
+        fetched = 20u;
         break;
     case 0x809988u:
         cycles = 18u;
+        fetched = 12u;
         break;
     case 0x80998bu:
         cycles = 13u;
+        fetched = 9u;
         break;
     case 0x80999du:
         cycles = 27u;
+        fetched = 17u;
         break;
     case 0x809c23u:
         cycles = 16u;
+        fetched = 8u;
         break;
     case 0x809c2bu:
         cycles = 14u;
+        fetched = 5u;
         break;
     case 0x809c35u:
         cycles = 18u;
+        fetched = 11u;
         break;
     case 0x809c36u:
         cycles = 16u;
+        fetched = 10u;
         break;
     case 0x809c3bu:
         cycles = 8u;
+        fetched = 5u;
         break;
     case 0x809c49u:
         cycles = 59u;
+        fetched = 32u;
         break;
     default:
         return 0u;
     }
-    return cycles * SOUND_TRANSFER_BUS_CLOCKS + SOUND_TRANSFER_REFRESH_CLOCKS;
+    return fetched * cpu_region_speed(entry) +
+           (cycles - fetched) * SOUND_TRANSFER_BUS_CLOCKS +
+           SOUND_TRANSFER_REFRESH_CLOCKS;
 }
 
-static bool ActorBridgeSoundTransferSupported(const CpuState *cpu, uint32_t entry) {
-    if (!g_snes || !g_snes->apu || cpu->x_flag || cpu->D || cpu->_flag_D)
-        return false;
-    const unsigned budget = ActorBridgeSoundTransferBudget(entry);
-    if (!budget)
+static bool ActorBridgeSoundWindowSupported(const CpuState *cpu, uint32_t entry,
+                                            unsigned stack_limit, unsigned budget) {
+    if (!g_snes || !g_snes->apu || !budget)
         return false;
     uint64_t refresh_phase, refresh_clock;
     snes_refresh_state_get(&refresh_phase, &refresh_clock);
@@ -3022,8 +3033,14 @@ static bool ActorBridgeSoundTransferSupported(const CpuState *cpu, uint32_t entr
                                : SOUND_TRANSFER_SCANLINE_CLOCKS;
     if (budget >= fence)
         return false;
-    return ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1ff8u, true,
+    return ActorBridgeTimedStepSupportedWindow(cpu, entry, stack_limit, true,
                                                fence - budget - 1u, budget);
+}
+
+static bool ActorBridgeSoundTransferSupported(const CpuState *cpu, uint32_t entry) {
+    return !cpu->x_flag && !cpu->D && !cpu->_flag_D &&
+           ActorBridgeSoundWindowSupported(cpu, entry, 0x1ff8u,
+                                           ActorBridgeSoundTransferBudget(entry));
 }
 
 static void ActorBridgeSoundUpload(CpuState *cpu, uint32_t entry) {
@@ -3053,12 +3070,11 @@ static const uint32_t boot_sound_entries[] = {0x809c23u, 0x809c2bu, 0x809c35u,
                                               0x809c36u, 0x809c3bu, 0x809c49u};
 
 static void ActorBridgeSoundBranch(CpuState *cpu, uint32_t entry) {
-    if (!g_snes || !g_snes->apu ||
-        !ActorBridgeTimedStepSupported(cpu, entry, 0x1ff8u, true))
-        return;
     const uint32_t next =
         Lufia2SoundPollBranchTarget(entry, cpu->_flag_Z, cpu->_flag_V);
-    if (next == entry)
+    const unsigned budget =
+        2u * cpu_region_speed(entry) + 6u + SOUND_TRANSFER_REFRESH_CLOCKS;
+    if (next == entry || !ActorBridgeSoundWindowSupported(cpu, entry, 0x1fffu, budget))
         return;
     bool progress = false;
     (void)Lufia2DecompFrameReturnReadByte(cpu, entry, &progress);
@@ -3163,13 +3179,48 @@ static void ActorBridgePollRun(CpuState *cpu, uint32_t entry,
     interp_bridge_pre_opcode_redirect(next);
 }
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_POLL_RUNS)
+static void ActorBridgeSoundPollStep(CpuState *cpu, uint32_t entry, unsigned fetched) {
+    unsigned index = 0u;
+    while (index < sizeof sound_poll_entries / sizeof sound_poll_entries[0] &&
+           sound_poll_entries[index] != entry)
+        ++index;
+    if (index == sizeof sound_poll_entries / sizeof sound_poll_entries[0])
+        return;
+    const unsigned data = cpu->m_flag ? 1u : 2u;
+    const unsigned budget = fetched * cpu_region_speed(entry) +
+                            data * SOUND_TRANSFER_BUS_CLOCKS +
+                            SOUND_TRANSFER_REFRESH_CLOCKS;
+    if (!ActorBridgeSoundWindowSupported(cpu, entry, 0x1fffu, budget))
+        return;
+    ActorTimedBus bus = {0};
+    const ActorTimedOpcode opcode = {
+        (uint16_t)entry, (uint8_t)fetched, (uint8_t)(fetched + data), 0u, 0u, 0u};
+    bus.cpu = cpu;
+    bus.opcode = &opcode;
+    bus.cycles = opcode.cycles;
+    bus.word_start = cpu->m_flag ? 0u : fetched;
+    for (unsigned byte = 0u; byte < fetched; ++byte)
+        (void)ActorBridgeTimedRead(&bus, entry + byte);
+    const Lufia2Memory memory = {ActorBridgeTimedRead, NULL, &bus, NULL, NULL};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result = Lufia2SoundPollStep(&memory, &state, entry);
+    ActorBridgeTimedFinish(&bus, result.pc);
+    ActorBridgeStore(cpu, &state);
+    Lufia2DecompFrameReturnComplete(1u, bus.progress_mask);
+    interp_bridge_pre_opcode_redirect(result.pc);
+}
+
 static void ActorBridgeSoundPollRun(CpuState *cpu, uint32_t entry) {
     if (cpu->m_flag != (entry != 0x809c18u))
         return;
     const bool absolute = entry == 0x8098f7u || entry == 0x809c18u ||
                           entry == 0x809c30u || entry == 0x809c40u ||
                           entry == 0x809c69u;
-    ActorBridgePollRun(cpu, entry, Lufia2SoundPollIteration, absolute ? 3u : 4u);
+    if (ActorBridgePollRunSupported(cpu, entry))
+        ActorBridgePollRun(cpu, entry, Lufia2SoundPollIteration, absolute ? 3u : 4u);
+    else
+        ActorBridgeSoundPollStep(cpu, entry, absolute ? 3u : 4u);
 }
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS)
