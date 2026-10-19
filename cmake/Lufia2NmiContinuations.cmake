@@ -136,6 +136,10 @@ function(lufia2_add_nmi_continuations target core_root)
                            _api MATCHES "Lufia2SoundPollBranchTarget[(]" AND
                            _api MATCHES "Lufia2BootSoundTransferStep[(]")
                             list(APPEND _definitions LUFIA2_HAVE_NATIVE_SOUND_HANDSHAKE_STEPS=1)
+                            if(_api MATCHES "Lufia2SoundUploadOpcodeStep[(]" AND
+                               _api MATCHES "Lufia2BootSoundOpcodeStep[(]")
+                                list(APPEND _definitions LUFIA2_HAVE_NATIVE_SOUND_TRANSFER_OPCODES=1)
+                            endif()
                         endif()
                     endif()
                 endif()

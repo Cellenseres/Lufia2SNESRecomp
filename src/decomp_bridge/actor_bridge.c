@@ -3240,6 +3240,52 @@ static void ActorBridgeSoundPollRun(CpuState *cpu, uint32_t entry) {
         ActorBridgeSoundPollStep(cpu, entry, absolute ? 3u : 4u);
 }
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_TRANSFER_OPCODES)
+static void ActorBridgeSoundTransferOpcode(CpuState *cpu, uint32_t entry) {
+    const ActorTimedOpcode *opcode = NULL;
+    for (unsigned i = 0u;
+         i < sizeof sound_upload_opcodes / sizeof sound_upload_opcodes[0]; ++i)
+        if (sound_upload_opcodes[i].pc == (uint16_t)entry) {
+            opcode = sound_upload_opcodes + i;
+            break;
+        }
+    const bool wide = entry == 0x809c38u || entry == 0x809c3bu ||
+                      (entry >= 0x809c4cu && entry <= 0x809c58u);
+    if (!opcode || entry >> 16 != 0x80u || cpu->m_flag != !wide ||
+        cpu->x_flag || cpu->D || cpu->_flag_D)
+        return;
+    if (ActorBridgeSoundTransferSupported(cpu, entry)) {
+        if (entry >= 0x809c00u)
+            ActorBridgeBootSound(cpu, entry);
+        else
+            ActorBridgeSoundUpload(cpu, entry);
+        return;
+    }
+    if (!g_snes || !g_snes->hdmaBeamOff ||
+        cpu->coprocessor_master_cycles != cpu->master_cycles)
+        return;
+    const unsigned cycles = opcode->cycles + opcode->branch +
+                            (opcode->indexed && cpu->Y >= 0x100u);
+    const unsigned budget = cycles * SOUND_TRANSFER_BUS_CLOCKS +
+                            SOUND_TRANSFER_REFRESH_CLOCKS;
+    if (!ActorBridgeSoundOpcodeSupported(cpu, entry, budget))
+        return;
+    ActorTimedBus bus = {0};
+    bus.cpu = cpu;
+    const Lufia2Memory memory = {ActorBridgeTimedRead, ActorBridgeTimedWrite,
+                                 &bus, NULL, NULL};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    ActorBridgeSoundUploadCheckpoint(&bus, &state, entry);
+    const Lufia2ExecutionResult result = entry >= 0x809c00u
+        ? Lufia2BootSoundOpcodeStep(&memory, &state, entry)
+        : Lufia2SoundUploadOpcodeStep(&memory, &state, entry);
+    ActorBridgeTimedFinish(&bus, result.pc);
+    ActorBridgeStore(cpu, &state);
+    Lufia2DecompFrameReturnComplete(bus.count, bus.progress_mask);
+    interp_bridge_pre_opcode_redirect(result.pc);
+}
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS)
 typedef struct ActorFramePollEntry {
     uint32_t address;
@@ -3362,6 +3408,12 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     for (unsigned i = 0u; i < sizeof boot_sound_entries / sizeof boot_sound_entries[0];
          ++i)
         interp_bridge_set_pre_opcode_hook(boot_sound_entries[i], ActorBridgeBootSound);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_TRANSFER_OPCODES)
+    for (unsigned i = 0u;
+         i < sizeof sound_upload_opcodes / sizeof sound_upload_opcodes[0]; ++i)
+        interp_bridge_set_pre_opcode_hook(0x800000u | sound_upload_opcodes[i].pc,
+                                          ActorBridgeSoundTransferOpcode);
 #endif
 }
 #endif

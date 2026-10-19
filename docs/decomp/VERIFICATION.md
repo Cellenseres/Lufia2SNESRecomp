@@ -1,3 +1,45 @@
+# Original sound transfer continuations - 2026-10-19
+
+The existing payload and boot-upload owners expose 58 individual CPU-facing
+continuations: 25 payload instructions and 33 boot instructions. Their readable
+whole-transfer phases remain unchanged. These bounded adapters preserve the
+registers, flags, operand and data bus, width changes, stack, source wrapping,
+RMW write order and branch continuations of one original instruction. They add
+no canonical function aliases or ordinary bindings.
+
+The consumer still tries its accepted grouped phases first. Otherwise an exact
+single instruction may run with coherent clocks, beam HDMA disabled and the
+existing CPU/stack/IRQ/DMA guards. Atomic wide source reads and port writes stay
+atomic. New capability gating requires both APIs and the existing verified
+sound owners; older child interfaces retain the previous runtime paths.
+
+Shared proof passes 296,960 original-ROM/actual-producer cases across all 58
+boundaries and five timing contexts, plus 59,392 direct semantic cases with
+varying direct page. Native contracts use their original M widths, X0, D0 and
+decimal disabled; source banks, pointers, counter edges and both ROM speeds
+vary. CPU/full WRAM/bus/open bus/opcode costs/refresh agree. Another 47,096
+runtime rejections, 1,392 positive boundaries, 321,188 semantic invalid-input
+checks and 58 effective in-memory ROM opcode faults pass. Exact source checks
+cover 37 producer helpers. Existing semantic bodies are byte-identical.
+
+Isolated Windows Release, standalone GCC/Clang and C++17 archive linkage pass.
+The standalone CLI executables and private fixtures are hash-identical, so
+prior CLI acceptance is reused. Sixty CMake contexts and three compiled older-
+API contexts pass; gated-off producer objects have no new symbol dependencies.
+
+Paired cold and input-driven replays match across 1,500 and 10,607 frames. The
+longer replay compares 237,550 additional upload contexts immediately before
+and after execution, including 23,050 scanline crossings, 77 deadline crossings
+and 3,724 refresh charges. All 846,756 observation rows and memory/video/audio/
+APU/SPC/DSP/clock/FIFO/port artifacts match. LLE instructions fall from 511,616
+to 274,066. A separate controlled hardware probe covers every boundary at three
+positions with one clock of budget: 174 cases, including stack and wide-port
+operations. These kernel contexts do not establish whole-child/gameplay proof.
+No production-speedup or whole-game claim. Full unrelated regression, other
+platforms and manual gameplay remain deferred. Totals stay 1,817 verified /
+1,786 ordinary bindings / 31 verified unbound / 791 WRAM fields / 499 C units /
+zero drafts. Tests, tools and ROM remain private.
+
 # Single sound reads at clock boundaries - 2026-10-19
 
 Fifteen existing scalar sound polls can now complete one original CMP/LDA
