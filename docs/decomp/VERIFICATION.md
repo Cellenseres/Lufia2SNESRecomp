@@ -1,3 +1,31 @@
+# Literal reset entry - 2026-10-19
+
+Lufia2ResetSystem reconstructs the complete $80:8000 reset through the
+$80:8035 JML, including the $00 ROM mirror. Its explicit entry-emulation
+argument keeps the common native CPU ABI unchanged. Original stack PHA/PLB,
+old direct-page clears, banked video/NMI/DMA writes, new stack/direct page,
+repeated work-byte clears, index truncation and XCE carry are preserved.
+An arbitrary native stack can read MMIO or ROM: DB is the actual pulled byte.
+No instruction-PC switch or gameplay patch is added.
+
+The shared checkpoint passes 262,144 original-ROM comparisons of CPU, full
+WRAM, ordered bus and device state; 65,536 rejected-context guards access no
+bus. Native states cover every stack word; emulation states cover every DP
+word. Fault controls detect old-DP and old-E/carry mistakes. Incremental
+GCC/Clang, isolated Windows Release and C++17 linkage pass. CLI results are
+reused only for identical executables and fixtures. Full regression is deferred.
+
+An experimental production adapter also passed 262,144 controlled ABI cases.
+However, the physical 1,500-frame startup and reset-jump probes observed zero
+native reset entries. Current LLE dispatch bounces calls, not reset/JML entries.
+The experimental adapter and binding were withdrawn; this complete semantic
+function is verified and UNBOUND. Startup reached both splashes and intro,
+with all 1,501 frame/boot rows identical to the accepted production baseline.
+This is not evidence of native reset activation, timing or a speedup.
+
+Totals: 1,819 verified functions, 1,786 ordinary bindings, 33 unbound verified,
+zero drafts, 500 C units. Tests, tooling and ROM remain private.
+
 # Primary actor party commands - 2026-10-19
 
 The child-enabled primary actor VM now reconstructs commands $49/$4E at
