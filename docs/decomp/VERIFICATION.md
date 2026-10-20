@@ -1,3 +1,41 @@
+# Complete scene-operation dispatcher - 2026-10-20
+
+The scene command80:BA39 now preserves the actual callback return word
+before reading field flags. A synthetic child can return normally while
+changing its ancestor's table-call frame; the original RTS follows that
+word. The previous native path discarded it and continued the normal
+completion. The shared finite dispatch and completion contract is now
+verified, including all256 selector bytes and their eight-bit shift aliases.
+
+Six existing scene callbacks and the effect setter keep their shared C
+bodies. Other table targets use the original pushed-frame child service.
+Reset and the intentional spin keep their original nonreturning owners.
+Unknown child algorithms are not newly reconstructed or counted as native.
+No extra runtime binding or per-PC adapter was added; the existing native
+text-engine services path calls the completed command.
+
+The affected direct and actual text-engine ABI groups pass:8192 normal
+states,256 child unwinds,512 changed-width/DP/decimal returns and65792
+ancestor-return cases per layer. The latter covers all65536 saved words
+and eight representative return words at each of32 child sites. All256
+selectors additionally pass1976 direct/1738 ABI cases; both cover238
+out-of-table byte selectors. Direct tests also retain changed child PB;
+production paired-return contracts normalize their bank. The old no-service
+API passes512 selector/field-flag cases.15 semantic and18 ABI guards pass.
+All480 production redirect probes pass without supported fallback.
+
+CPU/full WRAM, ordered data/MMIO and child-entry frame states agree with
+the ROM. Individual opcode/operand fetches are excluded. Unknown child
+internals use explicit paired contracts; real BF0B waits still execute ROM.
+Eight valid-instruction ROM faults and the old blind-return source mutant
+are rejected. Early private fixture repairs distinguished live table frames
+from prefix calls and same-PC callback returns from post-RTS arrivals.
+This is a semantic contract fix, not a reproduced gameplay-speed defect.
+No unrelated full regression, physical timing, live-scene or speedup claim.
+Strict MSVC, standalone GCC/Clang library and CLI checks and the isolated
+Windows Release build pass. Exact unchanged CLI executable/fixture hashes
+retain the resource-CLI result. Tests remain private.
+
 # Shared shop-data native contracts - 2026-10-20
 
 Five existing C helpers now have complete native entry contracts: owned
