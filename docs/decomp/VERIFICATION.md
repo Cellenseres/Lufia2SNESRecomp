@@ -1,3 +1,32 @@
+# Semantic sound-resource queue - 2026-10-20
+
+The complete sound queue owner now selects its next occupied resource slot
+through ordinary C, returning a slot and resource identifier. Transfer source
+publication is a separate operation with explicit source/length inputs and
+an original-order bank read after both word stores. Both use catalogued WRAM
+names. The CPU shell retains original flags, physical stack writes, child
+calls and unwinds. Unexpected child-return widths retain the old publication
+path. No instruction-per-PC adapter or additional public API is introduced.
+
+The combined checkpoint passes 16,384 original-ROM region cases, 8,192 exact
+accepted-parent streams, 1,172 complete original-ROM parent executions with
+explicit controlled peer seams, and 9,364 current production ABI calls with
+zero positive fallbacks. Coverage includes all resource byte values in each
+slot, empty queues, source-bank aliases, physical stack aliases, saved widths,
+child-return width changes and early child unwinds. Ordered data accesses,
+CPU state and full WRAM agree. Three in-memory ROM faults are detected.
+ABI comparisons exclude dispatch/return bookkeeping reads; the separate ROM
+and accepted-parent checks compare the complete ordered data streams.
+
+Strict MSVC, isolated Windows Release and incremental GCC/Clang builds pass.
+Unchanged CLI executable/fixture hashes reuse prior CLI evidence. All 3,000
+production frame rows match the preceding accepted run for CPU/WRAM,
+PPU/picture, APU/SPC, DSP and PCM. These queue cores have zero calls in that
+scenario; decoder count remains 9,040. No speedup or new coverage is claimed.
+No scheduler/timing adapter changes. Full regression is deferred. Tests remain
+private. Counts remain 1,819 verified, zero drafts, 1,786 bindings and 791
+WRAM fields. No new source unit or binding is added.
+
 # Semantic sound-transfer progress - 2026-10-20
 
 Header source/bank/length progression and payload sequence/length progression
