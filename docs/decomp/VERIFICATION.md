@@ -1,3 +1,45 @@
+# Native tilemap transfers and shop member previews — 2026-10-20
+
+Eight original routines now shift shared scroll tilemaps up/down
+(82:8F5E/9009), prepare equipment-member preview markers (E522/E569),
+refresh equipped comparisons (E586/E5AC), and prepare spell-member poses
+(E691/E6BE). The transfer loops retain every28-word row copy through live
+DP08/0B pointers, original bank pushes/pulls, word153C reads including153D,
+pointer bank carry, wraparound and two-row clearing. No bulk-memory shortcut
+is used. Equipped comparisons retain the01FF mask, live pointer reload after
+record loading, and immediate returns on empty markers or items. Member
+counters retain their original word/byte widths and wraparound behavior.
+
+One shared checkpoint passes4,114 direct ROM states/11,045 child calls and
+4,114 actual production-ABI states with all18 sites and forced unwinds,
+360 redirects,6,144 ABI guards and zero positive fallback.3,499 direct edge
+states and the distinct3,499 ABI edge states each make204,187 calls. They
+cover original bank restoration, every compatibility mask, record/pointer
+and caller-return aliases, all supported marker paths, two complete65,536
+word-counter member loops, byte-counter wrap, and four complete65,536-entry
+spell scans.16 bounded transfer prefixes agree through256 rows, including
+live-pointer and saved-stack aliases in huge wrapping-counter states; those
+long transfers are not claimed to have been run to completion.256 compositions
+execute808 actual nested native children among2,380 calls, connecting prior
+shop scrolling to the new member and tile-transfer routines and reusing the
+existing equipment-kind, equipment-slot, selection-offset and spell-selection
+functions.1,048,614 no-access guards and eight finite ROM faults pass.
+
+CPU, full WRAM, MMIO and ordered data agree within these contracts. Own-body
+traces exclude bank82 ROM reads; composition retains the two original inline
+eight-byte scroll tables. Unknown record/stat/graphics children remain controlled
+peers. The private composition scaffold corrected the existing FBE5 service's
+callback-shaped signature before its first run; semantic source needed no repair
+after the first direct proof. No live scene, cycle timing or speedup claim.
+Full legacy regression and unchanged startup replay are deferred under the
+owner's batch cadence. Tests remain private; both planned commits share the
+combined final-source checkpoint.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass at the
+shared checkpoint. CLI binaries and private fixture are unchanged; the prior
+CLI contract is reused by hash. All eight production bindings are generated.
+Owner work and build/windows remain untouched.
+
 # Native shop scrolling and inventory scans — 2026-10-20
 
 Four original routines now cover shop scrolling up/down (82:DD18/DDAE),
