@@ -1,3 +1,51 @@
+# Native alternate world scene and palette effects — 2026-10-20
+
+Five complete original entries now run the alternate world scene
+(86:92DF), check its cancellation/fade status (944E), construct HDMA color
+bands (9537), cycle its palette offset (95CA), and brighten palette colors
+(9618). Both scene phases, the 31-step transition and saved-status fade loop
+retain their original child frames, input tests, live counters and cleanup.
+There is no invented host-loop completion. The final LSR carries its result
+through PLB, while PLB supplies the original N/Z flags and restored DB.
+
+The palette operations read through direct-page X indexing. Saturating
+component arithmetic, byte count zero wrapping through 256 colors, word
+wraparound and scratch/source aliases remain literal. HDMA streams retain
+their descending record order and cross-stream header writes. The existing
+966C darken function shares only an extracted, unchanged offset setup;
+its subtraction loop is retained and included in all affected checks.
+
+One shared checkpoint passes 3,123 direct and 3,123 production-ABI states,
+46,691 child calls per layer, all 51 call sites and forced unwinds,
+825 ABI redirects, 1,968 ABI guards and zero positive fallback. Direct
+edge coverage combines 9,984 retained states with 256 new band-table states;
+the expanded ABI edge run passes all 10,240 states and 24,128 calls with
+zero fallback. Coverage includes all entry banks, input masks, palette
+phases, component saturation, every byte count and direct-page aliases.
+396,037 no-access guards pass; five finite in-memory ROM mutants are detected.
+
+288 direct and 288 production-ABI compositions each make 9,572 calls and
+execute 3,488 actual nested native children, connecting the scene parent,
+cancellation, HDMA construction and both palette operations. Unknown frame,
+graphics, motion and wait peers remain explicit; their internals and the
+outer text caller are outside this proof. CPU/full WRAM/MMIO/ordered-data
+are compared; original bank86 instruction reads are omitted. The full legacy
+regression, live gameplay, timing and speedup are not claimed.
+
+No production-source repair followed the first comparisons. Private scaffold
+corrections fixed an edge-build filename, an omitted band-table partition in
+ABI reporting, and a composition launch that initially ran the old executable.
+The actual composed executable was then run without recompiling unchanged
+sources. Only new direct band states were rerun; expanded ABI counters were
+checked once after that coverage correction. The original direct edge log
+was overwritten by the focused run; its observed tool output and exact old
+source are explicitly recorded, rather than represented as a preserved log.
+All five new entries are verified and selected. Tests remain private.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass for
+the combined checkpoint. CLI contracts retain unchanged executable/fixture
+hashes. All five bindings are generated; owner build/windows is untouched.
+
 # Native shop presentation and selection setup — 2026-10-20
 
 Five complete original entries configure the shop cursor (82:D79D), reset
