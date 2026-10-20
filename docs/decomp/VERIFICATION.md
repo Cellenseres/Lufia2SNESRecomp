@@ -8578,3 +8578,46 @@ coverage is the separate original-ROM, child and production-ABI checkpoint.
 Counts are1,857 verified,zero drafts,1,824 bindings and794 WRAM fields. Full
 regression is deferred. Both commits share this combined final source state;
 no separately tested intermediate revision is implied. Tests remain private.
+
+# Capsule form-effect lifecycle and placement - 2026-10-20
+
+Five complete original routines now run the form-effect owner, step angle and
+lifetime, place each effect and apply the signed scaled product. D68C retains
+M0X0; the other four retain M1X0. The original22-frame spawn cadence, four
+slots, age-word240 comparison, byte radius, exact180-step angle reset and
+unaligned product word1575 remain literal. The sign byte is rotated before
+a word shift at1583; the adjacent byte participates. Existing sine, cosine
+and multiply bodies/bridges are reused without new copies or changes.
+
+One combined checkpoint retains16,384 unchanged non-owner ROM states and
+their seven child unwinds. The owner is checked separately in134 states with
+149,078 calls and all six own sites/unwinds after increasing only its synthetic
+peer lifetime beyond the original spawn interval. The first shorter fixture
+covered only12/13 sites; no complete proof is claimed for that initial run.
+The resulting union covers16,525 body/boundary states and all13 sites.
+Another264 composed states execute82,204 actual native children among84,488
+calls, including real sine/cosine/multiply and food-meter code. Two complete
+form-change callers execute27,204 real children among28,916 calls. Seven
+real-lifecycle/late-unwind states add73,919 calls and71,578 native children.
+A complete selected-ID0/meter32 lifecycle has331 waits,1,056 angle/lifetime/
+placement updates and66 meter checks.320 boundary states add16 calls.
+
+Actual production ABI passes2,077 invocations with zero positive fallback,
+240 redirects and3,840 guards.655,383 no-access guards and five finite ROM
+faults pass. CPU/full WRAM/MMIO and ordered operands match. Bank82 ROM reads
+are excluded except coefficient dataC9D0..CA17; composed checks also exclude
+trig instruction bytes808450..84BE while keeping the actual84BF table reads.
+ABI bookkeeping reads are excluded separately. Unknown animation and frame
+wait children remain controlled services; no hardware scene or timing proof
+is claimed. Tests and ROM data remain private.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass at the
+shared integration checkpoint. Unchanged CLI executables and private fixture
+reuse their accepted contract. All3,000 normal-input CPU/WRAM,PPU/picture,
+APU/SPC,DSP and PCM rows equal the preceding accepted revision. The five new
+functions have zero hits in that replay; the separate original-ROM lifecycle
+and composition proofs cover their semantics. No live VFX or timing coverage
+is implied. Counts are1,862 verified,zero drafts,1,829 bindings and795 WRAM
+fields. Full regression is deferred. Both atomic commits share this combined
+final state; no independent intermediate checkpoint is claimed. Tests remain
+private. Parallel renderer changes are outside this batch's ownership.
