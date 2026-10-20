@@ -1,3 +1,37 @@
+# Shop session and Capsule menu assets - 2026-10-20
+
+Six previously missing original functions are verified:82:CF72 loads the
+form palette;D248 places the selected sprite;D69C owns shop entry/cleanup;
+D702 initializes selection;DA5C selects the list window;DAD8 refreshes it.
+The shop root preserves both its RTL and terminal JML84:A689. Its DA8F
+interaction loop remains an explicit original child, not a completed native
+shop engine. Palette copying preserves stack aliasing and restored DB;
+sprite placement retains the selected-ID word read and byte coordinates.
+
+One related checkpoint passes10,779 ROM body/boundary states and45,188
+child calls, covering all27 original sites and forced unwinds.512 caller
+compositions add2,816 calls and512 actual native children. Production ABI
+passes3,099 positive invocations with zero fallback,465 redirect probes
+and4,608 guards.786,460 no-access guards and six finite ROM mutations pass.
+CPU,full WRAM,MMIO and ordered data accesses match. Bank82 ROM reads and
+separate ABI bookkeeping reads are excluded;palette and coordinate ROM
+data remain compared. The ABI oracle distinguishes the pre-dispatch tail
+boundary from the post-JML bank; target,stack and dispatch state are checked.
+Unknown child internals are controlled seams. No live shop-scene,cycle-timing
+or host-speedup claim. Tests and ROM remain private.
+
+Eleven catalogue labels already belonged to verified menu-string or Capsule
+screen owners. Their internal ownership is documented without duplicate C,
+new standalone proofs or extra function counts. Full legacy regression and
+unchanged startup replay are deferred under the owner's batched cadence;
+the new/affected ROM and actual ABI union is checked at this checkpoint.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass at
+this combined checkpoint. CLI executables and private fixture hashes are
+unchanged; their prior CLI acceptance is reused. The six bindings are present
+in generated production dispatch. Owner builds and unrelated WIP are preserved.
+Both commits share this final-source checkpoint, not independent test runs.
+
 # Native capsule feeding operations - 2026-10-20
 
 Four new complete semantic routines cover special-food classification,
