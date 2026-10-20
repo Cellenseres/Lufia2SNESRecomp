@@ -1,3 +1,39 @@
+# Native shop interaction and list construction — 2026-10-20
+
+Six complete original routines now cover the shop interaction loop (82:DA8F),
+item selection (DB15), list-mode selection (E012), list-panel and visible-row
+drawing callers (DC69/DC8A), and selected-list construction (E327). DB15
+includes its remote action branches through DC46. Inline dispatch tables
+remain explicit child boundaries; their data are not decoded as instructions.
+E327 retains the word flag scan, carry rotation, byte/word transitions,
+96-entry reserve mode, source-pointer bank and transformed-list writes.
+Zero flag words retain the original nonreturning scan; no safety clamp is
+introduced into the semantic implementation.
+
+The shared checkpoint covers 9,219 direct ROM states: the unchanged first
+five functions reuse their accepted 8,960-state portion; the affected list
+function passes 259 new states after correcting its reserve geometry. A
+synthetic owned-list seed was corrected to fixed bank7E rather than DB; the
+unterminated fixture run was stopped and is not acceptance evidence.
+Actual production ABI passes 2,672 invocations without positive fallback,
+795 redirects and 4,608 guards. All 48 encoded child sites and their forced
+unwinds pass. Another 96 raw flag/row cases add 9,763 calls. Forty-eight
+compositions add 6,312 calls, including 1,344 real native children across
+the shop session, selection, list, panel and existing tile-clear code.
+786,461 no-access guards and six finite original-ROM mutations pass.
+
+CPU, full WRAM, MMIO and ordered operands match. Bank82 ROM reads and separate
+ABI bookkeeping reads are excluded; long source-list data remain compared.
+Unknown transaction, input, text and graphics children are controlled peers;
+no whole-shop live-scene, cycle-timing or speedup claim. Tests stay private.
+Full legacy regression and unchanged startup replay are deferred under the
+owner's batch cadence. Both planned commits share this final-source checkpoint.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass at the
+shared checkpoint. CLI executable and private fixture hashes are unchanged;
+their accepted CLI behavior is reused. All six production bindings appear in
+generated dispatch. Unrelated owner work and build/windows are preserved.
+
 # Shop session and Capsule menu assets - 2026-10-20
 
 Six previously missing original functions are verified:82:CF72 loads the
