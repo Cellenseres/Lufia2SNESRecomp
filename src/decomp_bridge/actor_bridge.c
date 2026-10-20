@@ -16934,3 +16934,23 @@ RecompReturn Lufia2DecompBridge_82F7FD(CpuState *cpu) {
     return ActorBridgeBattleEntry(cpu, 0x82f7fdu, Lufia2PartySubtractEquipmentComparison, 0,
                                   2u, BATTLE_BRIDGE_M0X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
 }
+
+RecompReturn Lufia2DecompBridge_82F8AF(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82f8afu, 0, Lufia2InventoryRemoveFlaggedEquipment,
+                                  2u, BATTLE_BRIDGE_M0X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82F8DC(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82f8dcu, 0, Lufia2InventoryUnequipItem,
+                                  2u, BATTLE_BRIDGE_M0X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82F925(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82f925u, 0, Lufia2InventoryEquipItem,
+                                  2u, BATTLE_BRIDGE_M0X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82ECC7(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82ecc7u, 0, Lufia2SaveSelectCharacter,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}

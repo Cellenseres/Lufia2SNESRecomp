@@ -1,3 +1,38 @@
+# Native equipment transfers and save selection — 2026-10-20
+
+Four complete original operations now remove flagged equipment (82:F8AF),
+unequip/equip inventory items (F8DC/F925), and select a character in the
+alternate save menu (ECC7). Structured branches retain the original exact
+96-slot equality check, single-item/full-inventory swap, quantity packing,
+live indirect pointers, saved loop-counter words and all seven return PCs.
+The selection loop preserves retries, confirmation sound, index decrement,
+and cancellation cleanup. No existing internal menu body is duplicated.
+
+One shared checkpoint covers8,210 direct ROM states:6,155 retained states
+for three unchanged roots and2,055 focused equip states after independent
+quantity/capacity/empty seeds reached the initially missing swap site.
+8,210 production-ABI states make36,138 child calls, covering all18 sites
+and forced unwinds,330 observed redirects,3,072 ABI guards and zero positive
+fallback. Each layer also passes8,436 capacity/quantity/flag/alias/input
+states with163,302 child calls and every declared return.512 compositions
+make4,264 calls and execute2,688 actual nested native inventory children,
+including the existing alternate-save and equipment-replacement callers.
+524,308 no-access guards and four finite ROM mutation controls pass.
+
+The initial direct run passed comparisons but missed one valid swap-site
+combination. Only the affected root was rerun after correcting correlated
+fixture dimensions. One mutation probe initially lacked ninth-bit item IDs;
+its focused seed was added and only that probe rerun. No semantic-source
+repair was needed. CPU/fullWRAM/MMIO/ordered-data are compared; own82ROM
+reads are omitted. Unknown input/sound/wait/record peers are explicit, so
+their internals, live gameplay/timing/speedup and the full legacy regression
+are not claimed. Four original entries are verified and bound. Private
+tests and fixtures stay uncommitted; parallel owner changes are excluded.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass for the
+shared checkpoint. CLI binary/fixture hashes retain the prior CLI contract.
+All four bindings are selected and generated. Owner build/windows is untouched.
+
 # Native shop rows and equipment comparisons — 2026-10-20
 
 Six complete original routines now draw single shop item/spell rows
