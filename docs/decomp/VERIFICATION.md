@@ -1,3 +1,18 @@
+# Menu poll refresh deadline guard - 2026-10-20
+
+The bounded menu polls also reserve the SDK's 40-master-clock DRAM refresh
+charge. Every poll is shorter than one 1,364-clock refresh period, so one
+charge covers the worst phase. Five of twelve real SDK deadline controls
+initially advanced beyond the original resume PC; all twelve now match CPU,
+resume PC, elapsed clocks and refresh accounting. Literal decomp is unchanged.
+
+The expanded consumer matrix passes 202,752 cases: 132,096 native operations,
+70,656 untouched handoffs and 6,912 paired word reads. All 3,000 production
+state/picture/audio rows remain identical; decoder count remains 10,425.
+Previous semantic/parent/guard/CMake/compiler/C++/CLI evidence covers unchanged
+relevant sources and gates. Full regression remains deferred. The original
+failed deadline evidence and corrected controls remain private.
+
 # Bounded menu wait polls - 2026-10-20
 
 Four original menu wait owners now share six complete finite operations:

@@ -1,6 +1,8 @@
 #include "lufia2/menu_wait.h"
 #include "buffer_span_bus.h"
 
+enum { MENU_WAIT_POLL_REFRESH_RESERVE = 40u };
+
 typedef struct MenuWaitPollBus {
     Interp816 *registers;
     Lufia2MenuWaitPoll poll;
@@ -111,7 +113,8 @@ static int Lufia2DecompRunMenuWaitPoll(
     if (s_lle_master_deadline &&
         (cpu->master_cycles >= s_lle_master_deadline ||
          s_lle_master_deadline - cpu->master_cycles <
-             (uint64_t)operations[operation].maximum_cycles * 8u))
+             (uint64_t)operations[operation].maximum_cycles * 8u +
+                 MENU_WAIT_POLL_REFRESH_RESERVE))
         return 0;
     Lufia2CpuState state = BufferSpanLoadState(registers);
     const Lufia2MenuWaitPoll poll = operations[operation].poll;
