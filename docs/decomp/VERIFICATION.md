@@ -1,3 +1,40 @@
+# Native shop exchange and equipment purchases — 2026-10-20
+
+Ten complete original routines cover secondary-balance credit, spending and
+comparison (82:9867/989D/98B5), exchange purchases and unit lookup
+(E0A9/E0E2), equipment preview and purchase (DFC4/E0F8), item receipts
+(E140), equipment replacement and swapping (F97D/F9B6). The currency's
+identity remains unclaimed. Original 24-bit wrap before the credit cap,
+raw table indices, incoming multiply carry, byte-index truncation, live
+indirect-pointer rereads and word quantity reads remain literal.
+
+A shared checkpoint passes17,952 direct original-ROM executions and5,152
+production-ABI invocations with zero positive fallback,555 redirects and
+7,680 ABI guards. All32 encoded child sites and forced unwinds pass.
+The ABI fixture separately varies possession, capacity and inventory count;
+its initial30-site coverage is not claimed as a complete32-site result.
+Another1,432 edge states cover currency overflow/cap boundaries, raw unit
+indices, bank crossing, pointer/stack aliases and the real F952 JSR/RTS.
+192 compositions execute581 actual native children among1,261 calls,
+including the preceding shop-purchase parent and existing inventory, gold,
+record, multiply and tile helpers.1,310,765 no-access guards and ten finite
+ROM faults pass. The composed driver recognizes the parent's E0A8 return;
+no semantic-source correction was needed after the first direct proof.
+
+CPU, full WRAM, MMIO and ordered data agree. Own-body trace filtering
+excludes bank82 instructions while retaining the E0F0..E0F7 unit table;
+compositions also omit only81:F194..F1AA/F291..F2A8 instruction reads,
+retaining actual bank96 records. Unknown setup/input/text/graphics children
+remain explicit controlled peers. No live whole-shop, timing or speedup
+claim. Full legacy regression and unchanged startup replay are deferred
+under the owner's batching cadence. Proofs remain private. Both planned
+commits share the combined final-source checkpoint.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass at this
+shared checkpoint. Unchanged CLI binaries and private fixture retain their
+prior accepted CLI contract by hash. All ten production bindings are generated.
+Owner work and build/windows remain untouched.
+
 # Native shop transactions, quantities and spell learning — 2026-10-20
 
 Nine complete original routines now cover selling (82:DEA4), purchase
