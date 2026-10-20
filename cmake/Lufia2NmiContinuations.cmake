@@ -56,6 +56,7 @@ function(lufia2_add_nmi_continuations target core_root)
     set(_menu_buffer_spans FALSE)
     set(_save_buffer_spans FALSE)
     set(_menu_wait_polls FALSE)
+    set(_scene_rebuild_spans FALSE)
     if(_api MATCHES "Lufia2FrameWaitRestoreRegisters[(]" AND
        EXISTS "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h")
         file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h" _menu_api)
@@ -92,6 +93,8 @@ function(lufia2_add_nmi_continuations target core_root)
                         lufia2_save_buffer_spans_available(_save_buffer_spans)
                         include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2MenuWaitPolls.cmake")
                         lufia2_menu_wait_polls_available(_menu_wait_polls)
+                        include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2SceneRebuildSpans.cmake")
+                        lufia2_scene_rebuild_spans_available(_scene_rebuild_spans)
                         if(_calls_api MATCHES "Lufia2NmiInvokeCallback[(]" AND
                            _calls_api MATCHES "Lufia2NmiReturnCallback[(]")
                             set(_nmi_callback_boundaries TRUE)
@@ -351,6 +354,13 @@ function(lufia2_add_nmi_continuations target core_root)
                         "#include \"interp816.h\"\n#include \"cpu_state.h\"\nstatic int Lufia2DecompRunMenuWaitPoll(Interp816 *, CpuState *, uint32_t, uint8_t);\n")
                     string(APPEND _timing_suffix
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/menu_wait_polls.inc\"\n")
+                endif()
+                if(_scene_rebuild_spans)
+                    string(APPEND _native_opcode "        if (!_cyc && !n_stop && (!yield_pc || auto_quiescent))\n            _cyc = Lufia2DecompRunSceneRebuildSpan(&in, cpu, pc_before, op);\n")
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\n#include \"cpu_state.h\"\nstatic int Lufia2DecompRunSceneRebuildSpan(Interp816 *, CpuState *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/scene_rebuild_spans.inc\"\n")
                 endif()
                 string(APPEND _native_opcode "        if (!_cyc)\n            _cyc = interp816_runOpcode(&in);")
                 string(REPLACE "${_original_opcode}" "${_native_opcode}"

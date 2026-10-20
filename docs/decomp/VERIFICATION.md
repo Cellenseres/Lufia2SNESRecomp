@@ -1,3 +1,31 @@
+# Finite scene rebuild phases - 2026-10-20
+
+The verified 83:A82E scene owner now shares bounded sprite-slot discovery,
+sprite flag reset and party-offset placement with its continuation consumer.
+The complete owner retains its original child calls and unwind boundaries.
+These three finite operations add no canonical entry, binding or C unit.
+Unsupported contexts, pending interrupts, explicit stops/custom yields and
+insufficient refresh-aware clock budgets retain original execution.
+
+One combined checkpoint passes 63,744 original-ROM CPU/full-WRAM/data-bus/
+device cases and 158,400 consumer cases including all instruction fetches,
+data order, device state and path clocks: 74,688 native, 83,712 handoffs.
+Full-owner checks pass 16,384 states over 128 system banks, retaining actual
+A746/A6DF child execution; 6,656 actual child-entry/unwind cases also pass.
+No-access guards pass 5,376 API and 13,056 consumer cases. Three independent
+ROM faults detect sentinel, flag-mask and party-offset changes. Six CMake
+compatibility gates, C++17 linkage, GCC/Clang and isolated Windows pass.
+Unchanged CLI executables/fixtures reuse prior evidence by exact hashes.
+
+All 120 actual SDK Stop/Yield/deadline/refresh/FastROM controls match original
+CPU, resume PC, elapsed clocks, refresh state and WRAM hashes. An initial
+consumer failure exposed indexed-store page penalties; the corrected final
+consumer passes the complete matrix. Production retains every one of 3,000
+CPU/WRAM, PPU/picture, APU/SPC, DSP and PCM rows. Decoder work drops from
+10,440 to 10,056 opcodes in this scenario, not a whole-game speed claim.
+Full regression remains deferred. Tests and controls stay private. No push.
+Counts remain 1,819 verified, zero drafts and 1,786 ordinary bindings.
+
 # Shared copy-span clock budgets - 2026-10-20
 
 The common buffer-span budget now reserves worst-phase DRAM refresh and uses
