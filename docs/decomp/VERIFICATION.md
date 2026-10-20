@@ -1,3 +1,54 @@
+# Native shop scrolling and inventory scans — 2026-10-20
+
+Four original routines now cover shop scrolling up/down (82:DD18/DDAE),
+counting all96 occupied inventory words (FB04), and finding the first set
+bit of an item's equipment-kind mask (F6F2). Scroll operations reuse the
+existing verified8028 inline-table dispatcher with its literal JSR/pop,
+DP scratch and82803D checkpoint. The four regular table modes select three
+complete row/frame/scroll paths. Other raw indices preserve exact original
+post-dispatch handoffs; they are not falsely counted as native unknown code.
+Downward bounds retain BMI flags rather than an unsigned or corrected signed
+comparison. Counts treat any nonzero word as occupied. A zero equipment mask
+still never returns; its repeated guest RMW and accumulator wrap remain.
+
+The shared checkpoint passes4,122 direct states/10,014 child calls and
+2,074 actual ABI states/5,046 calls, all26 external sites and forced
+unwinds,420 redirects,3,072 ABI guards and zero positive fallback. Both
+original internal dispatcher JSR sites are byte-checked and executed through
+the existing C body. The private ABI guard generator now derives M-width
+expectations from the function list, correcting an inherited root-index rule.
+2,568 direct edge states/1,415 calls include all256 raw table modes,
+signed-overflow bounds, live row changes, all inventory fills and all nonzero
+byte masks.1,514 exact original handoffs include two redirected checkpoints.
+The production ABI repeats its distinct integration boundary contract over
+2,560 states/1,377 calls and1,512 original handoffs; synthetic checkpoint
+mutation stays in the direct semantic test.12 zero-mask prefixes match CPU,
+full WRAM and ordered data through65,536 complete shifts and accumulator wrap.
+224 compositions execute320 actual native children among1,714 calls,
+including prior purchase/sale/counting parents and existing equipment/list/
+tile helpers.524,306 no-access guards and four finite ROM faults pass.
+The private fault link command needed the already-used dispatcher library;
+GCC required explicit initialization of two host row-kind enums. Only the
+two affected scroll parents were rechecked; unchanged leaf, mask-prefix and
+other-parent composition results are reused. The guard-only driver also
+uses the existing MSVC CRT-warning define after gaining subset selection.
+
+CPU, full WRAM, MMIO and ordered data agree within the stated boundary.
+Bank82 ROM code reads are excluded, with the two original eight-byte inline
+tables retained; arbitrary raw-index table reads outside those tables are
+also excluded from the ordered trace, but their exact target, CPU and guest
+writes are compared. Unknown targets are stopped after the original
+STA/SEP/JMP, avoiding ambiguous earlier visits to the same PC. Unknown
+input/text/graphics services remain controlled peers. No live whole-shop,
+cycle-timing or speedup claim. Full legacy regression and unchanged startup
+replay are deferred under the owner's batching cadence. Proofs remain private;
+both planned commits share the combined final-source checkpoint.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass at this
+shared checkpoint. Unchanged CLI binaries and private fixture retain their
+prior accepted CLI contract by hash. All four production bindings are generated.
+Owner work and build/windows remain untouched.
+
 # Native shop purchase and sale preparation — 2026-10-20
 
 Seven complete original functions now prepare item purchases (82:D7BC),
