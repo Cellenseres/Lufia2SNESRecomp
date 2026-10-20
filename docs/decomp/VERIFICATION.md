@@ -1,3 +1,45 @@
+# Warp-list row scrolling - 2026-10-20
+
+Three complete original operations draw one incoming warp-list row
+(82:B072), scroll upward (B080) and scroll downward (B0BE). The existing
+full-list draw B052 remains with its original C owner and is not copied.
+The new bodies preserve six visible rows, byte top/limit handling, the
+word high byte in the upward index, the downward cleared high byte,
+three frame calls, ordered request bytes and high-first word scroll RMW.
+
+The shared original-ROM/production-ABI checkpoint passes 131,658 states
+per layer, including all 65,536 upward top/high-byte combinations, all
+65,536 downward top/limit pairs, 256 data banks, complete existing AF8E
+input-loop paths, forced unwinds at 26 sites and child-mutated live fields.
+Each layer performs 591,681 child calls and 98,508 actual native child
+returns. Compositions execute the new row/scroll bodies and unchanged
+8F5E/9009 tile shifts; row text 8680 and frame/wait 868B55 remain explicit
+controlled original services. Their whole internals and physical NMI timing
+are not newly proved by this matrix. The frame-owner contract is unchanged.
+
+Checks compare CPU, full WRAM, math-device/WMADD state, MMIO and ordered
+data. Instruction fetches are excluded. All four production roots have
+zero fallback; normal ABI cases now reject unexpected fallback immediately.
+450 ABI redirects and 1,536 unsupported contexts pass. Another 60 changed
+child-width/DP/decimal and word-counter edges pass per layer, preserving
+exact original continuations. Six valid-instruction ROM faults detect row
+placement, top direction, request values, visible-row count and scroll steps.
+393,228 semantic no-access guards pass.
+
+The first ABI matrix completed before a redirect fixture chose an outer
+owner for the nested B07C site. That site is now probed through its actual
+B072 owner; outer row calls have their own probes. After strengthening
+fallback rejection, only the affected ABI matrix and ABI return cases were
+rerun. Direct tests and unchanged helpers were retained. No production
+semantic repair was needed after reconstruction. All tests remain private.
+Full unrelated regression, live warp-menu visuals, physical timing and
+speedup are not claimed.
+
+Standalone GCC and Clang library/CLI builds and the isolated Windows Release
+build pass. Resource-CLI proofs are reused against unchanged executable and
+fixture hashes. The entry catalogue and inventory checks pass; this shared
+checkpoint covers the three new bindings together.
+
 # Shop information-record selection - 2026-10-20
 
 Two complete original operations now select the info-window record.
