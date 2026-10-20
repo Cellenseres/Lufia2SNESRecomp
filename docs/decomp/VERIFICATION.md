@@ -1,3 +1,35 @@
+# Semantic party base-stat growth - 2026-10-20
+
+The existing verified 81:F87F routine now separates level-growth accumulation,
+fractional scaling and initial base-stat addition from the CPU-state shell.
+The calculation uses the existing banked WRAM view and value arithmetic.
+It reloads the growth pointer for every field, preserves aliased low/high
+updates, decimal behavior, hardware multiplier accesses and original stack
+order. The shell exports the original accumulator, overflow, carry, widths
+and restored indexes. No instruction-PC switch or new API/binding is added.
+
+One combined checkpoint passes 6,003 original-ROM CPU/full-WRAM/exact ordered
+data-bus/device cases. These cover all member bytes, levels 1..99 and row
+boundaries, 128 system banks, WRAM banks, decimal inputs, overlapping growth
+pointers/work fields and stack edges, DP wrapping, and complete level-zero
+and 65,535 counter cases. Large traces are compared exactly in memory.
+Three in-memory ROM faults detect row advancement, scaling and base sources.
+
+The current-source production bridge passes 4,096 F87F cases plus 512 cases
+for each of ED8E and EE94, all with zero interpreter fallbacks. The fixture
+models no paired interpreter bounce; unexpected ancestry/yield services fail
+closed. It links the real host-event module without event subscribers.
+An actual production replay executes the reconstructed routine 105 times;
+all 3,000 CPU/WRAM, PPU/picture, APU/SPC, DSP and PCM rows equal the preceding
+accepted baseline. Decoder count remains 10,056; this semantic reconstruction
+does not claim new canonical coverage or a wall-clock speed improvement.
+
+Strict MSVC semantic compilation, isolated Windows Release and standalone
+GCC/Clang pass. Unchanged CLI/fixture hashes reuse prior evidence. Public
+interfaces and runtime binding definitions stay unchanged. Full regression
+is deferred. Tests remain private; ROM files and owner SRAM are unchanged.
+Counts remain 1,819 verified, zero drafts and 1,786 ordinary bindings.
+
 # Finite session actor operations - 2026-10-20
 
 Three ordinary session-actor APIs now share the verified presentation and
