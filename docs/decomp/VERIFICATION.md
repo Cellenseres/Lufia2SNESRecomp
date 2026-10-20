@@ -1,3 +1,46 @@
+# Shared menu-row native contracts - 2026-10-20
+
+Four existing C row implementations now have independently verified native
+entry contracts: inventory84D5, spells8526, scenario items86C4 and pointer
+strings8680. Existing screen builders and these entries reuse the same
+private bodies. This is shared native integration, not four newly recovered
+algorithms or duplicated row renderers. Entry contracts are M1X0, PB82,
+DP0, binary arithmetic and stack1F20..1FFC; other contexts retain the ROM.
+
+The shared original-ROM and production-ABI matrices each pass14,595 states:
+14,546 complete returns and49 exact original text-child boundaries. They
+include all512 packed item-ID encodings across four attribute modes/four
+quantity groups,64 spell-ID encodings,all256 data banks per entry, zero-count
+list cases, pointer sentinel handling and256 actual
+incoming-warp-row caller compositions. Unused item encodings that enter
+repeated original text paths keep their exact child continuation. PC,
+stack and ordered-access length disambiguate those repeated boundaries.
+
+CPU/full WRAM, math devices, WMADD, MMIO and ordered data accesses agree.
+The verifier excludes individual opcode/operand fetches at execution time;
+ROM data and dispatch-table accesses remain compared. All four ABI roots
+run natively, with zero fallback;1,536 unsupported ABI contexts pass.
+524,432 semantic no-access guards and eight valid-instruction ROM faults pass.
+
+Targeted supplements pass192 independent special-item/spell window-bit and
+MP states plus64 accepted-stack-limit and word-index states per layer.
+The main matrix is retained unchanged. Explicit iteration measurement
+confirms65,536 inventory rows for its zero counter. The spell zero-counter
+case reaches an exact text-VM continuation at80:88C5 after18,852 rows;
+it does not demonstrate a complete65,536-row spell return. The earlier
+private log caption is superseded by that measurement. No alias cause or
+normal-game defect is established by this synthetic text case.
+
+The strict comparison found existing scenario-item code combining a DEC,
+ASL and subsequent reload. Those individual original accesses are restored.
+Local list counters and the item-quantity shift also preserve high-first
+RMW writes. No shared CPU helper or unrelated menu algorithm was changed.
+The initial ambiguous text-PC fixture and unused-control compiler warning
+were corrected privately. No unrelated full regression, physical timing,
+live-menu visual acceptance or speedup is claimed. Tests remain private.
+Standalone GCC/Clang library builds and isolated Windows Release pass.
+Resource-CLI checks reuse unchanged executable and fixture hashes.
+
 # Warp-list row scrolling - 2026-10-20
 
 Three complete original operations draw one incoming warp-list row

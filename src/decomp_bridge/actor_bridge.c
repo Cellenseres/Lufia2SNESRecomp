@@ -17094,3 +17094,19 @@ RecompReturn Lufia2DecompBridge_82B0BE(CpuState *cpu) {
     return ActorBridgeBattleEntry(cpu, 0x82b0beu, 0, Lufia2MenuScrollWarpDestinationsDown,
                                   2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
 }
+
+RecompReturn Lufia2DecompBridge_8284D5(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x8284d5u, Lufia2MenuDrawInventoryRows, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_828526(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x828526u, Lufia2MenuDrawSpellRows, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8286C4(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x8286c4u, Lufia2MenuDrawScenarioRows, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_828680(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x828680u, Lufia2MenuDrawPointerRows, 2u);
+}
