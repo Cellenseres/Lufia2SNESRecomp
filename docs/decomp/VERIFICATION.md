@@ -1,3 +1,49 @@
+# Native shop presentation and selection setup — 2026-10-20
+
+Five complete original entries configure the shop cursor (82:D79D), reset
+party animations (99F3), clear the separate 72-byte selection buffer
+(8E:E700), refresh shop previews (82:DC10), and draw shop lists (DCA3).
+The existing inline-table protocol is shared with DD18/DDAE scrolling;
+equipment lists delegate the existing owner without a duplicate body or
+invented frame. All four original tables retain ROM-backed reads and raw
+unknown-selector handoffs. The live 8-bit party count retains its zero
+wraparound through 256 members and reads after each animation child.
+
+The shared checkpoint passes 3,619 direct and 3,619 production-ABI states,
+10,459 child calls per layer, all 35 external sites and forced unwinds,
+615 ABI redirects, 5,376 ABI guards and zero positive fallback. Each layer
+also passes 5,248 cursor/count/clear/raw-selector states, 131,924 child calls
+and 4,032 exact unknown-target handoffs. All 256 selectors and member counts,
+scratch boundaries and RTL frame widths are covered. 917,538 no-access
+guards pass; five finite in-memory ROM mutation controls are detected.
+
+528 caller compositions comprise 192 unchanged retained states and 336
+remaining states with 3,900 calls and 564 actual nested native children.
+The latter include filled equipment lists and three exact text-VM handoffs.
+48 additional production-ABI list states have zero fallback and the same
+three handoffs. The ABI adapter asserts the dispatched target, source,
+frame and original bridge PB, then models PB selection at the target.
+It does not invent a semantic visit counter or claim unknown text handlers.
+
+Filled lists exposed an existing row-counter DEC that stored low/high;
+the original stores high/low. Only ShopRows now uses the existing WRAM
+word-step primitive; shared CPU primitives and unrelated callers stay intact.
+256 affected single/five-row owner states pass CPU, full WRAM, MMIO and
+ordered-data comparison. Their added fixture uses initialized menu scratch:
+unconstrained text formatting flags had exceeded the observer's capacity.
+The earlier populated composition remains separately retained unchanged.
+
+Instruction fetches in the delegated item-name code are excluded from its
+composition trace, as are known menu/text code ranges; inline tables and
+mutable data reads/writes remain compared. No data-order mismatch is ignored.
+Preflight corrected the spell-row child to 82:8636 before successful proof.
+The full legacy regression, live gameplay, timing and speedup are not claimed.
+Private tests stay local. These five entries are verified and selected.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass at the
+shared checkpoint. CLI validation is recorded per executable/fixture hash.
+The five bindings are selected and generated; owner build/windows is untouched.
+
 # Native equipment transfers and save selection — 2026-10-20
 
 Four complete original operations now remove flagged equipment (82:F8AF),
