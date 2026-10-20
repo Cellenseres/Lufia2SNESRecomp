@@ -1,3 +1,32 @@
+# Semantic session actor records - 2026-10-20
+
+The existing field-session owner now restores actor identities and the
+reserved actor through a banked record view with ordinary C parameters and
+return values. Destination presentation selection is a separate value
+operation. CPU-state shells preserve final flags and the original post-child
+16-bit prefix/handoff. Source re-reads, aliasing, field order and child frames
+remain literal. Existing single-instruction adapters are unchanged; this
+reconstruction adds no public API, binding, canonical function or C unit.
+
+The combined original-ROM checkpoint passes 28,144 CPU/full-WRAM/ordered
+data-bus/device cases: 23,040 operation cases and 5,104 complete internal
+83:B30D..B3CF actor-installation cases. The latter cover 128 system banks,
+six explicitly controlled child services, all six child-unwind sites and
+post-child width/bank/index changes. They do not re-prove those children's
+algorithms. Another 14,592 directed cases cover source/destination aliases
+and bank wrapping. Three in-memory ROM faults detect identity masks,
+reserved IDs and presentation selection. Test fixtures distinguish repeated
+stop PCs by completed child calls, including non-returning child frames.
+
+Isolated Windows Release and standalone GCC/Clang pass. Unchanged CLI
+executables and fixtures reuse prior evidence by exact hashes. Public API
+and instruction-adapter evidence is reused for byte-identical headers,
+consumer files and step bodies. All 3,000 actual production CPU/WRAM,
+PPU/picture, APU/SPC, DSP and PCM rows remain equal; decoder count remains
+10,056. No runtime speed or new canonical coverage is claimed. Full
+regression is deferred. Tests/probes remain private, with no ROM-file/SRAM writes
+or pushes. Counts remain 1,819 verified and zero drafts.
+
 # Finite scene rebuild phases - 2026-10-20
 
 The verified 83:A82E scene owner now shares bounded sprite-slot discovery,
