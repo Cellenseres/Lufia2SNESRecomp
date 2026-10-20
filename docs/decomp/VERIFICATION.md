@@ -1,3 +1,41 @@
+# Finite music sample-cache operations - 2026-10-20
+
+The song loader and Recomp now share ordinary C sample-cache clearing and
+searching operations. The canonical owner retains its CPU shell and original
+width-dependent path for unexpected child-return modes. The consumer runs
+whole finite loops at 80:94B0 and 80:94DE for the original 32 cache slots.
+It emits opcode/data accesses in their original order and returns exact path
+cycles, registers and flags. It introduces no instruction-per-PC switch.
+
+Admission requires enough refresh-aware deadline budget, no pending events,
+and the original widths/value contract. Explicit Stop/Yield boundaries keep
+the original path. Armed H/V timer IRQs also retain instruction boundaries;
+NMI-enabled contexts require a deadline. Unsupported or tight-budget contexts
+continue through the existing native/decoder paths without side effects.
+
+One combined checkpoint passes 32,790 original-ROM API/region/owner-helper
+cases and 57,344 consumer CPU/full-WRAM/exact fetch/data/device/cycle cases.
+The consumer admits 24,512 and declines 32,832 cases. Coverage includes every
+sample byte, all 32 slots, found/missing values, all banks, decimal/status
+flags, wrapping indexes and DP/stack edges. Another 7,936 rejection cases
+make no bus access. Two in-memory ROM faults detect clear/search addresses.
+
+Complete music callers pass 40,960 original-ROM cases, 25 pushed-child unwind
+sites and requested volume-call seams. The current production bridge records
+49,177 native invocations, zero positive fallbacks and 75 event redirects.
+Actual SDK Stop/Yield/deadline/refresh/FastROM and timer controls pass 144/144;
+48 controls latch a timer IRQ. C++17 linkage, eight compatibility gates,
+isolated Windows Release and incremental GCC/Clang pass. Unchanged CLI
+executable/fixture hashes reuse previous acceptance evidence.
+
+All 3,000 production CPU/WRAM, PPU/picture, APU/SPC, DSP and PCM rows match
+both the prior baseline and the kernel with only these operations disabled.
+The scenario executes three clear operations and one search. Actual decoder
+calls fall from 10,056 to 9,640; no wall-clock speedup is claimed. Two public
+operation APIs are added; canonical entries, bindings and C units are not.
+Full regression is deferred. Tests remain private; ROM and owner SRAM are
+unchanged. Counts remain 1,819 verified, zero drafts and 1,786 bindings.
+
 # Semantic member equipment and bonus restoration - 2026-10-20
 
 The verified 81:ED8E and 81:EE94 owners now share a C word-restoration core.
