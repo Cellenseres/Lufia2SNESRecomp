@@ -1,3 +1,52 @@
+# Finite sound source-pair restoration - 2026-10-20
+
+The sound-upload owners now share an ordinary C operation that reads two
+source bytes into the original direct-page staging fields. It reads each
+byte after the preceding store, preserving source/destination aliases. The
+CPU shell exports the final high byte and source index with original flags.
+Pairs that cross the source-bank boundary remain with the original caller,
+including its JSR frames, bank update and queued-source shadow stores.
+Unexpected widths also retain the original path.
+
+Recomp uses this shared operation for four complete finite regions at
+80:9953, 997D, 9815 and 9848. Admission requires a nonwrapping ROM/WRAM source,
+original widths, no pending event and enough refresh-aware budget. It keeps
+explicit Stop/Yield boundaries, armed H/V timer IRQs and unbounded enabled-NMI
+contexts on the old path. Source-pair opcode/data order and page/DP cycle
+costs are preserved. SPC-port writes and handshakes are not grouped.
+No instruction-per-PC switch is added.
+
+The combined checkpoint passes 25,088 original-ROM API/helper cases, including
+real bank-helper returns, and 110,592 consumer CPU/full-WRAM/exact fetch/data/
+device/cycle cases. The consumer admits 14,248 and declines 96,344 cases.
+Another 18,944 rejection cases make no access. Coverage includes all banks,
+source/direct-page aliases, page edges, decimal/status flags and wrapped
+pairs through the original helper. Two ROM operand faults detect source and
+staging-field addresses. The initial cycle check detected an overcharge for
+non-page-crossing reads; the corrected shared matrix passes.
+
+Complete upload parents match 576 accepted-baseline CPU/full-WRAM/ordered-bus/
+child/checkpoint streams. Another 576 current production-ABI invocations pass
+with zero positive fallbacks across three return modes. That ABI fixture uses
+a write-driven synthetic APU peer; bookkeeping reads are excluded, with exact
+data-bus behavior checked independently against the ROM. It does not claim
+new redirect/continuation coverage or SPC hardware timing.
+
+All 288 actual SDK Stop/Yield/deadline/refresh/FastROM/timer controls match.
+Each of the four operations has observed SDK admission; timer and explicit
+stop contexts have none. All 3,000 production CPU/WRAM, PPU/picture, APU/SPC,
+DSP and PCM rows match both the prior baseline and a kernel with only these
+operations disabled. This scenario executes the initial payload reader 75
+times; other phases have zero hits here. Actual decoder calls fall from
+9,640 to 9,040. No measured wall-clock gain is claimed.
+
+Strict MSVC, isolated Windows Release, incremental GCC/Clang, C++17 linkage
+and ten compatibility gates pass. Unchanged CLI executable/fixture hashes
+reuse previous evidence. Full regression is deferred. Tests stay private;
+ROM and owner SRAM remain unchanged. One operation API is added; canonical
+entries, bindings and C units are unchanged: 1,819 verified, zero drafts,
+1,786 ordinary bindings and 500 C units.
+
 # Finite music sample-cache operations - 2026-10-20
 
 The song loader and Recomp now share ordinary C sample-cache clearing and
