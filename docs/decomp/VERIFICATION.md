@@ -1,3 +1,39 @@
+# Finite session actor operations - 2026-10-20
+
+Three ordinary session-actor APIs now share the verified presentation and
+record-restoration algorithms with the canonical field-session owner. The
+consumer admits whole finite operations at 83:B327, B364 and B3B0 before
+the existing instruction adapter. It emits original opcode/data accesses in
+order and charges exact path cycles, including indexed-store page costs.
+Record accesses must map entirely to WRAM. Tight refresh-aware budgets,
+unsupported contexts, pending interrupts and explicit Stop/Yield contracts
+retain the old paths. No new instruction-per-PC switch is added.
+
+The combined original-ROM checkpoint passes 50,416 API/region/data-bus cases
+and 94,464 consumer CPU/full-WRAM/fetch/data/device/cycle cases. These include
+directed aliases, bank 7F/FF and 24-bit wrapping. The main consumer matrix
+admits 48,336 operations and declines 16,176 without side effects. Another
+11,776 guard cases access no bus. The 5,104 complete internal installation
+cases retain six controlled child services and their unwind/width contracts;
+the children are not newly decompiled by that fixture. Three independent
+in-memory ROM faults detect masks, reserved IDs and mode selection.
+
+All 120 actual SDK Stop/Yield/deadline/refresh/FastROM controls match CPU,
+resume PCs, elapsed clocks, refresh state and WRAM hashes. Twelve additional
+observed admissions prove all three operations execute in the actual kernel.
+All 3,000 production CPU/WRAM, PPU/picture, APU/SPC, DSP and PCM rows match
+both the old-path kernel and the preceding accepted baseline. This scenario
+executes one presentation span: old instruction-adapter calls fall from 473
+to 465, replaced by one operation. Identity/reserved spans have zero hits in
+this scenario; their actual admissions are covered by the controls above.
+Decoder count remains 10,056; no wall-clock or whole-game speedup is claimed.
+
+Fourteen availability gates, C++17 linkage, isolated Windows Release and
+standalone GCC/Clang pass. Unchanged CLI/fixture hashes reuse prior evidence.
+Full regression remains deferred. No canonical entry, binding or C unit is
+added; 1,819 remain verified with zero drafts. Tests stay private. ROM files
+and owner SRAM remain unchanged; nothing is pushed.
+
 # Semantic session actor records - 2026-10-20
 
 The existing field-session owner now restores actor identities and the
