@@ -8544,3 +8544,37 @@ PCM frame rows equal the preceding accepted state. These four routines have
 zero hits in that replay, so no live form-animation coverage is claimed.
 Counts are1,844 verified,zero drafts,1,811 bindings and793 WRAM fields. Full
 regression is deferred; both commits share this combined final checkpoint.
+
+# Capsule graphics, food display and palette - 2026-10-20
+
+Thirteen complete original routines now load/arrange form graphics, publish
+both original DMA requests, draw the food meter, rotate/advance/fade its
+palette and begin/end/load the form-effect presentation. D026/D397 retain
+M0X0 contracts; the others retain M1X0. Palette components still increment
+on inequality even above their target. Meter values remain unclamped; saved
+words, byte wraps, index-width changes, MVN order and DB-relative I/O remain
+literal. The eight effect records atA920 follow the3072-byte mask sequence.
+
+One checkpoint passes13,840 body states with10,036 child calls, all16 encoded
+sites and forced unwinds. The768 composed states execute194 actual new
+children among2,562 calls. Eight complete affected feeding/form-scene/tile
+callers execute23,602 real nested native children among25,794 calls, including
+the64-frame owner. Two late-slot unwinds add15 calls. Actual production ABI
+passes3,472 invocations with zero positive fallback,330 redirect probes and
+9,984 guards. Another1,703,994 semantic no-access guards and seven finite
+ROM faults pass. The DMA fault is caught by ordered MMIO comparison.
+CPU/full WRAM/MMIO and ordered operands match. The observer excludes
+bank82 ROM reads except C9D0..CA17 coefficient data; ABI bookkeeping reads
+are excluded separately. Unknown decompression, wait and
+other child bodies remain explicit services. No complete hardware scene or
+cycle-timing proof is claimed. Tests and ROM data stay private.
+
+The shared integration checkpoint passes strict MSVC, standalone GCC/Clang
+and isolated Windows Release. The unchanged CLI executables and private
+fixture reuse their accepted contract. All3,000 normal-input CPU/WRAM,
+PPU/picture,APU/SPC,DSP and PCM rows equal the preceding accepted revision.
+These thirteen routines have zero hits in that replay; their actual semantic
+coverage is the separate original-ROM, child and production-ABI checkpoint.
+Counts are1,857 verified,zero drafts,1,824 bindings and794 WRAM fields. Full
+regression is deferred. Both commits share this combined final source state;
+no separately tested intermediate revision is implied. Tests remain private.
