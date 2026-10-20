@@ -1,3 +1,42 @@
+# Native shop transactions, quantities and spell learning — 2026-10-20
+
+Nine complete original routines now cover selling (82:DEA4), purchase
+quantity selection (DF45), spell learning and insertion (E167/E1DE), quantity
+price calculation and adjustment (E20C/E22C), messages and completion
+(DE53/DE75), and item purchase (E02C). Their original child-call boundaries,
+signed byte-limit comparisons, live message-byte rereads, uncleared multiply
+carry, adjacent-byte quantity word reads, and preview PHP/PLP are retained.
+Spell insertion scans exactly36 slots and keeps original indirect bank carry
+and stack-alias behavior. No new instruction-PC adapters are introduced.
+
+One shared checkpoint covers17,988 direct ROM executions: the initial16,187
+states cover59 sites; only the purchase fixture is extended for1,801 states
+after separating two flags to reach the remaining rectangle-clear site.
+Production ABI passes4,668 invocations without positive fallback,1,035
+redirects and6,912 guards; all60 encoded sites and forced unwinds pass.
+Another1,234 edge states cover signed quantity limits, full spell lists,
+indirect bank crossing and stack aliasing. Only the114 spell-edge cases are
+rerun after clearing setup-only MMIO traces; the1,120 quantity cases remain
+unchanged.288 compositions execute464 real native children among1,763 calls,
+including multiply, packed counts, inventory quantities, gold, item records
+and tile clearing.1,179,693 no-access guards and nine finite ROM faults pass.
+
+CPU, full WRAM, MMIO and ordered data agree. Own-body traces exclude bank82
+ROM reads and separate ABI bookkeeping. Compositions also exclude only the
+item-record instruction ranges81:F194..F1AA and81:F291..F2A8 while retaining
+the actual bank96 record tables. Nested original returns are accepted only
+below the current owner's entry stack; premature owner returns still fail.
+Unknown input/setup/transaction-dispatch/text/graphics children remain
+controlled peers. No full live-shop, cycle-timing or speedup claim.
+Full legacy regression and unchanged startup replay are deferred under the
+owner's batch cadence. Tests remain private; both planned commits share
+the combined final-source checkpoint.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass at this
+shared checkpoint. The CLI executable and private fixture hashes are unchanged;
+their prior accepted behavior is reused. All nine native production bindings
+appear in generated dispatch. Owner work and build/windows are preserved.
+
 # Native shop interaction and list construction — 2026-10-20
 
 Six complete original routines now cover the shop interaction loop (82:DA8F),
