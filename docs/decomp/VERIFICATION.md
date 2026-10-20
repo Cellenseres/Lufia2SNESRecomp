@@ -1,3 +1,33 @@
+# Native capsule feeding operations - 2026-10-20
+
+Four new complete semantic routines cover special-food classification,
+food-message drawing, food-value selection and special-form changes at
+82:C647/C672/CBD2/CC58. Consumer bridges preserve the original two-byte
+returns and pushed child frames. The complete C683 feeding caller and its
+animation/redraw children remain explicit original services and followups.
+
+The combined checkpoint passes 275,986 own-body ROM comparisons, 9,938
+finite-child compositions, 34,450 production-ABI invocations without positive
+fallbacks, 315 redirect probes, 524,307 semantic no-access guards and 3,072
+actual bridge guards. All eighteen child sites are reached and forced to
+unwind. Four original-ROM mutations are detected. The finite-child matrix
+includes 7,262 real child executions/compositions. CPU, complete WRAM, MMIO
+and ordered data accesses agree; bank82 ROM reads and ABI bookkeeping reads
+are excluded from the corresponding bus comparisons. Unknown child bodies
+are controlled seams, not claimed whole-animation or cycle-timing coverage.
+
+The semantic implementation is byte-identical to the accepted original-ROM
+body proof. Related integration and compiler checks share this checkpoint;
+no full decomp-verify run or host-speedup claim. Tests remain private.
+Strict MSVC, GCC, Clang and the isolated Windows Release build pass. CLI
+executable and fixture hashes are unchanged, so prior CLI results are reused.
+All 3,000 normal-input CPU/WRAM, picture, APU/SPC, DSP and PCM frame rows match
+the preceding accepted revision. The four new routines have zero calls in
+that replay; it proves unchanged startup/load behavior, not live feeding
+coverage. Owner work and the owner build directory remain untouched.
+The commits share this combined final-source checkpoint; they were not tested
+independently. No full decomp-verify run or host-speed improvement is claimed.
+
 # Semantic enemy ordering and target remapping - 2026-10-20
 
 The existing complete enemy-reordering owner now builds column order and

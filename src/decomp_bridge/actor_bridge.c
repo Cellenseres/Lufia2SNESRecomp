@@ -16423,3 +16423,39 @@ RecompReturn Lufia2DecompBridge_80BC98(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu, 0x80bc98u, Lufia2TextPlaceActorFromScript, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_82C647(CpuState *cpu) {
+    if (cpu->PB != 0x82u || !cpu->m_flag || cpu->x_flag || cpu->D ||
+        cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x82c647u);
+    }
+    return ActorBridgeWholeAnyWidth(cpu, 0x82c647u, Lufia2CapsuleClassifyFood, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82C672(CpuState *cpu) {
+    if (cpu->PB != 0x82u || !cpu->m_flag || cpu->x_flag || cpu->D ||
+        cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x82c672u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x82c672u, Lufia2CapsuleDrawFoodMessage, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82CBD2(CpuState *cpu) {
+    if (cpu->PB != 0x82u || !cpu->m_flag || cpu->x_flag || cpu->D ||
+        cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x82cbd2u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x82cbd2u, Lufia2CapsuleDescribeFood, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82CC58(CpuState *cpu) {
+    if (cpu->PB != 0x82u || !cpu->m_flag || cpu->x_flag || cpu->D ||
+        cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x82cc58u);
+    }
+    return ActorBridgeSceneOwners(cpu, 0x82cc58u, Lufia2CapsuleApplySpecialFood, 2u);
+}
