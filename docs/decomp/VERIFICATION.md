@@ -8512,3 +8512,35 @@ DSP and PCM. These seventeen functions have zero hits in that replay; no live
 feeding or animation-timing coverage is claimed. Full regression is deferred.
 There are 1,840 verified entries, zero drafts, 1,807 selected bindings and 793
 WRAM fields. Both commits share this combined checkpoint; tests stay private.
+
+# Capsule form-transition masks - 2026-10-20
+
+Four complete original routines now generate cumulative form-transition masks,
+choose an unused bit with the original random retries, merge each frame and
+apply its mask to both tile planes. CA18 enters/exits M0X0; CA62, CAB1 and
+CB00 enter/exit M1X0. Short indirect tile accesses retain caller DB, while
+mask-generation pointers retain their original long banks. The 48-byte mask
+at9CF0 and3072-byte sequence at9D20 reuse snapshot/save-preview storage in this
+scene; existing WRAM ranges remain unchanged. Bit masks remain ROM-backed.
+
+The combined checkpoint passes 3,140 body states with39,951 child calls and
+all four original encoded sites/forced unwinds. Eight full64-frame composed
+states execute3,584 actual new native children among9,744 calls. Four late
+unwind states add926 calls, including the384th column and64th merge plus
+random collision retries. Another788 production-ABI calls have zero positive
+fallbacks;90 redirects,3,072 ABI guards,524,306 no-access guards and four
+finite ROM faults pass. CPU/full WRAM/MMIO and ordered operands agree.
+Bank82 instruction fetches and ABI bookkeeping reads are excluded. Random
+generation remains an explicit original-child service; no whole-animation
+timing proof is claimed. Tests and ROM data stay private. Integration results
+are recorded separately; the four bodies share one final checkpoint.
+
+The affected complete64-frame C958 caller also passes four original-ROM
+states with10,312 child calls, including9,216 real native CA18 transforms.
+The shared integration checkpoint passes strict MSVC, standalone GCC/Clang
+and isolated Windows Release. CLI binaries/fixture are unchanged; their prior
+contract is reused. All3,000 normal-input CPU/WRAM,PPU/picture,APU/SPC,DSP and
+PCM frame rows equal the preceding accepted state. These four routines have
+zero hits in that replay, so no live form-animation coverage is claimed.
+Counts are1,844 verified,zero drafts,1,811 bindings and793 WRAM fields. Full
+regression is deferred; both commits share this combined final checkpoint.
