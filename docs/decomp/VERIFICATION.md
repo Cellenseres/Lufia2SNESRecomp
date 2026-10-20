@@ -1,3 +1,33 @@
+# Semantic member identity restoration - 2026-10-20
+
+The verified 81:ED8E and 81:EE94 owners now share ordinary C operations for
+record headers, stored levels, name prefixes, terminated names and trailers.
+The CPU shell exports the original widths, indexes, accumulator and flags.
+Record writes re-read the original long pointer on each access. Source bank
+carry, direct-page wrapping, overlapping records, decimal pointer arithmetic,
+16-bit name-padding wrap and the three-byte trailer advance remain literal.
+Equipment, bonus and final HP/MP stores use the same typed record accessors.
+No instruction-PC switch, public API, binding or canonical entry is added.
+
+The combined checkpoint passes 6,060 original-ROM prefix cases with CPU,
+full WRAM, exact ordered data-bus vectors and device state comparisons.
+Coverage includes both formats, all 256 data banks, names of length 0..36,
+overlong names through 1,024 bytes, decimal flags, source/destination aliases,
+and bank/index/direct-page wrapping. Two in-memory ROM operand faults detect
+incorrect padding length and trailer advancement. The real production bridge
+passes 4,096 complete cases per owner, with zero interpreter fallbacks.
+
+An instrumented production replay executes identity restoration 49 times.
+All 3,000 CPU/WRAM, PPU/picture, APU/SPC, DSP and PCM rows equal the preceding
+accepted baseline. Decoder count remains 10,056. This replaces instruction
+shaped semantic code; it does not claim new coverage or a measured speedup.
+Strict MSVC, isolated Windows Release and incremental GCC/Clang checks pass.
+Unchanged CLI executable/fixture hashes reuse previous acceptance evidence.
+Base-stat growth and derived-stat source regions remain byte-identical.
+Full regression is deferred; affected complete owners share this checkpoint.
+Tests stay private. ROM and owner SRAM remain unchanged. Counts remain
+1,819 verified, zero drafts and 1,786 ordinary bindings.
+
 # Semantic party base-stat growth - 2026-10-20
 
 The existing verified 81:F87F routine now separates level-growth accumulation,
