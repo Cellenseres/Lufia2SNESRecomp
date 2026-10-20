@@ -1,3 +1,36 @@
+# Shared small-number and equipment-count contracts - 2026-10-20
+
+Four existing menu algorithms now have complete native entry contracts:
+82:91AB splits a clamped number into three digit counters;9169/9189 draw
+its small-number tiles with their original optional/explicit hundreds cell;
+F87D counts the six flagged equipment slots. Existing menu builders and
+the entries share their original C bodies. The count loop was extracted
+once from the existing upgrade caller. No duplicate predicate or new item
+algorithm was added. All entries require M0X0,PB82,DP0,binary arithmetic
+and stack1F20..1FFC; unsupported contexts retain the original execution.
+
+The shared ROM/production-ABI coverage totals231040 cases per layer. Each
+numeric entry covers all65536 accumulator words,including the999 clamp.
+The equipment count covers512 base item IDs across all64 slot masks.
+All256 data banks per entry, tile-bank crossings, stack limits, live record
+pointer aliases and512 actual member-status/upgrade caller compositions
+are included. CPU/full WRAM, math/WMADD/MMIO and ordered data agree;
+individual opcode/operand fetches are excluded. All six ABI roots execute
+natively without fallback.524432 semantic guards,1536 ABI guards and nine
+valid-instruction ROM fault controls pass.
+
+Digit-counter INCs and the number-tail DEC retain original high-first RMW
+writes. The affected original upgrade path also rereads its live indirect
+pointer before STA; a cached address had omitted those original reads.
+The initial matrix identified that existing caller discrepancy. Only the
+affected upgrade and unfinished supplements were rerun afterward; unchanged
+numeric/equipment/member matrices were retained by an exact source-diff
+check. The production-ABI union then passed on the combined final sources.
+No unrelated full regression, physical timing, live UI or speedup claim.
+Strict MSVC, standalone GCC/Clang library and CLI checks and the isolated
+Windows Release build pass. Exact unchanged CLI executable/fixture hashes
+retain the resource-CLI result. Tests remain private.
+
 # Complete scene-operation dispatcher - 2026-10-20
 
 The scene command80:BA39 now preserves the actual callback return word
