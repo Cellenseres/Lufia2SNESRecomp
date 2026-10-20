@@ -59,3 +59,10 @@ The original field pools hold 40 character actors and 32 auxiliary objects;
 there is no 15-actor cap in this renderer. Graphics allocation and animation
 uploads have separate budgets. Actor scripts, movement and collision keep
 their original behavior. See [SNES sprite limits](https://snes.nesdev.org/wiki/OAM).
+
+## US shrine graphics
+
+The Submarine Shrine and Ancient Cave final floor use repaired graphics.
+The verified US ROM is corrected once in memory; the file stays untouched.
+The other maps keep their existing blocks and appearance. See the
+[repair notes](patches/SHRINE_GRAPHICS.md) for scope and credits.

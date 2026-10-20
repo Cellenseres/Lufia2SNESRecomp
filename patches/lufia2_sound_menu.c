@@ -53,7 +53,7 @@ bool Lufia2SoundMenuInstall(const uint8_t *rom, size_t size) {
         0x5f, 0xc2, 0x20, 0xb7, 0x5d, 0x85, 0x60, 0xe2,
         0x20, 0x6c, 0x60, 0x00,
     };
-    s_supported_rom = rom && size == 2621440u &&
+    s_supported_rom = rom && size >= 2621440u &&
         memcmp(rom + 0x13f4c, left_table, sizeof(left_table)) == 0 &&
         memcmp(rom + 0x10028, dispatch, sizeof(dispatch)) == 0;
     Lufia2DecompSetMenuDispatchEvent(Lufia2SoundMenuCorrectTarget);

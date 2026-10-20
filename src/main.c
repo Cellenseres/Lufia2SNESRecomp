@@ -68,6 +68,7 @@
 #include "lufia2_equip_names.h"
 #include "lufia2_spell_price.h"
 #include "patches/lufia2_sound_menu.h"
+#include "patches/lufia2_shrine_graphics.h"
 #include "lufia2_play_time.h"
 #include "lufia2_party_limits.h"
 #include "lufia2_drop_text.h"
@@ -2665,6 +2666,11 @@ int main(int argc, char **argv) {
         fprintf(stderr,
             "\nThis build accepts the verified USA Lufia II ROM only.\n"
             "Expected SHA-1: %s\n", kLufia2Sha1);
+        return 1;
+    }
+    if (!Lufia2ShrineGraphicsApply(&rom_data, &rom_size)) {
+        fprintf(stderr, "[rom] Could not repair the US shrine graphics.\n");
+        free(rom_data);
         return 1;
     }
 

@@ -72,7 +72,7 @@ static size_t decode_entry(const uint8_t *rom, size_t rom_size, size_t offset,
 
 bool Lufia2MapNamesInit(const uint8_t *rom, size_t rom_size) {
     if (s_ready) return true;
-    if (!rom || rom_size != LUFIA2_US_ROM_SIZE || NAME_TABLE >= rom_size)
+    if (!rom || rom_size < LUFIA2_US_ROM_SIZE || NAME_TABLE >= rom_size)
         return false;
 
     size_t offset = NAME_TABLE;

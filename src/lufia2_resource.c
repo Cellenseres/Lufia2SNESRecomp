@@ -15,7 +15,7 @@ static bool ResourcePointer(const uint8_t *rom, size_t rom_size,
     size_t entry;
 
     if (!rom || !offset_out || resource_id >= LUFIA2_RESOURCE_COUNT ||
-        rom_size != LUFIA2_US_ROM_SIZE)
+        rom_size < LUFIA2_US_ROM_SIZE)
         return false;
     if (table > rom_size ||
         (size_t)resource_id > (rom_size - table) / LUFIA2_RESOURCE_ENTRY_SIZE)

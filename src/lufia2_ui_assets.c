@@ -86,7 +86,7 @@ bool Lufia2UiAssetsExtract(const uint8_t *headerless_rom,
     if (!out)
         return false;
     *out = (Lufia2UiPanelAsset){0};
-    if (!headerless_rom || rom_size != LUFIA2_US_ROM_SIZE ||
+    if (!headerless_rom || rom_size < LUFIA2_US_ROM_SIZE ||
         LUFIA2_PANEL_PALETTE_FILE_OFFSET > rom_size ||
         rom_size - LUFIA2_PANEL_PALETTE_FILE_OFFSET < sizeof palette)
         return false;
