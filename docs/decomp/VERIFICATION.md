@@ -1,3 +1,43 @@
+# Semantic field-frame decisions and transition state - 2026-10-20
+
+The existing field loop and frame resume now use three ordinary C operations:
+choose the next frame action, exchange current/destination maps and clear
+post-transition state. The decision reports wait, transition, map change,
+scene change or ordinary update. The CPU shell exports the original value,
+Z/N/V behavior and second-controller BIT status. Flag consumption retains
+its original read/write order and short-circuit behavior.
+
+Map exchange deliberately preserves the original guest-stack writes and
+reloads. An overlapping stack can change the destination or saved map word;
+the C operation retains that behavior rather than using a host-only swap.
+Transition-state clearing keeps original store order. Unexpected child-return
+widths retain the prior width-dependent path. No instruction-PC switch or
+runtime adapter is added. Both 83:8000 and 83:8007 were already verified and
+bound; historical notes describing an undecompiled/unbound field loop are
+obsolete and do not describe this checkpoint.
+
+The shared checkpoint passes 134,912 original-ROM CPU/full-WRAM/exact ordered
+data-bus/device cases across all banks, decimal/status/index-width variants,
+DP/source aliases, stack wrap and stack/map overlap. All five actions have
+coverage. Three independent in-memory ROM faults detect action masks, map
+sources and clear destinations. Complete owner/resume verification through
+the current production bridge passes 4,096 cases each, with zero fallbacks.
+Nineteen controlled child sites retain their frames; the fixtures exercise
+233,092 controlled child returns and 32,096 actual ROM wait/NMI events on
+each reference/native side. Those services are not newly decompiled here.
+
+An instrumented production replay executes action selection 1,816 times;
+map exchange and clear have no hits in this scenario. All 3,000 CPU/WRAM,
+PPU/picture, APU/SPC, DSP and PCM rows match the preceding accepted baseline.
+Decoder count remains 9,040. This is semantic reconstruction within already
+native owners, not new coverage or a measured runtime speedup.
+
+Strict MSVC, isolated Windows Release, incremental GCC/Clang and C++17 public
+interface linkage pass. Unchanged CLI executable/fixture hashes reuse prior
+evidence. Full regression is deferred. Tests stay private; ROM and owner SRAM
+are unchanged. Three operation APIs are added; counts remain 1,819 verified,
+zero drafts, 1,786 ordinary bindings, 791 WRAM fields and 500 C units.
+
 # Finite sound source-pair restoration - 2026-10-20
 
 The sound-upload owners now share an ordinary C operation that reads two
