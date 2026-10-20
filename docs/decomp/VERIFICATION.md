@@ -1,3 +1,41 @@
+# Shop information-record selection - 2026-10-20
+
+Two complete original operations now select the info-window record.
+82:E718 reads the packed inventory word at the selected slot, masks its
+nine-bit item ID and reports an empty ID through carry. 82:DC49 dispatches
+over its original four inline words, calls inventory/item/spell selection,
+and tags spell IDs with 0200. It returns M0X0. The existing list-based
+item/spell helpers and original inline dispatcher are reused unchanged;
+DC54/DC5A/DC60 are internal paths, not extra adapter entries.
+
+The shared original-ROM and production-ABI checkpoint covers 132,619 states
+per layer: all 65,536 packed-word values, all 65,536 selection seeds,
+256 data banks, both parents, all 252 other dispatcher values and forced
+unwinds at 15 caller/child sites. Seed writes that alias the selection
+field retain their original effects. The direct run retains the unchanged
+fixed-WRAM packed-word group from its first successful run; only the later
+device-sensitive group was resumed after correcting private seed mirroring.
+CPU, full WRAM, multiplier/divider/WMADD state, MMIO and ordered data are
+compared. Instruction fetches are excluded; inline target data is retained.
+
+Each layer executes 7,767 child calls and 1,550 actual native child returns.
+The existing shop caller is tested as an additional root; its compositions
+reuse both new operations and unchanged list selectors. A and carry cross
+82:DC33 return, store at1513 and info-window decision. The checkpoint also
+covers 252 exact unknown-target boundaries, 255 ABI redirects, 1,056 ABI
+unsupported contexts and 196,869 semantic no-access guards. Production
+fallback count is zero for all three roots. Another 352 source/selection/
+child-stack alias states pass per layer. Four valid-instruction ROM faults
+detect item masking, empty carry, inventory source and spell tagging.
+
+No existing selector algorithm is duplicated or replaced. Full unrelated
+regression, live shop visuals, hardware timing and speedup are not claimed.
+All verification programs and fixtures remain private.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass at
+the shared checkpoint. CLI evidence is reused by exact executable/fixture
+hashes. No full unrelated regression is claimed.
+
 # Packed spell-shop list rows - 2026-10-20
 
 The complete original 82:8636..867F operation reads packed spell IDs through
