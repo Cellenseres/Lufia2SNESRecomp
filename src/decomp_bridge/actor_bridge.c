@@ -16459,3 +16459,88 @@ RecompReturn Lufia2DecompBridge_82CC58(CpuState *cpu) {
     }
     return ActorBridgeSceneOwners(cpu, 0x82cc58u, Lufia2CapsuleApplySpecialFood, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_82C492(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82c492u, Lufia2CapsuleGetFoodMeterAddress, 0,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82C53A(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82c53au, Lufia2CapsuleRefreshSelectedForm, 0,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82C5A2(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82c5a2u, 0, Lufia2CapsuleResetFoodCursor,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82C683(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82c683u, 0, Lufia2CapsuleFeedItem,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82C784(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82c784u, 0, Lufia2CapsuleToggleFoodCache,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82C78E(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82c78eu, 0, Lufia2CapsuleAdvanceForm,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82C818(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82c818u, 0, Lufia2CapsuleRefreshFormScene,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82C85A(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82c85au, Lufia2CapsuleLoadFormPanel, 0,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82C8B7(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82c8b7u, Lufia2CapsuleClearFormPanel, 0,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82C8ED(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82c8edu, 0, Lufia2CapsuleSaveFormTiles,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82C929(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82c929u, Lufia2CapsuleCopyFormTiles, 0,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82C93C(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82c93cu, Lufia2CapsuleClearFormTiles, 0,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82C958(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82c958u, 0, Lufia2CapsuleAnimateFormTiles,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82CB10(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82cb10u, 0, Lufia2CapsuleAnimateFood,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82CB55(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82cb55u, 0, Lufia2CapsuleSpawnFoodParticle,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82CB8C(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82cb8cu, 0, Lufia2CapsuleStepFoodParticles,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_82CBAF(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x82cbafu, 0, Lufia2CapsuleApplyFoodUnit,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}

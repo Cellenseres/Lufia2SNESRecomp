@@ -8476,3 +8476,39 @@ sample and per-frame CPU/WRAM parity are not claimed or normalized.
 The five equipment-bank candidates and the field post-wait prototype remain
 private because their broader timing/state differences are unresolved.
 Evidence: .agent/decomp/record-bank-next/ACCEPTANCE_RECEIPT.json.
+
+# Capsule feeding callers and form animation - 2026-10-20
+
+Seventeen complete original routines now handle feeding, food-meter lookup,
+form selection, panel/tile transfers and food particles. They are original
+function bodies, not per-instruction adapters. Explicit child services keep
+unknown redraw, wait and tile-transform internals outside these contracts.
+The original 82:CA18 transform kernel remains a separate missing function.
+ROM tables stay bus-backed. Eight-bit particle-count overflow, exact meter
+comparison, live DP counters, saved frame counts and MVN order are preserved.
+
+One shared checkpoint passes 11,869 own-body states with 119,715 child calls,
+all 89 original encoded child sites and their forced unwinds. Seven late-loop
+unwinds add 8,560 calls, including the 256-iteration wrapped particle count
+and the final tile/frame iterations. Another 85 composed states execute 965
+real new native children among 18,965 child calls. CPU, full WRAM, MMIO and
+ordered data accesses agree. Bank82 instruction reads are excluded, while
+actual coefficient data at C9D0..CA17 is included. Child services are controlled
+seams; no whole-animation timing or live-scene coverage is claimed.
+
+Current production wrappers also pass the reduced ROM matrix without positive
+fallbacks, 1,500 redirect probes, 13,056 actual ABI guard states and 2,228,303
+semantic no-access guards. All 89 sites receive fifteen targeted redirect
+probes. ABI dispatch/return bookkeeping reads are separately excluded. Seven
+finite in-memory ROM faults are detected. No test or ROM data is committed.
+The related compiler, consumer and normal-input replay checkpoint is recorded
+separately; no full-regression or intermediate-commit result is implied.
+
+The shared integration checkpoint passes strict MSVC, standalone GCC/Clang
+and the isolated Windows Release build. The CLI binaries and private fixture
+are unchanged, so their accepted contract is reused. All 3,000 normal-input
+frame rows equal the prior accepted state for CPU/WRAM, PPU/picture, APU/SPC,
+DSP and PCM. These seventeen functions have zero hits in that replay; no live
+feeding or animation-timing coverage is claimed. Full regression is deferred.
+There are 1,840 verified entries, zero drafts, 1,807 selected bindings and 793
+WRAM fields. Both commits share this combined checkpoint; tests stay private.
