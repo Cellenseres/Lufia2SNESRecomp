@@ -1,5 +1,6 @@
 #include "lufia2_menu_ui.h"
 #include "lufia2_ui_layout_internal.h"
+#include "snes/dma.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +12,8 @@
 #endif
 
 extern uint8_t g_ram[0x20000];
+extern Dma *g_dma;
+extern uint8_t g_snesrecomp_last_hdmaen;
 
 enum { WIDTH = LUFIA2_UI_NATIVE_WIDTH, HEIGHT = LUFIA2_UI_HEIGHT,
        CANVAS = LUFIA2_UI_CANVAS_WIDTH, MAX_RECORDS = 4096,
@@ -153,9 +156,20 @@ void Lufia2MenuUiLatchSprites(const Ppu *ppu) {
 }
 static void ReadTextRowScroll(void) {
     s_text_rows = false;
-    if (g_ram[0xfa] != 0x12 || g_ram[0xfb] != 2 || g_ram[0xf9] != 0x7e) return;
-    unsigned pointer = g_ram[0xf7] | (unsigned)g_ram[0xf8] << 8;
-    if (pointer != 0x80c0) return;
+    if (!g_dma) return;
+    bool active = false;
+    /* Description setup reuses the DMA scratch bytes before the displayed
+       text changes. Follow the channel that will render this frame. */
+    for (unsigned i = 0; i < 8; ++i) {
+        const DmaChannel *channel = &g_dma->channel[i];
+        if ((g_snesrecomp_last_hdmaen & (1u << i)) &&
+            channel->bAdr == 0x12 && channel->mode == 2 &&
+            !channel->indirect && !channel->fromB &&
+            channel->aBank == 0x7e && channel->aAdr == 0x80c0)
+            active = true;
+    }
+    if (!active) return;
+    unsigned pointer = 0x80c0;
     unsigned y = 0;
     while (y < HEIGHT && pointer < 0x81c0) {
         unsigned control = g_ram[pointer++];
