@@ -1,3 +1,49 @@
+# Semantic sound-transfer progress - 2026-10-20
+
+Header source/bank/length progression and payload sequence/length progression
+now use ordinary C calculations shared with their complete upload owners.
+Header advancement preserves 16-bit source wrap, the separate bank-byte RMW
+and the original 8000 reload. Payload advancement retains two separate byte
+RMWs and the original continuation test against the incoming length: zero or
+one wraps the stored remainder but still stops. The CPU shell exports the
+original indexes and flags. Stepped checkpoints and unexpected-width paths
+retain their previous behavior.
+
+A finite Recomp header operation runs at 80:98FC before the existing sound
+instruction adapter. It preserves original opcode/data order, branch cycles
+and wrapped-bank behavior. Admission keeps explicit Stop/Yield, pending events,
+armed timer IRQs, unsafe wrap targets and insufficient budgets on their old
+paths. Enabled NMI requires a deadline. No SPC-port access or handshake is
+batched. No new instruction-per-PC switch is added.
+
+The combined checkpoint passes 205,248 original-ROM API/region cases, including
+all 65,536 incoming word lengths at each of three original regions, plus
+45,360 exact consumer fetch/data/device/cycle cases. The consumer admits
+22,608 and declines 22,752 cases. Another 4,096 rejection cases access no bus.
+Three in-memory ROM faults detect source reload, the second sequence RMW and
+remaining-length decrement. Complete parent streams match 576 accepted-source
+cases; the current production ABI passes another 576 native invocations with
+zero positive fallbacks. That fixture uses controlled peer responses and
+excludes ABI bookkeeping reads; exact operation bus order is checked against
+the ROM. It does not claim SPC hardware timing or new redirect coverage.
+
+All 72 actual SDK Stop/Yield/deadline/refresh/FastROM/timer controls match,
+with positive header admission and zero admissions in explicit/timer contexts.
+All 3,000 production CPU/WRAM, PPU/picture, APU/SPC, DSP and PCM rows match
+both the prior baseline and a kernel with only this header operation disabled.
+The scenario replaces 2,304 old sound-adapter calls with 576 complete header
+operations: old calls fall from 6,912 to 4,608, a net 1,728 fewer native
+adapter dispatches. Decoder count remains 9,040. The header C core executes
+576 times; the payload C core has zero hits in this scenario. No wall-clock
+speedup or new canonical coverage is claimed.
+
+Strict MSVC, isolated Windows Release, incremental GCC/Clang, C++17 linkage
+and seven compatibility gates pass. Unchanged CLI executable/fixture hashes
+reuse prior evidence. Full regression is deferred. Tests remain private; ROM
+and owner SRAM are unchanged. Two operation APIs are added. Counts remain
+1,819 verified, zero drafts, 1,786 ordinary bindings, 791 WRAM fields and
+500 C units.
+
 # Semantic field-frame decisions and transition state - 2026-10-20
 
 The existing field loop and frame resume now use three ordinary C operations:
