@@ -87,8 +87,11 @@ static void PpuDrawMenuOverlayLine(Ppu *ppu, unsigned y,
         if (has_sub) sub = PpuMenuSubpixel(ppu, (unsigned)x, sub_obj);
         for (unsigned plane = 0; plane < 3; ++plane) {
           if (!capture->pixels[plane][x]) continue;
+          if (plane == 2 && !main_obj[x]) {
+            capture->pixels[plane][x] = 0;
+            continue;
+          }
           uint16_t pixel = capture->priority[plane][x];
-          if (plane == 2 && !main_obj[x]) pixel = 0;
           if (pixel < background) pixel = background;
           capture->pixels[plane][x] = PpuMenuColour(ppu, pixel, sub, clip, math) | 0xff000000u;
         }
