@@ -1,3 +1,30 @@
+# Bounded menu wait polls - 2026-10-20
+
+Four original menu wait owners now share six complete finite operations:
+button tests, mask selection, countdowns and sprite-motion polling. Their
+typed poll API preserves literal CPU/bus state. Recomp admits one operation
+between the original child calls, emits original fetches in data-bus order,
+and charges the exact path cycles. No per-instruction PC switch is added.
+Pending interrupts, unsupported contexts, active stop/custom-yield contracts
+and insufficient worst-case master-clock budgets retain original execution.
+
+The shared checkpoint passes 9,216 ROM semantic cases and 147,456 consumer
+CPU/full-WRAM/ordered-fetch/data-bus/device/cycle cases, including paired word
+reads and 46,080 untouched deadline handoffs. Whole-parent checks pass 1,536
+normal cases, 384 real returns, 352 child unwinds, 140 post-child boundaries
+and 24 child-mutated stack counters. Another 12,288 API and 27,648 consumer
+guards access no bus. Three original-ROM faults detect button bits, mask
+addresses and countdown direction. Eleven CMake availability cases pass.
+GCC/Clang, isolated Windows Release and C++17 API linkage pass; unchanged CLI
+hashes reuse prior CLI evidence. Full regression remains deferred.
+
+Actual production retains all 3,000 CPU/WRAM, PPU/picture, APU/SPC, DSP and PCM
+hash rows of the preceding accepted scenario. Decoder work falls from 11,511
+to 10,425 opcodes; this is no wall-clock or whole-game coverage claim. Twelve
+real production Stop/Yield controls intercept inside all six operations.
+No canonical function, binding or C unit is added; 1,819 remain verified.
+Tests/probes stay private. ROM and owner SRAM are read in place only.
+
 # Shared battle status owners - 2026-10-20
 
 Status snapshots, selected-record clearing and five-party status markers now
