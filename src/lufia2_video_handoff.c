@@ -323,7 +323,8 @@ void Lufia2VideoHandoffApply(
             ? handoff->held_brightness
             : handoff->current_brightness,
         handoff->saved_brightness,
-        raster_effect,
+        /* Scrolling a held map exposes rows beyond the saved frame. */
+        raster_effect || (handoff->holding && handoff->saved_scroll_tracks),
     };
     for (size_t y = 0; y < height; y++) {
         const HandoffRow row = ResolveRow(handoff, y);
