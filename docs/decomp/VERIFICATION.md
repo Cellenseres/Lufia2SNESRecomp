@@ -1,3 +1,33 @@
+# Semantic enemy ordering and target remapping - 2026-10-20
+
+The existing complete enemy-reordering owner now builds column order and
+remaps enemy target bits through ordinary C operations. Column sorting keeps
+the original swaps for equal keys, repeated word reads, byte-ordered stores
+and live pass counter. Target remapping keeps six separate scratch-byte
+read/shift/write operations and reads each selected slot mapping in order.
+The CPU shell retains accumulator high-byte residue, flags, widths, original
+JSR frames and return boundaries. Scratch and target tables remain bus-backed;
+no host snapshot replaces the original arrays. No public API, instruction
+adapter, canonical entry or binding is added.
+
+One combined checkpoint passes 16,384 original-ROM sort/remap region cases,
+4,096 complete original-ROM owner cases and 4,096 current production ABI
+cases with zero fallbacks and 4,096 real RTL returns. The owner matrix covers
+all 720 enemy orders, all 64 six-slot occupancy masks and all 256 observed
+target-byte inputs. Separate region cases include duplicate/missing columns,
+all data banks, flags and arbitrary target-map bytes. CPU state, complete
+WRAM and ordered data-bus streams agree; ABI bookkeeping reads are excluded.
+Three in-memory ROM mutations detect the equality branch, mapping source and
+six-slot loop bound. Strict MSVC, isolated Windows Release and incremental
+GCC/Clang builds pass. Unchanged CLI/fixture hashes reuse prior CLI evidence.
+
+All 3,000 production CPU/WRAM, PPU/picture, APU/SPC, DSP and PCM rows match
+the preceding accepted run. Both new cores have zero hits in that startup/
+menu scenario; decoder count stays 9,040. No runtime speedup is claimed.
+Full regression is deferred; related ROM/ABI/build/runtime checks are green.
+Tests remain private. Counts stay 1,819 verified, zero drafts, 1,786 bindings,
+791 WRAM fields and 500 source units.
+
 # Semantic sound-resource queue - 2026-10-20
 
 The complete sound queue owner now selects its next occupied resource slot
