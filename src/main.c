@@ -1948,6 +1948,18 @@ static bool PresentFrame(bool include_rewind) {
     return SubmitFrame(include_rewind);
 }
 
+static int FramePpuFlags(void) {
+    int flags = 0;
+    if (g_config.new_renderer || g_ws_active)
+        flags |= kPpuRenderFlags_NewRenderer;
+    /* Keep the field sprite budget while its saved picture fades out. */
+    if (g_config.no_sprite_limits ||
+        s_current_video_layout == LUFIA2_VIDEO_REGULAR_MAP ||
+        (s_video_handoff.holding && s_video_handoff.saved_scroll_tracks))
+        flags |= kPpuRenderFlags_NoSpriteLimits;
+    return flags;
+}
+
 static void PrepareVideoFrame(void) {
     g_ws_active = g_config.widescreen;
     g_ws_extra = g_ws_active ? SNES_WIDE_EXTRA : 0;
@@ -2846,11 +2858,7 @@ int main(int argc, char **argv) {
 
             PrepareVideoFrame();
 
-            int ppu_flags = 0;
-            if (g_config.new_renderer || g_ws_active)
-                ppu_flags |= kPpuRenderFlags_NewRenderer;
-            if (g_config.no_sprite_limits)
-                ppu_flags |= kPpuRenderFlags_NoSpriteLimits;
+            const int ppu_flags = FramePpuFlags();
 
             Lufia2BeginMapRenderOverlay(g_ppu);
             PpuBeginDrawing(

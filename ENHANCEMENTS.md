@@ -48,3 +48,14 @@ room paint is combined in room-ID order, and the most common fill wins.
 The old `l2rooms` and `compare` settings are retired. Visibility always follows
 the game. `LUFIA2_ROOM_VISIBILITY_DEBUG=1` tints hidden and open cells;
 runtime-log builds report `[room-vis]` diagnostics.
+
+## Field actors
+
+Widescreen maps keep a 64-pixel guard around actor culling and lift the SNES
+sprite limits per scanline, including during exit fades. Room visibility still
+applies. The OAM writer checks its 128-entry capacity, with 16 entries reserved.
+
+The original field pools hold 40 character actors and 32 auxiliary objects;
+there is no 15-actor cap in this renderer. Graphics allocation and animation
+uploads have separate budgets. Actor scripts, movement and collision keep
+their original behavior. See [SNES sprite limits](https://snes.nesdev.org/wiki/OAM).
