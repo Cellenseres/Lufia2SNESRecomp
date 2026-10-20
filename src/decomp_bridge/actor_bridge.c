@@ -17064,3 +17064,8 @@ RecompReturn Lufia2DecompBridge_8EB2EE(CpuState *cpu) {
     return ActorBridgeBattleEntry(cpu, 0x8eb2eeu, 0, Lufia2RunAlternateDisplay,
                                   3u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
 }
+
+RecompReturn Lufia2DecompBridge_828636(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x828636u, 0, Lufia2MenuDrawSpellShopRows,
+                                  2u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}

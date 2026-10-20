@@ -1,3 +1,47 @@
+# Packed spell-shop list rows - 2026-10-20
+
+The complete original 82:8636..867F operation reads packed spell IDs through
+its long list pointer, draws each ROM-backed name and price, advances the
+tilemap and requests upload. It reuses the existing purchase-price helper
+and menu-string implementation. This differs from learned-spell rows and
+word-sized item lists; neither existing algorithm is duplicated.
+
+All three original child sites retain their JSL/JSR frames. Live list,
+index, count and tilemap scratch are reread after children. Sentinel FF,
+word-count zero underflow, high-first decrement stores, flags and data-bank
+addressing remain original. The price is the spell-record field at 0B87;
+it is separate from the final displayed-price field at 1545.
+
+The shared original-ROM checkpoint retains 3,206 direct states covering
+the new body, both existing callers, all five outer/nested child sites and
+forced unwinds, the complete 65,536-row count-zero loop and child-mutated
+scratch. Another 96 initialized-menu compositions execute 775 actual
+native child returns, including the original string and price operations.
+Random text states exercise unrelated original control paths; they are
+not claimed as initialized menu fixtures. The new body was not changed
+to sanitize them. Earlier passing row cases were retained without rerun.
+
+Production ABI covers the combined 3,302-state matrix with 223,331 child
+calls and 76,324 actual native child returns. Five call sites pass 15
+redirect probes each. Terminal aggregate fallback counters were not emitted
+before an overbroad private guard expectation failed; no aggregate zero-
+fallback claim is inferred. A focused 120-state production check records
+40 native entries, zero fallbacks and 15 redirects for each of the three
+roots. The corrected guard-only check passes 2,112 unsupported contexts.
+The new body supports arbitrary native stacks; old caller stack guards
+remain unchanged. Another 2,064 bank/index/stack-alias states and 65,793
+semantic no-access guards pass. Three valid-instruction ROM faults detect
+sentinel, price-source and row-stride changes before acceptance.
+
+Comparisons cover CPU, full WRAM, MMIO and ordered data accesses; original
+instruction fetches are excluded. Existing helper sources are unchanged.
+Full unrelated regression, live shop visuals, hardware timing and speedup
+are not claimed. All proof programs and fixtures remain private.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass.
+The existing CLI checks are reused only by unchanged executable/fixture
+hashes. One shared checkpoint covers the new body and affected callers.
+
 # Complete alternate-display caller — 2026-10-20
 
 The original 8E:B2EE..B4FB caller is reconstructed as display preparation,
