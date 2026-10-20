@@ -1,3 +1,38 @@
+# Native shop rows and equipment comparisons — 2026-10-20
+
+Six complete original routines now draw single shop item/spell rows
+(82:DCDD/DD06), compute the selected party member mask (9302), and prepare,
+add or subtract seven-word equipment comparisons (F76B/F7B4/F7FD).
+The comparison operations preserve live source/record aliases, wrapping
+word arithmetic and observable final flags. The mask retains the original
+8-bit X/Y truncation and nine-bit rotation through carry, including the
+256 iterations for character id255. Row text/graphics children remain
+explicit services owned inside the existing menu implementation.
+
+One shared checkpoint passes7,682 direct ROM and7,682 production-ABI
+states,2,562 child calls per layer, both child sites and forced unwinds,
+60 ABI redirects,4,608 ABI guards and zero positive fallback. Each layer
+also passes9,265 directed states/640 calls covering every character id,
+truncated indices, five data banks, arithmetic extremes, overlapping
+modifier/record words and actual caller-return aliases.384 composed
+states execute1,992 actual nested native children among3,912 calls,
+connecting prior scroll/member-preview callers to the new functions.
+786,458 no-access guards pass and six finite ROM mutations are detected.
+CPU/fullWRAM/MMIO/ordered-data are compared; own82ROMreads are omitted,
+with the two caller dispatch tables retained in composition. Unknown
+text/record/stat/animation internals are not claimed by controlled peers.
+
+The first strict compile caught an unavailable OpSbc name; the existing
+OpSbcValue/OpReadM primitives were used before the first successful proof.
+No semantic repair followed that proof. Six original entries are verified
+and bound. Full legacy regression, live gameplay, timing and speedup are
+not claimed; these related callers and boundaries share the checkpoint.
+Private tests/fixtures remain uncommitted; unrelated owner work is excluded.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass at the
+shared checkpoint. CLI executable/fixture hashes match the prior contract.
+All six production bindings are generated. build/windows is left alone.
+
 # Native tilemap transfers and shop member previews — 2026-10-20
 
 Eight original routines now shift shared scroll tilemaps up/down
