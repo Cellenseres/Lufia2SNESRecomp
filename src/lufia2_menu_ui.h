@@ -18,7 +18,16 @@ void Lufia2MenuUiPrepare(Ppu *ppu, bool enabled, unsigned width);
 void Lufia2MenuUiLatchSprites(const Ppu *ppu);
 void Lufia2MenuUiSpritePixel(int x, unsigned oam);
 void Lufia2MenuUiPlane(Ppu *ppu, unsigned layer, unsigned line);
-typedef void Lufia2MenuUiRenderer(Ppu *ppu, unsigned line);
+typedef struct Lufia2MenuUiScanline {
+    /* BG1 windows, BG3 text, then OBJ. */
+    const uint16_t *priority[3];
+    uint32_t *pixels[3];
+    const uint16_t *backdrop_vram;
+    uint32_t *highlight;
+} Lufia2MenuUiScanline;
+
+typedef void Lufia2MenuUiRenderer(Ppu *ppu, unsigned line,
+                                const Lufia2MenuUiScanline *capture);
 void Lufia2MenuUiLine(Ppu *ppu, unsigned line, Lufia2MenuUiRenderer *draw);
 void Lufia2MenuUiCompose(uint8_t *pixels, unsigned width,
                         unsigned height, bool authoritative);

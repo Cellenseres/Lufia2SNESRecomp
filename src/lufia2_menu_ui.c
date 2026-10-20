@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #ifdef _WIN32
 #undef HIBYTE
 #include <windows.h>
@@ -35,7 +36,7 @@ static unsigned s_layout_count, s_count, s_width, s_frames;
 static uint32_t s_scene;
 static unsigned s_theme;
 static bool s_active;
-static bool s_rendering;
+static bool s_capture;
 static Lufia2MenuUiObject s_objects[LUFIA2_MENU_UI_MAX_OBJECTS];
 static MenuDestination s_targets[LUFIA2_MENU_UI_MAX_OBJECTS];
 static uint32_t s_planes[3][HEIGHT][WIDTH];
@@ -54,6 +55,21 @@ static uint32_t s_highlight[HEIGHT][kPpuBufWidth];
 static unsigned s_text_hscroll, s_text_vscroll;
 static uint8_t s_last_layout[LUFIA2_UI_LAYOUT_HEADER_BYTES + MAX_RECORDS * LUFIA2_MENU_UI_RECORD];
 static size_t s_last_layout_size;
+static time_t s_layout_poll;
+static bool s_layout_polled;
+static uint16_t s_object_index[LUFIA2_MENU_UI_MAX_OBJECTS * 2];
+static const MenuLayoutRecord *s_overrides[LUFIA2_MENU_UI_MAX_OBJECTS];
+static bool s_overrides_ready;
+static struct {
+    uint16_t map[1024];
+    Lufia2MenuUiObject objects[256];
+    unsigned count, hscroll, vscroll;
+    bool valid;
+} s_windows;
+static uint16_t s_backdrop_vram[0x8000];
+static const uint16_t *s_backdrop_source;
+static uint32_t s_backdrop_revision;
+static bool s_backdrop_valid;
 enum { SPRITE_STATE_START = 0x11d8, SPRITE_STATE_END = 0x1509 };
 static uint8_t s_latched_sprites[SPRITE_STATE_END - SPRITE_STATE_START];
 static uint8_t s_previous_sprites[SPRITE_STATE_END - SPRITE_STATE_START];
@@ -171,8 +187,16 @@ static bool ObjectFitsInside(const Lufia2MenuUiObject *object, const Lufia2MenuU
            object->x + object->width <= container->x + container->width &&
            object->y + object->height <= container->y + container->height;
 }
+static unsigned ObjectIndexSlot(uint32_t id) {
+    return ((id * 2654435761u) >> 16) & (LUFIA2_MENU_UI_MAX_OBJECTS * 2 - 1);
+}
 static int FindObject(uint32_t id) {
-    for (unsigned i = 0; i < s_count; ++i) if (s_objects[i].id == id) return (int)i;
+    unsigned slot = ObjectIndexSlot(id);
+    while (s_object_index[slot]) {
+        unsigned i = s_object_index[slot] - 1;
+        if (s_objects[i].id == id) return (int)i;
+        slot = (slot + 1) & (LUFIA2_MENU_UI_MAX_OBJECTS * 2 - 1);
+    }
     return -1;
 }
 static const MenuLayoutRecord *FindLayoutOverride(unsigned index);
@@ -183,6 +207,10 @@ static int AddObject(uint32_t id, unsigned kind, int x, int y, unsigned w, unsig
     unsigned i = s_count++;
     s_objects[i] = (Lufia2MenuUiObject){id, 0, (int16_t)x, (int16_t)y,
         (uint16_t)w, (uint16_t)h, (uint8_t)kind, (uint8_t)slot};
+    unsigned bucket = ObjectIndexSlot(id);
+    while (s_object_index[bucket] && s_objects[s_object_index[bucket] - 1].id != id)
+        bucket = (bucket + 1) & (LUFIA2_MENU_UI_MAX_OBJECTS * 2 - 1);
+    if (!s_object_index[bucket]) s_object_index[bucket] = (uint16_t)(i + 1);
     return (int)i;
 }
 static bool HasGlyph(unsigned word) { return (word & 1023u) != 0 && (word & 1023u) != 32; }
@@ -191,7 +219,7 @@ static int MenuCoordinate(unsigned pixel, unsigned scroll) {
     return (int)((pixel - scroll) & 255u);
 }
 
-static void CollectWindows(const Ppu *ppu) {
+static void ScanWindows(const Ppu *ppu) {
     const uint16_t *map = PpuRenderVram(ppu) + PPU_bgTilemapAdr(ppu, 0);
     for (unsigned y = 0; y < 32; ++y) for (unsigned x = 0; x < 32; ++x) {
         if ((map[y * 32 + x] & 0xc3ff) != 1) continue;
@@ -209,6 +237,26 @@ static void CollectWindows(const Ppu *ppu) {
         if (last_x > left && last_y > top)
             AddObject(0x10000000u | y << 8 | x, WINDOW, left, top, last_x - left, last_y - top, 255);
     }
+}
+
+static void CollectWindows(const Ppu *ppu) {
+    const uint16_t *map = PpuRenderVram(ppu) + PPU_bgTilemapAdr(ppu, 0);
+    if (s_windows.valid && s_windows.hscroll == ppu->hScroll[0] &&
+        s_windows.vscroll == ppu->vScroll[0] && !memcmp(s_windows.map, map, sizeof s_windows.map)) {
+        for (unsigned i = 0; i < s_windows.count; ++i) {
+            const Lufia2MenuUiObject *o = &s_windows.objects[i];
+            AddObject(o->id, o->kind, o->x, o->y, o->width, o->height, o->slot);
+        }
+        return;
+    }
+    /* $82:810E writes frames; NMI uploads determine visibility. */
+    ScanWindows(ppu);
+    s_windows.valid = s_count <= sizeof s_windows.objects / sizeof *s_windows.objects;
+    if (!s_windows.valid) return;
+    memcpy(s_windows.map, map, sizeof s_windows.map);
+    memcpy(s_windows.objects, s_objects, s_count * sizeof *s_objects);
+    s_windows.count = s_count;
+    s_windows.hscroll = ppu->hScroll[0]; s_windows.vscroll = ppu->vScroll[0];
 }
 
 static uint32_t SaveRecordWindow(unsigned record) {
@@ -575,10 +623,15 @@ bool Lufia2MenuUiLoad(const uint8_t *bytes, size_t size) {
     if (count) memcpy(s_layout, candidate, count * sizeof *candidate);
     free(candidate);
     s_layout_count = count;
+    s_overrides_ready = false;
     return true;
 }
 static void ReloadLayout(void) {
-    FILE *file = s_layout_path[0] ? fopen(s_layout_path, "rb") : NULL;
+    if (!s_layout_path[0]) return;
+    time_t now = time(NULL);
+    if (s_layout_polled && now != (time_t)-1 && now == s_layout_poll) return;
+    s_layout_poll = now; s_layout_polled = true;
+    FILE *file = fopen(s_layout_path, "rb");
     if (!file) return;
     static uint8_t bytes[LUFIA2_UI_LAYOUT_HEADER_BYTES + MAX_RECORDS * LUFIA2_MENU_UI_RECORD + 1];
     size_t size = fread(bytes, 1, sizeof bytes, file);
@@ -609,11 +662,13 @@ void Lufia2MenuUiInit(const uint8_t *rom, size_t size, const char *layout, const
     s_rom = rom; s_rom_size = size;
     snprintf(s_layout_path, sizeof s_layout_path, "%s", layout ? layout : "");
     snprintf(s_preview_path, sizeof s_preview_path, "%s", preview ? preview : "");
-    s_layout_count = 0; s_frames = 0; s_active = false; s_last_layout_size = 0;
+    s_layout_count = 0; s_frames = 0; s_active = s_capture = false; s_last_layout_size = 0;
     s_latched_valid = s_latched_available = s_previous_available = false; s_sprite_state = NULL;
+    s_windows.valid = s_overrides_ready = s_backdrop_valid = false; s_layout_polled = false;
 }
 void Lufia2MenuUiReset(Ppu *ppu) {
-    s_active = false; s_rows = 0; s_move_highlight = false;
+    s_active = s_capture = false; s_rows = 0; s_move_highlight = false;
+    s_overrides_ready = s_backdrop_valid = false;
     if (ppu) {
         PpuClearOverlayCaptures(ppu);
         PpuClearOverlayBindings(ppu);
@@ -627,6 +682,7 @@ void Lufia2MenuUiPrepare(Ppu *ppu, bool enabled, unsigned width) {
         PPU_bgTileAdr(ppu, 0) != 0x4000 || PPU_bgTileAdr(ppu, 2) != 0x6000 ||
         (ppu->obsel >> 5) != 0 || PPU_forcedBlank(ppu)) return;
     s_count = 0; s_width = width;
+    memset(s_object_index, 0, sizeof s_object_index);
     memset(s_list_slot, 0, sizeof s_list_slot);
     s_layout_coordinates = false;
     s_text_hscroll = ppu->hScroll[2]; s_text_vscroll = ppu->vScroll[2];
@@ -676,6 +732,8 @@ void Lufia2MenuUiPrepare(Ppu *ppu, bool enabled, unsigned width) {
     CollectTextRuns(ppu);
     CollectSprites(ppu);
     if (s_count == LUFIA2_MENU_UI_MAX_OBJECTS) return;
+    for (unsigned i = 0; i < s_count; ++i) s_overrides[i] = FindLayoutOverride(i);
+    s_overrides_ready = true;
     for (unsigned i = 0; i < s_count; ++i)
         if (FindLayoutOverride(i)) s_layout_coordinates = true;
     for (unsigned i = 0; i < s_layout_count; ++i)
@@ -687,6 +745,15 @@ void Lufia2MenuUiPrepare(Ppu *ppu, bool enabled, unsigned width) {
         if (d.x != o->x + (int)(width - WIDTH) / 2 || d.y != o->y ||
             d.width != o->width || d.height != o->height || !d.visible) s_move_highlight = true;
     }
+    s_active = true;
+    s_capture = s_preview_path[0] != 0;
+    for (unsigned i = 0; i < s_count && !s_capture; ++i) {
+        MenuDestination d = ResolveObjectDestination(i, 0);
+        const Lufia2MenuUiObject *o = &s_objects[i];
+        s_capture = d.x != o->x + (int)(width - WIDTH) / 2 || d.y != o->y ||
+            d.width != o->width || d.height != o->height || !d.visible;
+    }
+    if (!s_capture) return;
     if (s_move_highlight) memset(s_highlight, 0, sizeof s_highlight);
     memset(s_planes, 0, sizeof s_planes);
     memset(s_priority, 0, sizeof s_priority);
@@ -719,97 +786,67 @@ void Lufia2MenuUiPrepare(Ppu *ppu, bool enabled, unsigned width) {
         PpuBindOverlaySurface(ppu, sources[i], (uint8_t *)s_planes[i], WIDTH * 4);
         PpuSetOverlayCapture(ppu, sources[i], 0, 0, WIDTH, HEIGHT, kPpuOverlayFlag_RemoveFromGame);
     }
-    s_active = true;
 }
 void Lufia2MenuUiSpritePixel(int x, unsigned oam) {
-    if (s_active && !s_rendering && x >= 0 && x < WIDTH && oam < 128) s_line_owner[x] = s_oam_slot[oam];
+    if (s_capture && x >= 0 && x < WIDTH && oam < 128) s_line_owner[x] = s_oam_slot[oam];
 }
 void Lufia2MenuUiPlane(Ppu *ppu, unsigned layer, unsigned line) {
-    if (!s_active || s_rendering || !line || line > HEIGHT || (layer != 0 && layer != 2)) return;
+    if (!s_capture || !line || line > HEIGHT || (layer != 0 && layer != 2)) return;
     unsigned plane = layer == 0 ? 0 : 1;
     for (unsigned x = 0; x < WIDTH; ++x)
         s_priority[plane][line - 1][x] = (uint16_t)ppu->overlayBuffers[layer].data[x + kPpuExtraLeftRight];
 }
+static const uint16_t *BackdropVram(const Ppu *ppu) {
+    const uint16_t *source = PpuRenderVram(ppu);
+    if (!ppu->renderVram && s_backdrop_valid && s_backdrop_source == source &&
+        s_backdrop_revision == ppu->vramWriteCount) return s_backdrop_vram;
+    memcpy(s_backdrop_vram, source, sizeof s_backdrop_vram);
+    /* $82:9984 changes the selected member's BG2 palette. */
+    for (unsigned i = 0; i < s_count; ++i) {
+        const Lufia2MenuUiObject *o = &s_objects[i];
+        if (o->kind != PARTY_HIGHLIGHT) continue;
+        unsigned address = 0x8ee576 + o->slot * 2;
+        unsigned tile = (BusByte(address) | (unsigned)BusByte(address + 1) << 8) / 2;
+        for (unsigned y = 0; y < 5; ++y) for (unsigned x = 0; x < 15; ++x) {
+            unsigned at = PPU_bgTilemapAdr(ppu, 1) + tile + y * 32 + x;
+            s_backdrop_vram[at] = (s_backdrop_vram[at] & ~0x1c00u) | 0x0c00;
+        }
+    }
+    s_backdrop_source = source; s_backdrop_revision = ppu->vramWriteCount;
+    s_backdrop_valid = true;
+    return s_backdrop_vram;
+}
+
 void Lufia2MenuUiLine(Ppu *ppu, unsigned line, Lufia2MenuUiRenderer *draw) {
-    if (!s_active || s_rendering || !line || line > HEIGHT) return;
-    static const unsigned layers[] = {0, 2, 4};
-    for (unsigned x = 0; x < WIDTH; ++x)
+    if (!s_capture || !line || line > HEIGHT) return;
+    for (unsigned x = 0; x < WIDTH; ++x) {
         s_priority[2][line - 1][x] = (uint16_t)ppu->overlayBuffers[4].data[x + kPpuExtraLeftRight];
-    for (unsigned x = 0; x < WIDTH; ++x)
         s_background_priority[line - 1][x] = (uint16_t)ppu->bgBuffers[0].data[x + kPpuExtraLeftRight];
+        if (s_line_owner[x] == 255) {
+            s_planes[2][line - 1][x] = 0;
+            s_priority[2][line - 1][x] = 0;
+        }
+    }
     memcpy(s_sprite_owner[line - 1], s_line_owner, WIDTH);
-    for (unsigned x = 0; x < WIDTH; ++x) if (s_line_owner[x] == 255) {
-        s_planes[2][line - 1][x] = 0;
-        s_priority[2][line - 1][x] = 0;
-    }
     memset(s_line_owner, 255, sizeof s_line_owner);
-    /* Keep native colour math on isolated primitives. */
-    if (draw && (PPU_mathEnabled(ppu) || ppu->wbgobjlog || ppu->windowsel)) {
-        static Ppu original;
-        static uint32_t frame[kPpuBufWidth * HEIGHT];
-        for (unsigned pass = 0; pass < 4; ++pass) {
-            original = *ppu;
-            PpuClearOverlayCaptures(&original);
-            PpuClearOverlayBindings(&original);
-            original.renderBuffer = (uint8_t *)frame;
-            original.renderPitch = s_width * 4;
-            original.screenEnabled[0] &= (uint8_t)(2 | (pass < 3 ? 1u << layers[pass] : 0));
-            original.widescreenLineEnhancer = NULL;
-            s_rendering = true;
-            draw(&original, line);
-            s_rendering = false;
-            const uint32_t *row = frame + (line - 1) * s_width;
-            if (pass == 3) {
-                memcpy(ppu->renderBuffer + (line - 1) * ppu->renderPitch, row, s_width * 4);
-            } else for (unsigned x = 0; x < WIDTH; ++x)
-                if (s_planes[pass][line - 1][x])
-                    s_planes[pass][line - 1][x] = row[x + ppu->extraLeftRight] | 0xff000000u;
+    if (draw && !PPU_forcedBlank(ppu) &&
+        (PPU_mathEnabled(ppu) || ppu->wbgobjlog || ppu->windowsel || s_move_highlight)) {
+        Lufia2MenuUiScanline capture = {0};
+        for (unsigned i = 0; i < 3; ++i) {
+            capture.priority[i] = s_priority[i][line - 1];
+            capture.pixels[i] = s_planes[i][line - 1];
         }
-    }
-    if (draw && s_move_highlight) {
-        static Ppu backdrop;
-        static uint16_t clean[0x8000];
-        static uint32_t frame[kPpuBufWidth * HEIGHT];
-        /* Draw both palette versions through the same original renderer.
-         * Only the host clone sees the cleaned tile map; guest VRAM, CPU
-         * state, and the source selection remain untouched. */
-        memcpy(clean, PpuRenderVram(ppu), sizeof clean);
-        for (unsigned i = 0; i < s_count; ++i) {
-            const Lufia2MenuUiObject *o = &s_objects[i];
-            if (o->kind != PARTY_HIGHLIGHT) continue;
-            unsigned address = 0x8ee576 + o->slot * 2;
-            unsigned tile = (BusByte(address) | (unsigned)BusByte(address + 1) << 8) / 2;
-            for (unsigned y = 0; y < 5; ++y) for (unsigned x = 0; x < 15; ++x) {
-                unsigned at = PPU_bgTilemapAdr(ppu, 1) + tile + y * 32 + x;
-                clean[at] = (clean[at] & ~0x1c00u) | 0x0c00;
-            }
+        if (s_move_highlight) {
+            capture.backdrop_vram = BackdropVram(ppu);
+            capture.highlight = s_highlight[line - 1];
         }
-        for (unsigned pass = 0; pass < 2; ++pass) {
-            backdrop = *ppu;
-            PpuClearOverlayCaptures(&backdrop); PpuClearOverlayBindings(&backdrop);
-            backdrop.renderBuffer = (uint8_t *)frame;
-            backdrop.renderPitch = s_width * 4;
-            backdrop.screenEnabled[0] &= 2;
-            backdrop.widescreenLineEnhancer = NULL;
-            backdrop.renderVram = clean;
-            if (pass) {
-                /* Shade the background at the destination; moving a copied
-                 * background patch would break its repeating tile pattern. */
-                for (unsigned tile = 0; tile < 1024; ++tile) {
-                    unsigned at = PPU_bgTilemapAdr(ppu, 1) + tile;
-                    if ((clean[at] & 0x1c00) == 0x0c00) clean[at] = (clean[at] & ~0x1c00u) | 0x0800;
-                }
-            }
-            s_rendering = true; draw(&backdrop, line); s_rendering = false;
-            const uint32_t *row = frame + (line - 1) * s_width;
-            if (pass) memcpy(s_highlight[line - 1], row, s_width * 4);
-            else memcpy(ppu->renderBuffer + (line - 1) * ppu->renderPitch, row, s_width * 4);
-        }
+        draw(ppu, line, &capture);
     }
     ++s_rows;
 }
 
 static const MenuLayoutRecord *FindLayoutOverride(unsigned index) {
+    if (s_overrides_ready) return s_overrides[index];
     for (unsigned i = 0; i < s_layout_count; ++i)
         if (s_layout[i].scene == s_scene && s_layout[i].id == s_objects[index].id &&
             ((s_layout[i].parent == s_objects[index].parent &&
@@ -993,7 +1030,7 @@ static void ExportPreview(const uint8_t *scene) {
 }
 
 void Lufia2MenuUiCompose(uint8_t *pixels, unsigned width, unsigned height, bool authoritative) {
-    if (!s_active || !pixels || width != s_width || height != HEIGHT || !s_rows) return;
+    if (!s_capture || !pixels || width != s_width || height != HEIGHT || !s_rows) return;
     for (unsigned i = 0; i < s_count; ++i) s_targets[i] = ResolveObjectDestination(i, 0);
     static uint16_t priority[4096 * HEIGHT];
     memset(priority, 0, width * height * sizeof *priority);
