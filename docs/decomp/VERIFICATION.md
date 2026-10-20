@@ -1,3 +1,43 @@
+# Alternate-display text and tilemap operations — 2026-10-20
+
+Five complete original helpers measure and draw ROM-backed text (8E:B4FC,
+B50F), draw paired eight-column tile strips (B534), request tilemap DMA
+(B557), and advance/clear a tilemap row (B578). They preserve caller DB,
+original font lookup, byte-length wrap, live counters, arithmetic flags,
+stack effects and the order of word stores and MMIO. The existing B550
+frame wait is not duplicated. No table or ROM asset is embedded in C.
+
+The shared original-ROM and production-ABI matrix covers 337,920 states
+per layer: every 16-bit source index, tile word, DMA input and row-pointer
+value, plus 2,048 bank/boundary cases per entry. The initial runs completed
+67,584 measurement and 65,542 drawing states before a finite MMIO trace
+prefix filled equally. The private observer already retained the entire
+ordered bus stream; its capacity check was corrected to compare the
+overflow flag and bounded prefix while continuing to compare every event.
+Only the remaining 204,794 states per layer were rerun. Earlier logs and
+the exact retained/resumed partition are preserved. No semantic fix was
+needed. All production-ABI states in the resumed partition use native
+entries with zero fallback; representative original-caller and alias
+checks separately confirm native execution for all five entries.
+
+480 direct and 480 production-ABI original-caller states execute 672 actual
+native children per layer. These include the original text measurement /
+centering / drawing sequence and both tile-strip calls. Another 160 states
+per layer cover stack/scratch/return aliases; the ABI observes 13 rewritten
+original returns with correct dispatch. 328,965 semantic no-access guards,
+1,440 production-ABI guards and five detected in-memory ROM mutations pass.
+CPU state, complete WRAM, MMIO and ordered data accesses are compared;
+instruction fetches are excluded while source/font data reads remain.
+
+The full 8E:B2EE display parent, its SRAM behavior, inline frame waits and
+actual hardware DMA execution are outside this helper proof. No full legacy
+regression, live gameplay, timing or speedup is claimed. These five complete
+helpers are verified and selected; private tests remain uncommitted.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass at
+the shared checkpoint. Existing CLI results are reused only with exact
+executable/fixture hashes. All five bindings are generated.
+
 # Native scene graphics and sprite commands — 2026-10-20
 
 Six complete original entries load alternate-scene graphics (86:CE68),
