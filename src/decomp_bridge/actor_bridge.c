@@ -17110,3 +17110,23 @@ RecompReturn Lufia2DecompBridge_8286C4(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_828680(CpuState *cpu) {
     return ActorBridgeWholeM1X16(cpu, 0x828680u, Lufia2MenuDrawPointerRows, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_82E433(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x82e433u, Lufia2MenuBuildOwnedItemList, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82E46B(CpuState *cpu) {
+    return ActorBridgeWholeX16(cpu, 0x82e46bu, Lufia2MenuCountShopWordList, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82E484(CpuState *cpu) {
+    return ActorBridgeWholeX16(cpu, 0x82e484u, Lufia2MenuCountShopByteList, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82FC7D(CpuState *cpu) {
+    return ActorBridgeWholeM0X0(cpu, 0x82fc7du, Lufia2MenuCountOwnedItem, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_8298C7(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x8298c7u, Lufia2MenuScaleShopPrice, 2u);
+}

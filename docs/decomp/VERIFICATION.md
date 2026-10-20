@@ -1,3 +1,38 @@
+# Shared shop-data native contracts - 2026-10-20
+
+Five existing C helpers now have complete native entry contracts: owned
+item-list construction82:E433, word/byte list countsE46B/E484, owned-item
+nibbleFC7D and24-bit price scaling98C7. Existing menu builders and these
+entries share one implementation. This is shared native integration, not
+five newly recovered algorithms. Both accumulator entry widths are accepted
+for the list counters; owned-list/price requireM1 and the nibble queryM0.
+All requireX0,PB82,DP0,binary arithmetic and stack1F20..1FFC.
+
+The shared direct proof retains135,488 original-ROM states, with336 targeted
+pointer/bank/output/stack supplements. The actual production-ABI matrix
+passes their135,824-state union: all complete returns, including64 existing
+ShopSetup callers. It covers all65,536 input words for the nibble and price
+entries,all256 data banks per new entry, sparse/dense ownership, both list
+entry widths, terminators, pointer wrap without bank carry and output-bank
+crossings. The nibble query retains both original RTS sites and the zero-ID
+path's unchanged X. Byte lists still fetch a full word before masking.
+
+CPU/full WRAM, math-device/WMADD state, MMIO and ordered data accesses agree.
+Individual opcode/operand fetches are excluded; ROM data stays compared.
+All six ABI roots run natively without fallback.1,824 unsupported ABI
+contexts,655,538 semantic no-access guards and nine valid-instruction ROM
+faults pass. No controlled child bodies replace the actual helper/caller
+algorithms. The private caller-symbol fixture now reads the binding table
+instead of assuming that an older bridge uses a six-digit name.
+
+Pointer/index RMWs in the shared helpers and existing setup caller retain
+original high-first writes. No common CPU helper changed. Price scaling
+retains its multiplier-register transactions and carries; physical hardware
+latency/NMI timing is outside this proof. No unrelated full regression,
+live-shop acceptance or speedup is claimed. Tests remain private. Strict MSVC, standalone GCC/Clang library and CLI
+checks and the isolated Windows Release build pass. Unchanged CLI executable
+and fixture hashes retain the prior resource-CLI result.
+
 # Shared menu-row native contracts - 2026-10-20
 
 Four existing C row implementations now have independently verified native
