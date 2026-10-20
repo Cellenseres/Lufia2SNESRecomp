@@ -1,3 +1,33 @@
+# Semantic member equipment and bonus restoration - 2026-10-20
+
+The verified 81:ED8E and 81:EE94 owners now share a C word-restoration core.
+It restores stored equipment, clears bare-record equipment and restores bare
+bonus words. Source and field positions are ordinary values; a thin shell
+exports the final CPU registers and flags. The original guest counter is
+initialized and re-read every iteration. Its 16-bit decrement writes high
+before low. Bare equipment retains TDC's direct-page value, including nonzero
+values. Aliased pointers, source/index wrapping and bus order stay literal.
+No fixed host iteration limit replaces the guest loop. No public API,
+instruction-PC adapter, binding or canonical entry is added.
+
+One combined checkpoint passes 5,286 original-ROM CPU/full-WRAM/exact ordered
+data-bus/device cases. It covers system/WRAM banks, both formats and decimal
+flags, source/destination/pointer aliases, index and direct-page edges, and
+directed counter aliases that terminate after one write instead of seven
+or nine. Two in-memory operand faults detect equipment and bonus counts.
+The real production bridge passes 4,096 complete cases per owner, with zero
+interpreter fallbacks. MSVC, isolated Windows Release and incremental GCC/
+Clang pass; unchanged CLI executable/fixture hashes reuse prior evidence.
+The final source-only adjustment removes an obsolete comment.
+
+All 3,000 production CPU/WRAM, PPU/picture, APU/SPC, DSP and PCM rows match
+the accepted identity-restoration baseline. The shared payload core executes
+49 times; decoder count remains 10,056. This improves semantic C structure
+without claiming new function coverage or measured speed. Identity, growth
+and derived-stat source regions remain byte-identical. Full regression is
+deferred. Tests stay private; ROM and owner SRAM are unchanged. Counts remain
+1,819 verified, zero drafts and 1,786 ordinary bindings.
+
 # Semantic member identity restoration - 2026-10-20
 
 The verified 81:ED8E and 81:EE94 owners now share ordinary C operations for
