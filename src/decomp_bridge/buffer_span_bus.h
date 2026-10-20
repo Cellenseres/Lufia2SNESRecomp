@@ -7,7 +7,12 @@
 
 extern uint32_t g_interp816_cur_pc;
 
-enum { BUFFER_SPAN_MAX_BYTES = 14u };
+enum {
+    BUFFER_SPAN_MAX_BYTES = 14u,
+    BUFFER_SPAN_SLOW_MASTER_CYCLES = 8u,
+    BUFFER_SPAN_REFRESH_MASTER_CYCLES = 40u,
+    BUFFER_SPAN_REFRESH_PERIOD = 1364u
+};
 
 typedef struct BufferSpanBus {
     Interp816 *registers;
@@ -29,7 +34,12 @@ static uint64_t BufferSpanCycleBudget(const CpuState *cpu, uint64_t deadline) {
         return UINT64_MAX;
     if (cpu->master_cycles >= deadline)
         return 0u;
-    return (deadline - cpu->master_cycles) / (g_memsel ? 6u : 8u);
+    const uint64_t remaining = deadline - cpu->master_cycles;
+    const uint64_t refreshes = remaining / BUFFER_SPAN_REFRESH_PERIOD +
+        (remaining % BUFFER_SPAN_REFRESH_PERIOD != 0u);
+    const uint64_t refresh = refreshes * BUFFER_SPAN_REFRESH_MASTER_CYCLES;
+    return remaining > refresh
+        ? (remaining - refresh) / BUFFER_SPAN_SLOW_MASTER_CYCLES : 0u;
 }
 
 static void BufferSpanFetch(Interp816 *registers, uint32_t pc, unsigned length) {

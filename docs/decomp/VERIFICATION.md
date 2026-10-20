@@ -1,3 +1,28 @@
+# Shared copy-span clock budgets - 2026-10-20
+
+The common buffer-span budget now reserves worst-phase DRAM refresh and uses
+the slow WRAM access bound, including when instruction fetches use FastROM.
+It reserves 40 master clocks per possible 1,364-clock refresh period, then
+admits CPU cycles at eight master clocks each. No-deadline behavior remains
+unchanged. Literal decomp, copy order, opcodes and iteration limits stay intact.
+
+Real SDK controls reproduced 41 deadline mismatches in 80 cases across all
+ten menu/save copy loops, both ROM speeds, two refresh phases and one/fourteen
+iterations. With the guard corrected, all 80 match original CPU/resume PCs,
+elapsed clocks, refresh state and WRAM hashes. Another 112,856 affected
+ROM/consumer CPU/full-WRAM/ordered-fetch/data-bus/cycle cases pass: 68,025
+native spans and 44,831 unchanged handoffs. The combined guard jobs pass
+14,336 API and 38,912 consumer no-access cases. A separate 8,284,002-case
+arithmetic check covers all refresh phases and 64-bit deadline boundaries.
+
+All 3,000 actual production CPU/WRAM, PPU/picture, APU/SPC, DSP and PCM rows
+remain identical. Decoder count changes from 10,425 to 10,440 because tight
+budgets retain original instruction boundaries. This is no speed claim.
+Isolated Windows Release passes. Unchanged portable sources, parent proofs,
+standalone compiler/CLI and public API evidence are reused by exact hashes.
+Full regression remains deferred. No canonical function/binding is added.
+All new tests, controls and receipts remain private; nothing is pushed.
+
 # Menu poll refresh deadline guard - 2026-10-20
 
 The bounded menu polls also reserve the SDK's 40-master-clock DRAM refresh
