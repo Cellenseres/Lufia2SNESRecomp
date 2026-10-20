@@ -1,3 +1,49 @@
+# Native scene graphics and sprite commands — 2026-10-20
+
+Six complete original entries load alternate-scene graphics (86:CE68),
+prepare its 22 sprites (E9D4), walk sprite commands (EA43), expand tile
+rectangles (EA58), and emit large/small sprites (EB11/EB52). Both emitters
+share the original EB18..EB51 tail once. A common high-OAM operation
+retains the live E5DA ROM table and original indirect JSR frames; the four
+existing packing routines are reused. Existing E84F setup is covered after
+that extraction. DMA requests, transfer lengths, byte/word counters,
+coordinate carry propagation, source rereads and original wraparound remain
+literal. No sprite limit or malformed-dimension repair is added to decomp.
+
+The shared checkpoint passes 3,597 direct states/26,145 calls and 3,598
+production-ABI states/26,146 calls, including a separate small-emitter
+unwind through the shared tail. All 13 sites, three indirect JSR sites,
+forced unwinds, 300 ABI redirects and 2,352 ABI guards pass with zero
+positive fallback. Both layers also pass 10,891 OAM/dimension/DMA/live-count/
+command-list states and 79,162 calls. These include the complete 65,536-step
+zero-height word-counter loop and OAM aliases of saved X and original return
+frames. A focused 16-state ABI probe confirms eight rewritten returns.
+462,343 no-access guards pass. Six finite in-memory ROM mutants are detected.
+
+352 direct and 352 production-ABI compositions each make 10,262 calls and
+execute 6,840 actual nested native children. They connect graphics loading,
+commands, expansion, both emitters, the four existing OAM packers, existing
+palette cycling/darkening and the existing 92DF scene parent. Sixteen states
+exercise that complete caller chain. Other resource, DMA hardware, motion,
+graphics and frame peers remain explicit; their internals, actual rendered
+frames and the outer text caller are not claimed. CPU/full WRAM/MMIO and
+ordered data are compared. Basic traces omit bank86 ROM reads except E5DA;
+compositions retain the original sprite/command ROM data as well.
+
+One immutable-ROM data-address mutant initially preserved CPU/WRAM branch
+behavior under the basic trace. Its focused rerun retained sprite-table
+ROM reads and detected the address discrepancy; the five unchanged fault
+paths were reused. No checks were weakened. Private composition locals and
+an alias-counter diagnostic were corrected; only the focused alias probe
+was needed for that counter. No semantic repair followed the first direct
+comparisons. Subsequent catalogued-address naming has identical object text.
+The full legacy regression, live gameplay, timing and speedup are not claimed.
+All six entries are verified and selected. Tests and fixtures remain private.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass at
+the combined checkpoint. CLI reuse requires unchanged executable/fixture
+hashes. All six bindings are generated; owner build/windows is untouched.
+
 # Native alternate world scene and palette effects — 2026-10-20
 
 Five complete original entries now run the alternate world scene
