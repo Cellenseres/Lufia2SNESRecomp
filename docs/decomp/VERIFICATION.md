@@ -1,3 +1,44 @@
+# Native shop purchase and sale preparation — 2026-10-20
+
+Seven complete original functions now prepare item purchases (82:D7BC),
+item sales (D970), equipped-item counts and adjusted quotes (DA13), equipment
+preview windows (D8A5), spell purchases (D8D4), and original spell/item list
+selection (E6FC/E709). Existing D905 spell-shop setup, DA5C list-window
+selection and F703 equipment-slot selection are reused rather than duplicated.
+The byte quantity subtraction retains both original SEC operations. A word
+stock-limit write deliberately crosses154B/154C into purchase mode. Selection
+from the byte spell list still performs the original word read. Equipped-item
+counting rereads the member count, selected item and live indirect pointer.
+
+One shared checkpoint passes7,205 direct ROM states/36,530 child calls and
+3,621 production-ABI states/18,354 calls, all37 encoded sites and forced
+unwinds,630 redirects,5,376 ABI guards and zero positive fallback. A private
+ABI fixture initially retained the previous batch's M-width guard indices;
+correcting that fixture makes the complete ABI run pass without source edits.
+492 additional boundaries/65,812 calls cover long-pointer bank wrap, pointer
+and stack aliases, raw list indices, original JSR/RTS sites, and zero/255
+party counts. The zero-count case preserves all65,536 original iterations.
+320 compositions execute1,215 actual nested native children among3,347 calls,
+including the new selection/counting functions and existing item records,
+price adjustment, equipment selection, tile clearing and spell-shop setup.
+917,537 no-access guards and seven finite ROM mutations are detected. The
+item-list mutation uses the high mask byte because the initial fixture's
+values all had bit0 clear; unchanged first-six mutation results are reused.
+
+CPU, full WRAM, MMIO and ordered data agree. Own-body traces omit bank82
+ROM instruction reads. Compositions additionally omit81:F194..F1AA and
+F1C5..F2E6 code while retaining actual bank96 record and bank9E name data;
+the initial name-instruction trace noise was corrected only in the driver.
+Unknown slot-type scan, input, text and rendering children remain controlled
+peers. No live whole-shop, timing or speedup claim. Full legacy regression
+and unchanged startup replay are deferred under the owner's batch cadence.
+Proofs remain private; both planned commits share the final-source checkpoint.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass at this
+shared checkpoint. Unchanged CLI binaries and private fixture retain their
+prior accepted CLI contract by hash. All seven production bindings are generated.
+Owner work and build/windows remain untouched.
+
 # Native shop exchange and equipment purchases — 2026-10-20
 
 Ten complete original routines cover secondary-balance credit, spending and
