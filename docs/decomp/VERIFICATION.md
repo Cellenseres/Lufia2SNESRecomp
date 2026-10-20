@@ -1,3 +1,51 @@
+# Complete alternate-display caller — 2026-10-20
+
+The original 8E:B2EE..B4FB caller is reconstructed as display preparation,
+graphics expansion, PPU/palette configuration, script interpretation, row
+scrolling and final fade/hold/blank phases. It reuses the five existing
+ROM-backed text/tilemap helpers and the existing B550 frame-wait service.
+SRAM flags, all 16 actual child call frames, MVN byte order, overlapping
+zero stores, live row counters, both tile-strip calls, delay underflow and
+the final saved-bank restore remain literal. No instruction adapter or
+duplicate helper is introduced, and no ROM data is embedded.
+
+Four inline waits retain their original operations. After 64 still-waiting
+iterations, the native body can stop with exact CPU/bus state at B40A,
+B4BE, B4D1 or B4E1; the existing original timing owner continues there.
+The decomp does not advance hardware time or invent an NMI counter update.
+The complete returning paths and all four cooperative boundaries are
+verified. This is not a claim that those waits run wholly in native C.
+
+The shared ROM/production-ABI checkpoint passes 28 states per layer,
+196,356 child calls, 196,267 actual native helper executions, eight whole
+returns, four exact wait boundaries and forced unwinds at all 16 call sites.
+255 ABI redirect probes, 288 ABI guards, 65,793 semantic no-access guards
+and five valid-instruction ROM mutations pass. Comparisons cover CPU state,
+full WRAM, a separate SRAM flag peer, MMIO and ordered source/font/data
+accesses. Instruction fetches are excluded. The returning-path differential
+uses a controlled asynchronous-counter/raster peer in both arms; that peer
+is private verification infrastructure, not a production implementation.
+
+A separate probe built from current production compile/link settings starts
+at the four exact continuation PCs. Twelve controlled guest contexts run
+192 actual production-owner/NMI frames without synthetic counter ticks,
+deadlock, altered return frames or owner errors. This establishes progress
+of those original continuations with the real frame adapter. It does not
+claim full-scene physical timing equivalence or a live visual acceptance.
+The initial probe lacked its SDL DLL search path; only the existing binary
+was relaunched after correcting the private environment.
+
+The five pre-existing helper definitions are unchanged; their earlier
+exhaustive proof is reused rather than rerun. The new caller compositions
+also exercise them in context. The complete parent is verified and selected.
+No full legacy regression, live gameplay, rendered-scene acceptance or speedup
+is claimed. Tests, synthetic peers and mutation programs remain private.
+
+Strict MSVC, standalone GCC/Clang and isolated Windows Release pass at
+the combined checkpoint. All new bindings are generated. The original-owner
+probe was relinked with the final integration objects before acceptance;
+its 192 actual NMI frames pass. CLI reuse uses exact exe/fixture hashes.
+
 # Alternate-display text and tilemap operations — 2026-10-20
 
 Five complete original helpers measure and draw ROM-backed text (8E:B4FC,
