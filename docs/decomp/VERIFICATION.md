@@ -1,3 +1,45 @@
+# Secondary actor object-route verification - 2026-10-22
+
+The secondary actor VM now implements five previously missing regular
+commands: D2 initializes a claimed object actor, E7 refreshes it, E8
+rebuilds its object, F3 claims a placed object and F4 places the object.
+The existing object functions are reused through seven original JSR/JSL
+sites. Each command reloads the live script cursor after its children
+and returns to the original dispatcher. No object algorithm is duplicated.
+
+An optional child-service API shares the existing VM implementation.
+Its object commands require PB83, DP0, M1X0 and binary arithmetic;
+unsupported post-child contexts preserve exact original continuations.
+The existing API without services retains its previous boundaries.
+The consumer uses its existing pushed-call, return and unwind protocol.
+The existing VM yield boundary is unchanged; no new loop cap is added.
+
+Direct original-ROM and actual production-ABI verification each cover
+6272 states, including 320 object-parent compositions and 160 compositions
+through the original 83:BBCC caller. Another 32 states preserve the bank80
+event boundary reached by the existing FF command. Each primary matrix includes all seven
+child sites, 112 unwinds and 448 post-child continuation boundaries.
+Nested object services outside the proven composed bodies are explicit
+paired contracts; their internals are not newly claimed. CPU, full WRAM,
+devices and ordered data accesses agree at the tested boundaries.
+
+An additional 2048 old/new API states cover all 256 opcodes; 2008 actual-ABI
+states cover the other 251 routes. All seven sites have redirected-return,
+stack and unwind probes. Unsupported bridge contexts have 144 no-operand
+access checks. Ten altered-ROM controls and three semantic mutants are
+detected; a consumer mutant also detects a lost event program bank.
+Strict MSVC, standalone GCC/Clang and isolated consumer Release
+builds pass; unchanged CLI executable and fixture hashes retain the prior
+CLI result. No whole-game timing, gameplay speedup or full regression claim.
+
+There remain 1966 verified entries and zero drafts. These five internal
+commands extend an existing owner; they are not five new function bindings.
+
+The consumer D508 bridge retains its existing admission guard and uses
+the same production pushed-child dispatcher as C7F8. Unknown routes and
+post-child context changes retain original execution ownership. The ROM
+is read in place; proof sources, fixtures and fault variants remain private.
+
 # Shop comparison bus and return fidelity - 2026-10-22
 
 An ordered-data witness for the existing 82:E5E1 comparison fails at event
