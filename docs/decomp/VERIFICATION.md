@@ -1,3 +1,45 @@
+# Cursor pixel execution verification - 2026-10-22
+
+Both cursor axes now share readable error and position operations with their
+existing slide loops. These phases stop before the original correction child,
+count child or final RTS; no initialization, frame wait or return is replayed.
+The consumer uses six original loop, continuation and position entries.
+This connects existing interpolation semantics to actual interpreter arrivals;
+it adds no canonical function entries, duplicate algorithms or unused bindings.
+
+The consumer retains every original fetch and data access. It admits only
+the proven binary M1X0 WRAM/stack context, with no pending interrupt and a
+conservative deadline budget. IRQ/stop owners keep original execution. The
+64-cycle admission reserve covers the observed and derived 48-cycle maximum.
+Each original instruction's clock is handed to the existing NMI/APU accounting
+helper. The outer interpreter skips its duplicate charge only for this span;
+all other instructions retain their previous accounting path.
+
+One grouped original-ROM pixel matrix covers 4096 states across both axes,
+all 128 low-WRAM mirror banks, all sprite slots, arbitrary X, both loop and
+continuation entries, correction paths and both final coordinate comparisons.
+CPU, full WRAM, devices, every instruction/data access and every instruction's
+PC/cycle pair agree. Sixteen unsupported span guards and four CMake admission
+controls pass; three altered-clock/fetch controls are detected. The shared
+root/continuation ROM and actual-ABI matrices each retain all 4160 passing
+states. These unchanged semantic results were reused after the clock-only fix.
+
+Inlining the already native correction child changed 1108 PCM frame hashes;
+instruction clock boundaries alone did not resolve that mismatch. A controlled
+6200-frame diagnostic found guest-clock divergence starting at frame4922 and
+PCM divergence at6093. The final phase split retains that child's native
+execution, stack, return and clock owner. Exact inputs, CPU registers, WRAM,
+pictures and PCM now agree on all 7200 paired frames. Both runs
+have 7129 audible frames and no failure. Actual decoded instructions fall from
+17637 to 11757, a reduction of 5880 (33.3 percent in this menu/field sample).
+This is an interpreter-work measurement, not a whole-game or FPS claim.
+
+Strict MSVC pixel/ABI checks, standalone GCC/Clang and the isolated consumer
+Release build pass. Incremental GCC/Clang checks reuse the exact unchanged CLI
+executables and private fixture; no redundant CLI or full regression run.
+Metadata stays 1968 verified, zero drafts, 1932 selected bindings and 799 WRAM
+locations. Proofs, fixtures, mutated variants, ROM and SRAM remain private.
+
 # Cursor interpolation verification - 2026-10-22
 
 The existing cursor interpolation now shares its axis loops with complete
