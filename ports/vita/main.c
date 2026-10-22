@@ -32,6 +32,9 @@ extern const SnesRecompHostGame kLufia2HostGame;
 #include "config.h"
 #include "lufia2_map_load.h"
 #include "lufia2_msu_driver.h"
+#if defined(LUFIA2_ENABLE_NATIVE_SPC)
+#include "lufia2_spc_native.h"
+#endif
 #include "lufia2_map_widescreen.h"
 #include "lufia2_runtime.h"
 #include "lufia2_video_policy.h"
@@ -643,6 +646,11 @@ int main(int argc, char **argv) {
             Lufia2MsuDriverInstall();
         }
     }
+
+#if defined(LUFIA2_ENABLE_NATIVE_SPC)
+    LUFIA2_LOG("[spc] driver: %s\n",
+               Lufia2SpcNativeInstall() ? "decompiled" : "interpreted");
+#endif
 
     fprintf(stderr,
         "Lufia II CleanMain + Vita GXM\n"

@@ -219,6 +219,21 @@ include("${CMAKE_SOURCE_DIR}/cmake/Lufia2DmaOverlay.cmake")
 lufia2_prepare_dma_overlay(
     SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
 
+# The decompiled sound driver replaces the interpreted SPC-700 program.
+option(LUFIA2_ENABLE_NATIVE_SPC
+    "Run the decompiled SPC driver instead of interpreting it" ON)
+if(LUFIA2_ENABLE_NATIVE_SPC AND NOT LUFIA2_ENABLE_DECOMP)
+    message(STATUS "Lufia2 native SPC driver OFF: needs LUFIA2_ENABLE_DECOMP")
+    set(LUFIA2_ENABLE_NATIVE_SPC OFF)
+endif()
+if(LUFIA2_ENABLE_NATIVE_SPC)
+    include("${LUFIA2_PLATFORM_ROOT}/cmake/SnesRecompPlatformApuProgram.cmake")
+    snesrecomp_platform_overlay_apu_program(
+        SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
+    message(STATUS
+        "Lufia2 native SPC driver ON: LUFIA2_SPC_INTERPRETED=1 restores the interpreter")
+endif()
+
 list(FILTER SNESRECOMP_RUNNER_SOURCES EXCLUDE REGEX "launcher(_picker)?\\.c$")
 list(FILTER SNESRECOMP_RUNNER_SOURCES EXCLUDE REGEX "keybinds\\.c$")
 
@@ -246,6 +261,9 @@ set(LUFIA2_HOST_SOURCES
     ports/vita/lufia2_ppu_capture.c
     ports/vita/lufia2_gpu.c
 )
+if(LUFIA2_ENABLE_NATIVE_SPC)
+    list(APPEND LUFIA2_HOST_SOURCES src/lufia2_spc_native.c)
+endif()
 
 if(LUFIA2_ENABLE_PERF_AUDIT)
     include("${CMAKE_SOURCE_DIR}/ports/vita/perf/PerfAudit.cmake")
@@ -400,6 +418,10 @@ target_include_directories(Lufia2Recomp PRIVATE
     "${CMAKE_SOURCE_DIR}/src"
     ${SNESRECOMP_RUNNER_INCLUDE_DIRS}
 )
+
+if(LUFIA2_ENABLE_NATIVE_SPC)
+    target_compile_definitions(Lufia2Recomp PRIVATE LUFIA2_ENABLE_NATIVE_SPC=1)
+endif()
 
 target_compile_definitions(Lufia2Recomp PRIVATE
     SNESRECOMP_SDL3=1

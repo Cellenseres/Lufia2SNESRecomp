@@ -429,6 +429,21 @@ include("${CMAKE_SOURCE_DIR}/cmake/Lufia2DmaOverlay.cmake")
 lufia2_prepare_dma_overlay(
     SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
 
+# The decompiled sound driver replaces the interpreted SPC-700 program.
+option(LUFIA2_ENABLE_NATIVE_SPC
+    "Run the decompiled SPC driver instead of interpreting it" ON)
+if(LUFIA2_ENABLE_NATIVE_SPC AND NOT LUFIA2_ENABLE_DECOMP)
+    message(STATUS "Lufia2 native SPC driver OFF: needs LUFIA2_ENABLE_DECOMP")
+    set(LUFIA2_ENABLE_NATIVE_SPC OFF)
+endif()
+if(LUFIA2_ENABLE_NATIVE_SPC)
+    include("${CMAKE_SOURCE_DIR}/lib/snesrecomp-platform/cmake/SnesRecompPlatformApuProgram.cmake")
+    snesrecomp_platform_overlay_apu_program(
+        SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
+    message(STATUS
+        "Lufia2 native SPC driver ON: LUFIA2_SPC_INTERPRETED=1 restores the interpreter")
+endif()
+
 # The pinned interpreter clock calls clock_gettime() without including <time.h>,
 # so CLOCK_MONOTONIC is undeclared on POSIX. Supply the header from the build
 # instead of editing the pinned tree.
@@ -511,6 +526,9 @@ set(LUFIA2_HOST_SOURCES
 # Widescreen policy uses the portable semantic builder when available.
 if(LUFIA2_ENABLE_DECOMP)
     list(APPEND LUFIA2_HOST_SOURCES src/lufia2_sprite_visibility.c)
+endif()
+if(LUFIA2_ENABLE_NATIVE_SPC)
+    list(APPEND LUFIA2_HOST_SOURCES src/lufia2_spc_native.c)
 endif()
 
 if(LUFIA2_ENABLE_GAMEPLAY_CAPTURE)
@@ -640,6 +658,10 @@ target_include_directories(Lufia2Recomp PRIVATE
     ${SNESRECOMP_RUNNER_INCLUDE_DIRS}
 )
 
+if(LUFIA2_ENABLE_NATIVE_SPC)
+    target_compile_definitions(Lufia2Recomp PRIVATE LUFIA2_ENABLE_NATIVE_SPC=1)
+endif()
+
 target_compile_definitions(Lufia2Recomp PRIVATE
     SNESRECOMP_SDL3=1
     LNG_SDL3=1
@@ -677,6 +699,12 @@ include("${CMAKE_SOURCE_DIR}/cmake/Lufia2SoundMenu.cmake")
 lufia2_target_sound_menu_patch(Lufia2Recomp)
 
 if(NOT VITA)
+    if(EXISTS "${CMAKE_SOURCE_DIR}/tools/battle_ui_preview.c")
+        add_executable(Lufia2BattleUiPreview EXCLUDE_FROM_ALL
+            tools/battle_ui_preview.c src/lufia2_battle_ui.c)
+        target_include_directories(Lufia2BattleUiPreview PRIVATE "${CMAKE_SOURCE_DIR}/src")
+        target_compile_definitions(Lufia2BattleUiPreview PRIVATE _CRT_SECURE_NO_WARNINGS)
+    endif()
     if(EXISTS "${CMAKE_SOURCE_DIR}/scripts/tests/battle_effects.c")
         add_executable(Lufia2BattleEffectsTest EXCLUDE_FROM_ALL
             scripts/tests/battle_effects.c

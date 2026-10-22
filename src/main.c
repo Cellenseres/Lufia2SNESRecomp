@@ -75,6 +75,9 @@
 #include "lufia2_cave_eggs.h"
 #include "lufia2_cave_stairs.h"
 #include "lufia2_msu_driver.h"
+#if defined(LUFIA2_ENABLE_NATIVE_SPC)
+#include "lufia2_spc_native.h"
+#endif
 #include "lufia2_map_widescreen.h"
 #include "lufia2_ui_margins.h"
 #include "lufia2_intro_mode7_world.h"
@@ -2715,6 +2718,11 @@ int main(int argc, char **argv) {
             Lufia2MsuDriverInstall();
         }
     }
+
+#if defined(LUFIA2_ENABLE_NATIVE_SPC)
+    fprintf(stderr, "[spc] driver: %s\n",
+            Lufia2SpcNativeInstall() ? "decompiled" : "interpreted");
+#endif
 
     fprintf(stderr,
         "Lufia II SNESRecomp Desktop v2\n"

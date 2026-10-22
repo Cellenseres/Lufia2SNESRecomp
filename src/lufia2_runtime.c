@@ -18,6 +18,9 @@
 #include "snes/apu.h"
 #include "snes/interp_bridge.h"
 #include "lufia2_msu_driver.h"
+#if defined(LUFIA2_ENABLE_NATIVE_SPC)
+#include "lufia2_spc_native.h"
+#endif
 #include "lufia2_log.h"
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CONTINUATIONS)
 #include "decomp_bridge/nmi_resume.h"
@@ -95,12 +98,18 @@ void Lufia2SetNmiVideoObserver(Lufia2NmiVideoObserver *observer) {
 void Lufia2SaveExecutionState(SaveLoadInfo *sli) {
     RtlSaveExecutionState(sli);
     Lufia2MsuSaveState(sli);
+#if defined(LUFIA2_ENABLE_NATIVE_SPC)
+    Lufia2SpcNativeSaveState(sli, g_snes->apu);
+#endif
 }
 
 void Lufia2LoadExecutionState(SaveLoadInfo *sli, uint32_t version) {
     (void)version;
     s_loaded_execution_valid = RtlLoadExecutionState(sli);
     s_loaded_msu_valid = Lufia2MsuLoadState(sli);
+#if defined(LUFIA2_ENABLE_NATIVE_SPC)
+    Lufia2SpcNativeLoadState(sli, g_snes->apu);
+#endif
 }
 
 void Lufia2ApplyExecutionState(uint32_t version) {
