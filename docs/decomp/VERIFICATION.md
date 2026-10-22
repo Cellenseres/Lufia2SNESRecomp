@@ -1,3 +1,43 @@
+# Equipment inventory grouping - shared checkpoint, 2026-10-23
+
+Three missing original menu algorithms are reconstructed in menu_list_sort.c:
+82:BD48 gathers96 inventory records,82:BD9B classifies and appends their byte
+offsets,82:BDDB terminates six output lists. They share the existing inventory
+grouping algorithm with82:A9B5; existing sorting stores item IDs,while the new
+operation stores DP08 offsets. No duplicate classifier or instruction adapter
+is added. Original seven cleared counts and six sentinels stay literal.
+
+The parent preserves live PHP/PHX and child frames,original width changes,
+byte/word semantics and bus order. 8912original-ROM states and8912actual ABI
+states pass,including8192leaf states across all256data banks and edge lengths,
+256fully composed parent states with actual original item-record children,
+paired service boundaries and live stack/source/DB changes. Each matrix has
+102968child calls,33018composed child returns,32unwinds and128context handoffs.
+Actual ABI additionally verifies21pre-access guards and75redirect probes.
+
+The affected existing82:A9B5 owner passes500states EACH in direct and actual
+ABI checks:256normal,64realreturns,56unwinds,32compositions,52post-child context
+boundaries and40livefield states. All12classification buckets are observed.
+Unchanged spell/adjacent-member families are excluded. Three altered value,
+sentinel-count and status controls are detected. Strict MSVC and incremental
+GCC37.45s/Clang37.28s builds pass; exact unchanged CLI executable/fixture proof
+is reused. No unrelated full regression. The isolated consumer build passes.
+
+The input-only7200frame equipment baseline opens the actual menu,executes
+BD48once,BD9B26times andBDDBonce with original owners,and exercises prior
+portrait/list bindings. It has7129audible frames,fail0,12964actual decoded
+instructions. The new-binding7200frame sample matches every input,CPU register,WRAM,picture
+and PCM hash exactly;7129audible frames,zero failures. All three new bindings
+execute:BD48once,BD9B26times,BDDBonce. Actual decoded instructions12964->11524,
+a reduction of1440(11.1percent in this equipment sample). This is not a
+whole-game native percentage or measured FPS gain. No broader per-frame
+master-clock claim. Original-ROM verification remains separate from this
+consumer integration result. No extra unrelated suite or CLI rerun.
+This is original game execution with read-only SRAM,not invented gameplay.
+
+Metadata1976verified,zero drafts,801WRAM; production selection1939bindings.
+Tests/proofs/fixtures and ROM remain private. No push or subagents.
+
 # Party order and equipment entries - 2026-10-23
 
 Five complete original menu routines now have semantic C: party-order selection

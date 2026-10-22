@@ -3,6 +3,7 @@
 #include "cpu_state.h"
 #include "lufia2/decomp.h"
 #include "lufia2/menu_party_actions.h"
+#include "lufia2/menu_inventory_groups.h"
 #include "decomp_bridge/host_events.h"
 #include "../lufia2_sprite_visibility.h"
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
@@ -17193,4 +17194,19 @@ RecompReturn Lufia2DecompBridge_829F0C(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_829FB0(CpuState *cpu) {
     return ActorBridgeSceneOwners(cpu, 0x829fb0u,
         Lufia2MenuPresentEquipmentList, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82BD48(CpuState *cpu) {
+    return ActorBridgeSceneOwners(cpu, 0x82bd48u,
+        Lufia2MenuBuildEquipmentGroups, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82BD9B(CpuState *cpu) {
+    return ActorBridgeWholeM0X0(cpu, 0x82bd9bu,
+        Lufia2MenuGroupEquipmentOffset, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82BDDB(CpuState *cpu) {
+    return ActorBridgeWholeAnyWidth(cpu, 0x82bddbu,
+        Lufia2MenuFinishEquipmentGroups, 2u);
 }
