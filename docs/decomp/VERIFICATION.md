@@ -1,3 +1,46 @@
+# Party order and equipment entries - 2026-10-23
+
+Five complete original menu routines now have semantic C: party-order selection
+82:B67C, party member swap82:B6EF, equipment opener82:B7B2, equipment portrait
+82:9F0C and equipment-list presentation82:9FB0. The parents retain29 original
+JSR/JSL child sites. Inventory constructionBD48, equipment inputB7E5 and other
+child internals remain explicit original services; this checkpoint does not
+claim those algorithms. The B7E5 inline dispatch table is not decoded as code.
+
+The party swap keeps the original wrapping byte indices, live column order,
+DP scratch, XBA high accumulator and flags. Character IDs, offsets and ten
+sprite columns move; original screen positions deliberately stay in place.
+No clamping, record caching or invalid-index repair changes the original.
+The portrait copies selected animation data, position from sprite slot zero,
+and animation number from the selected slot. The shared ROM proof caught and
+corrected two addressing-mode transcription errors before acceptance.
+
+One grouped matrix compares68976 original-ROM states: every65536 selected-byte
+pair, all129 supported WRAM banks, parent selection/cancel paths,384 composed
+new children and all29 child-site exits. Full CPU, WRAM, device state and
+ordered data accesses agree; instruction fetches are excluded from this trace.
+The four selected parents pass3440 actual production-ABI cases,including232
+child unwinds and1144 context handoffs,36 pre-access guards and495 redirects.
+Three altered-semantic controls are detected. Explicit child services prove
+their boundary contracts,not internals. Strict MSVC and standalone GCC/Clang
+builds pass; unchanged CLI executables and private fixtures reuse prior proof.
+
+The swap worker stays VERIFIED BUT UNBOUND. Its proposed runtime wrapper passed
+65536ABI states,yet the five-binding7200-frame sample changed444PCM frames
+starting6757 despite identical CPU/WRAM/pictures. It removed425decoded
+instructions through five calls. That integration is rejected; the original
+worker clock owner remains until a separate proven timing solution exists.
+No guessed compensation or audio tolerance is added. The temporary wrapper
+is removed. Four complete parents retain bindings; metadata1973verified,
+zero drafts,801WRAM and1936selected bindings. Tests,fixtures and ROM stay private.
+The corrected four-binding7200-frame sample matches every input,CPU register,
+WRAM,picture and PCM hash;7129audible frames,zero failures. Original11757decoded
+instructions remain unchanged: no interpreter reduction is claimed for this
+sample after withholding the swap worker. The final isolated consumer Release
+build passes. The five complete C contracts remain useful verified work;
+original timing owns the worker until a separate faithful integration exists.
+No unchanged full regression or repeated standalone/CLI run was needed.
+
 # Cursor pixel execution verification - 2026-10-22
 
 Both cursor axes now share readable error and position operations with their
