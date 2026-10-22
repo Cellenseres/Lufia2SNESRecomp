@@ -17146,3 +17146,11 @@ RecompReturn Lufia2DecompBridge_829189(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_82F87D(CpuState *cpu) {
     return ActorBridgeWholeM0X0(cpu, 0x82f87du, Lufia2MenuCountFlaggedEquipment, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_82E4D5(CpuState *cpu) {
+    return ActorBridgeWholeX16(cpu, 0x82e4d5u, Lufia2MenuDrawPartyStats, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82E504(CpuState *cpu) {
+    return ActorBridgeWholeM0X0(cpu, 0x82e504u, Lufia2MenuDrawPartyStatValues, 2u);
+}

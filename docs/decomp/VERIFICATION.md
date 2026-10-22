@@ -1,3 +1,35 @@
+# Shared party-stat display contracts - 2026-10-22
+
+Two complete menu entries now share their existing C implementation:
+82:E4D5 draws the party-stat panel and E504 draws one member's seven values.
+The row was extracted once from the dispatcher. This adds complete native
+contracts for actual shop/equipment children, not two newly recovered
+algorithms. Both entries require X16,PB82,DP0,binary arithmetic and stack
+1F20..1FFC. E4D5 accepts either accumulator width and returns M1;E504
+requires and retains M0. Unsupported contexts keep the original execution.
+
+The paired direct-ROM and production-ABI matrices each pass 3104 states,
+including 128 actual complete shop-party callers. Coverage includes all
+256 party-count low bytes, ignored high bytes, both entry M widths, all
+256 data banks per entry, live record/stack aliases and tile-bank crossings.
+The original zero count completes all 65536 iterations; no cap or special
+case replaces it. A read-only observer in a private source copy compares
+CPU,full WRAM,devices and every ordered data access after each complete
+outer iteration. The two layers each compare 199085 such iterations.
+Only completed trace records are cleared; memory and device state remain
+live. Stripping the observer exactly restores the production source.
+
+The counter's original high-first DEC writes are preserved locally. The
+row and original numeric helpers retain their exact data/frame accesses.
+All three ABI roots run natively, with zero fallback.262215 semantic
+no-access guards and 720 ABI guards pass. Nine valid-instruction ROM faults
+and the old counter-write-order source mutant are rejected. Opcode and
+operand fetches are excluded individually; ROM table/data accesses remain
+compared. No unrelated full regression, physical timing,live UI or speedup
+claim follows. Strict MSVC, standalone GCC/Clang library and CLI checks and the isolated
+Windows Release build pass. Exact unchanged CLI executable/fixture hashes
+retain the resource-CLI result. Tests remain private. Concurrent SPC/DSP work is preserved.
+
 # Shared small-number and equipment-count contracts - 2026-10-20
 
 Four existing menu algorithms now have complete native entry contracts:
