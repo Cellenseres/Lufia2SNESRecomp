@@ -1,3 +1,41 @@
+# Cursor interpolation verification - 2026-10-22
+
+The existing cursor interpolation now shares its axis loops with complete
+horizontal 82:8AD6 and vertical 82:8A9B continuation contracts. They resume
+with the live Y sprite slot and arbitrary X, without replaying initialization
+or the first coordinate subtraction. The original 4096-step ownership boundary
+and pushed count/frame children remain unchanged. These are two continuations
+of one existing algorithm, not two newly discovered game algorithms.
+
+The affected 82:89FA setup also retains the original ordered rereads after
+each coordinate comparison. Previously C reused two cached coordinate values.
+Sequenced reads now match the original bus trace; no original bug is removed.
+
+One shared original-ROM checkpoint covers 4160 states per direct and
+production-ABI layer: 3584 normal returns, 384 post-child boundaries and
+192 child unwinds. Each layer compares 302566 actual count children and
+17271 explicitly paired frame services. Coverage includes all 128 supported
+WRAM-mirror data banks, coordinate extremes, six axis ratios, both directions,
+zero distance, arbitrary continuation X, live Y changes and stack bounds.
+CPU, full WRAM, devices and ordered data accesses agree at the boundaries.
+There are 43 unsupported direct and 40 bridge guards, 45 redirected-return
+probes and six detected ROM/source fault controls. Nested frame-service
+internals are not newly claimed by the synthetic proof.
+
+GCC and Clang standalone builds pass. Unchanged resource-CLI executable and
+private-fixture hashes retain the previous CLI result. A real 7200-frame
+production comparison has identical inputs, CPU, WRAM, pixels and PCM on every
+frame: 7129 audible frames, no failure, 17637 decoded instructions on each side.
+However, the two experimental continuation bindings receive no native entries;
+the interpreter does not bounce at those branch/return destinations. They are
+removed from the final production selection rather than advertised as a speedup.
+The continuation C remains verified and unbound. Runtime integration requires
+an actual continuation owner with demonstrated clock and frame fidelity.
+
+Metadata now contains 1968 verified entries and zero drafts; production keeps
+1932 bindings. Tests, proof sources, original ROM and SRAM remain private.
+No broad unchanged regression was repeated. No whole-game or FPS claim.
+
 # Secondary actor object-route verification - 2026-10-22
 
 The secondary actor VM now implements five previously missing regular
