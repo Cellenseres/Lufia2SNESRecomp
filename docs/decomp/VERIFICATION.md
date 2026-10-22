@@ -1,3 +1,46 @@
+# Shop comparison bus and return fidelity - 2026-10-22
+
+An ordered-data witness for the existing 82:E5E1 comparison fails at event
+10: C rereads DP2A while the original stores the first derived pointer in
+DPE7. The first addition must use the value still in A; only later pointers
+reload DP2A. The corrected additions retain the original ADC flags. DEC26
+now uses the existing high-first operation locally. The shop-list worker's
+WramStep16 was already high-first and remains unchanged.
+
+The zero-count case also exposes a real child-return alias. With the
+synthetic stack at 1F80, 2818 complete comparison iterations agree before
+an out-of-range sprite-slot write changes its live RTL frame. The original
+returns to 82:E601 rather than E686. C now preserves that exact target,
+stack, registers and bus trace and hands control to the original owner.
+It does not continue through a fabricated normal child return, cap the
+counter, or repair the original malformed state. Near child returns also
+honor their actual popped addresses.
+
+The direct and actual-ABI matrices share this corrected source. There are
+6056 states per layer: 5776 direct primary cases plus 64 pointer/ADC-wrap
+cases and 216 actual call-site compositions; 5712 ABI primary cases plus
+64 pose, 64 pointer and 216 call-site cases. Each layer has 6015 normal
+returns and 41 exact original continuation boundaries.
+4504 cases exercise the three real E5E1/DCC1/DCF4 production bridges with
+zero fallback; 1552 exercise a private wrapper around unchanged ShopRows.
+The primary direct matrix compares 200113 complete iterations and the ABI
+matrix 199953. The three original JSR sites DC24/DD92/DE37 add 192
+normal returns and 24 exact continuation boundaries per layer, including
+67848 complete iterations. Supplemental coverage is recorded separately. Each
+iteration compares CPU, full WRAM, devices and every ordered data access;
+only completed trace records are discarded. Opcode fetches are excluded
+individually, while ROM data accesses and original child bodies remain.
+
+Coverage includes all 256 data banks and count low bytes, ignored count
+high bytes, stack endpoints, pose/attribute branches, record/stack/DP
+aliases and pointer overflows. Eight ROM instruction faults and three
+source mutants restoring the pointer, write-order or blind-return mistake
+are detected. Strict MSVC, incremental standalone GCC/Clang and isolated
+Windows Release pass. Exact unchanged CLI executable and fixture hashes
+retain the prior CLI result. No unrelated full suite was repeated; no
+physical timing, gameplay speedup or new function/binding is claimed.
+Tests, fault variants and proof observers remain private.
+
 # Actor coordinate guard experiment - 2026-10-22
 
 A current 3000-frame boot/load/field sample with native SPC enabled records
