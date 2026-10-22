@@ -1,3 +1,36 @@
+# Actor coordinate guard experiment - 2026-10-22
+
+A current 3000-frame boot/load/field sample with native SPC enabled records
+7597 actual decoded 65816 instructions. The private observer agrees exactly
+with the production instruction counter. Fifteen M1X1,DB83,DP0,S1FF8 calls
+to 83:A746 retain the interpreter because the existing alternate-X8 guard
+accepts DB87 only. This is scene placement, not a walking-speed measurement.
+
+The unchanged coordinate body and a candidate expanded guard each pass
+197632 original-ROM cases, comparing CPU, full WRAM, devices and ordered
+data accesses. Coverage includes all data banks, both index widths,
+byte-index combinations, coordinate extremes and stack limits. The
+candidate ABI also rejects 576 unsupported contexts; nine instruction
+fault controls are detected. The first generic ABI fixture incorrectly
+expected a mismatched two-byte host return to pass the existing X8 guard;
+it was corrected to use its supported zero/three-byte return modes.
+
+The guard was restored rather than activated. With otherwise identical
+production objects, the candidate decodes 6466 instructions, but seventeen
+frame WRAM hashes differ. Full snapshots of those frames isolate one
+byte below the current stack pointer each, matching wait positions
+82:93C8/93CA. Their selected CPU
+registers and pixel hashes agree; sixteen selected PCM hashes differ and
+audible frames change from 2929 to 2928. These results do not prove an
+unchanged parent/audio timing contract. No production change, function
+promotion, new binding, gameplay fix or speedup is claimed.
+
+The restored isolated Release build passes. All semantic sources and
+foreign work remain byte-identical. Existing standalone GCC/Clang and CLI
+evidence applies to those unchanged sources; no unrelated full suite was
+repeated. Proofs and snapshots remain private. The next investigation is
+parent/child master-clock and sound-port ordering, not another leaf alias.
+
 # Shared party-stat display contracts - 2026-10-22
 
 Two complete menu entries now share their existing C implementation:
