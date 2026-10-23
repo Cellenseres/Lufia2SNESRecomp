@@ -2726,6 +2726,12 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 #include "swirl_rim_clock.inc"
 #include "swirl_hdma_clock.inc"
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_DECOMPRESS_STEPS)
+#include "decompress_clock.inc"
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_BACKGROUND_STEPS)
+#include "background_word_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_QUEUE_STEPS)
 #include "battle_queue_clock.inc"
 #endif
@@ -3683,6 +3689,17 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TRANSITION_STEPS)
     interp_bridge_set_pre_opcode_hook(0x848c91u, ActorBridgeSwirlRimStep);
     interp_bridge_set_pre_opcode_hook(0x848cddu, ActorBridgeSwirlHdmaRow);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_DECOMPRESS_STEPS)
+    interp_bridge_set_pre_opcode_hook(0x808eefu, ActorBridgeDecompressClock);
+    interp_bridge_set_pre_opcode_hook(0x808f93u, ActorBridgeDecompressClock);
+    interp_bridge_set_pre_opcode_hook(0x808efau, ActorBridgeDecompressClock);
+    interp_bridge_set_pre_opcode_hook(0x808f9eu, ActorBridgeDecompressClock);
+    interp_bridge_set_pre_opcode_hook(0x808f66u, ActorBridgeDecompressClock);
+    interp_bridge_set_pre_opcode_hook(0x80900au, ActorBridgeDecompressClock);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_BACKGROUND_STEPS)
+    interp_bridge_set_pre_opcode_hook(0x81ba59u, ActorBridgeBackgroundDecodeWord);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_WIDTH)
     interp_bridge_set_pre_opcode_hook(0x85a8e7u, ActorBridgePrimaryWaveClock);
