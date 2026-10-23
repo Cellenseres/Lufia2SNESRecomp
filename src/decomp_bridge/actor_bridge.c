@@ -5,6 +5,7 @@
 #include "lufia2/menu_party_actions.h"
 #include "lufia2/menu_inventory_groups.h"
 #include "lufia2/menu_equipment_commands.h"
+#include "lufia2/object_script.h"
 #include "decomp_bridge/host_events.h"
 #include "../lufia2_sprite_visibility.h"
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
@@ -17317,4 +17318,9 @@ RecompReturn Lufia2DecompBridge_82DFA5(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_82E290(CpuState *cpu) {
     return ActorBridgeWholeX16(cpu, 0x82e290u,
         Lufia2MenuPayShopSelection, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_83E0FC(CpuState *cpu) {
+    return ActorBridgeWholeM1X16(cpu, 0x83e0fcu,
+        Lufia2ObjectRunScript, 2u);
 }

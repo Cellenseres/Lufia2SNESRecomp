@@ -1,3 +1,52 @@
+# Complete object-script execution contracts — 2026-10-23
+
+The earlier opcode-prefix records at 83:E0FC and 83:E10F now describe complete
+bounded script-execution contracts. One C worker is shared with the existing
+32-slot updater. E0FC loads the script and owns its saved data bank; E10F
+continues with that bank already on the stack. The three original yield RTS
+sites E13C, E142 and E14F are distinguished. The existing C execution budget
+hands back at the original redispatch PC; it does not truncate ROM scripts.
+Reserved BRK targets and unknown child states retain original continuations.
+Legacy prefix APIs remain compatibility helpers, without extra function counts.
+
+Strict ordered-data comparisons exposed preflight reads in existing animation
+handlers. Those previews are removed. Operand limits now stop after the actual
+ROM loads at E48D/E496. A zero sprite-slot count hands off before the original
+JSL at ECF3, retaining every live nested frame; the original infinite case is
+not repaired. Normal animation algorithms and bus order remain literal.
+Eleven existing function bodies change, 119 remain identical, and the old
+boolean loop and preview helper are replaced by the shared execution worker.
+
+The combined direct ROM union passes 3,778 states: 2,114 opcode/loop/wrap states
+and 1,664 additional operand, zero-slot, rewritten-return and saved-bank states.
+All 256 opcode values and all three yield sites are covered, including reserved
+BRK targets and two execution-budget boundaries. The production bridge passes
+1,889 owner states and eight admission guards. The corresponding 1,889 saved-bank
+continuation states stay direct semantic checks: no ordinary E10F bridge is
+invented. Thirty-two owner RTS return-word rewrites are verified through
+the actual bridge. All four deliberate faults are detected. An additional
+64 unchanged legacy slot-updater cases pass against the ROM, with 1,332 script
+dispatches, 28 complete returns and 36 exact boundaries.
+
+The first strict matrix revealed the preview reads; source corrections are
+included in this checkpoint. A separate all-zero synthetic field header lacked
+list terminators and correctly searched indefinitely. The fixture now has
+valid empty lists; no ROM, source loop cap or expected state was changed to
+hide that case. Passing main matrices are retained while only new extensions
+are run. Instruction fetches are excluded from ordered data comparisons.
+
+Strict MSVC, incremental GCC/Clang and one isolated Windows Release build pass.
+CLI checks reuse identical executable and fixture hashes. Only one new
+7,200-frame candidate is replayed against the accepted reference: CPU, WRAM,
+pixels and PCM all agree. This equipment replay does not enter E0FC directly;
+decoded instructions remain 22,075, so it establishes no runtime speedup.
+No unrelated full regression is claimed. Tests remain private; nothing is pushed.
+
+Metadata remains at 2,004 verified functions and zero drafts: two prefix records
+are replaced, not added. The primary consumer selects 1,961 bindings. E10F
+remains unbound because of its saved-bank continuation frame. The eight prior
+function timing holds and the withheld wider F194 context remain unchanged.
+
 # Item-record mirror context: semantic proof, timing hold — 2026-10-23
 
 The existing 81:F194 item-record algorithm is also equivalent to the original
