@@ -1,3 +1,38 @@
+# Display fade continuation integration - 2026-10-23
+
+The existing verified display fades at 86:8B1C and 86:8B32 now expose their
+two post-frame polling boundaries, 86:8B2B and 86:8B41, through the same
+fade-control read used by their original owners. Active fades return to the
+original JSL; completed fades restore the original status and return to the
+original RTL. Child calls, waits and return-owner bookkeeping remain intact.
+This adds no algorithm body, standalone metadata entry, binding or WRAM field.
+Totals remain 2050 verified entries, zero drafts, 1962 bindings and 805 WRAM
+locations. Precise continuation integration is separate from decomp coverage.
+
+The consumer clocks the original LDA/BNE/PLP span, including opcode fetches,
+data reads, status pulls and taken-branch cycles. Existing event, refresh,
+beam, DMA, stack, mode and clock guards retain interpretation when needed.
+The new capability is enabled only for the actor bridge in the selected
+consumer target, with the required API, implementation and verified roots.
+Older library sources keep their previous path.
+
+Combined final-source verification: 20480 original-ROM/clock/production-hook
+cases, including 20480 actual JSL/RTL rejoins, and 58 untouched guard cases
+PASS. CPU, full WRAM, ordered bus including fetch, open bus, CPU cycles and
+master clocks agree. Three private ROM mutations are detected. Ten capability
+cases and source/target isolation PASS. Strict MSVC game and GCC/Clang library
+builds PASS in agent-owned caches; unchanged CLI evidence is reused by hash.
+
+A fresh private paired replay and the final actual gated production replay
+both preserve all 7200 CPU/WRAM/picture/PCM/input frame hashes. The final run
+uses the unchanged accepted control; SRAM remains byte-identical. In this
+scenario, 170 admissions replace 364 interpreted instructions: 15219 to 14855.
+This is a scenario-specific decoder count, not a measured FPS improvement or
+whole-game coverage. No unchanged full regression or owner build/windows run.
+The combined source revision was checked; intermediate commits were not
+independently tested. Tests and ROM remain private; no push.
+Evidence: .agent/decomp/parallel-battle-items-next/next-fade-continuation/ACCEPTANCE_RECEIPT.json.
+
 # Battle VM route integration - 2026-10-23
 
 Seventeen original nontrap routes were reconstructed inside the existing

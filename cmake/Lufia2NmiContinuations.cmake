@@ -70,6 +70,13 @@ function(lufia2_add_nmi_continuations target core_root)
             lufia2_frame_returns_available(_frame_returns ${target})
             if(_frame_returns)
                 list(APPEND _definitions LUFIA2_HAVE_NATIVE_FRAME_RETURNS=1)
+                include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2MenuFadeContinuations.cmake")
+                lufia2_menu_fade_continuations_available(_menu_fade_continuations)
+                if(_menu_fade_continuations)
+                    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                        APPEND PROPERTY COMPILE_DEFINITIONS
+                            "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_MENU_FADE_CONTINUATIONS=1>")
+                endif()
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2EquipmentGroupSteps.cmake")
                 lufia2_equipment_group_steps_available(_equipment_group_steps)
                 if(_equipment_group_steps)
