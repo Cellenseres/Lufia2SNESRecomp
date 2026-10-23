@@ -1,3 +1,54 @@
+# Complete field event execution contract — 2026-10-23
+
+The 80:CC35 metadata entry now describes the complete bounded event-script
+owner, sharing the existing C worker with slot timers and nested forks.
+The original end and sleep returns remain 80:CC49 and 80:D335. Unknown
+targets retain their actual post-dispatch PC and live frames. The existing
+weighted execution budget hands off before the indirect table read at CC3F;
+it is a C safety boundary, not a limit on original ROM scripts. The earlier
+opcode-prefix API remains a compatibility helper without a second entry count.
+
+Strict data-bus comparisons exposed extra condition and point-operation
+previews, reordered saved-variable and redraw reads, and incorrect word RMW
+byte order. These now follow the original accesses. List and block-comparison
+guards retain exact in-loop continuations and nested frames. Event object
+paths reuse the verified region renderer and tile clearer; a duplicate clearer
+and four obsolete preview helpers are removed. The canonical clearer retains
+both original word reads for height and each row's width, including their
+otherwise unused high bytes. Its logical dimensions remain unchanged.
+
+The direct ROM union passes 1,644 states: 1,360 opcode/wait/wrap/budget cases,
+236 device-bank, nested-fork and condition cases, and 48 clear/redraw cases.
+The actual production root bridge passes 1,708 states, including 64 additional
+service states, six real child unwinds, eight distinct admission guards,
+15 child-return redirect probes and 32 live owner RTS-word rewrites.
+An affected caller union passes 256 legacy timer states and 512 states each
+for actor reveal and conditional objects. Five deliberate faults are detected.
+CPU, full WRAM, devices and ordered data accesses are compared where stated;
+instruction fetches are excluded from data traces.
+
+The legacy timer oracle used a first-visit stop for newly reached inner clear
+and render boundaries. Its private copy now identifies those repeated PCs
+with the complete WRAM state before comparing all original CPU/WRAM/MMIO
+assertions. Unterminated synthetic call arguments were replaced by valid
+terminated lists. No ROM, expected guest state or original algorithm was
+changed to hide either fixture issue. Positive matrices are retained; only
+new extensions and concretely affected cases are rerun.
+
+Strict MSVC, GCC/Clang and the isolated Windows Release build pass. The last
+two proven word-read corrections receive an incremental rebuild, without
+another generator run. Unchanged CLI executable and fixture hashes retain
+the previous CLI proof. One final 7,200-frame equipment replay agrees in
+CPU, WRAM, pixels and PCM. The direct CC35 entry is unvisited and the existing
+CBAE entry runs once; decoded instructions remain 22,075. No speedup or full
+regression is claimed. Tests and proof fixtures remain private; nothing is pushed.
+
+Metadata stays at 2,004 verified functions and zero drafts; this completes an
+existing prefix contract rather than adding a second count. The primary
+consumer selects 1,962 bindings. The eight timing holds and wider F194 context
+remain unselected. Across the five affected sources, 247 function bodies are
+unchanged and 15 change; five helpers are removed and three are added.
+
 # Complete object-script execution contracts — 2026-10-23
 
 The earlier opcode-prefix records at 83:E0FC and 83:E10F now describe complete
