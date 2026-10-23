@@ -1,3 +1,35 @@
+# Battle script party-byte commands - 2026-10-23
+
+Original operations44/45/46 now write/read a selected party-record byte and
+conditionally jump on zero inside the existing bound85:B452 VM. Helpers
+C0AA/C0B3/C0BE preserve original selector choice, six-byte record stride,
+long bank00 multiplier accesses, widths, flags and every call/stack frame.
+Enemy selection retains an exact continuation at original BRK85:C0D8;
+its overlapping signature/TAX entry is preserved. No trap is suppressed.
+No new standalone entry, wrapper, binding or WRAM definition was added.
+Metadata remains2,050verified/zero drafts;1,962bindings;802WRAM locations.
+Battle table coverage is62/93 cases,23nontrap gaps and8originalBRK routes.
+The VM remains an explicit boundary contract, not a complete native VM.
+
+Shared checkpoint:32,768 original-ROM cases,16,384direct +16,384 actual
+production ABI, single-command and mixed scripts. CPU/fullWRAM/ordered
+guest data and MMIO agree across byte operands, branches, status variations,
+DP0/32, four mirror DBs, both ends and host return modes0/3/2. The original
+oracle determines normal/trap flow independently: variable writes can alias
+battler selectors during mixed scripts.16,398 cases rejoin the actual original
+BRK; vector/stack/CPU/fullWRAM/raw bus events and openbus agree afterward.
+Fetch-owned openbus at the pre-BRK handoff is not asserted equal; the first
+original instruction fetch establishes it before the trap. Normal return
+openbus is compared directly. Safe host frame-inspection peeks alone are
+excluded from guest traces; original return reads remain compared.
+Three wrong-ROM controls (stride, destination, branch) are detected.
+All existing source outside the additions is byte-identical after LF
+normalization. StrictMSVC proof and one incremental GCC/Clang/isolated Windows
+library checkpoint PASS. Unchanged CLI binaries retain accepted hashes;
+CLI contract results are reused. No full unchanged regression, game link,
+runtime replay, scheduler/APU clock or FPS claim. All tests remain private.
+Evidence:.agent/decomp/battle-script-records-next/ACCEPTANCE_RECEIPT.json.
+
 # Battle script state commands - 2026-10-23
 
 Seven original battle-script operations (51,52,53,54,5A,5B,5C) are now
