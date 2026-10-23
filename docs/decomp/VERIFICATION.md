@@ -1,3 +1,36 @@
+One shared incremental GCC/Clang/isolated Windows library checkpoint passed.
+CLI binaries remain byte-identical; prior contract results reused. No full
+unchanged regression, application link or runtime replay repeated.
+
+# Scene particle allocation - 2026-10-23
+
+Two complete original child routines are reconstructed: 86:BF3B spawns a
+trailing particle in a thirteen-record pool; 86:C1B4 searches nineteen records
+for an orbit particle. Full pools retain the original register/flag results.
+The original carry flow across the search is preserved. BF3B retains its
+BF66 -> E0B9 pushed child frame and both original return instructions.
+
+The prepared BF3B body is unchanged; its earlier 28,672 direct and 28,672
+actual consumer ABI cases are reused after an exact source/body comparison.
+That evidence also covers 112 original E0B9 compositions per mode, eight
+unwinds and twenty post-child boundaries per mode, 34 guards across modes,
+fifteen redirects and two detected negative controls.
+C1B4 passes 40,960 direct and 40,960 actual consumer ABI cases covering every
+first-free position/full pool, four negative sentinel values, live registers,
+flags and paired/unpaired return ownership. Twenty-three entry guards and a
+wrong-pool-size negative control pass. The initial shared thirteen-count
+assumption failed the original-ROM comparison and was corrected to nineteen
+before acceptance.
+The two actual parent callbacks BEE6/C0AC additionally pass 256 composed ROM/
+consumer ABI cases each, substituting the new semantic children on the native
+side only. Their original-ROM descendants, full WRAM, CPU, ordered data/MMIO
+and child-entry frames agree; 180 redirected-return probes have no fallback.
+
+Metadata: 2,050 verified, zero drafts. The 1,962 ordinary bindings stay
+unchanged. These contracts do not activate new runtime replacements or prove
+scheduler/APU timing or whole-game performance. Tests stay private.
+No full unchanged regression or runtime replay is claimed.
+
 # Data-driven world scene callbacks - 2026-10-23
 
 38 complete original bodies reconstructed in four semantic modules: seven
