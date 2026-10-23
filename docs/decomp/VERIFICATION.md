@@ -1,3 +1,26 @@
+# Item-record mirror context: semantic proof, timing hold — 2026-10-23
+
+The existing 81:F194 item-record algorithm is also equivalent to the original
+ROM for the tested M0/X16 low-WRAM mirror contexts. One combined production-ABI
+and ROM run passes 12,640 states: 4,128 bank combinations, 8,192 item cases,
+64 live rewritten RTL returns and 256 unchanged M1 admission samples. All
+512 item IDs and all 129 proposed banks are covered. Eleven admission guards
+pass. The old bank restriction is detected by the same oracle. Semantic item
+and equipment-parent sources are unchanged; no new function is counted.
+
+The proposed bridge expansion removes 7,435 decoded instructions in the
+7,200-frame equipment replay (22,075 to 14,640). CPU, WRAM and pictures agree,
+but PCM differs for 600 frames beginning at frame 6,601. This does not prove
+an item-algorithm defect or identify the individual timing cause. The expansion
+is therefore withheld: the original bridge bytes and existing native admission
+are restored. No clock compensation, guessed delay or gameplay change is added.
+
+Strict MSVC proof and one incremental Windows trial build pass. Unchanged
+standalone and CLI checks reuse the prior accepted source/binary identities.
+The restore build also passes, without repeating unchanged ROM or full
+regression suites. The positive wider semantic proof and rejected timing experiment remain
+private for future work. Existing function and binding counts remain unchanged.
+
 # Shop operation entries — 2026-10-23
 
 Three complete original entries are verified: 82:DBC9 selects a shop operation,
