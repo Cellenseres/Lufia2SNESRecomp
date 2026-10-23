@@ -2715,6 +2715,12 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
                                                wide_accumulator, 800u, 256u);
 }
 #include "fixed_span_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_WAVE_FILL_STEPS)
+#include "wave_fill_word_clock.inc"
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_SLOT_STEPS)
+#include "effect_slot_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_WIDTH)
 #include "nmi_timer_clock_guard.inc"
 #include "primary_wave_clock.inc"
@@ -3686,6 +3692,15 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
     interp_bridge_set_pre_opcode_hook(0x82fb94u, ActorBridgeInventorySearch);
     interp_bridge_set_pre_opcode_hook(0x83a746u, ActorBridgeActorFinePosition);
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_WAVE_FILL_STEPS)
+    interp_bridge_set_pre_opcode_hook(0x85aef5u, ActorBridgeWaveFillWord);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_SLOT_STEPS)
+    interp_bridge_set_pre_opcode_hook(0x818a7eu, ActorBridgeEffectSlotStep);
+    interp_bridge_set_pre_opcode_hook(0x818ac1u, ActorBridgeEffectSlotStep);
+    interp_bridge_set_pre_opcode_hook(0x818aaau, ActorBridgeEffectSlotStep);
+    interp_bridge_set_pre_opcode_hook(0x818b1bu, ActorBridgeEffectSlotStep);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TRANSITION_STEPS)
     interp_bridge_set_pre_opcode_hook(0x848c91u, ActorBridgeSwirlRimStep);
     interp_bridge_set_pre_opcode_hook(0x848cddu, ActorBridgeSwirlHdmaRow);

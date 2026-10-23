@@ -11,6 +11,10 @@ static int Lufia2DecompNmiHookHasOwner(uint32_t pc, int stop_on_rti,
         return 1;
     case 0x05a8e7u:
         return opcodes_left >= LUFIA2_NMI_PRIMARY_WAVE_OPCODES;
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_WAVE_FILL_STEPS)
+    case 0x05aef5u:
+        return opcodes_left >= LUFIA2_NMI_WAVE_FILL_WORD_OPCODES;
+#endif
     case 0x05a736u:
         return opcodes_left >= LUFIA2_NMI_RIPPLE_ROW_OPCODES;
     default:
