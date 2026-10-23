@@ -17253,3 +17253,23 @@ RecompReturn Lufia2DecompBridge_829A14(CpuState *cpu) {
     return ActorBridgeSceneOwners(cpu, 0x829a14u,
         Lufia2MenuCycleEquipmentMember, 2u);
 }
+
+RecompReturn Lufia2DecompBridge_82BE04(CpuState *cpu) {
+    return ActorBridgeSceneOwners(cpu, 0x82be04u,
+        Lufia2MenuPrepareEquipmentList, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82BE71(CpuState *cpu) {
+    return ActorBridgeSceneOwners(cpu, 0x82be71u,
+        Lufia2MenuLoadEquipmentSlotStats, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82BED9(CpuState *cpu) {
+    return ActorBridgeSceneOwners(cpu, 0x82bed9u,
+        Lufia2MenuClassifyEquipmentListSelection, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82BEF0(CpuState *cpu) {
+    return ActorBridgeSceneOwners(cpu, 0x82bef0u,
+        Lufia2MenuResolveEquipmentListSelection, 2u);
+}

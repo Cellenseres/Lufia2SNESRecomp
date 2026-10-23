@@ -1,3 +1,49 @@
+# Equipment list evaluation — 2026-10-23
+
+Four missing original functions are reconstructed in menu_party_actions.c:
+82:BE04 prepares grouped equipment lists and availability words, 82:BE71
+loads seven equipment-stat words, 82:BED9 classifies the selected row, and
+82:BEF0 resolves its inventory offset and equipment slot. Each is a real
+original JSR entry. No branch-label aliases or instruction adapters are added.
+
+Both preparation and stat loading retain PHP/REP30 and restore the live saved
+status. The stat loader keeps its two ordered clearing phases, reloads the
+character pointer after the item child, and copies each live record word.
+Availability compares the full attribute word with 0020, including its high
+byte. Selection preserves the original 0/1/2 results and carry flags. ROM
+pointer tables remain ROM-backed; no extracted data is embedded in C.
+
+The shared ROM and actual production-ABI matrices each pass 17,312 states:
+16,096 returns, 160 context handoffs, 1,056 child unwinds and 81,109 child
+calls across all eight sites. Six resolver compositions and 1,214 paired
+original-ROM child executions cover real item, mask, scroll and slot work.
+The matrices cover all incoming widths for PHP roots, all byte-valued table
+indices up to the first child boundary, word attributes, live scratch/list/
+character pointers, record aliasing and altered saved status. Original
+nonterminating invalid lists are not repaired or capped in semantic C.
+CPU, full WRAM, devices and ordered data match; fetch order is not claimed.
+The ABI additionally passes 32 admission guards and 180 redirects, including
+live return-target checks. All four negative controls are detected. No
+semantic correction was needed after the first shared positive matrices.
+The 29 previous function/helper bodies remain byte-identical and reuse their
+accepted proofs.
+
+Strict MSVC, incremental GCC/Clang and isolated Windows Release pass. Exact
+unchanged CLI executable and fixture hashes reuse accepted CLI checks. The
+previous accepted 7,200-frame replay is reused as the baseline after checking
+binary/input identity and fixture evidence. Only the new candidate replay is
+run. Every input, CPU, WRAM, pixel and PCM hash agrees. Preparation executes
+five times in each incoming M width, stat loading four times, classification
+57 times. The resolver is covered synthetically and has no observed runtime
+bounce in this inventory. Decoded instructions fall from 24,092 to 22,094 in
+this sample; no whole-game performance, FPS or universal timing claim follows.
+
+Metadata: 1,992 verified functions, zero drafts, 801 WRAM fields and 1,951
+selected bindings. The five earlier timing holds remain. No unrelated full
+regression or repeated reference replay is run. Tests, fixtures and ROM stay
+private; nothing is pushed. Owner builds and concurrent sources are preserved.
+The catalogue refresh follows the two atomic commits.
+
 # Equipment rows and member selection — 2026-10-23
 
 Three missing original functions are reconstructed: 82:8579 renders an
