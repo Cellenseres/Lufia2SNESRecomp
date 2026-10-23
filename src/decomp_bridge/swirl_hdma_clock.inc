@@ -1,4 +1,4 @@
-enum { SWIRL_HDMA_ROW_BUDGET = 600u };
+enum { SWIRL_HDMA_ROW_BUDGET = 514u };
 
 static bool SwirlHdmaClockSupported(const CpuState *cpu, uint32_t entry) {
     const bool first_half = cpu->Y < 0xe0u && !(cpu->Y & 1u);

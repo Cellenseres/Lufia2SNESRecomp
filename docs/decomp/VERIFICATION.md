@@ -1,3 +1,47 @@
+# Exact transition reservations — 2026-10-23
+
+The existing transition C phases at84:8C91 and84:8CDD keep their complete
+original algorithms, bus operations and per-opcode clocks. Only conservative
+master-clock reservations change:600 to532 for the rim,514 for the HDMA row.
+The former blanket reservation left unnecessary slack before the same physical
+fences. No width, memory, owner, interrupt, DMA or finite-step guard changes.
+
+Closed worst-case bounds under those existing guards are492raw+40refresh
+for the65-cycle rim and474raw+40refresh for the63-cycle middle HDMA row.
+The descriptor fetch/data counts and current production bus-speed function
+were checked directly. No12-master APU access occurs; phase<1364 permits at
+most one40-master refresh. Strict existing1024active/1364blank line fences
+remain, including the one-master margin. Deadline and overflow guards use
+the same conservative bounds; they do not alter actual elapsed cycles.
+
+One shared checkpoint covers576admitted/576rejected rim and1152admitted/
+1152rejected HDMA cases, six invalid-host cases and24refresh/deadline/clock/
+overflow edge cases. Tests compare original-ROM CPU/fullWRAM, ordered fetch
+and data accesses, Mode7 latches, openbus, opcode cycles/master/refresh,
+stack/host owner and original next-op rejoins at the old/new fences. Measured
+maxima exactly reach532/514. Unsupported contexts remain untouched.
+
+The final isolated Windows build passes. Semantic sources, API/core helpers,
+the semantic library, generated interpreter and interpreter object remain
+byte-identical to the prior accepted checkpoint. Its GCC/Clang/metadata and
+unchanged algorithm/capacity/progress evidence is reused; full regression,
+CLI and standalone rebuilds are deferred for this two-constant consumer change.
+
+One8000-frame production replay matches the pinned control for input/CPU/
+WRAM/pixels/PCM. Real host-only old600 guard queries record58additional rim
+steps and440additional HDMA rows. Their1102+7923 original instructions equal
+the exact decoder reduction253918->244893. Every recorded admission stays
+inside its clock/fence, and no formerly accepted context is rejected. Original
+Timer admissions, actions, returns and4306paired children remain unchanged.
+The legacy driver's rawexit6/obsoletezero inline observers remain explicit;
+independent original-action evidence and exact frame comparison pass.
+ROM, SRAM and158pinned inputs remain unchanged during the replay.
+
+This is paced integration of already reconstructed C, not a new decompilation,
+binding, wait optimization, subinstruction-PPU or FPS/whole-game claim.
+2050verified/0draft/1962bindings/806WRAM remain. Private tests/observers stay
+local. Only consumer constants and this verification note are committed.
+
 # Battle timer and graphics-queue integration - 2026-10-23
 
 The existing verified primary-wave and ripple-row algorithms now run through

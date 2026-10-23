@@ -1,6 +1,6 @@
 #include "lufia2/battle_transition_steps.h"
 
-enum { SWIRL_RIM_CLOCK_BUDGET = 600u };
+enum { SWIRL_RIM_CLOCK_BUDGET = 532u };
 
 static bool SwirlRimClockSupported(const CpuState *cpu, uint32_t entry) {
     if (entry != 0x848c91u || cpu->m_flag != 1u || cpu->x_flag ||
