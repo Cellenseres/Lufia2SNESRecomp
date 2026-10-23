@@ -2,6 +2,7 @@
 
 #include "cpu_state.h"
 #include "lufia2/decomp.h"
+#include "lufia2/world_scene_timed_motion.h"
 #include "lufia2/menu_party_actions.h"
 #include "lufia2/menu_inventory_groups.h"
 #include "lufia2/menu_equipment_commands.h"
@@ -17492,4 +17493,44 @@ RecompReturn Lufia2DecompBridge_B452(CpuState *cpu) {
     return ActorBridgeBattleEntry(cpu, 0x85b452u, 0,
         Lufia2BattleScriptWithChildren, 3u, BATTLE_BRIDGE_M1X0,
         1, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_86B5DF(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b5dfu,
+        Lufia2WorldMapTrackRisingSceneActor, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86B637(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b637u,
+        Lufia2WorldMapStopTimedSceneSound, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86BD47(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86bd47u,
+        Lufia2WorldMapStartPairedScenePulse, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86BD77(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86bd77u,
+        Lufia2WorldMapSetPairedSceneAnimation27, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86BD7E(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86bd7eu,
+        Lufia2WorldMapSetPairedSceneAnimation26, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86BD85(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86bd85u,
+        Lufia2WorldMapSetPairedSceneAnimation25, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86BE2A(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86be2au,
+        Lufia2WorldMapSetSceneSoundMode2, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86C1CC(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86c1ccu,
+        Lufia2WorldMapSetSceneSoundMode1, 2u, false);
 }

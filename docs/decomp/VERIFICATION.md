@@ -1,3 +1,37 @@
+# Original scene call closure - 2026-10-24
+
+Eight complete timed world-scene callbacks are now selected as ordinary native
+entries:86:B5DF,B637,BD47,BD77,BD7E,BD85,BE2A,C1CC. Existing canonical
+functions remain2,050verified/zero drafts; selected native entries1,962->1,970.
+No instruction-per-PC adapter, new phase API or duplicate algorithm was added.
+
+Three fade callers share the original fade worker; paired pulse initialization
+uses the existing two-object animation worker. Original nested JSR frames and
+ordered reads/writes remain. Rewritten RTS targets hand off at the actual PC;
+remaining E0B9 children retain their real frames, unwind and post-child guards.
+Historical sound-named public APIs remain compatible; these ROM operations
+control fade state0581/0582. Internal helper naming now states that meaning.
+The shared fade body and nine other motion/animation/particle bodies are
+unchanged. Native admission keeps PB/DB86,DP0,binary M1X0,S1F20..1FFC.
+
+One final frozen checkpoint:5,632direct ROM comparisons,2,816actual production
+ABI cases,196,608fade states covering all65,536stack positions per caller,
+1,024without-child cases,64direct+64ABI rewritten outer RTS frames,260guards,
+176child unwinds and440changed-state returns PASS. CPU,full WRAM,ordered
+guest data/MMIO,device state and child-entry snapshots match original ROM.
+165production redirect probes and zero fallbacks. Three independent wrong-ROM
+controls detected. The final12.75second combined proof covers all11affected
+module contracts; intermediate fixture failures were corrected and retained.
+
+Strict MSVC proof,Release game,standalone GCC/Clang C11 and metadata/index
+PASS. All32generated wrappers point to the eight actual production bridges;
+the generated selection contains1,970native entries. CLI binaries remain
+byte-identical; accepted CLI contract evidence reused. No full unchanged
+decomp suite, broad frame/APU replay or FPS claim. Eight foreign hashes intact.
+806WRAM definitions unchanged. Combined final sources tested; intermediate
+commits not independently tested. Tests/tools/ROM remain private; no push.
+Evidence:solo-scene-call-closure/ACCEPTANCE_RECEIPT.json.
+
 # Exact effect path reservations - 2026-10-24
 
 Six existing effect hooks use path-specific conservative clock reservations.
