@@ -2721,6 +2721,12 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_SLOT_STEPS)
 #include "effect_slot_clock.inc"
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_DISPATCH_STEPS)
+#include "effect_dispatch_clock.inc"
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_CLEANUP_STEPS)
+#include "effect_cleanup_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_WIDTH)
 #include "nmi_timer_clock_guard.inc"
 #include "primary_wave_clock.inc"
@@ -3700,6 +3706,13 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     interp_bridge_set_pre_opcode_hook(0x818ac1u, ActorBridgeEffectSlotStep);
     interp_bridge_set_pre_opcode_hook(0x818aaau, ActorBridgeEffectSlotStep);
     interp_bridge_set_pre_opcode_hook(0x818b1bu, ActorBridgeEffectSlotStep);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_DISPATCH_STEPS)
+    interp_bridge_set_pre_opcode_hook(0x818a95u, ActorBridgeEffectDispatchPrepare);
+    interp_bridge_set_pre_opcode_hook(0x818b08u, ActorBridgeEffectDispatchPrepare);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_CLEANUP_STEPS)
+    interp_bridge_set_pre_opcode_hook(0x818bfbu, ActorBridgeEffectClearBytes);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TRANSITION_STEPS)
     interp_bridge_set_pre_opcode_hook(0x848c91u, ActorBridgeSwirlRimStep);

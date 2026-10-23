@@ -105,6 +105,20 @@ function(lufia2_add_nmi_continuations target core_root)
                         APPEND PROPERTY COMPILE_DEFINITIONS
                             "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_SLOT_STEPS=1>")
                 endif()
+                include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleEffectDispatchSteps.cmake")
+                lufia2_battle_effect_dispatch_steps_available(_battle_effect_dispatch_steps)
+                if(_battle_effect_dispatch_steps)
+                    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                        APPEND PROPERTY COMPILE_DEFINITIONS
+                            "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_DISPATCH_STEPS=1>")
+                endif()
+                include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleEffectCleanupSteps.cmake")
+                lufia2_battle_effect_cleanup_steps_available(_battle_effect_cleanup_steps)
+                if(_battle_effect_cleanup_steps)
+                    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                        APPEND PROPERTY COMPILE_DEFINITIONS
+                            "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_CLEANUP_STEPS=1>")
+                endif()
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleQueueSteps.cmake")
                 lufia2_battle_queue_steps_available(_battle_queue_steps)
                 if(_battle_queue_steps)
@@ -531,6 +545,16 @@ function(lufia2_add_nmi_continuations target core_root)
                 if(_battle_effect_slot_steps)
                     string(REPLACE "${_hook_call}"
                         "                    if ((((pc_before & 0x7fffffu) != 0x018a7eu &&\n                          (pc_before & 0x7fffffu) != 0x018ac1u) ||\n                         step_cap - steps >= 14) &&\n                        (((pc_before & 0x7fffffu) != 0x018aaau &&\n                          (pc_before & 0x7fffffu) != 0x018b1bu) ||\n                         step_cap - steps >= 8)) {\n${_hook_call}\n                    }"
+                        _text "${_text}")
+                endif()
+                if(_battle_effect_dispatch_steps)
+                    string(REPLACE "${_hook_call}"
+                        "                    if (((pc_before & 0x7fffffu) != 0x018a95u &&\n                         (pc_before & 0x7fffffu) != 0x018b08u) ||\n                        step_cap - steps >= 9) {\n${_hook_call}\n                    }"
+                        _text "${_text}")
+                endif()
+                if(_battle_effect_cleanup_steps)
+                    string(REPLACE "${_hook_call}"
+                        "                    if ((pc_before & 0x7fffffu) != 0x018bfbu ||\n                        step_cap - steps >= 12) {\n${_hook_call}\n                    }"
                         _text "${_text}")
                 endif()
                 if(_decompress_steps)
