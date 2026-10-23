@@ -1,3 +1,45 @@
+# Four original empty-return contracts - 2026-10-23
+
+The two world-mode callbacks at86:973C/973D and idle scene handler86:A375
+are original empty RTS functions. Their C bodies preserve all state before
+the caller-owned return. The separate native interrupt entry80:86C0 reuses
+the exact existing RTI frame reader. Old NMI/world function bodies and public
+APIs remain identical; no game behavior is optimized away.
+
+The shared proof covers340,736 original-ROM/consumer-state cases:98,304
+binary-mode RTS cases through the actual whole-function return ABI,768
+rewritten RTS words,98,304 decimal-mode semantic/production-frame-helper
+cases, and143,360 native RTI cases including the unchanged86BF helper.
+All saved status bytes and every16-bit interrupt target are covered; four
+incoming width combinations, bank/DP variation, stack wrapping and a WMADD
+read case are included. CPU,fullWRAM,openbus,ordered data/MMIO and actual
+return targets agree. Host paired-frame inspection reads are excluded from
+RTS data traces only in safe WRAM; all actual guest return reads are compared.
+Fifteen entry guards pass. Wrong-boundary and missing-status faults are caught.
+
+The private oracle initially used zero as a no-target sentinel, which collided
+with valid RTI target00:0000. Only that RTI portion reran after correction;
+positive RTS evidence was retained. Decimal-mode cases test the semantic body
+and actual frame-return helper; the existing generic whole-function bridge
+retains its decimal fallback. Native semantic CPU means E=0; emulation-mode
+RTI is not claimed. Original RTS/RTI clocks are observed, but native clock or
+scheduler equivalence is not claimed by this state proof.
+
+All four complete contracts are verified, raising metadata to2,008 entries,
+with zero drafts. Ordinary bindings remain1,962. These tiny original bodies
+are not new gameplay algorithms or a performance gain. No production wrapper,
+hook or ordinary binding is added; original return/interrupt owners retain
+runtime execution until their temporal admission is independently established.
+
+Strict MSVC proof compilation, incremental GCC/Clang and the Windows decomp
+library build pass. Metadata index is current; generated consumer dispatch,
+production bridges and binding selection are unchanged. CLI executables and
+private fixture hashes retain their prior proof. A full application rebuild,
+full regression and another gameplay replay are deferred for these unactivated
+leaf contracts. No replay on this new revision is claimed. Existing active
+function bodies remain identical, and the affected legacy RTI is included in
+the new original-ROM/state-conversion matrix.
+
 # Complete equipment inventory scan operations â€” 2026-10-23
 
 The original inventory grouping owner now shares four complete operations:
