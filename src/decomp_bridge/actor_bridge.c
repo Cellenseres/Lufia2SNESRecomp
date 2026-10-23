@@ -2751,6 +2751,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 #if defined(LUFIA2_HAVE_NATIVE_DECOMPRESS_STEPS)
 #include "decompress_clock.inc"
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_DECOMPRESS_REFERENCE_STEPS)
+#include "decompress_reference_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_BACKGROUND_STEPS)
 #include "background_word_clock.inc"
 #endif
@@ -3745,6 +3748,14 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     interp_bridge_set_pre_opcode_hook(0x808f14u, ActorBridgeDecompressClock);
     interp_bridge_set_pre_opcode_hook(0x808fb8u, ActorBridgeDecompressClock);
 #endif
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_DECOMPRESS_REFERENCE_STEPS)
+    interp_bridge_set_pre_opcode_hook(0x808f44u, ActorBridgeDecompressReferenceClock);
+    interp_bridge_set_pre_opcode_hook(0x808fe8u, ActorBridgeDecompressReferenceClock);
+    interp_bridge_set_pre_opcode_hook(0x808f6fu, ActorBridgeDecompressReferenceClock);
+    interp_bridge_set_pre_opcode_hook(0x809013u, ActorBridgeDecompressReferenceClock);
+    interp_bridge_set_pre_opcode_hook(0x808f5cu, ActorBridgeDecompressReferenceClock);
+    interp_bridge_set_pre_opcode_hook(0x809000u, ActorBridgeDecompressReferenceClock);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_BACKGROUND_STEPS)
     interp_bridge_set_pre_opcode_hook(0x81ba59u, ActorBridgeBackgroundDecodeWord);

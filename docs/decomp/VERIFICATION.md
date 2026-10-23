@@ -1,3 +1,56 @@
+# Shared decompressor reference operations - 2026-10-23
+
+Reference header parsing, short references and long references now have
+shared semantic helpers in the existing80:8E9D decompressor. Its whole
+routine and finite continuations use the same operations. Repeated source
+reads, accumulator high bytes, PHX/PLX and PHY stack frames, scratch shifts
+and original high-byte-first16-bit ASL writes remain. Original MVN copying
+stays bytewise. No resource data or ROM table is embedded.
+
+Three new continuations stop at the original reference/copy boundaries:
+80:8F44 parses the header,8F6F handles a long reference,8F5C prepares MVN.
+Bank7F mirrors remain at+A4. Header/long entries requireM1X0; copy setup
+requiresM0X0. Width changes and exact continuation PCs remain visible.
+These are continuations of an existing canonical algorithm, not new function
+or binding counts. Unsupported native contexts preserve interpretation.
+
+Paced callbacks account every original fetch, data access and cycle. The
+consumer reserves512/768/256 master clocks and18/27/7 instructions. Existing
+physical1024-active/1364-blank fences, deadline, refresh, DMA and interrupt
+guards remain. Slow upper bounds472/744/216 include one40-master refresh;
+observed maxima448/702/208 stay within reservations. The last ROM-bank
+rollover is rejected before an unsupported read. Optional capabilities are
+independent: older three/five-phase libraries retain their existing paths.
+
+The shared checkpoint passes6,144 public semantic states,21 public guards,
+24,576 actual consumer hook cases and original next-instruction rejoins,
+four whole canonical and eight mixed resource compositions, and four
+overlapping MVN compositions. CPU, full WRAM, ordered fetch/data accesses,
+open bus, flags, widths, stack and clocks match interp816. This includes
+scratch/stack aliases and both destination banks.114 pre-access guards,
+72 admitted/144 rejected temporal edges,100,224 actual generated-capacity
+cases,11 capability variants and three in-memory ROM mutants pass. Longest
+original paths18/27/7 are observed. MSVC game, GCC/Clang C11 and metadata pass.
+
+Eighteen original helper/API bodies and the old phase clock remain identical.
+Changed reference composition is covered by the new ROM and whole-resource
+comparisons. Unchanged418 progress cases and ResourceFormat CLI evidence
+are reused; full regression is deferred. Two closing-brace blank lines were
+removed after proof with identical whitespace tokens; final builds use the
+cleaned source. No semantic or timing defect was found in this batch.
+
+The final frozen-input replay preserves all8,000 input/CPU/WRAM/pixel/PCM
+frames. Actual decoder work falls232562 to226855, exactly5707
+original instructions accounted by209 header,42 long and289 setup spans.
+Existing Timer and flag admissions, original actions/returns and4,306 paired
+children remain unchanged. ROM, SRAM and158 link inputs remain intact.
+Bank7F runtime use is not claimed here; its independent ROM cases pass.
+The legacy driver's raw exit6 and obsolete inline oracles remain explicit.
+This is scoped decoder evidence, not an FPS or whole-game completeness claim.
+
+Counts remain2,050 verified, zero drafts,1,962 ordinary bindings and806 WRAM
+records. Tests, fixtures, tools and ROM stay local; no push is performed.
+
 # Original decompressor flag continuations - 2026-10-23
 
 The existing 80:8E9D decompressor exposes two finite operations for flagged
