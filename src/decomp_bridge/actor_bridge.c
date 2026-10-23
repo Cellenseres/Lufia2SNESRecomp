@@ -3664,6 +3664,8 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_EQUIPMENT_GROUP_STEPS)
     interp_bridge_set_pre_opcode_hook(0x82bd70u, ActorBridgeEquipmentInventoryStep);
+    interp_bridge_set_pre_opcode_hook(0x82bd78u, ActorBridgeEquipmentInventoryStep);
+    interp_bridge_set_pre_opcode_hook(0x82bd82u, ActorBridgeEquipmentInventoryStep);
     interp_bridge_set_pre_opcode_hook(0x82bd8eu, ActorBridgeEquipmentInventoryStep);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_ITEM_RECORD_STEPS)

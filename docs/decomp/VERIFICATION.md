@@ -1,3 +1,41 @@
+# Complete equipment inventory scan operations â€” 2026-10-23
+
+The original inventory grouping owner now shares four complete operations:
+inspect an entry and skip empty records, count/select an occupied record,
+test equipment eligibility, and restore/advance the inventory index with
+its original loop decision. The four branch destinations remain literal.
+Original child calls and the final return retain their execution owners.
+Earlier public boundary helpers keep their exact existing behavior.
+
+Semantic game work remains in menu_list_sort.c. The consumer phase table
+contains only entry selection, original fetch/data timing and semantic
+function references. Taken-branch costs use the actual returned destination;
+no scratch or stack values are previewed. The indexed page-cross cost and
+word-RMW byte ordering remain exact. No ordinary function or binding count
+is added, and no instruction-semantics switch is introduced.
+
+The shared ROM/production-phase proof passes 450,816 states: 33,024 bank/
+flag states, 24,576 inventory states and 131,072 states each for the counter,
+record class and saved index. These cover every word value at both ROM
+speeds. CPU, full WRAM, open bus, ordered fetch/data accesses, clocks and
+branch destinations agree. The four entries pass 113 admission checks.
+The private guard selector was corrected to address all four entries; only
+the guards reran. Deliberate missing-branch-clock and wrong-target faults
+are detected. Canonical body expansion and old public helper bodies remain
+identical; shared item-clock source is unchanged, so its proof is retained.
+Strict MSVC, incremental GCC/Clang, isolated Windows integration and metadata
+index checks pass. Unchanged CLI executable/fixture hashes retain prior proof.
+No unrelated full regression is rerun. Proofs and fixtures stay private.
+
+One 7,200-frame replay matches CPU, full WRAM, pixels and PCM exactly with
+the preceding accepted equipment-phase baseline. Decoded instructions fall
+from 17,548 to 16,273. The longer operation guards admit 335 inspections,
+157 occupied-record selections, 167 classifications and 345 advances; the
+original child/return boundaries are retained. This is a replay-specific
+interpreter-work measurement, not a whole-game speed or completeness claim.
+Metadata remains 2,004 verified, zero draft, with 1,962 ordinary bindings.
+Tests, fixtures and probes stay private; nothing is pushed.
+
 # Equipment inventory loop continuations â€” 2026-10-23
 
 The verified 82:BD48 owner shares its inventory-entry read and index-advance

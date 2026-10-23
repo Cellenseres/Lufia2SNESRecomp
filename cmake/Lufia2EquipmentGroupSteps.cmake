@@ -7,8 +7,10 @@ function(lufia2_equipment_group_steps_available output)
         return()
     endif()
     file(READ "${_header}" _api)
-    if(NOT _api MATCHES "Lufia2MenuReadEquipmentInventoryEntry[(]" OR
-       NOT _api MATCHES "Lufia2MenuAdvanceEquipmentInventoryIndex[(]")
+    if(NOT _api MATCHES "Lufia2MenuInspectEquipmentInventoryEntry[(]" OR
+       NOT _api MATCHES "Lufia2MenuContinueEquipmentInventory[(]" OR
+       NOT _api MATCHES "Lufia2MenuSelectEquipmentInventoryRecord[(]" OR
+       NOT _api MATCHES "Lufia2MenuClassifyEquipmentInventoryRecord[(]")
         return()
     endif()
     file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/metadata/functions.toml" _metadata)
