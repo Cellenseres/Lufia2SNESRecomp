@@ -1,3 +1,39 @@
+# Shop operation entries — 2026-10-23
+
+Three complete original entries are verified: 82:DBC9 selects a shop operation,
+82:DFA5 performs the selected purchase, and 82:E290 selects its payment method.
+They reuse the original inline-table dispatcher and the existing verified
+sale, quantity, item, exchange and spell bodies. The two item-purchase table
+entries retain their distinct original indices. No copied ROM table, duplicate
+operation, instruction-per-PC loop or extra child return frame is introduced.
+
+A shared original-ROM comparison covers 8,864 states, and the actual production
+ABI covers the same union: 8,672 regular states and 192 live dispatch-hook
+states. All byte indices, both incoming accumulator widths, high accumulator
+bytes, supported bank aliases, known operations, unknown computed destinations,
+nested purchases and rewritten caller returns are covered. CPU, full WRAM,
+device state and ordered data accesses agree. The regular matrix includes
+3,404 child calls and 128 nested dispatch compositions; seven selected bodies
+and the shared table primitive remain byte-identical to their accepted proofs.
+The union has 1,008 returns, 6,192 boundary handoffs and 1,664 child unwinds.
+The production ABI also passes 21 admission guards and 210 child redirects.
+All four deliberate faults are detected. No semantic-source correction followed
+the first positive matrix. One private assertion was corrected to distinguish
+a hook-selected jump back to the entry from an admission fallback; only its
+192 affected hook cases were rerun, retaining the earlier green matrix.
+
+Strict MSVC, incremental GCC/Clang and isolated Windows Release are checked
+once for the combined batch and pass. CLI results reuse identical executable and private
+fixture hashes. The accepted 7,200-frame reference is reused after identity
+checks; only the candidate is replayed. Every CPU, WRAM, pixel and PCM hash agrees. The equipment replay does not
+visit these three shop roots: decoded instructions remain 22,075, so it does
+not establish a speedup or timing coverage of shop gameplay. No unrelated full regression or whole-game
+performance claim is made. Tests remain private, and nothing is pushed.
+
+Metadata: 2,004 verified functions, zero drafts and 801 WRAM fields. Native
+selection remains separate from verification; the consumer records bindings
+and preserves all eight earlier timing holds.
+
 # Menu tile, warp and shop-list entries — 2026-10-23
 
 Three original JSR contracts now have complete verified C and native bindings:
