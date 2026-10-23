@@ -1,3 +1,33 @@
+Compiler checkpoint:strict MSVC proof, incremental GCC/Clang libraries and
+isolated Windows decomp library PASS. CLI binaries/private fixture unchanged;
+prior CLI proof reused. Actual consumer regeneration reuses nine verified bank
+outputs; dispatch SHA remains unchanged. Existing effect-flow bodies match
+the previous committed source after the declaration-only include is removed.
+Full application link, full regression and new playback are deferred for the
+unbound pair. No result on a new runtime revision is implied.
+
+# Empty battle effect command returns - 2026-10-23
+
+Original effect opcodes23 and53 select separate empty RTS handlers81:9662
+and81:9934. Both now have complete semantic return contracts. CPU/memory
+state remains unchanged before the caller-owned RTS. Guest return words stay
+live; no instruction timing, scheduler ownership or original trap is removed.
+Existing effect-flow bodies and production bridges/bindings remain unchanged.
+
+Shared original-ROM/actual-consumer-return proof:82,432 cases. All256 status
+bytes, five safe WRAM stacks including16-bit stack wrap,16return words and
+paired/unpaired returns are covered for both bodies.512rewritten return
+frames, six wrong-bank guards and one injected wrong-boundary fault pass.
+CPU,fullWRAM,openbus,ordered return reads and destinations agree. Decimal
+states use the semantic API and existing production frame-return helper;
+the generic whole-function bridge retains its decimal fallback. Native E0
+contract only; no emulation-mode or scheduler-clock equivalence claimed.
+
+These are tiny real original bodies, not additional gameplay algorithms or
+a measured speedup. No ordinary runtime binding, wrapper or automatic
+EffectKnownCommand activation is added. Metadata:2,010verified/zero drafts;
+1,962 ordinary bindings unchanged. Tests and fixtures stay private.
+
 # Four original empty-return contracts - 2026-10-23
 
 The two world-mode callbacks at86:973C/973D and idle scene handler86:A375
