@@ -3,6 +3,8 @@
 #include "cpu_state.h"
 #include "lufia2/decomp.h"
 #include "lufia2/world_scene_timed_motion.h"
+#include "lufia2/world_scene_timed_windows.h"
+#include "lufia2/world_scene_particle_commands.h"
 #include "lufia2/menu_party_actions.h"
 #include "lufia2/menu_inventory_groups.h"
 #include "lufia2/menu_equipment_commands.h"
@@ -17533,4 +17535,54 @@ RecompReturn Lufia2DecompBridge_86BE2A(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_86C1CC(CpuState *cpu) {
     return ActorBridgeWorldSequence(cpu, 0x86c1ccu,
         Lufia2WorldMapSetSceneSoundMode1, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86B60D(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b60du,
+        Lufia2WorldMapStartRisingSceneActor, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86BEE6(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86bee6u,
+        Lufia2WorldMapStepTrailingSceneParticles, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86C0AC(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86c0acu,
+        Lufia2WorldMapStepOrbitingSceneParticles, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86B24C(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b24cu,
+        Lufia2WorldMapReduceSceneSparkEmission, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86B250(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b250u,
+        Lufia2WorldMapBeginSceneColorRise, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86B259(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b259u,
+        Lufia2WorldMapBeginSceneColorFall, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86B2E7(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b2e7u,
+        Lufia2WorldMapPrepareSceneWindowCollapse, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86BF3B(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86bf3bu,
+        Lufia2WorldMapSpawnTrailingSceneParticle, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86C1B4(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x86c1b4u);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x86c1b4u,
+        Lufia2WorldMapFindOrbitSceneParticleSlot, NULL, 2u,
+        BATTLE_BRIDGE_M1X0, 0, 0x86, 0);
 }

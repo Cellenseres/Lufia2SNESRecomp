@@ -1,3 +1,36 @@
+# Finite scene and particle native entries - 2026-10-24
+
+Nine complete existing C routines are now selected as ordinary native entries:
+86:B60D,BEE6,C0AC,B24C,B250,B259,B2E7,BF3B,C1B4. These cover rising actors,
+trailing/orbit particles, finite color/window-record state and particle-slot
+allocation. Semantic sources are unchanged; no new canonical functions,
+phase APIs or instruction-per-PC adapters. Bindings1,970->1,979;
+2,050verified/zero drafts/806WRAM unchanged. Child remainsa2f5d89.
+
+Combined actual production-ABI checkpoint:84,736original-ROM comparisons,
+212entry guards,128child unwinds,320changed-state returns and four detected
+wrong-ROM controls. An additional768parent compositions execute160actual
+nested BF3B/C1B4 production bridge calls on the native side; original roots
+remain the comparison. CPU/fullWRAM/ordered data+MMIO/device state/child
+snapshots agree;75ordinary redirect probes,zero fallback. Orbit search has
+no child, so inherited no-op child-test loops are excluded from these totals.
+Window C54B compositions cover actual six record indices0..5. A random
+out-of-range synthetic index overwrote the original return frame and reached
+a wait; that rejected fixture is retained. No game bug or runtime index check
+was changed. Existing arbitrary-field child-contract proof is retained, and
+redirected-return/changed-state/unwind handling is tested at production ABI.
+
+Strict MSVC C11 proof and Release game PASS. All36new generated wrappers
+reference the nine actual bridges; generated selection contains1,979entries.
+Unchanged semantic sources and shared bridge prefix retain GCC/Clang/direct
+proofs. Generated timing-capacity block is identical; existing capacity/
+progress proofs reused. CLI binaries and contract evidence unchanged. No
+full unchanged suite, broad frame/APU replay, FPS or whole-ROM coverage claim.
+Original waits974F,sound/SPC/APU and timing-held owners remain untouched.
+Foreign hashes intact; only consumer code/bindings/verification note changed.
+Combined final state tested; tests/tools/ROM private, no pushes. Evidence:
+solo-scene-particles/ACCEPTANCE_RECEIPT.json.
+
 # Original scene call closure - 2026-10-24
 
 Eight complete timed world-scene callbacks are now selected as ordinary native

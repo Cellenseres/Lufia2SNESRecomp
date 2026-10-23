@@ -7891,3 +7891,39 @@ bridge = "Lufia2DecompBridge_86BE2A"
 [[binding]]
 address = "86:C1CC"
 bridge = "Lufia2DecompBridge_86C1CC"
+
+[[binding]]
+address = "86:B60D"
+bridge = "Lufia2DecompBridge_86B60D"
+
+[[binding]]
+address = "86:BEE6"
+bridge = "Lufia2DecompBridge_86BEE6"
+
+[[binding]]
+address = "86:C0AC"
+bridge = "Lufia2DecompBridge_86C0AC"
+
+[[binding]]
+address = "86:B24C"
+bridge = "Lufia2DecompBridge_86B24C"
+
+[[binding]]
+address = "86:B250"
+bridge = "Lufia2DecompBridge_86B250"
+
+[[binding]]
+address = "86:B259"
+bridge = "Lufia2DecompBridge_86B259"
+
+[[binding]]
+address = "86:B2E7"
+bridge = "Lufia2DecompBridge_86B2E7"
+
+[[binding]]
+address = "86:BF3B"
+bridge = "Lufia2DecompBridge_86BF3B"
+
+[[binding]]
+address = "86:C1B4"
+bridge = "Lufia2DecompBridge_86C1B4"
