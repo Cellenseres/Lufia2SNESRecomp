@@ -1,3 +1,37 @@
+# Battle script group-stat commands - 2026-10-23
+
+Original commands13/14/15/4E now average or write selected battler stat words
+inside existing bound85:B452. The missing C1C7/C23F algorithms are reconstructed
+with shared C099 offset/C168 battler/DC6F division semantics. The six-bit
+mask walk, side selection, operand-fetch widths, ordered bus access and exact
+call frames are retained. The original TDC contribution to the high sum stays
+visible, including nonzero-DP behavior. Empty selections retain original
+BRK continuations C23E/C28E and their overlapping following entry bytes.
+One catalogued six-byte transfer record at7F:FAA6 names value/offset/mask;
+no overlapping definitions or new wrappers, standalone entries or bindings.
+Metadata2050verified/zero drafts;1962ordinary bindings;803WRAM locations.
+Battle table now66recognized/19nontrap gaps/8originalBRK out of93.
+
+Shared81920original-ROM cases:40960direct +40960actual production ABI.
+Four single-operation variants and mixed scripts, first24ROM stat indices,
+variable selectors, explicit0/1/7FFF/8000/FFFE/FFFFstat values, zero/one/
+many-battler masks on both sides, incoming status variations, DP0/32, four
+mirror DBs, both ends and host return modes0/3/2 are covered. Observed group
+paths:18158zero,53994single,46072multiple;35128original divider calls.
+CPU/fullWRAM/ordered guest data+MMIO and device registers agree.18158cases
+rejoin the actual original BRK and compare CPU/vector/stack/fullWRAM/raw
+bus events/openbus afterward. Fetch-owned pre-BRK openbus is not compared;
+normal-return openbus is. Safe host frame-inspection peeks alone are excluded.
+Four wrong-ROM controls (mask walk, high sum, store address, battler source)
+are detected. Production semantics needed no correction after proof runs;
+the final private matrix adds explicit value edges and path counters.
+All old VM helpers/cases are identical outside exact additions. Compiler
+checkpoint passes strictMSVC/GCC/Clang/isolated Windows library builds.
+The single new WRAM record rebuilt dependent library objects once. CLI binaries
+retain prior accepted hashes and contract proofs. No full unchanged regression,
+game link/replay, asynchronous scheduler/APU or FPS claim. Tests stay private.
+Evidence:.agent/decomp/battle-script-stats-next/ACCEPTANCE_RECEIPT.json.
+
 # Battle script party-byte commands - 2026-10-23
 
 Original operations44/45/46 now write/read a selected party-record byte and
