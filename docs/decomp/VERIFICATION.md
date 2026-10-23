@@ -1,3 +1,46 @@
+# Equipment rows and member selection — 2026-10-23
+
+Three missing original functions are reconstructed: 82:8579 renders an
+inventory list, 82:859B renders one equipment row, and 82:9A14 cycles the
+active member. The list and row entry share one semantic renderer. The
+original sentinel discards the row's incoming return frame and ends the
+outer loop; a zero row count still wraps through 65,536 iterations. Member
+cycling retains signed byte comparisons, including invalid indices and
+zero counts. Only the original portrait-list fields are copied.
+
+The shared direct ROM matrix passes 15,577 states, including the complete
+zero-count loop, all relevant branches and seven child sites. It covers
+15,365 returns, 176 context handoffs, 36 child unwinds, 168,766 child calls,
+512 new-renderer compositions and 4,466 independently executed original
+string/member children. CPU, full WRAM, devices and ordered data agree;
+instruction fetches are excluded. Two existing row-setup callers are included.
+The 23 earlier function/helper bodies remain byte-identical and reuse their
+accepted proofs. Four deliberately broken variants are detected.
+
+The actual ABI proof covers the same state union in two checkpoint fragments:
+14,296 unchanged ordinary/boundary/live-field cases plus a corrected 1,281-case
+composition tail. Its 36 guards and 165 redirects pass. The initial real-string
+fixture had an arbitrary tile destination that overwrote its own RTL frame;
+only those composition fixtures were corrected to original UI destinations.
+No C reconstruction changed, and the already green ABI groups were retained.
+A further 1,024 targeted cases independently check live return targets after
+stack relocation, including the sentinel's nonlocal return.
+
+MSVC, incremental standalone GCC/Clang and the isolated Windows Release build
+pass. CLI executable and fixture hashes are unchanged, so accepted CLI checks
+are reused. The final 7,200-frame equipment replay adds original L/R inputs
+and matches every input, CPU, WRAM, pixel and PCM hash. The member owner runs
+twice and the list owner six times; its row body runs internally through the
+shared C renderer. The separate row bridge is verified synthetically, not
+claimed as an observed runtime bounce. Actual decoded instructions fall from
+25,004 to 24,092 in this sample; this is not a whole-game or FPS measurement.
+
+Metadata: 1,988 verified functions, zero drafts, 801 WRAM fields and 1,947
+selected bindings. The five earlier timing holds remain unchanged. There is
+no unrelated full regression, no push, no committed tests or ROM, and no
+change to the owner's build or concurrent work. The catalogue is refreshed
+after the atomic semantic and integration commits.
+
 # Equipment commands and list scrolling — 2026-10-23
 
 Nine missing original functions are reconstructed in menu_party_actions.c:
