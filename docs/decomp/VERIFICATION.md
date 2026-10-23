@@ -1,3 +1,37 @@
+# Exact effect path reservations - 2026-10-24
+
+Six existing effect hooks use path-specific conservative clock reservations.
+The C algorithms and opcode timing arrays remain byte-identical. Advance,
+inactive, expired and running slots reserve218/278/206/390master; script
+and actor dispatch reserve288/278. Eligible bus accesses take at most8master,
+internal cycles6; each bound includes one40master refresh and is attained
+by original-ROM execution. The1024active/1364blank fences remain unchanged.
+Slot lookahead follows mode, RAM identity and legal index checks. Dispatch
+still stops before the original FC JSR and preserves paired-child ownership.
+
+Shared checkpoint:9,216 actual ROM spans and9,216 next-opcode rejoins,
+246 pre-access guards,2,880 admitted/2,880 rejected temporal states and three
+detected private guard mutants. CPU, full WRAM, ordered bus, flags, stack,
+opcode cycles, master cycles, refresh, beam and progress agree with interp816.
+MSVC Release game and private observers PASS. Byte-identical semantic C11,
+metadata,63,744 generated-capacity/16capability cases and418progress/CLI
+evidence reused by pinned dependencies; no repeated full regression.
+
+Final frozen8,000 input/CPU/WRAM/pixel/PCM frames are identical. Decoded
+original instructions fall193,337 to167,172:26,165 fewer, exactly matching
+additional native effect opcodes. All20prior admission rows,4,459fullswirl
+rows/80,288opcodes,58whole ripple calls and4,306paired-child events remain.
+Read-only prior-guard evaluations retain every old admission and match the
+six prior actual survey admission counts. These evaluations are explicitly
+counterfactual, not new historical captures. ROM, SRAM and158frozen link
+inputs remain unchanged. Historical rawdriverexit6 remains explicit; scoped
+comparison gates pass. No FPS or complete-ROM coverage claim.
+
+No new canonical functions/bindings:2,050verified/0draft/1,962bindings/
+806WRAM unchanged. Consumer-only batch; child remains8cd46ed. Evidence:
+solo-effect-path-bounds/ACCEPTANCE_RECEIPT.json. Tests/tools/ROM private;
+no pushes. SOLO only.
+
 # Original swirl row phases - 2026-10-24
 
 The existing84:8BC7 transition shares Mode7 sine sampling, product addition

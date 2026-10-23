@@ -1,6 +1,8 @@
 #include "lufia2/battle_effect_slot_steps.h"
 
-enum { EFFECT_DISPATCH_PREPARE_BUDGET = 320u };
+static unsigned EffectDispatchPrepareBudget(uint32_t entry) {
+    return entry == 0x818b08u ? 278u : 288u;
+}
 
 static bool EffectDispatchPrepareClockSupported(const CpuState *cpu,
                                                  uint32_t entry) {
@@ -13,14 +15,14 @@ static bool EffectDispatchPrepareClockSupported(const CpuState *cpu,
         cpu->ram[0xc5u] != 0x95u || !(cpu->ram[0xc4u] & 0x80u) ||
         !Lufia2DecompFrameReturnCpuReady() ||
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
-        cpu->master_cycles > UINT64_MAX - EFFECT_DISPATCH_PREPARE_BUDGET ||
+        cpu->master_cycles > UINT64_MAX - EffectDispatchPrepareBudget(entry) ||
         !g_snes)
         return false;
+    const unsigned budget = EffectDispatchPrepareBudget(entry);
     const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
         ? 1024u : 1364u;
     if (!ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, false,
-            fence - EFFECT_DISPATCH_PREPARE_BUDGET - 1u,
-            EFFECT_DISPATCH_PREPARE_BUDGET))
+            fence - budget - 1u, budget))
         return false;
     uint64_t phase, clock;
     snes_refresh_state_get(&phase, &clock);

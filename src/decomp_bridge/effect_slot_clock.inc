@@ -1,6 +1,21 @@
 #include "lufia2/battle_effect_slot_steps.h"
 
-enum { EFFECT_SLOT_STEP_BUDGET = 448u, EFFECT_SLOT_COUNTER_ADDRESS = 0x15ebu };
+enum {
+    EFFECT_SLOT_ADVANCE_BUDGET = 218u,
+    EFFECT_SLOT_IDLE_BUDGET = 278u,
+    EFFECT_SLOT_EXPIRED_BUDGET = 206u,
+    EFFECT_SLOT_RUNNING_BUDGET = 390u,
+    EFFECT_SLOT_COUNTER_ADDRESS = 0x15ebu
+};
+
+static unsigned EffectSlotClockBudget(const CpuState *cpu, bool advance) {
+    if (advance)
+        return EFFECT_SLOT_ADVANCE_BUDGET;
+    if (!cpu->ram[cpu->Y])
+        return EFFECT_SLOT_IDLE_BUDGET;
+    return cpu->ram[cpu->Y + 1u] == 1u
+        ? EFFECT_SLOT_EXPIRED_BUDGET : EFFECT_SLOT_RUNNING_BUDGET;
+}
 
 static bool EffectSlotClockSupported(const CpuState *cpu, uint32_t entry,
                                      bool actors, bool advance) {
@@ -8,12 +23,12 @@ static bool EffectSlotClockSupported(const CpuState *cpu, uint32_t entry,
         ? (advance ? 0x818b1bu : 0x818ac1u)
         : (advance ? 0x818aaau : 0x818a7eu);
     if (entry != expected || cpu->m_flag != 1u || cpu->x_flag ||
-        cpu->DB != 0x7eu || cpu->D || cpu->_flag_D ||
+        cpu->DB != 0x7eu || cpu->D || cpu->_flag_D || !cpu->ram ||
         (cpu->host_return_valid != 0u && cpu->host_return_valid != 2u &&
          cpu->host_return_valid != 3u) ||
         !Lufia2DecompFrameReturnCpuReady() ||
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
-        cpu->master_cycles > UINT64_MAX - EFFECT_SLOT_STEP_BUDGET || !g_snes)
+        !g_snes || g_snes->ram != cpu->ram)
         return false;
     const unsigned base = actors ? 0x54b7u : 0x4f8fu;
     const unsigned stride = actors ? 0x2du : 0x2cu;
@@ -21,10 +36,13 @@ static bool EffectSlotClockSupported(const CpuState *cpu, uint32_t entry,
     if (cpu->Y < base || (cpu->Y - base) % stride ||
         (cpu->Y - base) / stride >= slots)
         return false;
+    const unsigned budget = EffectSlotClockBudget(cpu, advance);
+    if (cpu->master_cycles > UINT64_MAX - budget)
+        return false;
     const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
         ? 1024u : 1364u;
     if (!ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, false,
-            fence - EFFECT_SLOT_STEP_BUDGET - 1u, EFFECT_SLOT_STEP_BUDGET))
+            fence - budget - 1u, budget))
         return false;
     uint64_t phase, clock;
     snes_refresh_state_get(&phase, &clock);
