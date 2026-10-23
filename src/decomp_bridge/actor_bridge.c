@@ -1144,15 +1144,22 @@ typedef struct ActorPushedCall {
     RecompReturn unwound;
 } ActorPushedCall;
 
+static uint32_t ActorBridgePushedReturnPc(uint32_t site, uint8_t frame_size) {
+    if (frame_size == 2u && (site & 0x7fffffu) == 0x058f3bu)
+        return (site & 0xff0000u) | 0x8f3cu;
+    if (site == 0x8192e4u)
+        return 0x8192e7u;
+    return (site & 0xff0000u) |
+        (uint16_t)(site + (frame_size == 3u ? 4u : 3u));
+}
+
 /* The portable caller has already pushed the child's call frame. */
 static uint8_t ActorBridgePushedChild(
     void *context, Lufia2CpuState *state, uint32_t target,
     uint32_t site, uint8_t frame_size) {
     ActorPushedCall *call = (ActorPushedCall *)context;
     const uint16_t post_s = (uint16_t)(state->stack + frame_size);
-    const uint32_t landing = site == 0x8192e4u ? 0x8192e7u :
-        (site & 0xff0000u) |
-        (uint16_t)(site + (frame_size == 3u ? 4u : 3u));
+    const uint32_t landing = ActorBridgePushedReturnPc(site, frame_size);
     uint32_t return_pc24 = landing;
     RecompReturn result;
 

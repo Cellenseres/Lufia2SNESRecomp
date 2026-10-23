@@ -1,3 +1,29 @@
+# Original timer PEA/RTS landings - 2026-10-23
+
+The semantic NMI owner's optional child service now includes its original
+timer caller. At 85:8F3B the transfer is RTS after PEA8F3B and a pushed
+handler destination; the child's return is 85:8F3C. The consumer recognizes
+that exact two-byte frame, including its bank05 mirror, instead of treating
+the site as a three-byte JSR. Existing JSR/JSL, special and wrapped return
+landings retain their previous behavior. No guest stack read is added.
+
+The same combined source checkpoint verifies 2,181 caller, 133 full NMI,
+432 affected default-owner and 252 actual pushed-dispatch ABI cases. The
+ABI proof uses the actual core dispatch body with native/interpreted child
+backends, nonlocal results and SP/PC mismatches. Three ROM mutation controls
+are detected. The normal 85:8DC5 exit metadata is corrected to M1X0 from
+the original REP10/PLB/RTL path; entry remains M1X1. Windows, GCC/Clang,
+metadata and the actual CLI's 680-resource ROM check pass.
+
+The final 8,000-frame comparison preserves all input/CPU/WRAM/pixel/PCM
+bytes, 4,306 original paired children and existing Timer admissions.
+Decoder census remains 244,893. Legacy raw exit6 remains explicit, with
+independent original action/return checks. ROM, SRAM and frozen link inputs
+remain unchanged. Normal NMI admission and the default bridge are unchanged;
+this is no new production handler activation or whole-game performance claim.
+Unchanged helper/capacity/progress proofs are reused; full regression is
+deferred. Tests, fixtures, observers and ROM remain private.
+
 # Exact transition reservations — 2026-10-23
 
 The existing transition C phases at84:8C91 and84:8CDD keep their complete
