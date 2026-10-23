@@ -1,3 +1,47 @@
+# Battle script state commands - 2026-10-23
+
+Seven original battle-script operations (51,52,53,54,5A,5B,5C) are now
+reconstructed directly in the existing 85:B452 VM. They update result flags,
+queue action codes9/25 with byte arguments, set the existing fade value,
+store the direct-page low byte at F8A5, and request alternate action handling.
+No additional standalone functions, entry adapters or bindings were added.
+The existing production B452 binding uses these new cases.
+
+Original table B483..B53C contains93 documented routes. Native cases increase
+from52 to59; eight routes retain original BRK behavior and26 distinct
+nontrap routes still lack a case. The latter are recorded as candidates,
+with helper/body ownership and child contracts still to investigate. The
+existing unknown-route boundary B470, unchecked table behavior and4096
+dispatch checkpoint are unchanged. No whole-VM completeness claim.
+
+Shared original-ROM checkpoint:32,768 cases (16,384 direct +16,384 actual
+production ABI), covering seven single-operation scripts and mixed scripts.
+All byte operands, conditional flags, word-mask edge values, incoming status
+variations, DP0/32, four WRAM-mirror banks, both end forms, and paired/
+unpaired/mismatched return modes are represented. CPU/fullWRAM, ordered
+guest data/MMIO and openbus agree. The existing host-owned PB restoration
+is checked at its proper boundary: native bridge PB85 and original RTL
+target81:FAEC, with original frame bytes/return destination checked.
+Safe two/three-byte host return inspection peeks are excluded from guest
+data traces; actual return reads remain compared. No full dispatcher timing
+or asynchronous APU equivalence is inferred from this boundary proof.
+Three independent wrong-ROM controls (flag/action/destination) are detected.
+Initial private-oracle reset-vector reads and far-return/inspection ownership
+were corrected before accepting the final proof binary. Production semantics
+did not require repairs after the original-ROM comparisons.
+
+All pre-existing VM source, helpers, cases, limits and boundaries are exactly
+identical after removing the seven additions. F4D0 is already inside the
+catalogued battle action-work record and uses a relative named field; no
+overlapping WRAM entry was added. One neutral F8A5 byte is newly catalogued.
+Metadata remains2,050 verified/zero drafts,1,962 ordinary bindings;802WRAM.
+
+One shared GCC/Clang/isolated Windows library checkpoint passes. The new WRAM
+macro required rebuilding dependent semantic objects once. Strict MSVC
+private proof passes. Resource CLI binaries are byte-identical to their prior
+accepted builds, so their contract proof is reused. No full unchanged
+regression, game link, runtime replay or FPS claim. Tests stay private.
+
 One shared incremental GCC/Clang/isolated Windows library checkpoint passed.
 CLI binaries remain byte-identical; prior contract results reused. No full
 unchanged regression, application link or runtime replay repeated.
