@@ -1,3 +1,52 @@
+# Battle timer and graphics-queue integration - 2026-10-23
+
+The existing verified primary-wave and ripple-row algorithms now run through
+paced memory callbacks at their original NMI timer entries85:A8E7/85:A736.
+They leave original RTS85:A932/A971/A76D, timer return85:8F3C and RTI intact.
+Owner admission reserves555/277 original instructions in the current NMI
+budget; short caps, quiescent callers and unsupported hardware retain the
+interpreter. Hardware-in-NMI need not mean physical VBlank. Coherent clocks,
+HDMA-off, no DMA/IRQ and sufficient distance before line225/wrap are required.
+No ordinary bridge guard was widened or wait shortened.
+
+The ripple semantic body explicitly reads fine-scroll before step and pattern
+before scroll. Previously C argument evaluation made that bus order compiler
+dependent. This restores original ordered reads, not a gameplay patch.
+
+Graphics queue85:ECDB now exposes begin/next-row boundaries from the same
+canonical search. Observed M0X0/DB97 fallback can use these paced phases.
+Free and full searches retain original RTL85:ECEF and BRK85:ECEE. Six-byte
+row stepping, original flags and all sixteen queue rows remain unchanged.
+The capability is source-and-target scoped; older roots retain prior behavior.
+No new canonical algorithm, metadata entry, ordinary binding or WRAM field.
+Totals remain2050verified/0draft/1962bindings/805WRAM.
+
+One combined final-source checkpoint, shared by the ensuing atomic commits:
+- Wave16384 ROM/hook states and originalRTS rejoins;38guards,8owner checks.
+- Ripple8192 ROM/hook states and originalRTS rejoins;512originalRTI suffixes,
+  35guards. Queue2224hook/2176phase/3264oldAPI-ROM/1112RTL,39+5guards.
+- CPU/fullWRAM/ordered fetch+data/openbus/opcode cycles/master/refresh agree.
+  Private frozen original-ROM negative controls retained:Wave2/Ripple4/Queue3.
+-2160focused NMI-owner budget/scope cases;10queue capability cases and target
+  isolation. StrictMSVC actual-TU proofs, full isolated Windows game, incremental
+  GCC/Clang semantic libraries and metadata index --check PASS.
+- One7260frame production-derived battle-command replay is byte-identical to
+  accepted control for input/CPU/WRAM/pixels/PCM. ROM/SRAM and158 pinned fresh
+  link inputs unchanged. Wave1/1, Ripple4/5 with the one lagged-clock entry
+  correctly interpreted; Queue17initial+36continuation admissions.
+  Actual suffix decoding210894->208809,2085fewer instructions. This is a
+  bounded command fixture, not whole-battle/Strong/FPS acceptance. Original
+  input wait, confirm and command RTS81:CC1F preserve their owner.
+
+Production bridge source, generated owner routing and canonical child sources
+were validated together. Initial private Wave harness capability/header
+omissions were corrected; successful Queue/Ripple checks were not repeated.
+Unchanged CLI/resource evidence reused by source/binary hashes; full regression
+deferred. Intermediate commits were not independently tested. Private receipts:
+parallel-integration-next/battle-timers/ACCEPTANCE_RECEIPT.json and
+parallel-battle-items-next/next-battle-discovery/timing-candidate/.
+Tests, ROM and private fixtures remain uncommitted; unrelated work preserved.
+
 # Actor fine-position timing integration - 2026-10-23
 
 The existing 83:A746 tile-to-fine-position algorithm can now run in its

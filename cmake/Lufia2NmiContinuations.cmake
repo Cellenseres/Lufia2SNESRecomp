@@ -70,6 +70,13 @@ function(lufia2_add_nmi_continuations target core_root)
             lufia2_frame_returns_available(_frame_returns ${target})
             if(_frame_returns)
                 list(APPEND _definitions LUFIA2_HAVE_NATIVE_FRAME_RETURNS=1)
+                include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleQueueSteps.cmake")
+                lufia2_battle_queue_steps_available(_battle_queue_steps)
+                if(_battle_queue_steps)
+                    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                        APPEND PROPERTY COMPILE_DEFINITIONS
+                            "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_QUEUE_STEPS=1>")
+                endif()
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2MenuFadeContinuations.cmake")
                 lufia2_menu_fade_continuations_available(_menu_fade_continuations)
                 if(_menu_fade_continuations)
@@ -474,9 +481,9 @@ function(lufia2_add_nmi_continuations target core_root)
                     "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/frame_return_cycles.inc\"\n")
                 if(_nmi_restore_width)
                     string(REPLACE "${_hook_call}"
-                        "                    {\n                        const int interrupt_owner = s_native_hook_interrupt;\n                        s_native_hook_interrupt = stop_on_rti && !auto_quiescent &&\n                            (pc_before & 0x7fffffu) == 0x008699u;\n${_hook_call}\n                        s_native_hook_interrupt = interrupt_owner;\n                    }"
+                        "                    {\n                        const int interrupt_owner = s_native_hook_interrupt;\n                        s_native_hook_interrupt = Lufia2DecompNmiHookHasOwner(\n                            pc_before, stop_on_rti, auto_quiescent, step_cap - steps);\n${_hook_call}\n                        s_native_hook_interrupt = interrupt_owner;\n                    }"
                         _text "${_text}")
-                    string(PREPEND _text "static int s_native_hook_interrupt;\n")
+                    string(PREPEND _text "#include <stdint.h>\nstatic int s_native_hook_interrupt;\nstatic int Lufia2DecompNmiHookHasOwner(uint32_t, int, int, long);\n")
                     string(APPEND _timing_suffix
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/nmi_owner.inc\"\n")
                 endif()

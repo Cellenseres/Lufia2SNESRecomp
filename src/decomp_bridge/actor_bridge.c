@@ -2715,8 +2715,16 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
                                                wide_accumulator, 800u, 256u);
 }
 #include "fixed_span_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_WIDTH)
+#include "nmi_timer_clock_guard.inc"
+#include "primary_wave_clock.inc"
+#include "ripple_clock.inc"
+#endif
 #include "inventory_search_clock.inc"
 #include "actor_fine_position_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_QUEUE_STEPS)
+#include "battle_queue_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_MENU_FADE_CONTINUATIONS)
 #include "menu_fade_clock.inc"
 #endif
@@ -3668,6 +3676,14 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
     interp_bridge_set_pre_opcode_hook(0x82fb94u, ActorBridgeInventorySearch);
     interp_bridge_set_pre_opcode_hook(0x83a746u, ActorBridgeActorFinePosition);
+#if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_WIDTH)
+    interp_bridge_set_pre_opcode_hook(0x85a8e7u, ActorBridgePrimaryWaveClock);
+    interp_bridge_set_pre_opcode_hook(0x85a736u, ActorBridgeRippleRowClock);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_QUEUE_STEPS)
+    interp_bridge_set_pre_opcode_hook(0x85ecdbu, ActorBridgeBattleQueueStep);
+    interp_bridge_set_pre_opcode_hook(0x85ecdeu, ActorBridgeBattleQueueStep);
+#endif
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_EQUIPMENT_GROUP_STEPS)
     interp_bridge_set_pre_opcode_hook(0x82bd70u, ActorBridgeEquipmentInventoryStep);

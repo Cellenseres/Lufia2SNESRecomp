@@ -1,5 +1,22 @@
 #include "nmi_owner.h"
 #include "host_events.h"
+#include <stdint.h>
+
+static int Lufia2DecompNmiHookHasOwner(uint32_t pc, int stop_on_rti,
+                                      int auto_quiescent, long opcodes_left) {
+    if (!stop_on_rti || auto_quiescent)
+        return 0;
+    switch (pc & 0x7fffffu) {
+    case 0x008699u:
+        return 1;
+    case 0x05a8e7u:
+        return opcodes_left >= LUFIA2_NMI_PRIMARY_WAVE_OPCODES;
+    case 0x05a736u:
+        return opcodes_left >= LUFIA2_NMI_RIPPLE_ROW_OPCODES;
+    default:
+        return 0;
+    }
+}
 
 bool Lufia2DecompNmiHasInterruptOwner(void) {
     return s_native_hook_interrupt != 0 && !s_pre_opcode_redirect_valid;
