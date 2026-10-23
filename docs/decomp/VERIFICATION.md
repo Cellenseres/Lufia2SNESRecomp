@@ -1,3 +1,44 @@
+# Equipment inventory loop continuations â€” 2026-10-23
+
+The verified 82:BD48 owner shares its inventory-entry read and index-advance
+operations with two original continuations. 82:BD70..BD76 saves X, writes the
+source offset and loads the item word; 82:BD8E..BD94 restores X, advances by
+two and compares with the original 192-byte inventory extent. Both branches,
+all child calls and final return remain under their original execution owners.
+Expanding the two helpers reproduces the canonical grouping body exactly.
+No original routine, ordinary binding or whole-game coverage count is added.
+
+A shared consumer clock accounts fixed instruction spans for these operations
+and the existing item getter phases. It contains timing and bus accounting,
+not game instruction semantics. The inventory load retains its extra cycle
+when X reaches 115 and the A8D,X access crosses a page. The original ROM
+comparison exposed this concrete uncertainty during the bundled checkpoint.
+
+The ROM/production-phase union covers 172,160 equipment states: 16,512 bank/
+flag cases, 24,576 inventory cases and 131,072 saved-index cases. Every saved
+16-bit X is tested at both ROM speeds. CPU, full WRAM, open bus, all fetch/
+data accesses and CPU/master clocks agree. Another 26,560 affected item
+states pass with the shared clock. Both paths pass 57 admission guards.
+Two deliberate equipment faults in the page clock and restored index are
+caught. The unaffected bank cases are retained; the actual page-cross fix
+reruns only the affected inventory/index/guard portion. Canonical owner
+proof is reused by helper-expanded body identity; unrelated full regression
+is deferred. Private tests and fixtures remain outside commits.
+
+Strict MSVC, incremental GCC/Clang and the isolated Windows Release build
+pass. Metadata index is current. Exact unchanged CLI executables and fixture
+hashes retain their prior proof. The grouping owner's 8,912-state ROM proof
+is reused after checking the helper-expanded body and relevant shared CPU,
+memory, execution and WRAM definitions against its accepted revision.
+
+One 7,200-frame equipment replay agrees exactly in CPU, full WRAM, pixels
+and PCM with the accepted item-phase baseline. The two continuations execute
+342 read phases and 353 index phases, reducing decoded instructions from
+19,986 to 17,548. The remaining branch/child/return owners stay original.
+This is a decoder-work observation for this replay, not an FPS claim.
+Metadata remains 2,004 verified, zero draft and 1,962 ordinary bindings.
+Nothing is pushed; unrelated sources and the owner build are preserved.
+
 # Item record read phases — 2026-10-23
 
 The verified 81:F194 getter shares two semantic phases with the consumer:
