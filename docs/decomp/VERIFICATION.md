@@ -1,3 +1,33 @@
+# Item record read phases — 2026-10-23
+
+The verified 81:F194 getter shares two semantic phases with the consumer:
+81:F194..F199 saves the caller status; 81:F19D..F1AA reads the resolved
+record and restores it. The original F199 JSL, F291 child and F1AA RTL keep
+their existing owners. These helpers add no metadata entry or binding count.
+Expanding the two helpers reproduces the canonical getter body exactly;
+all other item-record source is unchanged, retaining its earlier proof.
+
+The consumer accounts original fetches, data accesses and instruction clocks
+at their original boundaries. Safe mirror-bank contexts now execute these
+phases in C. IRQ, DMA, scanline, HDMA and scheduler boundaries retain fallback.
+The wider ordinary M0 getter bridge remains withheld; its native child already
+has different accounting from a fully interpreted ROM call.
+
+The shared proof covers 26,560 original-ROM states, both ROM speeds, all saved
+status bytes, 129 bank contexts and all admissible item pointers. It compares
+CPU, full WRAM, open bus, ordered fetch/data accesses and clocks. Another 57
+checks cover rejection contexts. Two deliberate clock/fetch faults are caught.
+The earlier 12,640-state whole-getter proof is reused by expanded-body identity.
+Strict MSVC, incremental GCC/Clang and isolated Windows integration pass.
+The CLI executables and fixtures are unchanged; their prior proof is reused.
+
+One 7,200-frame replay matches CPU, WRAM, pixels and PCM exactly. Decoded
+instructions fall from 22,075 to 19,986: 203 begin phases and 185 finish phases
+avoid 2,089 decoded operations. This measures interpreter work in that replay,
+not a whole-game performance percentage. No full regression was repeated.
+Metadata remains 2,004 verified, zero draft, with 1,962 ordinary bindings.
+Tests, fixtures and runtime probes remain private. Nothing is pushed.
+
 # Complete field event execution contract — 2026-10-23
 
 The 80:CC35 metadata entry now describes the complete bounded event-script
