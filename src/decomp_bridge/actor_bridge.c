@@ -2753,6 +2753,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TRANSITION_STEPS)
 #include "swirl_rim_clock.inc"
 #include "swirl_hdma_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_SWIRL_PARTS)
+#include "swirl_parts_clock.inc"
+#endif
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_DECOMPRESS_STEPS)
 #include "decompress_clock.inc"
@@ -3739,7 +3742,13 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TRANSITION_STEPS)
     interp_bridge_set_pre_opcode_hook(0x848c91u, ActorBridgeSwirlRimStep);
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_SWIRL_PARTS)
+    interp_bridge_set_pre_opcode_hook(0x848cddu, ActorBridgeSwirlHdmaDispatch);
+    interp_bridge_set_pre_opcode_hook(0x848ce7u, ActorBridgeSwirlPartClock);
+    interp_bridge_set_pre_opcode_hook(0x848cf3u, ActorBridgeSwirlPartClock);
+#else
     interp_bridge_set_pre_opcode_hook(0x848cddu, ActorBridgeSwirlHdmaRow);
+#endif
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_DECOMPRESS_STEPS)
     interp_bridge_set_pre_opcode_hook(0x808eefu, ActorBridgeDecompressClock);

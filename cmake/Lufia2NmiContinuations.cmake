@@ -65,6 +65,7 @@ function(lufia2_add_nmi_continuations target core_root)
     set(_decompress_flag_steps FALSE)
     set(_decompress_reference_steps FALSE)
     set(_battle_input_steps FALSE)
+    set(_battle_swirl_parts FALSE)
     set(_ripple_steps FALSE)
     if(_api MATCHES "Lufia2FrameWaitRestoreRegisters[(]" AND
        EXISTS "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h")
@@ -79,6 +80,13 @@ function(lufia2_add_nmi_continuations target core_root)
                     set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
                         APPEND PROPERTY COMPILE_DEFINITIONS
                             "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_RIPPLE_STEPS=1>")
+                endif()
+                include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleSwirlParts.cmake")
+                lufia2_battle_swirl_parts_available(_battle_swirl_parts)
+                if(_battle_swirl_parts)
+                    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                        APPEND PROPERTY COMPILE_DEFINITIONS
+                            "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_SWIRL_PARTS=1>")
                 endif()
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleInputSteps.cmake")
                 lufia2_battle_input_steps_available(_battle_input_steps)
@@ -577,6 +585,11 @@ function(lufia2_add_nmi_continuations target core_root)
                     string(PREPEND _text "#define LUFIA2_HAVE_NATIVE_RIPPLE_STEPS 1\n")
                     string(REPLACE "${_hook_call}"
                         "                    if (((pc_before & 0x7fffffu) != 0x05a736u ||\n                         step_cap - steps >= 15) &&\n                        ((pc_before & 0x7fffffu) != 0x05a74fu ||\n                         step_cap - steps >= 8) &&\n                        ((pc_before & 0x7fffffu) != 0x05a760u ||\n                         step_cap - steps >= 6)) {\n${_hook_call}\n                    }"
+                        _text "${_text}")
+                endif()
+                if(_battle_swirl_parts)
+                    string(REPLACE "${_hook_call}"
+                        "                    if (((pc_before & 0x7fffffu) != 0x048ce7u ||\n                         step_cap - steps >= 4) &&\n                        ((pc_before & 0x7fffffu) != 0x048cf3u ||\n                         step_cap - steps >= 12)) {\n${_hook_call}\n                    }"
                         _text "${_text}")
                 endif()
                 if(_battle_input_steps)

@@ -1,3 +1,41 @@
+# Original swirl row phases - 2026-10-24
+
+The existing84:8BC7 transition shares Mode7 sine sampling, product addition
+and row progression between full Rim/HDMA rows and three finite HDMA APIs.
+No new canonical functions or ordinary bindings. Original M1/M0 changes,
+upper accumulator byte, signed Mode7 multiplier/latch, decimal arithmetic,
+center reads, word writes and half-table progression remain literal.
+Timed phases3/4/12instructions reserve144/208/272master, including one40
+refresh. The prior complete18/19-instruction row stays preferred, and its
+19-step root reservation remains. New interior entries reserve4/12steps.
+Physical1024active/1364blank fences and all DMA/IRQ/NMI guards stay intact.
+
+A read-only guard survey first proved all8selected guard rejections in the
+prior8000scene were physical-window limits. Frames and decoded entries were
+identical; only two observer units rebuilt. No inferred bank/owner defect.
+Shared proof:40,960 public ROM states including complete Rim and HDMA rows,
+15 public guards;24,576 actual hooks and original-opcode rejoins,32 complete
+224-row mixed native/interpreted tables,120 pre-access guards,36 admitted/
+72 rejected temporal edges,63,744 actual generated-capacity cases,16 optional
+capability variants and three detected ROM mutants PASS. Includes decimal,
+DB/DP/indices, Mode7 signed operands/latch and all ordered bus effects.
+Older library retains its original full row and rejects the two new entries.
+MSVC game,GCC/Clang C11 and metadata PASS. Eight unchanged caller/row shells
+and prior ripple dependencies pinned;418progress/CLI evidence reused.
+Changed helpers covered by this batch; full regression deferred.
+
+Final frozen8000input/CPU/WRAM/pixel/PCM frames remain identical. Decoder
+work219833 to193337: exactly26496 fewer original instructions, from
+1949prepare5847ops,1614store6456ops and1290advance14193ops. All4459 prior
+whole rows/80288opcodes,17prior phase admissions and4306pairedchildren/
+actions/returns remain unchanged. ROM,SRAM and158linkinputs unchanged.
+Historical rawexit6 and obsolete inline oracles remain explicit. This is
+scoped decoder evidence, not an FPS or whole-ROM completeness claim.
+
+2050verified/0draft/1962bindings/806WRAM unchanged. Combined final sources
+tested; intermediate commits not separately tested. Receipt:solo-swirl-parts/
+ACCEPTANCE_RECEIPT.json. Tests/tools/ROM private, no push. SOLO only.
+
 # Bounded original ripple rows - 2026-10-23
 
 Existing verified85:A736 now shares preparation, one-byte row construction
