@@ -1,3 +1,36 @@
+# Actor fine-position timing integration - 2026-10-23
+
+The existing 83:A746 tile-to-fine-position algorithm can now run in its
+observed M1X1/DB83 interpreter fallback without taking over the parent.
+A timed memory interface reuses Lufia2ActorSyncFinePosition, accounts the
+22 original instructions and redirects to the original RTL at83:A76C.
+The normal bridge admission and canonical M1X0 metadata remain unchanged.
+No new algorithm body, public API, metadata entry or runtime binding.
+
+The previous unpaced widening also allowed the A82E parent to continue
+natively; its synthetic semantic pass did not establish timing equivalence.
+The new path preserves that original parent/unwind boundary, opcode fetches,
+two indexed-read page crossings, stack order, refresh and event fences.
+Unsupported CPU, index, clock, beam, interrupt, DMA and deadline states retain
+the original path. Original waits and interrupt behavior are not shortened.
+
+Combined final-source checkpoint:16384 ROM/production-hook states, each with
+an actual original RTL rejoin, plus35 untouched guards PASS. CPU,fullWRAM,
+ordered bus including fetch,open bus,CPU/master clocks and refresh agree.
+Two private in-memory ROM mutations are detected. Strict MSVC actual merged
+proof and incremental isolated full-game build PASS. Semantic C is unchanged;
+its prior GCC/Clang/CLI results are reused with unchanged source/library/hash
+evidence. No redundant full regression or owner build/windows build.
+
+One combined production-derived replay also gathers private read-only F194
+guard telemetry. All7200 CPU/WRAM/pixel/PCM/input frame hashes remain identical
+to the accepted unchanged control; SRAM is unchanged. Ten A746 admissions
+replace220 decoded instructions:14855 to14635 in this scenario. This is a
+decoder-count result, not a measured FPS or whole-game coverage improvement.
+Metadata2050verified/0draft,1962ordinary bindings and805WRAM fields unchanged.
+Tests/observers/ROM remain private; no push.
+Evidence:.agent/decomp/parallel-integration-next/actor-fine/ACCEPTANCE_RECEIPT.json.
+
 # Display fade continuation integration - 2026-10-23
 
 The existing verified display fades at 86:8B1C and 86:8B32 now expose their

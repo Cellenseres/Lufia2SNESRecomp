@@ -2716,6 +2716,7 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 }
 #include "fixed_span_clock.inc"
 #include "inventory_search_clock.inc"
+#include "actor_fine_position_clock.inc"
 #if defined(LUFIA2_HAVE_NATIVE_MENU_FADE_CONTINUATIONS)
 #include "menu_fade_clock.inc"
 #endif
@@ -3666,6 +3667,7 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
     interp_bridge_set_pre_opcode_hook(0x82fb94u, ActorBridgeInventorySearch);
+    interp_bridge_set_pre_opcode_hook(0x83a746u, ActorBridgeActorFinePosition);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_EQUIPMENT_GROUP_STEPS)
     interp_bridge_set_pre_opcode_hook(0x82bd70u, ActorBridgeEquipmentInventoryStep);
