@@ -1,3 +1,54 @@
+# Menu tile, warp and shop-list entries — 2026-10-23
+
+Three original JSR contracts now have complete verified C and native bindings:
+82:831A draws consecutive tile numbers across a rectangle; 82:B052 clears and
+redraws six warp rows; 82:E319 records a shop list pointer and increments its
+count. The two older private tile/shop helpers are replaced by single canonical
+bodies, which their capsule and shop callers reuse. No duplicate algorithm,
+branch-label alias or instruction-per-PC adapter is added.
+
+Tile drawing preserves live DP56/58 word counters, PHA/PLX and PHX/PLA row
+origins, sequential 7E:2000 writes, word wrap and the 64-byte row stride.
+Zero dimensions retain original word underflow instead of an early exit.
+Separate zero axes and overlapping live stack/scratch/return-frame states
+are verified; the literal both-zero loop is retained without brute-forcing
+four billion writes. Shop registration keeps the byte counter at DB:1542,
+DP08 word pointer and byte-offset X. Warp redraw retains both original child
+frames, accumulator widths, dynamic top row and exact handoff/unwind states.
+
+The shared direct ROM proof covers 14,064 states: a passing 13,312-state normal
+prelude, 720 corrected extended cases and 32 focused stack/scratch aliases.
+The actual production ABI covers 14,000 states: 13,968 in one matrix plus the
+32 aliases. Its 13,840 returns, 128 context handoffs and 32 child unwinds match
+CPU, full WRAM, device state and ordered data across both child sites, with
+8,880 child calls and 256 paired original child executions. Instruction fetch
+order is excluded. The extra 64 direct decimal cases are outside the consumer's
+binary-only gate. The ABI additionally passes 18 admission guards and 45 child
+redirects, including live rewritten parent returns.
+
+The unmodified seeded caller oracle verifies another 512 cases each for
+A2E3 capsule, E297 shop setup and 9CB2 warp list, including their bridge checks.
+Its existing cast/shadow warnings are scoped out only around the private legacy
+include; production sources retain strict compiler checks. All four deliberate
+faults are detected: row pitch, zero-size shortcut, word-sized shop counter and
+byte-truncated warp scroll. No semantic C correction followed the first
+positive matrix. One invalid synthetic successful-return PB mutation was
+replaced by a supported changed-DB case; earlier green states were retained.
+The 101 other existing function/helper bodies remain byte-identical.
+
+Strict MSVC, incremental GCC/Clang and isolated Windows Release pass. CLI
+checks reuse exact unchanged executable and fixture hashes. The prior accepted
+7,200-frame reference is reused after compiled/input identity checks; only the
+new candidate is run. Every input, CPU, WRAM, pixel and PCM hash agrees. This
+equipment replay does not visit the three new entries: decoded instructions
+remain 22,075 and no speedup is claimed. Their direct, ABI, composition and
+affected caller proofs provide their semantic coverage.
+
+Metadata: 2,001 verified functions, zero drafts, 801 WRAM fields and 1,957
+selected bindings. All eight prior timing holds remain. No unrelated full
+regression or whole-game timing claim is made. Owner build, foreign work,
+ROM and saved games stay unchanged; tests remain private.
+
 # Equipment picker flow — 2026-10-23
 
 Six real original JSR entries are reconstructed in menu_party_actions.c:
