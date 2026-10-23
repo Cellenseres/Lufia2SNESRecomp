@@ -2725,6 +2725,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_INPUT_STEPS)
 #include "battle_input_clock.inc"
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_RIPPLE_STEPS)
+#include "ripple_steps_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TIMER_STEPS)
 #include "battle_timer_clock.inc"
 #endif
@@ -3751,6 +3754,13 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     interp_bridge_set_pre_opcode_hook(0x808f14u, ActorBridgeDecompressClock);
     interp_bridge_set_pre_opcode_hook(0x808fb8u, ActorBridgeDecompressClock);
 #endif
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_RIPPLE_STEPS)
+#if !defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_WIDTH)
+    interp_bridge_set_pre_opcode_hook(0x85a736u, ActorBridgeRippleStepClock);
+#endif
+    interp_bridge_set_pre_opcode_hook(0x85a74fu, ActorBridgeRippleStepClock);
+    interp_bridge_set_pre_opcode_hook(0x85a760u, ActorBridgeRippleStepClock);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_INPUT_STEPS)
     interp_bridge_set_pre_opcode_hook(0x85ec9au, ActorBridgeBattleInputClock);

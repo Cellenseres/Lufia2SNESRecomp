@@ -1,3 +1,44 @@
+# Bounded original ripple rows - 2026-10-23
+
+Existing verified85:A736 now shares preparation, one-byte row construction
+and completion between whole C and finite A736/A74F/A760 operations.
+No new canonical functions or ordinary bindings. Original phase-before-PHX,
+TDC high accumulator byte, repeated scroll reads, ADC decimal semantics,
+counter RMW, bank/register stack and final A76D RTS remain. Timed binary
+DP0 phases reserve15/8/6 instructions and448/272/272 master clocks;
+observed maxima358/246/244. Other states retain original interpretation.
+The original277-opcode NMI whole hook remains preferred. Two new8/6-opcode
+NMI owners require its exact8F3B timer frame beneath three saved bytes;
+the finite prefix hook is used only without the legacy NMI capability.
+
+Shared checkpoint:24,576 public ROM states,18 public guards,1,024 canonical
+whole and1,024 mixed-phase compositions;49,152 actual hooks and original
+opcode rejoins,103 pre-access guards,36 admitted/72 rejected temporal
+edges,72,576 generated capacity cases,14 capability variants and three
+detected ROM mutants PASS. Includes decimal, DB/DP and stack/scratch aliases.
+A further12,288 NMI hooks/rejoins,48 NMI guards and107,712 actual owner
+gates PASS, including unchanged277-step root ownership. A further107,712
+feature-disabled owner gates retain the old behavior.
+MSVC game, GCC/Clang C11 and metadata PASS. Nine other wave bodies and prior
+input dependencies remain unchanged.418 progress and CLI evidence reused;
+full regression deferred. A generated-capacity target-variable mistake was
+corrected before replay. The first replay then exposed lost whole NMI
+admissions; it was rejected despite equal frames. Preserving that root and
+adding narrowly framed NMI row/finish owners fixes the integration. Ordinary
+proofs remain valid; the unchanged generated hook block is hash-checked.
+
+All8,000 final input/CPU/WRAM/pixel/PCM frames remain identical. Actual
+hook decoder work225311 to219833: exactly5478 fewer original instructions,
+fully accounted by the new native spans. All14 prior phase admissions,58 original whole ripple calls and
+4,306 paired children/actions/returns remain unchanged. ROM, SRAM and158
+link inputs unchanged. Historical rawexit6 and obsolete inline oracles
+remain explicit. No FPS or whole-ROM completeness claim.
+
+2,050 verified, zero drafts,1,962 bindings and806 WRAM records unchanged.
+Combined final sources tested; intermediate commits not separately tested.
+Receipt:solo-ripple-rows/ACCEPTANCE_RECEIPT.json. Tests/tools/ROM private;
+no pushes. SOLO only.
+
 # Battle frame input continuations - 2026-10-23
 
 Existing verified85:EC81 shares original pause-entry, pause-exit and pad

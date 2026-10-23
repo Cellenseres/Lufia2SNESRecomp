@@ -65,6 +65,7 @@ function(lufia2_add_nmi_continuations target core_root)
     set(_decompress_flag_steps FALSE)
     set(_decompress_reference_steps FALSE)
     set(_battle_input_steps FALSE)
+    set(_ripple_steps FALSE)
     if(_api MATCHES "Lufia2FrameWaitRestoreRegisters[(]" AND
        EXISTS "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h")
         file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h" _menu_api)
@@ -72,6 +73,13 @@ function(lufia2_add_nmi_continuations target core_root)
             include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2FrameReturns.cmake")
             lufia2_frame_returns_available(_frame_returns ${target})
             if(_frame_returns)
+                include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleRippleSteps.cmake")
+                lufia2_battle_ripple_steps_available(_ripple_steps)
+                if(_ripple_steps)
+                    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                        APPEND PROPERTY COMPILE_DEFINITIONS
+                            "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_RIPPLE_STEPS=1>")
+                endif()
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleInputSteps.cmake")
                 lufia2_battle_input_steps_available(_battle_input_steps)
                 if(_battle_input_steps)
@@ -564,6 +572,12 @@ function(lufia2_add_nmi_continuations target core_root)
                     string(PREPEND _text "#include <stdint.h>\nstatic int s_native_hook_interrupt;\nstatic int Lufia2DecompNmiHookHasOwner(uint32_t, int, int, long);\n")
                     string(APPEND _timing_suffix
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/nmi_owner.inc\"\n")
+                endif()
+                if(_ripple_steps)
+                    string(PREPEND _text "#define LUFIA2_HAVE_NATIVE_RIPPLE_STEPS 1\n")
+                    string(REPLACE "${_hook_call}"
+                        "                    if (((pc_before & 0x7fffffu) != 0x05a736u ||\n                         step_cap - steps >= 15) &&\n                        ((pc_before & 0x7fffffu) != 0x05a74fu ||\n                         step_cap - steps >= 8) &&\n                        ((pc_before & 0x7fffffu) != 0x05a760u ||\n                         step_cap - steps >= 6)) {\n${_hook_call}\n                    }"
+                        _text "${_text}")
                 endif()
                 if(_battle_input_steps)
                     string(REPLACE "${_hook_call}"
