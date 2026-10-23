@@ -1,3 +1,37 @@
+# Battle frame input continuations - 2026-10-23
+
+Existing verified85:EC81 shares original pause-entry, pause-exit and pad
+filtering between whole C and finite85:EC9A/ECBD continuations. This adds
+no canonical functions or ordinary bindings. Original frame waits, D9/129A
+save/restore, repeated latch reads, high-first16-bit TRB, accumulator high
+byte, flags and the actual ECDA RTL remain literal. Both native phases
+reserve512 master clocks and14/15 original instructions; observed maxima
+392/464. Older semantic libraries retain the previous runtime path.
+
+Shared checkpoint:16,384 public ROM states,12 public guards,384 complete
+parent compositions,32,768 actual hook cases and original opcode rejoins;
+66 pre-access guards,24 admitted/48 rejected temporal edges,57,984 actual
+generated capacity cases,12 capability variants and three detected ROM
+mutants PASS. Whole-parent child services use synthetic RTL bodies through
+actual original JSL frames; child internals are outside that proof.
+MSVC game, GCC/Clang C11 and metadata PASS. Original wait/upkeep bodies and
+reference dependencies remain identical. Unchanged418 progress and CLI
+evidence reused; no repeated full regression. Fixture-only compatibility
+compile errors were corrected; no production defect was found.
+
+Final frozen replay preserves all8,000 input/CPU/WRAM/pixel/PCM frames.
+Decoder work falls226855 to225311, exactly1544 original instructions
+accounted by the new C spans. All12 prior phase admissions and4,306 paired
+children/actions/returns remain unchanged. ROM, SRAM and158 link inputs
+unchanged. Pause runtime use is limited to the recorded admission rows;
+its independent ROM/whole-parent cases pass. Historical rawdriver exit6
+and obsolete inline oracles remain explicit; no FPS/whole-game claim.
+
+2,050 verified, zero drafts,1,962 bindings and806 WRAM records unchanged.
+Combined final sources tested; intermediate commits not separately tested.
+Private receipt:solo-battle-input/ACCEPTANCE_RECEIPT.json. No tests/tools/
+ROM committed and no push. SOLO only.
+
 # Shared decompressor reference operations - 2026-10-23
 
 Reference header parsing, short references and long references now have
