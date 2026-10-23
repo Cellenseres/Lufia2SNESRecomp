@@ -3739,6 +3739,12 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     interp_bridge_set_pre_opcode_hook(0x808f9eu, ActorBridgeDecompressClock);
     interp_bridge_set_pre_opcode_hook(0x808f66u, ActorBridgeDecompressClock);
     interp_bridge_set_pre_opcode_hook(0x80900au, ActorBridgeDecompressClock);
+#if defined(LUFIA2_HAVE_NATIVE_DECOMPRESS_FLAG_STEPS)
+    interp_bridge_set_pre_opcode_hook(0x808f40u, ActorBridgeDecompressClock);
+    interp_bridge_set_pre_opcode_hook(0x808fe4u, ActorBridgeDecompressClock);
+    interp_bridge_set_pre_opcode_hook(0x808f14u, ActorBridgeDecompressClock);
+    interp_bridge_set_pre_opcode_hook(0x808fb8u, ActorBridgeDecompressClock);
+#endif
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_BACKGROUND_STEPS)
     interp_bridge_set_pre_opcode_hook(0x81ba59u, ActorBridgeBackgroundDecodeWord);

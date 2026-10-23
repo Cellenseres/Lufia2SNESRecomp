@@ -62,6 +62,7 @@ function(lufia2_add_nmi_continuations target core_root)
     set(_music_cache_spans FALSE)
     set(_sound_source_spans FALSE)
     set(_sound_progress_spans FALSE)
+    set(_decompress_flag_steps FALSE)
     if(_api MATCHES "Lufia2FrameWaitRestoreRegisters[(]" AND
        EXISTS "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h")
         file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h" _menu_api)
@@ -76,6 +77,12 @@ function(lufia2_add_nmi_continuations target core_root)
                     set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
                         APPEND PROPERTY COMPILE_DEFINITIONS
                             "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_DECOMPRESS_STEPS=1>")
+                    lufia2_decompress_flag_steps_available(_decompress_flag_steps)
+                    if(_decompress_flag_steps)
+                        set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                            APPEND PROPERTY COMPILE_DEFINITIONS
+                                "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_DECOMPRESS_FLAG_STEPS=1>")
+                    endif()
                 endif()
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleBackgroundSteps.cmake")
                 lufia2_battle_background_steps_available(_battle_background_steps)
@@ -568,6 +575,11 @@ function(lufia2_add_nmi_continuations target core_root)
                 if(_battle_effect_cleanup_steps)
                     string(REPLACE "${_hook_call}"
                         "                    if ((pc_before & 0x7fffffu) != 0x018bfbu ||\n                        step_cap - steps >= 12) {\n${_hook_call}\n                    }"
+                        _text "${_text}")
+                endif()
+                if(_decompress_flag_steps)
+                    string(REPLACE "${_hook_call}"
+                        "                    if ((((pc_before & 0x7fffffu) != 0x008f40u &&\n                          (pc_before & 0x7fffffu) != 0x008fe4u) ||\n                         step_cap - steps >= 14) &&\n                        (((pc_before & 0x7fffffu) != 0x008f14u &&\n                          (pc_before & 0x7fffffu) != 0x008fb8u) ||\n                         step_cap - steps >= 10)) {\n${_hook_call}\n                    }"
                         _text "${_text}")
                 endif()
                 if(_decompress_steps)

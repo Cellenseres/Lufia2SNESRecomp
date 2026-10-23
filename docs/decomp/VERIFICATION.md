@@ -1,3 +1,50 @@
+# Original decompressor flag continuations - 2026-10-23
+
+The existing 80:8E9D decompressor exposes two finite operations for flagged
+symbols and their control-group advancement, including the bank7F mirror.
+The original flag shift chooses a literal or stops before reference setup.
+Literal writes, destination-end comparison, source-bank rollover and flag
+count decrement retain exact bus order, flags and continuation PCs. Zero
+remaining flags still underflow literally. The existing full decompressor,
+copy algorithm and earlier three phases remain byte-identical.
+
+Consumer callbacks account every original fetch, data access and cycle. A
+512-master reservation preserves the existing 1024-active/1364-blank fences,
+deadline, refresh, DMA, IRQ and NMI restrictions. Existing 384-master phase
+guards are unchanged. The generated scheduler independently reserves14
+instructions for flag consumption and10 for advancement. Short remaining
+instruction caps retain the original interpreter. Optional API detection
+keeps older three-phase semantic libraries buildable and useful.
+
+The combined checkpoint passes 5,120 public semantic cases, 40,960 actual
+hook cases with original next-instruction rejoins, 576 independent crossings
+of count/wrap/end/branch/host-return states, eight full mixed resource
+compositions and four overlapping MVN compositions. CPU, full WRAM, ordered
+fetch/data accesses, open bus and clocks agree with the original ROM.
+175 pre-access guards, 48 admitted/96 rejected temporal edges, 74,880 actual
+generated scheduler-capacity cases, nine capability variants and three
+in-memory ROM mutation controls pass. Both bank variants are ROM-tested.
+Unchanged frame-return progress evidence is reused; full regression and
+unchanged ResourceFormat CLI checks are deferred. Final isolated Windows,
+GCC/Clang C11 and metadata checks pass.
+
+An initial new timing descriptor-state defect was fixed against the ROM.
+The first identical-frame discovery run was explicitly invalidated when
+capacity review found missing instruction reservations; it is not final
+acceptance. The corrected generated block passes its failing-then-passing
+capacity control, and the final frozen-build replay is accepted separately.
+
+All 8,000 final input/CPU/WRAM/pixel/PCM frames match. Actual decoder work
+falls 244,893 to 232,562, exactly 12,331 original instructions
+accounted by the new native spans. Original actions, returns, 4,306 paired
+children and Timer admissions remain intact. The legacy raw exit6 and
+obsolete zero inline counters remain explicit. ROM, SRAM and 158 frozen
+link inputs remain unchanged. This workload proves no FPS or whole-game gain.
+
+These are continuations of existing C, not newly discovered algorithms:
+2,050 verified functions, zero drafts, 1,962 ordinary bindings and806 WRAM
+records remain. Private tests, fixtures and ROM are excluded from commits.
+
 # Original timer PEA/RTS landings - 2026-10-23
 
 The semantic NMI owner's optional child service now includes its original
