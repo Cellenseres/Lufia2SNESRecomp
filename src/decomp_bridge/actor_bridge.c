@@ -2715,6 +2715,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
                                                wide_accumulator, 800u, 256u);
 }
 #include "fixed_span_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TIMER_STEPS)
+#include "battle_timer_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_WAVE_FILL_STEPS)
 #include "wave_fill_word_clock.inc"
 #endif
@@ -3698,6 +3701,10 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
     interp_bridge_set_pre_opcode_hook(0x82fb94u, ActorBridgeInventorySearch);
     interp_bridge_set_pre_opcode_hook(0x83a746u, ActorBridgeActorFinePosition);
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TIMER_STEPS)
+    interp_bridge_set_pre_opcode_hook(0x858f1fu, ActorBridgeBattleTimerStep);
+    interp_bridge_set_pre_opcode_hook(0x858f3eu, ActorBridgeBattleTimerStep);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_WAVE_FILL_STEPS)
     interp_bridge_set_pre_opcode_hook(0x85aef5u, ActorBridgeWaveFillWord);
 #endif

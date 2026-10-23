@@ -91,6 +91,13 @@ function(lufia2_add_nmi_continuations target core_root)
                         APPEND PROPERTY COMPILE_DEFINITIONS
                             "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_TRANSITION_STEPS=1>")
                 endif()
+                include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleTimerSteps.cmake")
+                lufia2_battle_timer_steps_available(_battle_timer_steps)
+                if(_battle_timer_steps)
+                    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                        APPEND PROPERTY COMPILE_DEFINITIONS
+                            "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_TIMER_STEPS=1>")
+                endif()
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleWaveFillSteps.cmake")
                 lufia2_battle_wave_fill_steps_available(_battle_wave_fill_steps)
                 if(_battle_wave_fill_steps)
@@ -535,6 +542,12 @@ function(lufia2_add_nmi_continuations target core_root)
                     string(PREPEND _text "#include <stdint.h>\nstatic int s_native_hook_interrupt;\nstatic int Lufia2DecompNmiHookHasOwner(uint32_t, int, int, long);\n")
                     string(APPEND _timing_suffix
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/nmi_owner.inc\"\n")
+                endif()
+                if(_battle_timer_steps)
+                    string(PREPEND _text "#define LUFIA2_HAVE_NATIVE_BATTLE_TIMER_STEPS 1\n")
+                    string(REPLACE "${_hook_call}"
+                        "                    if (((pc_before & 0x7fffffu) != 0x058f1fu ||\n                         step_cap - steps >= 10) &&\n                        ((pc_before & 0x7fffffu) != 0x058f3eu ||\n                         step_cap - steps >= 6)) {\n${_hook_call}\n                    }"
+                        _text "${_text}")
                 endif()
                 if(_battle_wave_fill_steps)
                     string(PREPEND _text "#define LUFIA2_HAVE_NATIVE_BATTLE_WAVE_FILL_STEPS 1\n")
