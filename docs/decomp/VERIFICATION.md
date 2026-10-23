@@ -1,3 +1,39 @@
+# Data-driven world scene callbacks - 2026-10-23
+
+38 complete original bodies reconstructed in four semantic modules: seven
+group-window callbacks, fifteen timed-window/palette routines, eleven motion/
+particle/sound callbacks and five resource-scene callbacks. Twelve actual ROM
+scene-script roots contain58 distinct callback targets;37 previously lacked
+metadata/source ownership. The additionalB2E7 collapse-record child is also
+new. This corrects the prior static-manifest frontier limitation; data-driven
+callbacks were not covered by that inventory. No completeness percentage.
+
+All38 contracts verified against original ROM and actual consumer state/child
+ABI with CPU/fullWRAM,ordered guest data/MMIO,child frames and independent
+original return PCs. New functions stay unbound: existing1962 ordinary runtime
+bindings unchanged. No opcode-PC adapter or measured speedup claim.
+Metadata2048verified/zero drafts;801WRAM locations unchanged. Original
+semantics and original wait/scheduler/return ownership remain literal.
+
+Shared checkpoint, not one full suite per routine:
+- Group windows:14336direct+7168ABI,104unwinds,260child-state boundaries,
+  168guards,195redirect probes,two injected faults detected.
+- Timed windows:25088direct+25088ABI,248unwinds+620boundaries per mode,
+  120child compositions per mode;147direct/357ABI guards,180redirects,onefault.
+- Motion:2816final all-original-child/ABI cases,263guards,192unwinds,
+  480child-state boundaries,360redirects,onefault. Earlier25344partial
+  fixture cases are supplementary; broad ROM-read filtering was corrected.
+- Resources:3072direct+1536ABI,32unwinds,80boundaries,72guards,60redirects;
+  emptycallbacks82432ROM/returnABI cases,512rewritten frames,sixbankguards;
+  two injected faults detected.
+
+Sound proofs use documented deterministic SPC acknowledgement responses.
+Timed-window NMI wait974F is an explicit modeled child boundary; no
+asynchronous APU/NMI clock equivalence is claimed. No ordinary activation
+or new runtime playback is justified by these semantic proofs alone.
+Private proof folders:scene-timed-a-next,scene-timed-b-next,
+scene-timed-c-next andscene-timed-resources-next. Tests remain private.
+
 The final CPU-ready gate snapshots the real interpreter waiting/stopped/NMI/
 IRQ-pending bits around each hook and restores the previous snapshot after
 nested callbacks. Outside a live hook the gate defaults to blocked. Only the
@@ -16,6 +52,14 @@ and final beam-window guards pass. Shared progress function matches its tested
 source exactly. Standalone resource CLI binaries/private fixture and semantic
 library sources are unchanged; their prior proof is reused. No full decomp
 regression rerun, gameplay speed/FPS or whole-game acceptance is claimed.
+
+Compiler checkpoint:all four modules pass one incremental standalone GCC,
+Clang and isolated Windows decomp-library build. Metadata/index checks pass.
+Resource CLI executables remain byte-identical to prior accepted builds,
+so their unchanged contract proof is reused. No full app link, full unchanged
+regression or runtime replay was repeated for these unbound additions.
+The combined final source/metadata snapshot is what this checkpoint covers;
+no intermediate commit is claimed independently tested. No pushes.
 
 # Exact-clock inventory search - 2026-10-23
 
