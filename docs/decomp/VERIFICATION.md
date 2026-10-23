@@ -1,3 +1,53 @@
+# Equipment picker flow — 2026-10-23
+
+Six real original JSR entries are reconstructed in menu_party_actions.c:
+82:B863 runs equipment-slot input; 82:B907 selects an inventory item;
+82:BA65 chooses strongest equipment; 82:9FFB configures the picker;
+82:BA0C refreshes its cursors; 82:F864 prepares an equipment comparison.
+The command switches represent game input commands. No per-instruction
+adapter, branch-label alias or copied ROM table is introduced.
+
+Slot actions preserve their different remove/discard/error routes. The item
+picker retains its preview, scrolling, description and confirmation phases,
+including status 0/1/2, original carry handling and both return sites. Strongest
+checks exactly four slot offsets, retains ties, and records inventory offsets.
+Its row counters, character pointer, scores and ROM-backed handler words stay
+live. Unknown computed targets leave at the exact original PC. Preview restores
+the actual saved accumulator and status; selected items retain their PHY/PLY
+frame. Original invalid nontermination is not repaired or capped in C.
+
+The shared ROM proof covers 12,896 states as a recorded union of a passing
+normal prelude, extended cases and a corrected composition tail. Two fixture
+corrections leave production C and passing earlier states unchanged. One full
+actual production-ABI run passes the same 12,896 states: 11,136 returns,
+1,488 handoffs, 272 child unwinds, 118,807 child calls, 393 new-root compositions
+and 392 paired original-ROM score children. All 68 child sites are covered.
+A focused ownership assertion additionally confirms every requested unwind/
+context site. The ABI passes 52 admission guards and 1,110 redirects. Four
+semantic mutations are detected. CPU, full WRAM, devices and ordered data
+match; instruction fetch order is excluded. All 34 earlier bodies/helpers
+remain byte-identical and reuse their accepted proofs.
+
+Strict MSVC, incremental GCC/Clang and isolated Windows Release pass. Exact
+unchanged CLI binaries and fixture hashes reuse their accepted CLI checks.
+The accepted 7,200-frame baseline is reused by sealed executable/library/
+main/binding identity and input evidence. The final candidate matches every
+input, CPU, WRAM, pixel and PCM hash. Decoded instructions change from
+22,094 to 22,075 in this sample only. B863 has
+3 observed native calls, 9FFB has 1; F864 has synthetic coverage but no
+observed bounce here. No whole-game, FPS or universal timing claim follows.
+
+The six-binding trial changed 600 PCM frames while CPU/WRAM/pixels stayed
+exact. Holding only B863 did not alter that result. The final selection keeps
+B863/9FFB/F864 and retains original owners B907/BA65/BA0C as a group; individual
+causal timing sites in that group are not identified. Their complete verified
+C remains available without runtime bindings or unused wrappers. No guessed
+cycle correction is added. The previous five timing holds remain unchanged.
+
+Metadata: 1,998 verified functions, zero drafts, 801 WRAM fields and 1,954
+selected bindings. No unrelated full regression is claimed. Owner build,
+foreign work, ROM and saved games stay unchanged; private tests stay local.
+
 # Equipment list evaluation — 2026-10-23
 
 Four missing original functions are reconstructed in menu_party_actions.c:
