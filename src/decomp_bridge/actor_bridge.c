@@ -4,6 +4,7 @@
 #include "lufia2/decomp.h"
 #include "lufia2/menu_party_actions.h"
 #include "lufia2/menu_inventory_groups.h"
+#include "lufia2/menu_equipment_commands.h"
 #include "decomp_bridge/host_events.h"
 #include "../lufia2_sprite_visibility.h"
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
@@ -17209,4 +17210,31 @@ RecompReturn Lufia2DecompBridge_82BD9B(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_82BDDB(CpuState *cpu) {
     return ActorBridgeWholeAnyWidth(cpu, 0x82bddbu,
         Lufia2MenuFinishEquipmentGroups, 2u);
+}
+
+
+RecompReturn Lufia2DecompBridge_82BB6E(CpuState *cpu) {
+    return ActorBridgeWholeM0X0(cpu, 0x82bb6eu,
+        Lufia2MenuWeightEquipmentStats, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82BB91(CpuState *cpu) {
+    return ActorBridgeSceneOwners(cpu, 0x82bb91u,
+        Lufia2MenuUnequipSelectedSlot, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82BBE8(CpuState *cpu) {
+    return ActorBridgeSceneOwners(cpu, 0x82bbe8u,
+        Lufia2MenuUnequipAllSlots, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82BC46(CpuState *cpu) {
+    return ActorBridgeSceneOwners(cpu, 0x82bc46u,
+        Lufia2MenuDiscardSelectedSlot, 2u);
+}
+
+
+RecompReturn Lufia2DecompBridge_82BCB6(CpuState *cpu) {
+    return ActorBridgeSceneOwners(cpu, 0x82bcb6u,
+        Lufia2MenuDrawEquipmentRow, 2u);
 }

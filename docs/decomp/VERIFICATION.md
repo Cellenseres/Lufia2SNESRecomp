@@ -1,3 +1,50 @@
+# Equipment commands and list scrolling — 2026-10-23
+
+Nine missing original functions are reconstructed in menu_party_actions.c:
+command input (82:B7E5), equipment score (82:BB6E), selected/all removal
+(82:BB91/BBE8), discard (82:BC46), row setup (82:BC96/BCB6) and scrolling
+(82:BCC4/BD02). The command loop reuses the existing inline dispatcher.
+Scroll directions share their animation and completion phases. Original
+signed branches, live fields, bus order and child frames remain literal.
+No instruction-switch adapter or duplicate equipment classifier is added.
+
+The shared ROM matrix and prospective production-ABI matrix each pass 14,496
+states: 8,192 score states across all 256 data banks, 512 ordinary states per
+other entry, all byte dispatch indices, live scroll fields and all 60 child
+sites. Each covers 35,749 child calls, 1,227 compositions, 240 unwinds and
+1,516 context or dynamic-target handoffs. Architectural CPU, full WRAM,
+devices and ordered data accesses match; instruction fetches are excluded.
+The ABI checks also cover 77 admission guards and 1,020 redirects. All six
+negative controls are detected. The previous five functions and five shared
+helpers remain byte-identical, so their unchanged proofs are reused.
+
+The first matrix exposed a mistaken score hypothesis from linear decoding
+across pointer data. Explicit M0 decoding established B95+=B99,
+B97+=(B9B>>2), B97+=(B99>>2); the accepted C preserves that exact operation.
+The command owner initializes its software continuation field before saving
+it, avoiding an indeterminate read without changing any original CPU field.
+
+Selecting all nine entries changed PCM in frame 5,467 of the 7,200-frame
+equipment replay, despite identical CPU, WRAM and pixels. Targeted controls
+retain the original execution owners for B7E5, BC96, BCC4 and BD02 together;
+this restores exact audio. They remain verified semantic functions without
+runtime bindings. Their individual clock contributions are not established.
+The final production build selects the other five entries. Every replay
+input, CPU, WRAM, pixel and PCM hash now matches the accepted baseline.
+Actual decoded instructions fall from 24,638 to 24,468 in this sample only;
+this is not a whole-game performance or FPS claim. BCB6 is covered by the
+complete synthetic matrix but was not reached by this replay's inventory.
+
+Strict MSVC, standalone GCC/Clang and the isolated Windows Release build
+pass. The unchanged CLI executable and fixture hashes reuse their accepted
+checks. The five retained bridges are byte-identical to their tested ABI
+versions; four rejected candidates are removed, rather than left as dead
+wrappers. No unrelated full regression was rerun. The earlier B6EF timing
+hold remains. Metadata: 1,985 verified, zero drafts, 801 WRAM fields and
+1,944 selected bindings. Tests, fixtures, proofs and ROM stay private.
+Nothing is pushed; the owner's build directory and unrelated work remain
+untouched. Catalogue checks cover duplicates, provenance and selection.
+
 # Equipment inventory grouping - shared checkpoint, 2026-10-23
 
 Three missing original menu algorithms are reconstructed in menu_list_sort.c:
