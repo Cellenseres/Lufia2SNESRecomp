@@ -1,3 +1,41 @@
+# Battle script divide and scaling commands - 2026-10-23
+
+Original55/B71D unsigned division and57/BEF5 action-record scaling now run
+inside existing bound85:B452. Missing BF73 scaling preserves the original
+24-bit product shift, early overflow saturation, signed-field negation and
+100-capped secondary fields. Actor-record matching and enemy/mismatch skips
+consume the original operands. Existing DC6F divider and80:834C unsigned
+16x8 multiplier are reused with exact call frames and program-bank ownership.
+No new wrapper, standalone entry, binding or WRAM definition. Existing09FA/
+09FC metadata notes record scale-factor/match-word reuse without overlap.
+Metadata2050verified/zero drafts,1962bindings,803WRAM locations. Battle table
+68recognized/17nontrap gaps/8originalBRK out of93; no full-VM claim.
+
+Shared98304original-ROM cases:49152direct +49152actual production ABI.
+Single55, single57 and mixed scripts cover all256scale factors, signed/zero/
+limit edges, immediate/variable divisors including zero, both actor contexts,
+match/mismatch/enemy paths, DP0/32, four mirror DBs, status/return variations
+and both ends. CPU/fullWRAM/ordered guest data+MMIO/device state/openbus agree.
+Observed108120scaling helper calls,17294saturations,11856negative scales,
+38518match skips,19942enemy skips and98304divider calls. Two original return
+frames are rewritten by local-variable stores; actual original return targets
+and ordered frame writes are compared, not a fixed presumed return bank.
+Native bridge PB85 remains host-owned until continuation restoration. Safe
+host frame-inspection peeks alone are excluded from guest bus traces.
+Four independent wrong-ROM controls (dividend clear byte, factor destination,
+signed saturation and secondary limit) are detected. Initial private seeds
+used the wrong actor-context address and under-covered scaling; corrected
+before acceptance with explicit256factor/path assertions. A hardcoded81
+return-bank assumption was corrected after the original851FC3=02 store was
+confirmed on both sides. Final focused frame case and full matrix PASS.
+Production semantics needed no repair after these oracle corrections.
+All old VM helpers/cases are identical outside the additions. One strict
+MSVC/GCC/Clang/isolated Windows library checkpoint PASS; incremental builds
+only recompile the changed VM object. Unchanged CLI binaries retain accepted
+hashes and contract evidence. No full unchanged suite/game link/replay/
+asynchronous scheduler/APU or FPS claim. All tests remain private.
+Evidence:.agent/decomp/battle-script-scale-next/ACCEPTANCE_RECEIPT.json.
+
 # Battle script group-stat commands - 2026-10-23
 
 Original commands13/14/15/4E now average or write selected battler stat words
