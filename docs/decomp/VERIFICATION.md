@@ -1,3 +1,59 @@
+The final CPU-ready gate snapshots the real interpreter waiting/stopped/NMI/
+IRQ-pending bits around each hook and restores the previous snapshot after
+nested callbacks. Outside a live hook the gate defaults to blocked. Only the
+new inventory hook consumes this read-only API; existing hooks keep their
+original behavior. All16flag combinations,256owner/mode contexts and512nested
+callbacks validate the actual generated block and getter. The final native
+state guard set has35cases, including pending-state rejection. The original
+clock body is unchanged by this extra admission check.
+
+Final integrated checkpoint:isolated Windows Release PASS. The final7200frame
+replay links the rebuilt production actor/interpreter bridge objects and retains
+exact CPU/WRAM/pixels/PCM. All four search calls execute without decoding the
+entry; total decoder16273->15219. The private interpreter counting wrapper's
+underlying core matches current production source. Production-hook ROM tests
+and final beam-window guards pass. Shared progress function matches its tested
+source exactly. Standalone resource CLI binaries/private fixture and semantic
+library sources are unchanged; their prior proof is reused. No full decomp
+regression rerun, gameplay speed/FPS or whole-game acceptance is claimed.
+
+# Exact-clock inventory search - 2026-10-23
+
+The existing verified82:FB94 inventory search now has an interpreter-arrival
+hook that calls its unchanged semantic C algorithm through a timing-aware
+memory callback. The ordinary whole-function bridge retains its original DB7E
+guard:the earlier wider guard changed600PCM frames and remains rejected.
+The hook fetches/accounts original instructions in original order; it uses
+returned word data only for timing branch choices, with no extra RAM preview.
+The original RTS endings at82:FBA4/FBA6 retain their original owner.
+
+Admission requires native M0X0/binary/DP0, PB82, a low-WRAM data-bank mirror,
+safe guest stack, coherent CPU/beam/refresh clocks, no IRQ/NMI/active DMA,
+and room before the scheduler deadline. Visible-field spans require disabled
+beam HDMA and at least13200master clocks before VBlank. The VBlank window
+ends atline249. Other contexts retain original execution.
+Full96-entry raw body:1674cycles,1156fetch bytes,192data bytes. At slowROM,
+12740master clocks plus at most440refresh clocks fit the13200budget. The
+per-read timing handles the original indexed page penalty atX>=115.
+
+Combined production-hook proof:31234bank/index/flag/ROM-speed cases plus148
+accepted beam-window cases;34state guards and100beam-window decisions.
+CPU,fullWRAM,openbus,ordered fetch/data,CPU/master clocks and endings agree
+with original-ROM interp816. An intentionally wrong BEQ clock is detected.
+The existing algorithm itself and its earlier semantic contract are unchanged.
+Progress accounting safely shifts the32-bit mask instead of shifting by a
+potentially larger opcode index;333320count/mask/mode cases preserve legacy
+behavior and cover full-search spans. Current search buses are pure ROM/WRAM
+reads, so their progress mask is zero. No new opcode semantics switch or
+standalone routine/binding was added. Metadata2010verified/0draft;1962bindings.
+
+The private exact-clock candidate activates all four observed calls. Its7200
+frames match CPU/WRAM/pixels/PCM exactly;decoder16273->15219. VBlank-only
+admission initially entered no calls and was not accepted as a performance
+result; it was expanded only after hardware-window checks. The simple guard
+expansion's15228result is rejected because of itsPCM mismatch. No FPS or
+whole-game completeness claim. Tests remain private; no ROM copied or pushed.
+
 Compiler checkpoint:strict MSVC proof, incremental GCC/Clang libraries and
 isolated Windows decomp library PASS. CLI binaries/private fixture unchanged;
 prior CLI proof reused. Actual consumer regeneration reuses nine verified bank

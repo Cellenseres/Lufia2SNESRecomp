@@ -456,13 +456,13 @@ function(lufia2_add_nmi_continuations target core_root)
                     endif()
                 endforeach()
                 string(REPLACE "${_hook_call}"
-                    "                    s_frame_return_auto_quiescent = auto_quiescent;\n${_hook_call}"
+                    "                    s_frame_return_auto_quiescent = auto_quiescent;\n                    {\n                        const int blocked = s_frame_return_interrupt_blocked;\n                        s_frame_return_interrupt_blocked = in.waiting || in.stopped ||\n                            in.nmiWanted || in.irqWanted;\n${_hook_call}\n                        s_frame_return_interrupt_blocked = blocked;\n                    }"
                     _text "${_text}")
                 string(REPLACE "${_redirect}"
                     "            if (redirected) {\n                Lufia2DecompFrameReturnContinue(&steps, auto_quiescent,\n                    &progress_write_epoch, &progress_dynamic_epoch);\n                continue;\n            }"
                     _text "${_text}")
                 string(PREPEND _text
-                    "#include <stdint.h>\nstatic int s_frame_return_auto_quiescent;\nstatic void Lufia2DecompFrameReturnContinue(long *, int, uint64_t *, uint64_t *);\n")
+                    "#include <stdint.h>\nstatic int s_frame_return_auto_quiescent;\nstatic int s_frame_return_interrupt_blocked = 1;\nstatic void Lufia2DecompFrameReturnContinue(long *, int, uint64_t *, uint64_t *);\n")
                 string(APPEND _timing_suffix
                     "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/frame_return_cycles.inc\"\n")
                 if(_nmi_restore_width)

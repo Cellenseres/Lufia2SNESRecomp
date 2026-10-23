@@ -2717,10 +2717,8 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
     return ActorBridgeTimedStepSupportedWindow(cpu, entry, stack_limit,
                                                wide_accumulator, 800u, 256u);
 }
-#if defined(LUFIA2_HAVE_NATIVE_ITEM_RECORD_STEPS) || \
-    defined(LUFIA2_HAVE_NATIVE_EQUIPMENT_GROUP_STEPS)
 #include "fixed_span_clock.inc"
-#endif
+#include "inventory_search_clock.inc"
 #if defined(LUFIA2_HAVE_NATIVE_EQUIPMENT_GROUP_STEPS)
 #include "equipment_group_clock.inc"
 #endif
@@ -3662,6 +3660,9 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    interp_bridge_set_pre_opcode_hook(0x82fb94u, ActorBridgeInventorySearch);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_EQUIPMENT_GROUP_STEPS)
     interp_bridge_set_pre_opcode_hook(0x82bd70u, ActorBridgeEquipmentInventoryStep);
     interp_bridge_set_pre_opcode_hook(0x82bd78u, ActorBridgeEquipmentInventoryStep);

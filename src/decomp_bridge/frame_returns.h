@@ -10,6 +10,7 @@ void Lufia2DecompInstallFrameReturnHooks(void);
 bool Lufia2DecompFramePollHookIsNative(
     void (*hook)(struct CpuState *, uint32_t));
 uint64_t Lufia2DecompFrameReturnDeadline(void);
+bool Lufia2DecompFrameReturnCpuReady(void);
 
 uint8_t Lufia2DecompFrameReturnReadByte(struct CpuState *cpu, uint32_t address,
                                         bool *progress);
