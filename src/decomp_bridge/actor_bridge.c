@@ -854,9 +854,6 @@ RecompReturn Lufia2DecompBridge_92A4(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x8092a4u, Lufia2IntroNmi, 3);
 }
 
-RecompReturn Lufia2DecompBridge_B452(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x85b452u, Lufia2BattleScript, 3);
-}
 
 RecompReturn Lufia2DecompBridge_8B4B(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x828b4bu, Lufia2MenuButtons, 3);
@@ -17354,4 +17351,10 @@ RecompReturn Lufia2DecompBridge_80CC35(CpuState *cpu) {
         return ActorBridgeFallback(cpu, &frame, 0x80cc35u);
     }
     return ActorBridgeOwnedCalls(cpu, Lufia2FieldRunEventScript, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_B452(CpuState *cpu) {
+    return ActorBridgeBattleEntry(cpu, 0x85b452u, 0,
+        Lufia2BattleScriptWithChildren, 3u, BATTLE_BRIDGE_M1X0,
+        1, BATTLE_BRIDGE_ANY_BANK, 0);
 }

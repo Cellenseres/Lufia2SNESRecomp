@@ -1,3 +1,63 @@
+# Battle VM route integration - 2026-10-23
+
+Seventeen original nontrap routes were reconstructed inside the existing
+85:B452 owner:01/1D/1E/2C/2D/32/3D/3F/40/47/48/49/4A/4B/4C/58/59. New
+algorithms include selection and stat filtering, original sort/shuffle quirks,
+Capsule learned-bit extraction, context save/restore and spell/action setup.
+Existing verified children are reused through exact original pushed frames;
+NULL callbacks stop before child-dependent handler effects. Child unwinds and
+unexpected-width returns retain precise original continuation PCs.
+
+The93-word original table now has85 recognized nontrap routes and8 literal
+BRK routes. This is table coverage, not interpreter-free gameplay: original
+counter waits, random-retry continuations, external children and guard fallbacks
+remain. Wait49 executes the original counter read and hands off at85:BE1A
+when nonzero; no original wait or timing behavior is optimized away.
+
+Two pre-existing C117/DB6D bus-order discrepancies were corrected separately:
+ROL09FA writes high then low; division performs low-word ASL writes before
+reading the high word and preserves original high-before-low RMW writes.
+CPU/WRAM equality alone had not detected these ordered-bus errors.
+
+The consumer now uses the existing pushed-child battle bridge. Admission
+conservatively narrows the previous M1/X-either/PB-unchecked bridge to the
+proven M1X0/PB85 contract. Unsupported states retain original interpretation.
+No additional standalone entries or runtime bindings were created:2050 verified
+entries,0 drafts and1962 ordinary bindings. Two proven context storage regions
+bring the memory map to805 locations, without overlapping existing definitions
+or adding runtime bounds that the ROM does not have.
+
+Combined production-source checkpoint:564072 ROM/direct/production-ABI/helper comparisons across13 proof jobs,
+plus1280 production admission guards. Includes49152 Capsule,163840 clears,
+10240 selection,3936 invalid selectors,8192 isolated bus helpers,36864 spell/
+summon,32768 context,20480 context-action,57344 preparation,32768 child-width,
+9216 repeat/popup,8 original frame/NMI compositions and139264 wait-prefix cases.
+The mixed spell/summon matrix additionally reaches62 exact original child-entry
+prefixes,18 original wait polls/rejoins and50 unchecked selector targets.
+CPU,fullWRAM,ordered guest data/MMIO and applicable openbus comparisons agree.
+Includes actual original BRK/retry continuations, child-entry unwinds and
+NULLcallback boundaries. Controlled original-frame/NMI compositions preserve
+real waits and original callbacks; they do not prove asynchronous scheduler,
+APU timing, whole-game performance or all external child bodies anew.
+
+Strict MSVC proof builds and one isolated Windows/GCC/Clang library checkpoint
+PASS. The explicit stddef.h portability include is the only function-neutral
+source addition after the initial merged proof builds. Both unchanged CLI
+binaries retain their previous contract evidence. No repeated full unchanged
+suite or owner build/windows build. Tests,proofs and ROM remain private.
+Several atomic commits share this combined final-source validation; intermediate
+commits were not independently tested. No push.
+Evidence:.agent/decomp/parallel-integration-next/ACCEPTANCE_RECEIPT.json.
+
+# Battle VM ordered bus corrections - 2026-10-23
+
+C117 ROL09FA now writes high then low. DB6D division performs low-word ASL
+writes before reading the high word and preserves high-before-low RMW writes.
+These correct native access order to the original ROM, not original gameplay.
+8192 isolated CPU/fullWRAM/ordered-bus/openbus comparisons pass as part of the
+combined battle VM checkpoint. The combined final source is validated; atomic
+intermediate commits were not separately tested. Tests and ROM stay private.
+
 # Battle script divide and scaling commands - 2026-10-23
 
 Original55/B71D unsigned division and57/BEF5 action-record scaling now run
