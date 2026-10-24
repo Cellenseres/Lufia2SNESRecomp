@@ -18985,3 +18985,12 @@ RecompReturn Lufia2DecompBridge_8086C0(CpuState *cpu) {
     return interp_tier_dispatch_interrupt(cpu, ((uint32_t)cpu->PB << 16) | 0x86c0u);
 #endif
 }
+
+RecompReturn Lufia2DecompBridge_809D3E(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TEXT_WINDOW_ENTRY)
+    return ActorBridgeTimedTextScene(cpu, 0x809d3eu, Lufia2TextOpenWindowWithServices);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x809d3eu);
+#endif
+}

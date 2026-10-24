@@ -1,20 +1,35 @@
-# Bind special-menu controller - 2026-10-24
+# Bind special-menu controller and text window - 2026-10-24
 
-84:A689 selects its existing verified full C API through the original
-82:D69C shop tail. Preserve the inherited long-call frame, all selector
-branches and 12 child sites. The terminal RTL and post-wait continuations
-retain their existing interpreter ownership. Other dispatcher entries are
-unchanged; rejected admission follows the original path.
+84:A689 and 80:9D3E now select their existing verified full C APIs. The shop's
+82:D69C bridge preserves its original long-call frame when tail-dispatching
+to the newly available controller. Only that known JML transition changes;
+other generic dispatcher entries remain unchanged. The controller preserves
+all selector branches and 12 child sites. Its terminal RTL remains an exact
+interpreter boundary. Rejected native admission retains the original path.
+The text window preserves both child calls and terminal BRL80:9D00. Its shared
+scene clock now flushes complete returned and boundary flows consistently.
+Selection becomes 2,138 verified entries; 20 lack independent bindings,
+resolving 76 of the original 96 candidates.
 
-The controller checkpoint passes 4,096 ROM/timed cases, 216 altered-child
-cases, 88 pure admissions and six feature gates. The real shop JSL/JML/RTL
-chain matches CPU/full WRAM/video/pixels/PCM, returned-state hashes and exact
-clocks over 79 frames. Both native controller entries execute; parent
-decoding drops 58 to 44. A forced native-rejection run also matches all
-79 reference frames. Portable semantics are unchanged.
-The Release/default-selection/catalogue checkpoint covers the combined
-controller and following text-window change; the intermediate commits were
-not independently rebuilt. Tests/tools/ROM remain private. No push.
+One combined checkpoint passes 77,824 ROM/timed cases, 342 altered-child cases
+over 19 sites, 12,288 original-ROM reader cases, 544 pure admissions and
+12 API/selection gates. Both existing scene entries are included. The actual
+80:A341 JSL82:D69C/JML84:A689 chain matches over 79 frames, including natural
+zero-balance poker exits and the real RTL. Both controller C entries execute;
+parent decoding drops 58 to 44. A second native run forces admission rejection
+and exactly matches the unchanged reference over all 79 frames.
+
+An independent text-handler ABI fixture uses original ROM payloads and real
+child frames; all three C entries execute twice and match seven frames, with
+parent decoding 76 to 3. This is a controlled handler-entry comparison, not
+natural indirect-text-dispatch reachability evidence. The native text VM
+already calls the window C API internally. Raw interpreter JMP arrivals keep
+the SDK's existing policy; no generic JMP bounce or synthetic frame is added.
+Both comparisons cover CPU/full WRAM/video/pixels/PCM, returned-state hashes
+and exact clocks. Existing post-wait interpreter continuations remain.
+Strict C11, feature-off, reserved Release/default selection and catalogue
+checks cover the combined tree. Unrelated full regression is deferred.
+Portable semantics are unchanged. Tests/tools/ROM remain private. No push.
 
 # Bind special-menu upload and replay queries - 2026-10-24
 

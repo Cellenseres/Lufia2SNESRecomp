@@ -69,6 +69,18 @@ static bool PrepareTextSceneClock(TextSceneClock *clock, uint32_t pc) {
     if (!TextSceneDataByte(cpu, 0x05b3u, &reload))
         return false;
     switch (pc) {
+    case 0x809d3eu:
+        TextSceneOpcode(clock, 0x9d3eu, 2u, 2u, 0u);
+        TextSceneOpcode(clock, 0x9d40u, 3u, 4u, 1u);
+        TextSceneOpcode(clock, 0x9d43u, 3u, 6u, 2u);
+        break;
+    case 0x809d46u:
+        TextSceneOpcode(clock, 0x9d46u, 3u, 6u, 2u);
+        break;
+    case 0x809d49u:
+        TextSceneOpcode(clock, 0x9d49u, 3u, 4u, 0u);
+        clock->complete = true;
+        break;
     case 0x80bc3du:
         TextSceneOpcode(clock, 0xbc3du, 3u, 4u, 1u);
         TextSceneOpcode(clock, 0xbc40u, 2u, 2u, 0u);
@@ -153,7 +165,7 @@ static RecompReturn ActorBridgeTimedTextScene(CpuState *cpu, uint32_t entry,
     if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
         return (RecompReturn)((int)clock.call.unwound - 1);
     ActorBridgeStore(cpu, &state);
-    if (result.flow == LUFIA2_EXECUTION_RETURNED) {
+    if (clock.complete) {
         BeginFixedSpanOpcode(&clock.span);
         assert(result.pc == 0x809d00u && clock.complete &&
             clock.span.index == clock.span.count && !clock.span.remaining);
