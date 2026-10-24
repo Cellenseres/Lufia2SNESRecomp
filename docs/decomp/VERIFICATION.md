@@ -1,3 +1,46 @@
+# Five-by-five board setup verified - 2026-10-24
+
+Seven complete original algorithms now live in `src/menu/board_game.c`:
+D684 resets a round, D70A loads tilemaps, D765 initializes particles and
+board state, D860 shuffles cells, D892 shuffles draw order, CBE2 counts
+completed/near-complete lines, and CBCD advances a frame. All preserve both
+incoming M widths through PHP/PLP; metadata is canonical M1X0 with dynamic
+exit. X16, DP0, binary arithmetic and live DB remain required.
+There are 2,138 verified entries, zero drafts and 853 WRAM locations.
+All seven stay unbound; the 1,988 active bindings are unchanged.
+
+The original fifty particle iterations retain overlapping array writes.
+Cell shuffling performs 25 swaps; draw-order shuffling performs 81 after
+calling the cell shuffle. Its thirteen-word clear includes the adjacent
+completed-line count. Line evaluation keeps byte sums for five rows, five
+columns and two diagonals, followed by original N-bit comparisons at 88/100.
+ROM table reads, hidden accumulator bytes, saved status/Y, live scratch,
+child frames, decoder and RNG behavior remain intact. The neutral BoardGame
+name describes proven data; exact game branding is not claimed.
+`docs/BOARD_GAME_LAYOUT.md` records the shared workspace and quirks.
+
+Shared verification passed 7,168 direct and 3,584 private-ABI cases, 264 entry
+guards, 17 call contexts/unwinds, 85 changed returns, 896 stack endpoints
+and 255 redirects. Another 8,192 row/column/diagonal patterns passed per
+interface. Six literal 65,536-child prefixes passed per interface, covering
+initialization and both shuffles in both M widths. CPU, full WRAM, ordered
+bus/MMIO/device state and child snapshots match; no primary ABI fallback.
+120 compositions execute all seven new routines and the original decoder,
+RNG, tilemap clear and sprite hide as actual C descendants. All eleven
+positive native/reference descendant counters match. One private root runs
+the original C826 controller with those C children; it is hybrid evidence,
+not a newly decompiled or bound controller. Other original children remain
+explicit services. Seven altered-ROM controls were detected.
+
+Strict MSVC C11/W4/WX, GCC/Clang module checks and agent Release integration
+pass. The first compile caught a nonexistent helper name; the existing
+LoadA16 primitive now supplies the same XOR result/flags. No correction was
+needed after the first shared ROM proof. Previous semantic bodies, actual
+bridge/bindings, CLI binaries and foreign work remain hash-identical.
+No repeated unchanged full regression or Linux/CLI build, physical timing,
+rendered gameplay or FPS claim. Tests, tools and ROM remain private; no push.
+Next: complete C826 controller and its remaining selection/result helpers.
+
 # Shared card-game stakes verified - 2026-10-24
 
 Seven complete original routines in `src/menu/card_game_stakes.c` reconstruct
