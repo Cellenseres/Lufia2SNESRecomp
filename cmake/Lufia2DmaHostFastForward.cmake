@@ -1,6 +1,6 @@
 include_guard(GLOBAL)
 
-# Replace only the synchronous $420B drain loop.  The downloaded pinned
+# Replace the synchronous $420B drain and certify eventless beam steps. The pinned
 # source remains untouched; the compiled translation unit lives in the build
 # tree and is pinned to the reviewed upstream hash and exact source seam.
 function(lufia2_prepare_dma_host_fastforward sources_var core_root)
@@ -34,6 +34,8 @@ function(lufia2_prepare_dma_host_fastforward sources_var core_root)
             "Pinned synchronous DMA loop must occur exactly once")
     endif()
     string(REPLACE "${_old}" "${_new}" _text "${_text}")
+    include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../lib/snesrecomp-platform/cmake/SnesRecompPlatformBeam.cmake")
+    snesrecomp_platform_patch_beam_clock(_text)
 
     set(_directory "${CMAKE_BINARY_DIR}/generated/dma-host-fastforward")
     set(_overlay "${_directory}/snes.c")

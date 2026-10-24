@@ -1,6 +1,7 @@
 #include <stdint.h>
 
 #include "cpu_state.h"
+#include "snes/interp_bridge.h"
 #include "lufia2/decomp.h"
 #include "lufia2/world_scene_timed_motion.h"
 #include "lufia2/world_scene_timed_windows.h"
@@ -3276,6 +3277,7 @@ typedef struct ActorPollRun {
     ActorTimedOpcode poll;
     ActorTimedOpcode branch;
     uint32_t entry;
+    bool opcode_fetch;
 } ActorPollRun;
 
 static bool ActorBridgePollRunSupported(const CpuState *cpu, uint32_t entry) {
@@ -3302,19 +3304,27 @@ static void ActorBridgePollRunCheckpoint(void *context, Lufia2CpuState *state,
     bus->transfers = 0u;
     bus->progress = false;
     bus->cycles = op->cycles;
-    for (unsigned byte = 0u; byte < op->fetched; ++byte)
-        (void)ActorBridgeTimedRead(bus, pc + byte);
+    if (run->opcode_fetch &&
+        Lufia2DecompPollFetchOpcode(bus->cpu, pc, op->fetched)) {
+        /* The admitted ROM span cannot cross its constant-speed bank window. */
+        bus->master = (uint64_t)op->fetched * cpu_region_speed(pc);
+        bus->transfers = op->fetched;
+    } else {
+        for (unsigned byte = 0u; byte < op->fetched; ++byte)
+            (void)ActorBridgeTimedRead(bus, pc + byte);
+    }
 }
 
 typedef Lufia2ExecutionResult (*ActorPollIteration)(const Lufia2Memory *,
                                                     Lufia2CpuState *, uint32_t);
 
 static void ActorBridgePollRun(CpuState *cpu, uint32_t entry,
-                               ActorPollIteration iteration, unsigned fetched) {
+                               ActorPollIteration iteration, unsigned fetched, bool opcode_fetch) {
     if (!ActorBridgePollRunSupported(cpu, entry))
         return;
     ActorPollRun run = {0};
     run.entry = entry;
+    run.opcode_fetch = opcode_fetch;
     run.bus.cpu = cpu;
     run.poll = (ActorTimedOpcode){(uint16_t)entry,
                                   (uint8_t)fetched,
@@ -3382,7 +3392,7 @@ static void ActorBridgeSoundPollRun(CpuState *cpu, uint32_t entry) {
                           entry == 0x809c30u || entry == 0x809c40u ||
                           entry == 0x809c69u;
     if (ActorBridgePollRunSupported(cpu, entry))
-        ActorBridgePollRun(cpu, entry, Lufia2SoundPollIteration, absolute ? 3u : 4u);
+        ActorBridgePollRun(cpu, entry, Lufia2SoundPollIteration, absolute ? 3u : 4u, true);
     else
         ActorBridgeSoundPollStep(cpu, entry, absolute ? 3u : 4u);
 }
@@ -3665,7 +3675,39 @@ static bool ActorBridgeFramePollSupported(const CpuState *cpu, uint32_t entry) {
         cpu, entry, 5u * SOUND_TRANSFER_BUS_CLOCKS + SOUND_TRANSFER_REFRESH_CLOCKS);
 }
 
+/* Retire the existing semantic CMP/BEQ pair through the same timed bus.
+ * Batch host dispatch and qualified pure-ROM fetch pairs. Every data read,
+ * opcode clock, refresh charge and APU boundary retains its original order. */
+static Lufia2ExecutionResult ActorBridgeFramePollIteration(
+    const Lufia2Memory *memory, Lufia2CpuState *state, uint32_t entry) {
+    ActorPollIteration step = Lufia2FrameWaitPollStep;
+#if defined(LUFIA2_HAVE_NATIVE_TEXT_FRAME_WAIT)
+    if (entry == 0x80bf0du) step = Lufia2FrameWaitCounterStep;
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_ADDITIONAL_FRAME_WAITS)
+    if (entry == 0x85ec96u) step = Lufia2FrameWaitAdditionalStep;
+#endif
+    Lufia2ExecutionResult result = step(memory, state, entry);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY && result.pc == entry + 2u)
+        result = step(memory, state, result.pc);
+    return result;
+}
+
 static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
+    /* Try the independently certified, eventless counter interval before the
+     * generic timed-dispatch window. Its own guards stop strictly before each
+     * beam, refresh and interrupt edge, and preserves every APU flush;
+     * ordinary polls keep the
+     * original dispatcher, including line-end events. */
+    if ((entry == 0x8293c8u || entry == 0x869752u
+#if defined(LUFIA2_HAVE_NATIVE_ADDITIONAL_FRAME_WAITS)
+         || entry == 0x85ec96u
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_TEXT_FRAME_WAIT)
+         || entry == 0x80bf0du
+#endif
+        ) && Lufia2DecompFramePollTryIdle(cpu, entry))
+        return;
     if (!ActorBridgeFramePollSupported(cpu, entry))
         return;
     unsigned index = 0u;
@@ -3675,6 +3717,19 @@ static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
     if (index == sizeof frame_poll_entries / sizeof frame_poll_entries[0])
         return;
     const bool branch = frame_poll_entries[index].branch;
+    if (cpu->m_flag && !cpu->D && g_snes->hdmaBeamOff &&
+        (entry == 0x8293c8u || entry == 0x869752u
+#if defined(LUFIA2_HAVE_NATIVE_ADDITIONAL_FRAME_WAITS)
+         || entry == 0x85ec96u
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_TEXT_FRAME_WAIT)
+         || entry == 0x80bf0du
+#endif
+        ) && Lufia2DecompFramePollBatchSupported(entry) &&
+        ActorBridgePollRunSupported(cpu, entry)) {
+        ActorBridgePollRun(cpu, entry, ActorBridgeFramePollIteration, 2u, true);
+        return;
+    }
     const bool read_counter = !branch;
     ActorTimedBus bus = {0};
     const ActorTimedOpcode opcode = {

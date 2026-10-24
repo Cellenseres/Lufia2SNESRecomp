@@ -564,15 +564,19 @@ function(lufia2_add_nmi_continuations target core_root)
                     endif()
                 endforeach()
                 string(REPLACE "${_hook_call}"
-                    "                    s_frame_return_auto_quiescent = auto_quiescent;\n                    {\n                        const int blocked = s_frame_return_interrupt_blocked;\n                        s_frame_return_interrupt_blocked = in.waiting || in.stopped ||\n                            in.nmiWanted || in.irqWanted;\n${_hook_call}\n                        s_frame_return_interrupt_blocked = blocked;\n                    }"
+                    "                    s_frame_return_auto_quiescent = auto_quiescent;\n                    {\n                        const int blocked = s_frame_return_interrupt_blocked;\n                        const unsigned old_poll_budget = s_frame_return_poll_opcode_budget;\n                        s_frame_return_interrupt_blocked = in.waiting || in.stopped ||\n                            in.nmiWanted || in.irqWanted;\n                    s_frame_return_batch_allowed = !s_frame_return_interrupt_blocked && auto_quiescent && s_interp_bridge_depth == 1 &&\n                        steps >= 0 && step_cap > steps && step_cap - steps >= 16 &&\n                        !trace && !dtrace && !wlog_state_sync && !s_interp_pctrace &&\n                        !g_interp_bridge_pc_hook && !s_interp_bus_timing_active && s_interp_continuous_read_epoch <= UINT64_MAX - 16u;\n                        s_frame_return_poll_opcode_budget = s_frame_return_batch_allowed ? (unsigned)((step_cap - steps) > 128 ? 128 : (step_cap - steps)) : 0u;\n${_hook_call}\n                        s_frame_return_poll_opcode_budget = old_poll_budget;\n                        s_frame_return_interrupt_blocked = blocked;\n                    }"
                     _text "${_text}")
                 string(REPLACE "${_redirect}"
                     "            if (redirected) {\n                Lufia2DecompFrameReturnContinue(&steps, auto_quiescent,\n                    &progress_write_epoch, &progress_dynamic_epoch);\n                continue;\n            }"
                     _text "${_text}")
                 string(PREPEND _text
-                    "#include <stdint.h>\nstatic int s_frame_return_auto_quiescent;\nstatic int s_frame_return_interrupt_blocked = 1;\nstatic void Lufia2DecompFrameReturnContinue(long *, int, uint64_t *, uint64_t *);\n")
+                    "#include <stdint.h>\nstatic int s_frame_return_auto_quiescent;\nstatic int s_frame_return_batch_allowed;\nstatic unsigned s_frame_return_poll_opcode_budget;\nstatic int s_frame_return_interrupt_blocked = 1;\nstatic void Lufia2DecompFrameReturnContinue(long *, int, uint64_t *, uint64_t *);\n")
                 string(APPEND _timing_suffix
                     "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/frame_return_cycles.inc\"\n")
+                get_property(_beam_hold_query GLOBAL PROPERTY SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY)
+                if(_beam_hold_query)
+                    string(PREPEND _text "#define SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY 1\n")
+                endif()
                 if(_nmi_restore_width)
                     string(REPLACE "${_hook_call}"
                         "                    {\n                        const int interrupt_owner = s_native_hook_interrupt;\n                        s_native_hook_interrupt = Lufia2DecompNmiHookHasOwner(\n                            pc_before, stop_on_rti, auto_quiescent, step_cap - steps);\n${_hook_call}\n                        s_native_hook_interrupt = interrupt_owner;\n                    }"
