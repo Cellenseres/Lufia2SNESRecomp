@@ -77,19 +77,19 @@ static void PreparePartySwapClock(PartySwapClock *clock, CpuState *cpu) {
     clock->span.count = PARTY_SWAP_OPCODE_COUNT;
 }
 
-static RecompReturn ReturnPartySwap(CpuState *cpu, const ActorBridgeFrame *frame) {
+static RecompReturn ReturnTimedMenuCall(CpuState *cpu, const ActorBridgeFrame *frame, uint32_t source) {
     const uint16_t stack = cpu->S;
     bool progress = false;
-    (void)Lufia2DecompFrameReturnReadByte(cpu, 0x82b7b1u, &progress);
+    (void)Lufia2DecompFrameReturnReadByte(cpu, source, &progress);
     cpu->S = (uint16_t)(cpu->S + 1u);
     const uint16_t low = Lufia2DecompFrameReturnReadByte(cpu, cpu->S, &progress);
     cpu->S = (uint16_t)(cpu->S + 1u);
     const uint16_t high = Lufia2DecompFrameReturnReadByte(cpu, cpu->S, &progress);
     Lufia2DecompFrameReturnAccountOpcode(cpu, 6u,
-        cpu_region_speed(0x82b7b1u) + 2u * 8u + 3u * 6u, progress);
+        cpu_region_speed(source) + 2u * 8u + 3u * 6u, progress);
     const uint32_t target = ((uint32_t)cpu->PB << 16) |
         (uint16_t)((high << 8 | low) + 1u);
-    return ActorBridgeResolveReturn(cpu, frame, 2u, 0x82b7b1u, stack, target);
+    return ActorBridgeResolveReturn(cpu, frame, 2u, source, stack, target);
 }
 
 static RecompReturn RunPartySwap(CpuState *cpu, const ActorBridgeFrame *frame) {
@@ -103,5 +103,5 @@ static RecompReturn RunPartySwap(CpuState *cpu, const ActorBridgeFrame *frame) {
     assert(result.flow == LUFIA2_EXECUTION_RETURNED && result.pc == 0x82b7b1u);
     assert(clock.span.index == PARTY_SWAP_OPCODE_COUNT && !clock.span.remaining);
     ActorBridgeStore(cpu, &state);
-    return ReturnPartySwap(cpu, frame);
+    return ReturnTimedMenuCall(cpu, frame, result.pc);
 }

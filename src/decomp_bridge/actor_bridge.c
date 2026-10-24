@@ -1,3 +1,4 @@
+#include "equipment_resume.h"
 #include <stdint.h>
 
 #include "cpu_state.h"
@@ -18084,4 +18085,39 @@ RecompReturn Lufia2DecompBridge_82B6EF(CpuState *cpu) {
         return RunPartySwap(cpu, &frame);
 #endif
     return ActorBridgeFallback(cpu, &frame, 0x82b6efu);
+}
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#include "equipment_call_clock.inc"
+#else
+uint32_t Lufia2DecompEquipmentResumeReturn(CpuState *cpu, uint32_t landing) {
+    (void)cpu;
+    (void)landing;
+    return 0u;
+}
+
+RecompReturn Lufia2DecompEquipmentResume(CpuState *cpu, uint32_t landing) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, landing);
+}
+#endif
+
+RecompReturn Lufia2DecompBridge_82B907(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedEquipmentCall(cpu, 0x82b907u,
+        Lufia2MenuChooseEquipmentItem);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82b907u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82BD02(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedEquipmentCall(cpu, 0x82bd02u,
+        Lufia2MenuScrollEquipmentDown);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82bd02u);
+#endif
 }

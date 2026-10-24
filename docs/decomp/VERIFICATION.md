@@ -1,3 +1,43 @@
+# Bind timed equipment continuations - 2026-10-24
+
+82:B907 and 82:BD02 now use the existing verified semantic C through timed
+near-call bridges. There are 2,062 ordinary bindings and 96 verified entries
+without independent bindings. Internal native hooks and ordinary bindings
+remain distinct; those counts are not whole-game coverage or runtime hits.
+
+The clock integration preserves original fetch/data order, child frames,
+per-opcode clocks and near returns. Its interval budget is computed from
+the reviewed opcode schedule, with a conservative refresh allowance. It is
+an admission bound, not cycle padding. Short vblank intervals can run late
+in the frame when they fit completely before frame wrap. Unsafe interrupts,
+DMA, HDMA, widths, banks, stack, refresh or deadline contexts remain in LLE.
+
+Waiting children unwind the native host stack. Seven verified semantic
+return boundaries now re-enter C through the existing paired-bounce owner
+handling, with the original parent return frame still live. Unknown PCs,
+disabled bindings and other return contexts retain original interpretation.
+The address gate avoids extra CPU synchronization for unrelated returns.
+No new independent ROM functions are counted for these continuations.
+
+Shared proof: 19,262 original-parent ROM/timed-ABI cases, 588 admission cases
+and 888 affected up-scroll cases. The parent proof compares CPU, full WRAM,
+open bus, fetch/data order and opcode clock phases across both ROM speeds,
+supported DB mirrors, input commands and child-return contexts. Its paired
+opaque services isolate parent semantics; actual child execution is covered
+by the separate input-driven integration comparisons.
+
+Two 7,200-frame private comparisons match every sampled CPU/WRAM/pixel/PCM
+and guest-clock/beam field. Picker decoding falls from 1,884 to 39/34;
+down-scroll decoding is 6/0. Remaining interpretation includes guarded
+contexts and unsupported continuation points. Native-parent direct calls
+do not increment interpreter-bounce entry counters. No whole-game FPS claim.
+
+Local evidence is under equipment-call-clock/. Rejected prefix-only trials,
+the non-Release assertion experiment and failed proof-routing setup are
+retained without counting them as acceptance. Full unrelated regression and
+platform/CLI rebuilds are not repeated; affected checks share this checkpoint.
+No tests, proof tools, saved games or ROM are committed. No push.
+
 # Activate the timed party swap - 2026-10-24
 
 82:B6EF now binds the existing verified Lufia2MenuSwapPartyMembers. The
