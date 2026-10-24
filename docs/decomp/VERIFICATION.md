@@ -1,3 +1,23 @@
+# Bind poker animation and input actions - 2026-10-24
+
+84:C5AF, 84:C64B, 84:C73A and 84:C794 now select their existing verified
+C APIs. Preserve saved status and both deal-entry widths, card movement,
+byte counters, opponent-hand loops, blinking message marker, input polling,
+23 true JSR sites and live RTS frames. Unsupported entry/post-child windows
+retain exact interpreter continuations. Portable semantics remain unchanged.
+Selection becomes 2,133 verified entries; 25 lack independent bindings,
+resolving 71 of the original 96 candidates.
+
+The shared checkpoint passes 16,384 ROM/timed cases, 414 altered-child cases
+over all 23 sites, 350 pure admissions and six API/selection gates.
+Original menu/card setup and original poker callers compare 72 post-warmup
+frames: CPU/full WRAM/video/pixels/PCM, returned-state hashes and exact clocks.
+All four C bodies execute; parent decoding drops from 501 to 304 in this
+probe. Established post-wait scheduler ownership remains unchanged.
+Strict C11, feature-off, reserved Release/default selection and catalogue
+checks cover the combined tree. Full unrelated regression is deferred.
+Proofs, test tools and ROM stay private. No push.
+
 # Bind opening-card actions - 2026-10-24
 
 84:AF4B, 84:AFB8, 84:AFFC and 84:B18E now select their existing verified C
