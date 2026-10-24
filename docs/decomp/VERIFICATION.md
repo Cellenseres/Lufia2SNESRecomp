@@ -1,3 +1,26 @@
+# Card-game core reconstructed — 2026-10-24
+
+Five complete original routines are verified in src/menu/card_game.c:
+84:B4A7 deck construction, B4D9 shuffling, AF1C dealing, AE5E scoring,
+and AB61 special-hand classification. All enter and leave M0X0 with DP0,
+binary arithmetic and live DB. Seven persistent WRAM regions are named.
+The original 513 swaps, 1,026 RNG calls, destructive ace workspace, signed
+comparisons, deck-pointer equality and ordered word RMW writes remain.
+
+Combined checkpoint: 21,760 direct original-ROM and 10,880 private consumer-
+ABI cases PASS, plus 96 guards, 32 distinct child unwinds, 80 changed-child
+returns, 320 stack endpoints and 30 return-redirection probes. A separate
+48-case matrix exercises all seven hand ranks. Sixteen composed shuffles
+execute 16,416 literal existing C RNG calls against original descendants;
+CPU, full WRAM, ordered bus/MMIO, device state and child snapshots agree.
+Three effective wrong-ROM controls are detected. Tests and tools stay private.
+
+These are new game algorithms, not new per-PC adapters. The F0 controller
+84:A705 remains the next parent reconstruction; all five helpers remain
+runtime-unbound pending their caller/integration contract. Canonical count
+2,059 -> 2,064; zero drafts. Native count remains 1,988; WRAM count 813.
+No full unchanged regression, current FPS or whole-ROM completeness claim.
+
 # Special-menu video setup reconstructed - 2026-10-24
 
 Three complete original bodies are newly verified:84:A455 video initialization,
