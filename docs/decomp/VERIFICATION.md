@@ -1,3 +1,27 @@
+# Card and board stake dialogs - 2026-10-25
+
+84:AC66 and D1EF bind the complete existing stake-selection C APIs. Consumer
+clocks cover 89 phases and 33 real child sites, balance carry/borrow, input
+changes, original digit division, nested sprite/tile loops, PHP/PLP and RTS.
+The card dialog restores its saved word accumulator after AD14; the board
+dialog accepts both original entry accumulator widths. Unsupported digit
+inputs fall back before timing begins; semantic loops remain literal.
+
+The shared checkpoint passes 8,192 ROM/timed states, 594 altered-child states,
+six opaque-child data fallbacks, 1,820 pure admission cases, six bounded-data
+guards and 13 feature gates. A fixture initially omitted the original card
+graphics initialization and stalled in both arms; restored before acceptance.
+Original A70D/A710/A72C and C826/C958 callers execute both new C bodies twice.
+346 post-warmup frames preserve CPU/full WRAM, video/pixels/PCM, returned
+state and exact clocks. Parent decoding changes from 4,158 to 4,080. Existing
+post-wait continuations remain interpreter owned; this is entry integration.
+
+Strict C11, feature-off compilation, reserved Release build, default verified
+selection and generated wrappers share the checkpoint. Unrelated full
+regression is deferred. The unchanged semantic APIs remain verified;
+2,158 verified functions, zero drafts and 866 WRAM records. Proofs, tools
+and ROM stay private. Nothing is pushed.
+
 # Poker showdown and board payouts - 2026-10-25
 
 84:BA53 and D456 bind the existing complete semantic C APIs. Consumer clocks

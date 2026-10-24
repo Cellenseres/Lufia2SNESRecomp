@@ -18700,6 +18700,29 @@ RecompReturn Lufia2DecompBridge_84D456(CpuState *cpu) {
 #endif
 }
 
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_STAKE_DIALOGS)
+#include "stake_dialog_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84AC66(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_STAKE_DIALOGS)
+    return ActorBridgeStakeDialog(cpu, 0x84ac66u, Lufia2CardGameChooseStake);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84ac66u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84D1EF(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_STAKE_DIALOGS)
+    return ActorBridgeStakeDialog(cpu, 0x84d1efu, Lufia2BoardGameChooseStake);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84d1efu);
+#endif
+}
+
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResumeReturn(cpu, landing);
