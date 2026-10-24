@@ -1,3 +1,21 @@
+# Bind special-menu controller - 2026-10-24
+
+84:A689 selects its existing verified full C API through the original
+82:D69C shop tail. Preserve the inherited long-call frame, all selector
+branches and 12 child sites. The terminal RTL and post-wait continuations
+retain their existing interpreter ownership. Other dispatcher entries are
+unchanged; rejected admission follows the original path.
+
+The controller checkpoint passes 4,096 ROM/timed cases, 216 altered-child
+cases, 88 pure admissions and six feature gates. The real shop JSL/JML/RTL
+chain matches CPU/full WRAM/video/pixels/PCM, returned-state hashes and exact
+clocks over 79 frames. Both native controller entries execute; parent
+decoding drops 58 to 44. A forced native-rejection run also matches all
+79 reference frames. Portable semantics are unchanged.
+The Release/default-selection/catalogue checkpoint covers the combined
+controller and following text-window change; the intermediate commits were
+not independently rebuilt. Tests/tools/ROM remain private. No push.
+
 # Bind special-menu upload and replay queries - 2026-10-24
 
 84:A569, 84:AB23 and 84:CAF1 now select their existing verified C APIs.

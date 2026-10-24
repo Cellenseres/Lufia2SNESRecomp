@@ -1616,9 +1616,17 @@ static RecompReturn ActorBridgeBattleEntry(CpuState *cpu, uint32_t entry,
     if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
         return (RecompReturn)((int)call.unwound - 1);
     ActorBridgeStore(cpu, &state);
-    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
-        return interp_tier_dispatch_tail(cpu, result.pc, result.pc, frame.entry_s,
-                                         frame.hrv);
+    if (result.flow == LUFIA2_EXECUTION_BOUNDARY) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PALETTE_ENTRIES) && defined(LUFIA2_HAVE_NATIVE_SPECIAL_RUN)
+        if (entry == 0x82d69cu && result.pc == 0x84a689u &&
+            state.program_bank == 0x84u && cpu_dispatch_has_entry(cpu, result.pc)) {
+            cpu->PB = state.program_bank;
+            return cpu_dispatch_pc_from(cpu, result.pc, frame.entry_s, 0x82d6b2u);
+        }
+#endif
+        return interp_tier_dispatch_tail(
+            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
+    }
     /* The sprite builder has a real asynchronous RTS alternative. */
     if (entry == 0x81b5c4u && result.pc == 0x81b69fu)
         frame_size = 2u;
@@ -18597,6 +18605,20 @@ RecompReturn Lufia2DecompBridge_84CAF1(CpuState *cpu) {
 #else
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     return ActorBridgeFallback(cpu, &frame, 0x84caf1u);
+#endif
+}
+
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PALETTE_ENTRIES) && defined(LUFIA2_HAVE_NATIVE_SPECIAL_RUN)
+#include "special_run_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84A689(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PALETTE_ENTRIES) && defined(LUFIA2_HAVE_NATIVE_SPECIAL_RUN)
+    return ActorBridgeSpecialRun(cpu, 0x84a689u, Lufia2SpecialMenuRun);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84a689u);
 #endif
 }
 
