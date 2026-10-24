@@ -18235,3 +18235,147 @@ RecompReturn Lufia2DecompBridge_86AFE2(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x86afe2u);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#include "rectangle_call_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_8283B5(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedMenuRectangle(cpu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x8283b5u);
+#endif
+}
+
+#include "lufia2/world_scene_group_windows.h"
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#include "world_window_call_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_86B0BA(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedWorldWindow(cpu, 0x86b0bau, Lufia2WorldMapLoadGroupSceneWindow0);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86b0bau);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86B0C8(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedWorldWindow(cpu, 0x86b0c8u, Lufia2WorldMapLoadGroupSceneWindow1);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86b0c8u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86B0CF(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedWorldWindow(cpu, 0x86b0cfu, Lufia2WorldMapLoadGroupSceneWindow2);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86b0cfu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86B0D6(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedWorldWindow(cpu, 0x86b0d6u, Lufia2WorldMapLoadGroupSceneWindow3);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86b0d6u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86B0DD(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedWorldWindow(cpu, 0x86b0ddu, Lufia2WorldMapLoadGroupSceneWindow4);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86b0ddu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86B0E4(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedWorldWindow(cpu, 0x86b0e4u, Lufia2WorldMapLoadGroupSceneWindow5);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86b0e4u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86B0EB(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedWorldWindow(cpu, 0x86b0ebu, Lufia2WorldMapSetGroupSceneWindowShape);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86b0ebu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86B264(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedWorldWindow(cpu, 0x86b264u, Lufia2WorldMapLoadSceneSlopedWindow0);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86b264u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86B272(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedWorldWindow(cpu, 0x86b272u, Lufia2WorldMapLoadSceneSlopedWindow1);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86b272u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86B277(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedWorldWindow(cpu, 0x86b277u, Lufia2WorldMapLoadSceneSlopedWindow2);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86b277u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86B2BB(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedWorldWindow(cpu, 0x86b2bbu, Lufia2WorldMapStartSceneWindowCollapse);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86b2bbu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86BFEB(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedWorldWindow(cpu, 0x86bfebu, Lufia2WorldMapStepResourceSceneTrails);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86bfebu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86C02C(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedWorldWindow(cpu, 0x86c02cu, Lufia2WorldMapStepFadingResourceSceneTrails);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86c02cu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86C036(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedWorldWindow(cpu, 0x86c036u, Lufia2WorldMapBeginResourceSceneMusicFade);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86c036u);
+#endif
+}

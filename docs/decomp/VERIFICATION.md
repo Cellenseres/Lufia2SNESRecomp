@@ -1,3 +1,32 @@
+# Bind rectangle and world-scene callers - 2026-10-24
+
+Fifteen existing verified functions gain timed ordinary bindings.82:83B5
+now executes its complete natural C two-layer rectangle algorithm instead
+of invoking its per-opcode continuation hook throughout the clear loop.
+Fourteen86:* entries cover group/sloped-window setup,collapse initiation,
+resource-trail updates and music fade calls. Existing semantic C remains
+unchanged. Source selection is2,088 ordinary bindings;70verified entries
+remain without independent bindings.
+
+Clocks preserve original fetch/data order,loop branches,near/long child
+frames and near returns. Guards retain original CPU/DP/DB/stack contracts
+and require complete safe hardware intervals. Child unwinds retain their
+real guest frames and original continuation owner. Unsupported contexts
+and invalid rectangle geometry keep original interpretation.
+
+The shared checkpoint includes16,384 rectangle ROM/timed-ABI cases over
+all1,024valid width/height shapes,varied origins,DB/flags/stack and both
+ROM speeds;110pure geometry/hardware admission cases also pass. World
+callers pass28,672normal original-parent ROM/timed-ABI cases,288changed
+child contexts/unwinds across all16call sites,and1,148pure admission
+checks. CPU/fullWRAM/openbus/ordered transfers/per-opcode clocks match.
+World child services are paired opaque results,not a proof of every child
+body. No new intro/minigame gameplay or whole-game speedup is claimed.
+
+Evidence:rectangle-call-clock/ and world-window-call-clock/. This is one
+combined integration checkpoint;tests/tools/ROM/saves remain private.
+No unrelated full regression or repeated platform matrix was requested.
+
 # Bind original idle returns - 2026-10-24
 
 Five complete original RTS handlers gain timed ordinary bindings:81:9662,
