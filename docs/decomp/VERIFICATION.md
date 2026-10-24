@@ -1,3 +1,27 @@
+# Bind text-scene setup entries - 2026-10-24
+
+80:BC3D and 80:BCBC now have ordinary timed native bindings to the existing
+verified scene APIs. They retain original child-call frames, branch-specific
+actor-slot updates, all 32 repeated MVN instructions, saved DB/Y and BRL to
+80:9D00. Neither entry invents a guest return. Unsupported entry or post-child
+contexts keep the exact interpreter continuation. Selection is now 2,120
+verified entries; 38 lack independent bindings. This resolves 58 of 96 entries.
+
+The shared checkpoint passes 49,152 ROM/timed cases, 90 altered-child cases
+over five sites, 12,288 actual-ROM operand-reader compositions and 312 pure
+entry/post-child admission checks. The private bus fixture now maps low
+C0-CF ROM windows exactly like the runtime cart mapper; shared verification
+and semantic sources are unchanged. Literal MVN fetch/data order is checked.
+
+Four actual-registry actor/window variants, using original ROM script spans
+and one 5,000-frame warmup per arm, compare eight subsequent CPU/full-memory/
+device/pixel/PCM frames, exit-state hashes and exact clocks. Parent decoding
+falls from 66 to three instructions in this scoped probe. The established
+scheduler owns those three post-wait restore/tail instructions; no complete
+interpreter-removal claim is made. No ROM patch or changed baseline values
+are used. An invalid shared-scene fixture was rejected and kept privately.
+Tests, tools, diagnostics and ROM stay private.
+
 # Bind cursor continuations and counted waits - 2026-10-24
 
 82:8A9B/8AD6 and 86:9748 now have ordinary timed bindings to their verified

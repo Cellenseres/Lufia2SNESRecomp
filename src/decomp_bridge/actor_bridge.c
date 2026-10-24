@@ -18763,3 +18763,25 @@ RecompReturn Lufia2DecompBridge_869748(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x869748u);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#include "text_scene_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_80BC3D(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedTextScene(cpu, 0x80bc3du, Lufia2TextPlaceNextSceneActor);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x80bc3du);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_80BCBC(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedTextScene(cpu, 0x80bcbcu, Lufia2TextSetWindowMode);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x80bcbcu);
+#endif
+}
