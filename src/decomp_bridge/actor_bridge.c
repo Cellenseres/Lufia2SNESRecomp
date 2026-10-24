@@ -18723,6 +18723,20 @@ RecompReturn Lufia2DecompBridge_84D1EF(CpuState *cpu) {
 #endif
 }
 
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BOARD_GROUP)
+#include "board_group_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84D016(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BOARD_GROUP)
+    return ActorBridgeBoardGroup(cpu, 0x84d016u, Lufia2BoardGameMoveSelectedGroup);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84d016u);
+#endif
+}
+
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResumeReturn(cpu, landing);

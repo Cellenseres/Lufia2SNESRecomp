@@ -1,3 +1,23 @@
+# Board group movement entry - 2026-10-25
+
+84:D016 binds the complete existing group-movement C API. Its consumer clock
+covers 16 phases and six real child sites, horizontal/vertical movement,
+literal row/column loops, indirect ROM reads, nested PHY/PLY, PHP/PLP and RTS.
+Both original entry accumulator widths are preserved. No semantic changes.
+
+The shared checkpoint passes 8,192 ROM/timed states, 108 altered-child cases,
+364 pure admissions and eight feature gates. Original C826 setup through
+C958 precedes four original C9E2 calls for both orientations and movement
+senses at both entry widths. All four reach the C body. 146 post-warmup
+frames preserve CPU/full WRAM, video/pixels/PCM, returned state and exact
+clocks. Parent decoding changes from 1,305 to 821. Existing post-wait
+continuations remain interpreted; this is consumer entry integration.
+
+Strict C11, feature-off, reserved Release/default selection and four generated
+wrappers share the checkpoint. Unrelated full regression is deferred. The
+2,158 verified functions, zero drafts and 866 WRAM records are unchanged.
+Tests, tools and ROM remain private. Nothing is pushed.
+
 # Card and board stake dialogs - 2026-10-25
 
 84:AC66 and D1EF bind the complete existing stake-selection C APIs. Consumer
