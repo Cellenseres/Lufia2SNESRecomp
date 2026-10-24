@@ -1,3 +1,29 @@
+# Bind twelve original frame-wait entries - 2026-10-24
+
+Twelve verified wait entries now have ordinary consumer bindings: 80:9378,
+80:BF0B, 82:93C2, 83:900C, 84:8363, 84:8D4D, 84:A5A8, 85:851C, 86:8B48,
+86:974F, 8E:B288 and 8E:B550. Native entry C shares the original register-save
+and counter-load phases, then hands the exact CMP PC and live saved frame to
+the existing poll/NMI scheduler. Its semantic C phases and certified idle
+patch remain active. This provides actual native entry bindings; it does not
+claim to remove the interpreter scheduler from hardware frame waits. There
+are now 2,112 selected verified entries and 46 without independent bindings.
+
+The shared checkpoint passes 12,288 original-ROM/timed entry-phase cases in
+all four M/X modes and both ROM speeds, including all 256 packed status
+values, 480 deadline handoffs and 720 side-effect-free admission guards.
+One paired production boot runs 48 complete wait/NMI/return scenarios across
+all twelve entries and four width modes. Each native entry body is reached
+four times. All 143 subsequent architectural CPU/full memory/device/pixel/PCM
+digests, return-state hashes and exact clocks match. Ten original JSR sites
+call the wait directly; two use explicit same-bank test-registry routing.
+
+A private full-poll-owner prototype passed literal ROM tests but changed a
+host scheduler quiescence boundary. It was rejected. Exact post-LDA handoff
+retains the established scheduler and wait acceleration, with unchanged
+production comparisons. No wait, refresh, NMI, saved register or original
+return is omitted. Tests, diagnostics and ROM remain private.
+
 # Bind the original field-start tail - 2026-10-24
 
 80:8281 now calls the verified original one-JML semantic function and tails

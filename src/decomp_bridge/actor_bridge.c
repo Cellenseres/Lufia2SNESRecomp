@@ -18593,3 +18593,115 @@ RecompReturn Lufia2DecompBridge_808281(CpuState *cpu) {
 #endif
     return ActorBridgeFallback(cpu, &frame, entry);
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#include "frame_wait_entry_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_809378(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeNativeFrameWait(cpu, 0u);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x809378u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_80BF0B(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeNativeFrameWait(cpu, 1u);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x80bf0bu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_8293C2(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeNativeFrameWait(cpu, 2u);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x8293c2u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_83900C(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeNativeFrameWait(cpu, 3u);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x83900cu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_848363(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeNativeFrameWait(cpu, 4u);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x848363u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_848D4D(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeNativeFrameWait(cpu, 5u);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x848d4du);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84A5A8(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeNativeFrameWait(cpu, 6u);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x84a5a8u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_85851C(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeNativeFrameWait(cpu, 7u);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x85851cu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_868B48(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeNativeFrameWait(cpu, 8u);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x868b48u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86974F(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeNativeFrameWait(cpu, 9u);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x86974fu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_8EB288(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeNativeFrameWait(cpu, 10u);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x8eb288u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_8EB550(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeNativeFrameWait(cpu, 11u);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x8eb550u);
+#endif
+}
