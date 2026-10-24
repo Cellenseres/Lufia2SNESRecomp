@@ -57,7 +57,9 @@ static bool PreparePaletteEntry(PaletteEntryClock *clock, uint32_t pc) {
         cpu->host_return_valid != 2u ||
         (bank != 0x840000u || cpu->DB != 0x7eu))
         return false;
-    const bool word = pc == 0x84a565u;
+    const bool word = pc == 0x84a565u || pc == 0x84b5b9u ||
+        pc == 0x84b5cbu || pc == 0x84b5ceu || pc == 0x84b5d1u ||
+        pc == 0x84b5d4u || pc == 0x84b5d7u;
     if (cpu->m_flag == word)
         return false;
     switch (pc) {
@@ -99,6 +101,73 @@ static bool PreparePaletteEntry(PaletteEntryClock *clock, uint32_t pc) {
         clock->return_pc = 0x84a568u;
         break;
     }
+    case 0x84b57fu:
+        PaletteEntryOpcode(clock, 0xb57fu, 1u, 3u, 1u);
+        PaletteEntryOpcode(clock, 0xb580u, 2u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xb582u, 1u, 3u, 1u);
+        PaletteEntryOpcode(clock, 0xb583u, 3u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xb586u, 3u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xb589u, 3u, 3u, 0u);
+        PaletteEntryMove(clock, 0xb58cu, 256u);
+        PaletteEntryOpcode(clock, 0xb58fu, 3u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xb592u, 3u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xb595u, 3u, 3u, 0u);
+        PaletteEntryMove(clock, 0xb598u, 256u);
+        PaletteEntryOpcode(clock, 0xb59bu, 1u, 4u, 1u);
+        PaletteEntryOpcode(clock, 0xb59cu, 2u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xb59eu, 2u, 2u, 0u);
+        PaletteEntryOpcode(clock, 0xb5a0u, 2u, 3u, 1u);
+        PaletteEntryOpcode(clock, 0xb5a2u, 3u, 6u, 2u);
+        break;
+    case 0x84b5a5u:
+        PaletteEntryOpcode(clock, 0xb5a5u, 2u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xb5a7u, 3u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xb5aau, 2u, 4u, 2u);
+        PaletteEntryOpcode(clock, 0xb5acu, 3u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xb5afu, 2u, 4u, 2u);
+        PaletteEntryOpcode(clock, 0xb5b1u, 3u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xb5b4u, 2u, 4u, 2u);
+        PaletteEntryOpcode(clock, 0xb5b6u, 3u, 6u, 2u);
+        break;
+    case 0x84b5b9u:
+        PaletteEntryOpcode(clock, 0xb5b9u, 3u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xb5bcu, 2u, 4u, 2u);
+        PaletteEntryOpcode(clock, 0xb5beu, 3u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xb5c1u, 2u, 4u, 2u);
+        PaletteEntryOpcode(clock, 0xb5c3u, 3u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xb5c6u, 2u, 4u, 2u);
+        PaletteEntryOpcode(clock, 0xb5c8u, 3u, 6u, 2u);
+        break;
+    case 0x84b5cbu: case 0x84b5ceu: case 0x84b5d1u: case 0x84b5d4u:
+    case 0x84b5f5u:
+        PaletteEntryOpcode(clock, (uint16_t)pc, 3u, 6u, 2u);
+        break;
+    case 0x84b5d7u:
+        PaletteEntryOpcode(clock, 0xb5d7u, 2u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xb5d9u, 2u, 2u, 0u);
+        PaletteEntryOpcode(clock, 0xb5dbu, 3u, 4u, 1u);
+        PaletteEntryOpcode(clock, 0xb5deu, 2u, 2u, 0u);
+        PaletteEntryOpcode(clock, 0xb5e0u, 2u, 3u, 1u);
+        PaletteEntryOpcode(clock, 0xb5e2u, 3u, 6u, 2u);
+        break;
+    case 0x84b5e5u:
+        PaletteEntryOpcode(clock, 0xb5e5u, 2u, 2u, 0u);
+        PaletteEntryOpcode(clock, 0xb5e7u, 2u, 3u, 1u);
+        PaletteEntryOpcode(clock, 0xb5e9u, 2u, 3u, 1u);
+        PaletteEntryOpcode(clock, 0xb5ebu, 3u, 6u, 2u);
+        break;
+    case 0x84b5eeu:
+        PaletteEntryOpcode(clock, 0xb5eeu, 2u, 2u, 0u);
+        PaletteEntryOpcode(clock, 0xb5f0u, 2u, 3u, 1u);
+        PaletteEntryOpcode(clock, 0xb5f2u, 3u, 6u, 2u);
+        break;
+    case 0x84b5f8u:
+        PaletteEntryOpcode(clock, 0xb5f8u, 2u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xb5fau, 3u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xb5fdu, 4u, 6u, 2u);
+        PaletteEntryOpcode(clock, 0xb601u, 1u, 4u, 1u);
+        clock->return_pc = 0x84b602u;
+        break;
     default:
         return false;
     }

@@ -8510,3 +8510,7 @@ dispatch_addresses = ["00:86C0", "80:86C0"]
 [[binding]]
 address = "84:A529"
 bridge = "Lufia2DecompBridge_84A529"
+
+[[binding]]
+address = "84:B57F"
+bridge = "Lufia2DecompBridge_84B57F"

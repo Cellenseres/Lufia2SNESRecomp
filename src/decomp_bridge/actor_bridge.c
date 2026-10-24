@@ -18475,6 +18475,16 @@ RecompReturn Lufia2DecompBridge_84A529(CpuState *cpu) {
 
 
 
+
+RecompReturn Lufia2DecompBridge_84B57F(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PALETTE_ENTRIES)
+    return ActorBridgePaletteEntry(cpu, 0x84b57fu, Lufia2CardGameInitializeScene);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84b57fu);
+#endif
+}
+
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResumeReturn(cpu, landing);

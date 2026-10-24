@@ -1,3 +1,24 @@
+# Bind card-scene initialization - 2026-10-24
+
+84:B57F now uses its verified C initialization API through the shared timed
+palette consumer. Preserve both 256-byte MVNs, saved status/data bank,
+resource and DMA children, sprite/deck setup, frame waits, fade and original
+long scene-state clear. Unsupported entry/post-child contexts keep the exact
+interpreter continuation. Portable semantic sources remain unchanged.
+Selection becomes 2,125 verified entries; 33 lack independent bindings.
+63 of the original 96 candidates are now bound.
+
+One shared checkpoint covers this entry and 84:A529: 8,192 original-ROM/timed
+cases, 234 altered-child cases across all 13 sites, 176 pure admissions and
+six feature/API/selection gates pass. The actual original menu prelude,
+video setup and card-scene caller compare 24 post-warmup frames, CPU/full
+WRAM/video/pixels/PCM, returned-state hashes and exact clocks. Both 512-byte
+palette copies execute C. Parent decoding drops from 1,104 to 50 in this
+probe; remaining post-wait operations retain established scheduler ownership.
+No claim of full interpreter elimination is made. The unrelated world-palette
+scope issue remains open. Tests/tools/ROM stay private; full unrelated
+regression is deferred for this consumer-only extension.
+
 # Bind special-menu palette setup - 2026-10-24
 
 84:A529 now has an independent timed binding to its existing verified API.
