@@ -1,3 +1,61 @@
+# Board stakes, payout and particle contracts verified - 2026-10-24
+
+Six complete original routines are reconstructed in `board_game_results.c`:
+84:D1EF stake selection, D414 six-sprite digits, D456 line payout, D538 cell
+location rebuilding, D558 particles and A421 payout-step credit. Five PHP/PLP
+roots support both incoming M widths; D414 requires M0. All require X16, DP0,
+binary arithmetic and live DB. Metadata: 2,158 verified entries, zero drafts,
+866 WRAM locations. All six remain unbound; 1,988 active bindings are unchanged.
+
+Stake selection retains balance reservation/refund, signed decimal splitting,
+all direction/confirm controls, twelve frames of twelve moving sprites and the
+sprite-to-tile transfer. Payout retains twelve line scans, thresholds101/108,
+fivefold bonus, repeated shifts/additions, denomination steps and the original
+low-word cap behavior. The A3FC division child retains its eight hardware NOPs.
+Particle motion retains byte CMP flags across REP, packed coordinates, exact
+long-versus-relative bank reads, marker movement and the25-position ring.
+69E2/69E4 are named fields; 70B4/70B6 overlay card hands and remain local names.
+
+Shared original-ROM proof passed5,632 direct and2,816 private ABI cases,207
+entry guards,35 child contexts/unwinds,175 changed returns,704 stack endpoints
+and525 redirects. CPU, full WRAM, ordered bus/MMIO/device state and child
+snapshots match; no primary ABI fallback. Ordinary payout uses the original
+DB7E context; particles use coherent7E/7F states and other roots cover four
+banks. Bank7F payout mixes relative stores with fixed7E reads and may never
+terminate. That original behavior is covered by exact prefixes, not repaired.
+
+Ten prefix cases per interface cover both M widths for stake waiting, payout
+waiting, nonconvergent bank7F payout, malformed particle indices at the RNG-call
+budget and the separate particle-iteration boundary. Parent call prefixes stop
+after65,536 calls; the bank case includes78,642 actual parent/nested calls.
+The particle iteration prefix executes65,536 original iterations and9,400 child
+calls. Its controlled RNG service supplies in-range values, normalizes a changed
+child X return and resets the OAM cursor; this is an adversarial callback proof,
+not a claim about natural RNG behavior. Other particle prefixes and compositions
+execute the literal original RNG or its unchanged verified C implementation.
+
+26 compositions include the complete C826 controller and all six new actual C
+descendants, with32 positive matched descendant sets. A synthetic frame service
+seeds a valid completed board for the winner path. Ordered full bus traces retain
+all MMIO; private MMIO event buffers reset at modeled frame services. Actual
+rendered gameplay, device timing and natural outcome distribution are not proved.
+Eight altered-ROM controls are detected. No semantic-source correction followed
+the first shared proof: private fixtures were corrected for bank nontermination,
+the union of earlier child sites, winner coverage and separate prefix boundaries.
+Failed fixture evidence remains private and is excluded from acceptance.
+
+Strict MSVC C11/W4/WX, GCC/Clang module checks and the reserved agent Release
+build belong to this checkpoint. Earlier semantic sources, actual bridge and
+bindings, CLI binaries and foreign work are hash-checked and reused. No unchanged
+full regression or Linux/CLI rebuild. Tests, proof tools and ROM stay private;
+no push. Newly confirmed original window, sound and timed arithmetic children
+are added to the catalogue rather than hidden in the old inventory denominator.
+
+Next: original special-menu window helpers A2B3/A39B, then remaining controllers
+DA9B/F38A or poker action C028. A607 is a sound thunk, not a new gameplay
+algorithm. Timed A3FC/AE43/CEB3 remain original until their full timing contract
+can be represented. Runtime activation remains a separate consumer decision.
+
 # Board selection and rendering verified - 2026-10-24
 
 Nine complete original contracts in `src/menu/board_game_selection.c`:
