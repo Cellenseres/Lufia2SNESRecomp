@@ -1,3 +1,35 @@
+# Activate the timed party swap - 2026-10-24
+
+82:B6EF now binds the existing verified Lufia2MenuSwapPartyMembers. The
+consumer schedules its original fetches, memory accesses and near return
+using the current interp816 clock conventions. Semantic C is unchanged.
+There are 2,060 ordinary bindings and 98 verified entries without independent
+bindings. B907 and BD02 remain timing holds.
+
+12,320 original-ROM/actual timed-ABI cases compare CPU, full WRAM, open bus,
+every fetch/data event and its opcode phase, and CPU/master clock totals.
+They cover both ROM speeds, supported data-bank mirrors, byte-index edges
+and overlapping sprite columns. Another 37 cases verify unchanged fallback
+for unsupported register, stack, interrupt, DMA, HDMA and deadline contexts.
+The bridge requires a paired near call and a complete safe timing window.
+
+The return-target resolver is shared with ordinary bridges without changing
+its decisions. Two equipment family matrices pass 27,392 ROM/ABI cases,
+including child contexts, nonlocal unwinds and altered returns. The fixed-span
+diagnostic mask now bounds shifts to its 32 bits; longer ordinary calls do
+not use that mask as a pre-opcode completion report.
+
+A private 7,200-frame Change-menu comparison reaches the C body twice with
+zero decoded B6EF entries. CPU, full WRAM, pixels, PCM and all sampled guest
+clock/beam fields match. An earlier guard-rejected comparison is retained
+as rejected evidence: matching frames alone did not establish native use.
+This remains sampled gameplay evidence, not universal whole-game timing.
+
+Windows build, generated selection, production-object replay and catalogue
+results are recorded in party-swap-clock/ACCEPTANCE_RECEIPT.json. Tests and
+ROM remain private. No new semantic function, full regression, standalone
+or CLI rebuild is claimed. No push.
+
 # Activate verified equipment callers - 2026-10-24
 
 Five previously verified routines now have production bindings: 82:B7E5,

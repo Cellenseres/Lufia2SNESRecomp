@@ -158,6 +158,21 @@ static void ActorBridgeExecutionCheckpoint(
     state->program_bank = semantic_bank;
 }
 
+static RecompReturn ActorBridgeResolveReturn(
+    CpuState *cpu, const ActorBridgeFrame *frame, uint8_t frame_size,
+    uint32_t source_pc24, uint16_t ret_s, uint32_t rpc24) {
+    if (frame->hrv == frame_size && ret_s == frame->entry_s &&
+        rpc24 != frame->host_return_pc24 &&
+        !cpu_dispatch_has_entry(cpu, rpc24))
+        return interp_tier_dispatch_rewritten_return(
+            cpu, rpc24, source_pc24);
+    if (frame->hrv == frame_size && ret_s == frame->entry_s &&
+        rpc24 == frame->host_return_pc24)
+        return RECOMP_RETURN_NORMAL;
+    return cpu_dispatch_pc_from(
+        cpu, rpc24, (uint16)(frame->entry_s + frame_size), source_pc24);
+}
+
 /* Generated RTS/RTL tail for a balanced routine. */
 static RecompReturn ActorBridgeReturn(
     CpuState *cpu,
@@ -181,16 +196,7 @@ static RecompReturn ActorBridgeReturn(
     rpc24 = ((uint32_t)pb << 16) |
         (uint16_t)((((pch << 8) | pcl) + 1u) & 0xffffu);
 
-    if (frame->hrv == frame_size && ret_s == frame->entry_s &&
-        rpc24 != frame->host_return_pc24 &&
-        !cpu_dispatch_has_entry(cpu, rpc24))
-        return interp_tier_dispatch_rewritten_return(
-            cpu, rpc24, source_pc24);
-    if (frame->hrv == frame_size && ret_s == frame->entry_s &&
-        rpc24 == frame->host_return_pc24)
-        return RECOMP_RETURN_NORMAL;
-    return cpu_dispatch_pc_from(
-        cpu, rpc24, (uint16)(frame->entry_s + frame_size), source_pc24);
+    return ActorBridgeResolveReturn(cpu, frame, frame_size, source_pc24, ret_s, rpc24);
 }
 
 RecompReturn Lufia2DecompBridge_D350(CpuState *cpu) {
@@ -18066,4 +18072,16 @@ RecompReturn Lufia2DecompBridge_82BC96(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_82BCC4(CpuState *cpu) {
     return ActorBridgeSceneOwners(cpu, 0x82bcc4u,
         Lufia2MenuScrollEquipmentUp, 2u);
+}
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#include "party_swap_clock.inc"
+#endif
+RecompReturn Lufia2DecompBridge_82B6EF(CpuState *cpu) {
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    if (PartySwapClockSupported(cpu))
+        return RunPartySwap(cpu, &frame);
+#endif
+    return ActorBridgeFallback(cpu, &frame, 0x82b6efu);
 }

@@ -23,7 +23,7 @@ typedef struct FixedSpanClock {
 static void FinishFixedSpanOpcode(FixedSpanClock *clock) {
     const FixedSpanOpcode *timing = clock->timing + clock->index;
     const unsigned internal = timing->cycles - timing->fetched - timing->data_bytes;
-    if (clock->progress)
+    if (clock->progress && clock->index < 32u)
         clock->progress_mask |= 1u << clock->index;
     Lufia2DecompFrameReturnAccountOpcode(clock->cpu, timing->cycles,
         clock->fetch_master + clock->data_master + internal * 6u, clock->progress);
