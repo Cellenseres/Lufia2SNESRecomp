@@ -1,3 +1,42 @@
+# Card-game actions and stake handling reconstructed - 2026-10-24
+
+Five complete original routines are verified:84:B57F scene setup(M1X0),
+AF4B opening deal,B18E animated deal,AC66 stake selection and C350 stake
+input(M0X0),in card_game_actions.c. DP0,binary/liveDB. Canonical count
+2,069 -> 2,074; zero drafts. Runtime bindings stay1,988; all five remain
+unbound. Four new WRAM regions bring the map to828 locations.
+
+The69DCfield is now correctly named card_game_stake. Original AC66 writes
+the selected stake; AD9D scales it for payout. The earlier round label is a
+metadata alias. Existing core/control code changes only those identifiers;
+no address,algorithm or public signature changes. Affected code was freshly
+compiled and checked with the new batch.
+
+Original palette MVNs,resource/frame/fade children,opening-deal order,
+ROM-backed animation paths,zero-count256step loops,stake reservation/refund,
+overlapping balance words,signed byte limits and hidden accumulator byte
+remain. Hardware division C31B stays an original child with its NOP delays;
+no host arithmetic replacement. Work prefixes yield at exact pending calls.
+
+Shared proof:32,768direct original-ROM and16,384private ABI cases PASS,
+100entry guards,55child unwinds,275changed returns,320stack endpoints and
+825return-redirection probes cover all55call sites. Two literal65,536call
+prefixes match.80related root compositions execute real C stake input,deck,
+deal,graphics upload and decompressor against original descendants. Their
+native call counts are30/16/16/32/32; raw fixture counters include both sides.
+Another1,024direct payout cases validate the corrected stake identifier.
+CPU,fullWRAM,ordered bus/MMIO/device state and child snapshots agree.
+Five wrong-ROM controls are detected. Tests/tools/ROM remain private.
+
+The prefix fixture initially exhausted its bounded MMIO log using DB84 for
+a long stake loop;using the actual game DB7E resolves that synthetic state.
+A separate private ABI helper also mistook a progressed same-entry boundary
+for pre-access fallback;it now distinguishes completed child calls. Original
+baseline inputs/results are preserved;only affected supplemental checks ran.
+The production bridge is unchanged. No physical VRAM/NMI timing,rendered
+scene,FPS or unchanged full-regression claim. Compiler/build results are
+recorded in solo-card-actions/ACCEPTANCE_RECEIPT.json.
+
 # Card-game controller reconstructed — 2026-10-24
 
 Five complete original bodies are verified in card_game_control.c:84:A705
