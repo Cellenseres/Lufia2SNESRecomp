@@ -1,3 +1,36 @@
+# Bind interrupt entry and empty return - 2026-10-24
+
+80:862D and 80:86C0 now have independent consumer bindings, including their
+physical bank-zero mirrors. Save keeps the real interrupt frame and tails
+into its interrupt owner. Empty RTI restores the original status, PC and bank
+before returning to the host interrupt caller. Neither uses an RTS frame.
+Unsupported contexts retain original interrupt interpretation. Existing NMI
+pre-opcode hooks and the public runtime scheduler remain unchanged.
+
+The empty-return semantic API now accepts both original LoROM bank mirrors.
+Its frame decoder is shared with the existing canonical interrupt-return API;
+that API retains its previous entry guard. Metadata remains 2,158 verified,
+zero drafts. Consumer selection is 2,123, leaving 35 independent bindings.
+This completes 61 of the original 96 fallback candidates.
+
+32,768 shared ROM/timed ABI cases cover both entries, both mirrors, all M/X
+widths, status restoration and ROM speeds. 360 pure admission cases and seven
+API/selection/metadata/reference/mirror gates pass. A 5,100-frame actual
+dispatch/interrupt-owner comparison preserves CPU, all WRAM, video memories,
+pixels, PCM and exact clocks. Native save executes 2,862 times; five native
+RTIs cover both mirrors. Five other injected RTIs exercise guarded fallback.
+An additional 541-frame final self-owned comparison covers 283 save entries
+and two native RTIs across both mirrors. Foreground host-return metadata
+0/2/3 remains intact, and newly established interrupt owners are balanced.
+The baseline already uses the verified NMI prefix through its internal hook;
+these counts do not imply eliminating that many interpreted prefixes.
+
+An early interrupt prototype reused foreground auto-quiescent accounting and
+changed PCM. Dedicated interrupt timing fixes that ownership error without
+changing shared frame timing. Rejected diagnostics and all tests stay private.
+Full unrelated regression is deferred; the changed contract and real owner
+paths share the recorded batch checkpoint.
+
 # Native reset entry - 2026-10-24
 
 The verified reset API now owns the original 26-instruction reset prefix.

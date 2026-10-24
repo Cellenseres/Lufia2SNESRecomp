@@ -8496,3 +8496,13 @@ bridge = "Lufia2DecompBridge_80BCBC"
 address = "80:8000"
 bridge = "Lufia2DecompBridge_808000"
 dispatch_addresses = ["00:8000", "80:8000"]
+
+[[binding]]
+address = "80:862D"
+bridge = "Lufia2DecompBridge_80862D"
+dispatch_addresses = ["00:862D", "80:862D"]
+
+[[binding]]
+address = "80:86C0"
+bridge = "Lufia2DecompBridge_8086C0"
+dispatch_addresses = ["00:86C0", "80:86C0"]

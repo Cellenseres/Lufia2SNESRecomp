@@ -2737,6 +2737,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
                                                wide_accumulator, 800u, 256u);
 }
 #include "fixed_span_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_INTERRUPT_ENTRIES)
+#include "interrupt_entry_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_RESET_ENTRY)
 #include "reset_entry_clock.inc"
 #endif
@@ -18802,4 +18805,20 @@ RecompReturn Lufia2DecompBridge_808000(CpuState *cpu) {
 #endif
     const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
     return ActorBridgeFallback(cpu, &frame, ((uint32_t)cpu->PB << 16) | 0x8000u);
+}
+
+RecompReturn Lufia2DecompBridge_80862D(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_INTERRUPT_ENTRIES)
+    return ActorBridgeInterruptEntry(cpu, 0x862du);
+#else
+    return interp_tier_dispatch_interrupt(cpu, ((uint32_t)cpu->PB << 16) | 0x862du);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_8086C0(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_INTERRUPT_ENTRIES)
+    return ActorBridgeInterruptEntry(cpu, 0x86c0u);
+#else
+    return interp_tier_dispatch_interrupt(cpu, ((uint32_t)cpu->PB << 16) | 0x86c0u);
+#endif
 }
