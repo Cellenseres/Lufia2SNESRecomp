@@ -22,6 +22,12 @@ typedef struct Lufia2BattleUiLayout {
     Lufia2BattleUiCardLayout cards[LUFIA2_BATTLE_UI_CARDS];
 } Lufia2BattleUiLayout;
 
+typedef struct Lufia2BattleUiCardView {
+    const uint32_t *pixels;
+    unsigned top;
+    int left[LUFIA2_BATTLE_UI_CARDS];
+} Lufia2BattleUiCardView;
+
 bool Lufia2BattleUiDecode(const uint8_t *data, size_t size,
                          Lufia2BattleUiLayout *layout);
 int Lufia2BattleUiCardX(const Lufia2BattleUiLayout *layout,
@@ -30,6 +36,8 @@ void Lufia2BattleUiDraw(const Lufia2BattleUiLayout *layout,
                        const uint32_t *cards, uint32_t *pixels,
                        unsigned width, unsigned height, unsigned top);
 void Lufia2BattleUiInit(const char *layout_path, const char *preview_path);
+/* Freeze optional layout in RAM; Init restores live reload. */
+void Lufia2BattleUiPreload(void);
 void Lufia2BattleUiBegin(bool enabled, unsigned width, unsigned height);
 bool Lufia2BattleUiActive(void);
 bool Lufia2BattleUiCapturing(void);
@@ -40,6 +48,9 @@ void Lufia2BattleUiRecord(unsigned row, unsigned line,
 void Lufia2BattleUiFinish(uint8_t *pixels, size_t pitch);
 void Lufia2BattleUiCompose(uint8_t *pixels, unsigned width,
                           unsigned height, bool authoritative);
+/* Completed unscaled cards, in draw order. Borrowed until Begin/Record/Init.
+ * Preview export keeps the CPU composition path. No allocation or I/O. */
+bool Lufia2BattleUiReadCards(Lufia2BattleUiCardView *view);
 void Lufia2BattleUiReset(void);
 
 #endif

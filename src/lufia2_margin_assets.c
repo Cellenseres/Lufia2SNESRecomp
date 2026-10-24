@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-#include "host_paths.h"
+#include "lufia2_asset_paths.h"
 #include "lufia2_log.h"
 #include "snesrecomp_platform/margin_pack.h"
 
@@ -21,8 +21,7 @@ static bool LoadOnce(void) {
     char error[256];
     const char *leaf = "assets/widescreen/lufia2.l2mp";
     s_attempted = true;
-    if (!snesrecomp_exe_dir_path(leaf, path, sizeof path))
-        snprintf(path, sizeof path, "%s", leaf);
+    if (!Lufia2AssetPath(leaf, path, sizeof path)) return false;
     if (!snesrecomp_margin_pack_load_file(
             path, &s_pack, error, sizeof error)) {
         fprintf(stderr, "[margins] %s\n", error);

@@ -153,6 +153,34 @@ bool Lufia2PpuRasterHistory(const uint8_t **rows, size_t *stride) {
     return s_line_regs_valid;
 }
 
+uint32_t Lufia2SetPollClockReference(uint32_t enabled) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return Lufia2DecompFramePollReferenceClock(enabled);
+#else
+    (void)enabled;
+    return 0u;
+#endif
+}
+
+uint64_t Lufia2NativeIdleSteps(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return Lufia2DecompNativeIdleSteps();
+#else
+    return 0;
+#endif
+}
+
+uint32_t Lufia2NativeIdleDiagnostics(uint64_t out[16],uint64_t contexts[16]) {
+    if (!out || !contexts) return 0;
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return Lufia2DecompNativeIdleDiagnostics(out,contexts);
+#else
+    memset(out, 0, 16u * sizeof *out);
+    memset(contexts, 0, 16u * sizeof *contexts);
+    return 0;
+#endif
+}
+
 uint32_t Lufia2ResumePc(void) {
     return s_resume_pc & 0xFFFFFFu;
 }
@@ -190,7 +218,8 @@ static uint32_t Lufia2HdmaMemoryFlags(void) {
                 flags |= SNES_PPU_RASTER_MEMORY_CGRAM;
             else if (reg == 0x04u)
                 flags |= SNES_PPU_RASTER_MEMORY_OAM;
-            else if (!(reg == 0x00u ||
+            /* OBSEL changes are captured in each row's qualified OBJ. */
+            else if (!(reg == 0x00u || reg == 0x01u ||
                        (reg >= 0x0du && reg <= 0x14u) ||
                        (reg >= 0x1au && reg <= 0x20u) ||
                        (reg >= 0x23u && reg <= 0x32u)))
@@ -200,6 +229,12 @@ static uint32_t Lufia2HdmaMemoryFlags(void) {
     return flags;
 }
 
+uint32_t Lufia2PpuPendingRasterMemoryFlags(void) {
+    uint32_t flags = Lufia2HdmaMemoryFlags();
+    if (!g_snes || g_snes->vIrqEnabled || g_snes->hIrqEnabled)
+        flags |= SNES_PPU_RASTER_MEMORY_UNKNOWN;
+    return flags;
+}
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
 static uint64_t s_frame_return_deadline;
 
@@ -307,19 +342,34 @@ void Lufia2RunOneFrame(void) {
     (void)Lufia2RunToBoundary(s_resume_pc);
 }
 
+#if defined(LUFIA2_NATIVE_PPU_TIMELINE)
+#include "lufia2_ppu_timeline.h"
+static void Lufia2PpuTimelineIrq(void *context) {
+    (void)context;
+    if (Lufia2RunInterrupt(LUFIA2_IRQ_PC)) ++s_irqs;
+}
+#endif
+
 void Lufia2DrawPpuFrame(void) {
     if (!g_ppu || !g_dma || !g_snes)
         return;
 
+#if defined(LUFIA2_NATIVE_PPU_TIMELINE)
+    s_raster_memory_flags = Lufia2PpuPendingRasterMemoryFlags();
+    const Lufia2PpuTimeline timeline = {
+        &s_line_regs[0][0], sizeof s_line_regs[0],
+        (s_raster_memory_flags & SNES_PPU_RASTER_MEMORY_CGRAM) ? &s_line_cgram[0][0] : NULL,
+        sizeof s_line_cgram[0], Lufia2PpuTimelineIrq, NULL};
+    s_line_regs_valid = Lufia2PpuTimelineDraw(g_ppu, g_dma, g_snes,
+                                            g_snesrecomp_last_hdmaen, &timeline);
+#else
     /* This host walks the HDMA tables per line; without this the core's beam
        runs them too. Per frame, because a reset zeroes the field. */
 #if defined(LUFIA2_HAVE_HDMA_BEAM_SWITCH)
     snes_set_hdma_beam_enabled(g_snes, false);
 #endif
 
-    s_raster_memory_flags = Lufia2HdmaMemoryFlags();
-    if (g_snes->vIrqEnabled || g_snes->hIrqEnabled)
-        s_raster_memory_flags |= SNES_PPU_RASTER_MEMORY_UNKNOWN;
+    s_raster_memory_flags = Lufia2PpuPendingRasterMemoryFlags();
 
     /* Drive all HDMA channels. */
     SimpleHdma hdma[8];
@@ -358,6 +408,7 @@ void Lufia2DrawPpuFrame(void) {
         }
     }
     s_line_regs_valid = true;
+#endif
 }
 
 void Lufia2PrintDiagnostics(void) {

@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "host_paths.h"
+#include "lufia2_asset_paths.h"
 #include "lufia2_log.h"
 #include "lufia2_tga.h"
 
@@ -18,8 +18,7 @@ static void LoadOnce(size_t width, size_t height) {
     const char *leaf = "assets/img/lufia2_intro_margins.tga";
 
     s_attempted = true;
-    if (!snesrecomp_exe_dir_path(leaf, path, sizeof path))
-        snprintf(path, sizeof path, "%s", leaf);
+    if (!Lufia2AssetPath(leaf, path, sizeof path)) return;
     if (!Lufia2LoadTgaArgb(path, &s_pixels, &s_width, &s_height)) {
         fprintf(stderr, "[intro-margins] no readable '%s'\n", path);
         return;
@@ -75,6 +74,16 @@ static uint32_t Dim(uint32_t pixel, unsigned brightness) {
     return out;
 }
 
+const uint32_t *Lufia2IntroMarginsBorrowArt(size_t width, size_t height) {
+    if (!width || !height)
+        return NULL;
+    if (!s_attempted)
+        LoadOnce(width, height);
+    if (!s_pixels || width != (size_t)s_width || height != (size_t)s_height)
+        return NULL;
+    return s_pixels;
+}
+
 void Lufia2IntroMarginsApply(
     uint8_t *frame, size_t width, size_t height, size_t margin_width,
     unsigned brightness) {
@@ -82,9 +91,8 @@ void Lufia2IntroMarginsApply(
         return;
     if (!brightness)
         return;
-    if (!s_attempted)
-        LoadOnce(width, height);
-    if (!s_pixels)
+    const uint32_t *const art = Lufia2IntroMarginsBorrowArt(width, height);
+    if (!art)
         return;
 
     const size_t pitch = width * sizeof(uint32_t);
@@ -102,10 +110,9 @@ void Lufia2IntroMarginsApply(
                 if (there != backdrop && (there & 0x00ffffffu) != 0u)
                     continue;
                 StorePixel(at, Over(
-                    Dim(s_pixels[y * (size_t)s_width + x], brightness),
+                    Dim(art[y * width + x], brightness),
                     there));
             }
         }
     }
 }
-

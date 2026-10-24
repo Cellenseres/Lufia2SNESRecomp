@@ -271,6 +271,15 @@ void Lufia2IntroWidescreenObserve(const Ppu *ppu) {
         ppu, TREE_LAYER, s_state.line_scroll_x, s_state.lines);
 }
 
+bool Lufia2IntroWidescreenNeedsPostprocessing(void) {
+    return s_state.active || s_state.trees_active;
+}
+
+Lufia2IntroPostState Lufia2IntroWidescreenGetPostState(void) {
+    return (Lufia2IntroPostState){s_state.active, s_state.trees_active,
+        s_state.line_scroll_x, s_state.lines};
+}
+
 void Lufia2IntroWidescreenPaint(
     const Ppu *ppu, uint8_t *frame, size_t width, size_t height,
     unsigned margin) {

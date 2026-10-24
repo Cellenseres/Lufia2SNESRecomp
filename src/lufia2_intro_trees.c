@@ -113,6 +113,64 @@ static int32_t FloorDivide8(int64_t value) {
     return (int32_t)((value >= 0) ? (value >> 3) : -(((-value) + 7) >> 3));
 }
 
+bool Lufia2IntroTreesCapture(const Ppu *ppu, unsigned layer, size_t width,
+    size_t margin_width, const uint16_t *line_scroll, size_t lines,
+    Lufia2IntroTreeSnapshot *out) {
+    if (!ppu || layer >= 4u || !out || !width || width > 512u ||
+        !margin_width || margin_width > 128u) return false;
+    const uint16_t scroll = FrameScroll(ppu, layer, line_scroll, lines);
+    const int32_t left = s_base + (int32_t)(scroll >> 3);
+    const int64_t origin = (int64_t)s_base * 8 + scroll -
+        TREE_LEAD_MARGINS * (int64_t)margin_width;
+    const int32_t first = FloorDivide8(origin);
+    const int32_t last = FloorDivide8(origin + (int64_t)width - 1);
+    if (last - first + 1 > LUFIA2_INTRO_TREE_MAX_COLUMNS) return false;
+    memset(out, 0, sizeof *out);
+    out->first_column = first;
+    out->width = (uint16_t)width;
+    out->column_count = (uint16_t)(last - first + 1);
+    out->fine_x = (uint16_t)(origin - (int64_t)first * 8);
+    out->chars = (uint16_t)PPU_bgTileAdr(ppu, layer);
+    out->scroll_y = ppu->vScroll[layer];
+    for (unsigned i = 0; i < 32u; ++i) out->palette[i] = PaletteColour(ppu, i);
+    const unsigned tilemap = (unsigned)PPU_bgTilemapAdr(ppu, layer);
+    for (unsigned i = 0; i < out->column_count; ++i) {
+        const int32_t column = first + (int32_t)i;
+        if (column >= left + TREE_SETTLED_AFTER && column < left + TREE_COLUMNS) {
+            ReadColumn(ppu, tilemap, column - s_base, out->entries[i]);
+            out->known[i] = 1;
+        } else {
+            const uint16_t *entries = Recall(column);
+            if (entries) {
+                memcpy(out->entries[i], entries, sizeof out->entries[i]);
+                out->known[i] = 1;
+            }
+        }
+    }
+    return true;
+}
+
+bool Lufia2IntroTreesCaptureUnshaded(const Ppu *ppu, unsigned layer, size_t width,
+    size_t margin_width, const uint16_t *line_scroll, size_t lines,
+    Lufia2IntroTreeSnapshot *out, uint8_t *brightness_reduction) {
+    if(!ppu || !brightness_reduction || ppu->brightnessMult[31]%17u) return false;
+    const unsigned brightness=ppu->brightnessMult[31]/17u;
+    if(!Lufia2IntroTreesCapture(ppu,layer,width,margin_width,line_scroll,lines,out)) return false;
+    for(unsigned index=0;index<32;++index) {
+        const uint16_t colour=ppu->cgram[index];
+        uint32_t raw=0xff000000u,shaded=0xff000000u;
+        for(unsigned channel=0;channel<3;++channel) {
+            const unsigned level=(colour>>(channel*5u))&31u;
+            const unsigned value=level*8u+level/4u,shift=16u-channel*8u;
+            raw|=value<<shift;shaded|=(value*brightness/15u)<<shift;
+        }
+        if(shaded!=out->palette[index]) return false;
+        out->palette[index]=raw;
+    }
+    *brightness_reduction=(uint8_t)(15u-brightness);
+    return true;
+}
+
 bool Lufia2IntroTreesPaint(
     const Ppu *ppu,
     unsigned layer,

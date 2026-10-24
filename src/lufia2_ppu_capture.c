@@ -6,6 +6,7 @@
 #include <string.h>
 
 #include "snes/ppu.h"
+#include "snesrecomp_platform/memory_compare.h"
 
 #define PPU_RAW_OFFSET(member) \
     (offsetof(Ppu, member) - offsetof(Ppu, inidisp))
@@ -45,7 +46,7 @@ _Static_assert(sizeof(g_ppu->oam) ==
 
 static void CaptureBandFromRegs(SnesPpuRasterBand *band,
                                 const uint8_t *regs,
-                                const Ppu *live) {
+                                const SnesPpuBgState *layout) {
     static Ppu scratch;
     Ppu *const p = &scratch;
 
@@ -82,23 +83,68 @@ static void CaptureBandFromRegs(SnesPpuRasterBand *band,
         st->tall = PPU_bgTilemapHigher(p, bg) != 0;
         st->big_tiles = PPU_bigTiles(p, bg) != 0;
         st->bpp = (band->bg_mode == 1 && bg == 2) ? 2u : 4u;
-        st->margin_left = (uint8_t)PpuWidescreenLayerExtra(
-            live, bg, 0, (int)live->extraLeftCur);
-        st->margin_right = (uint8_t)PpuWidescreenLayerExtra(
-            live, bg, 0, (int)live->extraRightCur);
-        st->margin_repeats = (live->wsLayerRepeat & (1u << bg)) != 0;
-        if (st->margin_repeats) {
-            st->margin_left = (uint8_t)live->extraLeftCur;
-            st->margin_right = (uint8_t)live->extraRightCur;
-        }
+        st->margin_left=layout[bg].margin_left;
+        st->margin_right=layout[bg].margin_right;
+        st->margin_repeats=layout[bg].margin_repeats;
+        st->elastic_count=layout[bg].elastic_count;
+        memcpy(st->elastic,layout[bg].elastic,sizeof st->elastic);
     }
 }
 
 static bool BandsIdentical(const SnesPpuRasterBand *a,
                            const SnesPpuRasterBand *b) {
-    return memcmp((const char *)a + offsetof(SnesPpuRasterBand, bg_mode),
-                  (const char *)b + offsetof(SnesPpuRasterBand, bg_mode),
-                  sizeof *a - offsetof(SnesPpuRasterBand, bg_mode)) == 0;
+    return snesrecomp_u8_equal((const uint8_t *)a + offsetof(SnesPpuRasterBand, bg_mode),
+                  (const uint8_t *)b + offsetof(SnesPpuRasterBand, bg_mode),
+                  sizeof *a - offsetof(SnesPpuRasterBand, bg_mode));
+}
+
+static void CaptureLayoutAt(SnesPpuBgState *layout, const Ppu *live, unsigned line) {
+    memset(layout,0,SNES_PPU_BG_COUNT*sizeof(*layout));
+    for (unsigned bg = 0; bg < SNES_PPU_BG_COUNT; ++bg) {
+        const unsigned left = (live->wsLayerRepeat | live->wsLayerMirror) & (1u << bg) ? live->extraLeftCur :
+            (unsigned)PpuWidescreenLayerExtra(live, bg, (int)line, (int)live->extraLeftCur);
+        const unsigned right = (live->wsLayerRepeat | live->wsLayerMirror) & (1u << bg) ? live->extraRightCur :
+            (unsigned)PpuWidescreenLayerExtra(live, bg, (int)line, (int)live->extraRightCur);
+        layout[bg].margin_left=(uint8_t)left;
+        layout[bg].margin_right=(uint8_t)right;
+        layout[bg].margin_repeats=(live->wsLayerRepeat&(1u<<bg))!=0;
+        const int elastic=PpuWidescreenLayerElasticBandAt(live,bg,(int)line);
+        const unsigned count=elastic<0?0:live->wsElasticNSeg[elastic][bg];
+        layout[bg].elastic_count=(uint8_t)count;
+        for(unsigned i=0;i<count && i<SNES_PPU_ELASTIC_SEGMENTS;++i) {
+            const PpuWsElasticSeg *s=&live->wsElasticSeg[elastic][bg][i];
+            SnesPpuElasticSegment *t=&layout[bg].elastic[i];
+            *t=(SnesPpuElasticSegment){s->srcX0,s->srcX1,s->dstX0,s->dstX1};
+        }
+    }
+}
+
+static void LayoutBoundary(uint8_t *boundaries,int line) {
+    if(line>=1 && line<=LUFIA2_PPU_VISIBLE_LINES) boundaries[line]=1;
+}
+void Lufia2CapturePpuVisualBand(SnesPpuRasterBand *out,const Ppu *ppu,unsigned line) {
+    SnesPpuBgState layout[SNES_PPU_BG_COUNT];
+    CaptureLayoutAt(layout,ppu,line);
+    CaptureBandFromRegs(out,(const uint8_t *)&ppu->inidisp,layout);
+    out->y_begin=(uint16_t)(line-1u);out->y_end=(uint16_t)line;
+}
+static void LayoutRange(uint8_t *boundaries,int begin,int end) {
+    if(end>begin) {LayoutBoundary(boundaries,begin);LayoutBoundary(boundaries,end);}
+}
+void Lufia2CapturePpuLayoutBoundaries(uint8_t *boundaries,const Ppu *live) {
+    /* PpuWidescreenLayerExtra/ElasticBandAt change only at these endpoints.
+     * Resolve their precedence once per interval; raster registers remain
+     * independent and are still compared on every captured scanline. */
+    memset(boundaries,0,LUFIA2_PPU_VISIBLE_LINES+1u);
+    boundaries[1]=1;LayoutBoundary(boundaries,live->wsBg3WidenY);
+    for(unsigned bg=0;bg<SNES_PPU_BG_COUNT;++bg) {
+        LayoutRange(boundaries,live->wsClampY0[bg],live->wsClampY1[bg]);
+        LayoutRange(boundaries,live->wsRepeatY0[bg],live->wsRepeatY1[bg]);
+        LayoutRange(boundaries,live->wsStretchY0[bg],live->wsStretchY1[bg]);
+        for(unsigned i=0;i<kPpuWsElasticBands;++i)
+            if(live->wsElasticNSeg[i][bg])
+                LayoutRange(boundaries,live->wsElasticY0[i][bg],live->wsElasticY1[i][bg]);
+    }
 }
 
 bool Lufia2CapturePpuRasterEffects(
@@ -134,22 +180,28 @@ bool Lufia2CapturePpuFrame(SnesPpuFrameCapture *out,
                            unsigned canvas_extra) {
     static SnesPpuRasterBand bands[SNES_PPU_MAX_BANDS];
     SnesPpuRasterBand line_band;
+    SnesPpuBgState layout[SNES_PPU_BG_COUNT];
+    uint8_t layout_boundaries[LUFIA2_PPU_VISIBLE_LINES+1u];
     const uint8_t *previous = NULL;
     unsigned count = 0;
 
     if (!out || !g_ppu)
         return false;
+    Lufia2CapturePpuLayoutBoundaries(layout_boundaries,g_ppu);
     for (unsigned y = 0; y < LUFIA2_PPU_VISIBLE_LINES; y++) {
+        const bool layout_boundary=layout_boundaries[y+1u]!=0;
+        if(layout_boundary) CaptureLayoutAt(layout,g_ppu,y+1u);
         const uint8_t *regs = Lufia2LineRegisters(y);
         if (!regs)
             return false;
         if (count && previous &&
-            memcmp(previous, regs, PPU_SAVESTATE_REGS_SIZE) == 0) {
+            snesrecomp_u8_equal(previous, regs, PPU_SAVESTATE_REGS_SIZE) &&
+            !layout_boundary) {
             bands[count - 1u].y_end = (uint16_t)(y + 1u);
             continue;
         }
         previous = regs;
-        CaptureBandFromRegs(&line_band, regs, g_ppu);
+        CaptureBandFromRegs(&line_band, regs, layout);
         if (count && BandsIdentical(&bands[count - 1u], &line_band)) {
             bands[count - 1u].y_end = (uint16_t)(y + 1u);
             continue;

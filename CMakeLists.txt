@@ -651,6 +651,11 @@ endif()
 include("${CMAKE_SOURCE_DIR}/cmake/Lufia2MsvcPpu.cmake")
 lufia2_target_msvc_ppu(Lufia2Recomp "${SNESRECOMP_ROOT}")
 
+# Portable renderer helpers; native GPU adapters remain optional consumer code.
+target_sources(Lufia2Recomp PRIVATE
+    "${CMAKE_SOURCE_DIR}/src/lufia2_ppu_host.c"
+    "${CMAKE_SOURCE_DIR}/src/lufia2_ppu_obj_capture.c")
+
 target_include_directories(Lufia2Recomp PRIVATE
     "${CMAKE_SOURCE_DIR}/recomp"
     "${CMAKE_SOURCE_DIR}/src"

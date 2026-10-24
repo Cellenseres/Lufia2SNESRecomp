@@ -13,6 +13,7 @@ static Lufia2BattleUiLayout s_layout;
 static uint8_t s_layout_bytes[LUFIA2_BATTLE_UI_LAYOUT_BYTES];
 static char s_layout_path[1024], s_preview_path[1024];
 static bool s_loaded, s_active, s_capturing, s_ready;
+static bool s_layout_resident;
 static unsigned s_width, s_height, s_top, s_preview_frames;
 static uint64_t s_rows;
 static uint32_t s_cards[LUFIA2_BATTLE_UI_CARDS][LUFIA2_BATTLE_UI_CARD_HEIGHT][LUFIA2_BATTLE_UI_CARD_WIDTH];
@@ -78,6 +79,7 @@ void Lufia2BattleUiReset(void) {
 }
 
 void Lufia2BattleUiInit(const char *layout_path, const char *preview_path) {
+    s_layout_resident=false;
     snprintf(s_layout_path, sizeof s_layout_path, "%s", layout_path ? layout_path : "");
     snprintf(s_preview_path, sizeof s_preview_path, "%s", preview_path ? preview_path : "");
     s_loaded = false;
@@ -87,6 +89,7 @@ void Lufia2BattleUiInit(const char *layout_path, const char *preview_path) {
 }
 
 static void ReloadLayout(void) {
+    if(s_layout_resident) return;
     if (!s_layout_path[0]) return;
     FILE *file = fopen(s_layout_path, "rb");
     if (!file) return;
@@ -102,6 +105,8 @@ static void ReloadLayout(void) {
     memcpy(s_layout_bytes, data, sizeof s_layout_bytes);
     s_loaded = true;
 }
+
+void Lufia2BattleUiPreload(void) {ReloadLayout();s_layout_resident=true;}
 
 void Lufia2BattleUiBegin(bool enabled, unsigned width, unsigned height) {
     Lufia2BattleUiReset();
@@ -180,6 +185,15 @@ static void ExportPreview(const uint8_t *scene) {
         if (rename(temporary, s_preview_path)) remove(temporary);
 #endif
     } else remove(temporary);
+}
+
+bool Lufia2BattleUiReadCards(Lufia2BattleUiCardView *view) {
+    if(!view || !s_active || !s_ready || s_capturing || s_preview_path[0]) return false;
+    Lufia2BattleUiCardView next={0};
+    next.pixels=&s_cards[0][0][0];next.top=s_top;
+    for(unsigned card=0;card<LUFIA2_BATTLE_UI_CARDS;++card)
+        next.left[card]=Lufia2BattleUiCardX(&s_layout,card,s_width);
+    *view=next;return true;
 }
 
 void Lufia2BattleUiCompose(uint8_t *pixels, unsigned width,

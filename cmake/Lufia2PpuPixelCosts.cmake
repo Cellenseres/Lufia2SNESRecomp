@@ -43,7 +43,7 @@ function(lufia2_ppu_pixel_costs source_var)
             "  uint32 windex = 0;\n  do {"
             "  const bool l2_art = false;\n  uint32 windex = 0;\n  do {")
     endif()
-        # Only the no-math path uses the table. Compare the full palette per
+        # Unmodified pixels use the table. Compare the full palette per
         # scanline after HDMA/background callbacks, so line fades stay exact.
         lufia2_ppu_pixel_replace(_text
             "  uint32 windex = 0;\n  do {"
@@ -72,5 +72,12 @@ function(lufia2_ppu_pixel_costs source_var)
             ppu->brightnessMult[(color >> 10) & clip_color_mask];]=]
             "          dst[0] = clip_color_mask ? l2_rgb[pixel & 255u] : 0;")
     endif()
+    if(NOT _art EQUAL -1)
+        set(_math_colour "          uint32 color = l2_art ? Lufia2BattleEffectsColour(ppu, pixel, i, false) : ppu->cgram[pixel & 255u], color2;")
+    else()
+        set(_math_colour "          uint32 color = ppu->cgram[pixel & 0xff], color2;")
+    endif()
+    lufia2_ppu_pixel_replace(_text "${_math_colour}"
+        "          if (!l2_art && !(math_enabled_cur & (1u << main_layer))) {\n            if (clip_color_mask && !l2_rgb_ready) {\n              l2_rgb = Lufia2PpuPaletteRgb(ppu, &l2_palette_cache);\n              l2_rgb_ready = true;\n            }\n            dst[0] = clip_color_mask ? l2_rgb[pixel & 255u] : 0;\n            continue;\n          }\n${_math_colour}")
     set(${source_var} "#include \"lufia2_ppu_palette.h\"\n${_text}" PARENT_SCOPE)
 endfunction()

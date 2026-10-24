@@ -41,15 +41,26 @@ bool Lufia2CapturePpuRasterEffects(
     uint8_t *mosaic,
     size_t line_count);
 uint32_t Lufia2PpuRasterMemoryFlags(void);
+uint32_t Lufia2PpuPendingRasterMemoryFlags(void);
 const uint16_t *Lufia2PpuRasterCgram(void);
 
 /* Guest boundary at which the next frame resumes. This is observation only;
  * it does not redirect or otherwise alter guest execution. */
 uint32_t Lufia2ResumePc(void);
+/* Cumulative host-only count; guest state and saved games exclude it. */
+uint32_t Lufia2SetPollClockReference(uint32_t enabled);
+uint64_t Lufia2NativeIdleSteps(void);
+uint32_t Lufia2NativeIdleDiagnostics(uint64_t out[16],uint64_t contexts[16]);
 
 bool Lufia2CapturePpuFrame(SnesPpuFrameCapture *out,
                            unsigned canvas_width,
                            unsigned canvas_extra);
+/* Consumer-owned visual clone, independent of guest raster history. */
+void Lufia2CapturePpuVisualBand(SnesPpuRasterBand *out,
+    const struct Ppu *ppu, unsigned line);
+/* Marks layout changes at native lines 1..224; requires 225 bytes. */
+void Lufia2CapturePpuLayoutBoundaries(uint8_t *boundaries,
+    const struct Ppu *ppu);
 
 #ifdef __cplusplus
 }
