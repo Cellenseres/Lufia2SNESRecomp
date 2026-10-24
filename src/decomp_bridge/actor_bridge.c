@@ -18121,3 +18121,34 @@ RecompReturn Lufia2DecompBridge_82BD02(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x82bd02u);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#include "card_score_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84B54F(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedCardScore(cpu, 0x84b54fu, Lufia2CardGameDrawSceneLabels);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84b54fu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84ADC0(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedCardScore(cpu, 0x84adc0u, Lufia2CardGameDrawScoreFrame);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84adc0u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84ADF3(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedCardScore(cpu, 0x84adf3u, Lufia2CardGameDrawHandScore);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84adf3u);
+#endif
+}

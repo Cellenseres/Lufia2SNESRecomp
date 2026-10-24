@@ -1,3 +1,36 @@
+# Bind original card-score drawing - 2026-10-24
+
+Three existing verified functions gain timed ordinary bindings: 84:B54F
+scene labels, 84:ADC0 score frame and 84:ADF3 hand score. Semantic C and
+metadata are unchanged. There are 2,065 ordinary bindings and 93 verified
+entries without independent bindings.
+
+The consumer clocks original fetches, WRAM transfers, branches, child call
+frames and near returns. Repeated schedules describe the original six-column
+and four-row loops; the game algorithm remains in card_game_scene.c. The
+indexed-store cost follows the current interp816 convention, including its
+X16 write increment; this is not a physical-SNES cycle claim. Admission
+requires the original DB7E/M0/X16/DP0 context and a complete safe timing
+window. Unsupported hardware or CPU contexts keep original interpretation.
+
+The shared checkpoint passes 12,288 normal original-parent ROM/timed-ABI
+cases and 144 child-context/unwind cases across all eight original child
+sites, plus 246 side-effect-free admission checks. CPU, full WRAM, open bus,
+ordered fetch/data events and per-opcode clocks match. Paired opaque child
+services isolate parent contracts; this proof does not execute every child
+body. Both ROM speeds and varied live registers/flags/data are covered.
+
+All rendering work precedes the final A5A8 wait. A frame-wait unwind retains
+its real child frame and original return PC; the final REP/RTS remains with
+the interpreter owner after that frame transition. A normally returning
+child completes the entire C function and timed RTS. No redundant resume
+adapter is added merely to count those two completion instructions as native.
+
+Private evidence is in card-score-clock/. Runtime/gameplay acceptance is
+separate from the synthetic parent proof; no new minigame capture or whole-
+game speedup is claimed. Existing equipment gameplay evidence applies only
+to its unchanged sources. Tests, tools, ROM and saves remain private.
+
 # Bind timed equipment continuations - 2026-10-24
 
 82:B907 and 82:BD02 now use the existing verified semantic C through timed
