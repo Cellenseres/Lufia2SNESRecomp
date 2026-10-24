@@ -17586,3 +17586,33 @@ RecompReturn Lufia2DecompBridge_86C1B4(CpuState *cpu) {
         Lufia2WorldMapFindOrbitSceneParticleSlot, NULL, 2u,
         BATTLE_BRIDGE_M1X0, 0, 0x86, 0);
 }
+
+RecompReturn Lufia2DecompBridge_86B27C(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b27cu,
+        Lufia2WorldMapLoadSceneMirroredWindows0, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86B292(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b292u,
+        Lufia2WorldMapLoadSceneMirroredWindows1, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86B297(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b297u,
+        Lufia2WorldMapLoadSceneMirroredWindows2, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86B29C(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b29cu,
+        Lufia2WorldMapSubmitSceneSlopedWindow0, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86B2B1(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b2b1u,
+        Lufia2WorldMapSubmitSceneSlopedWindow1, 2u, false);
+}
+
+RecompReturn Lufia2DecompBridge_86B2B6(CpuState *cpu) {
+    return ActorBridgeWorldSequence(cpu, 0x86b2b6u,
+        Lufia2WorldMapSubmitSceneSlopedWindow2, 2u, false);
+}

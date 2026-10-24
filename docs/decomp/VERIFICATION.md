@@ -1,3 +1,28 @@
+# Finite mirrored and sloped scene windows - 2026-10-24
+
+Six complete existing C callers now have ordinary native bindings:
+86:B27C,B292,B297,B29C,B2B1,B2B6. They load mirrored window records and
+submit sloped windows. No new canonical algorithms, phase APIs or opcode
+adapters. Semantic sources unchanged; 2,050verified/zero drafts/806WRAM.
+Selected native entries increase1,979->1,985.
+
+One affected checkpoint passes6,144actual production-ABI ROM comparisons,
+144entry guards,96child unwinds,240changed-child returns and two detected
+wrong-ROM controls. CPU,full WRAM,ordered guest data/MMIO/device state and
+child-entry snapshots agree. An additional768parent cases execute1,536actual
+production C54B/C4E0 bridges against original roots. Their remaining C536/
+C5F8 descendants execute original ROM. Zero fallback;90redirect probes.
+SPC reads fail explicitly in this fixture; no acknowledgement or974F model.
+
+Strict MSVC C11 proof and Release game PASS;24generated wrappers checked.
+Existing semantic/GCC/Clang proofs reused by unchanged sources/headers/child
+commit. Shared bridge prefix and timing-capacity block unchanged; prior
+capacity/progress evidence retained. CLI unchanged; no repeated full suite,
+broad frame/APU replay,FPS or whole-ROM completeness claim. Foreign hashes
+preserved; owner build/windows untouched. Combined final sources tested.
+Tests/tools/ROM private; no push. Evidence:
+solo-finite-windows/ACCEPTANCE_RECEIPT.json.
+
 # Finite scene and particle native entries - 2026-10-24
 
 Nine complete existing C routines are now selected as ordinary native entries:
