@@ -17987,3 +17987,28 @@ RecompReturn Lufia2DecompBridge_84A421(CpuState *cpu) {
     return ActorBridgeSpecialMenuParent(cpu, 0x84a421u,
         Lufia2BoardGameCreditPayoutStep, cpu->m_flag ? BATTLE_BRIDGE_M1X0 : BATTLE_BRIDGE_M0X0);
 }
+
+RecompReturn Lufia2DecompBridge_82B7E5(CpuState *cpu) {
+    return ActorBridgeSceneOwners(cpu, 0x82b7e5u,
+        Lufia2MenuRunEquipmentSelection, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82BA0C(CpuState *cpu) {
+    return ActorBridgeSceneOwners(cpu, 0x82ba0cu,
+        Lufia2MenuRefreshEquipmentPicker, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82BA65(CpuState *cpu) {
+    return ActorBridgeSceneOwners(cpu, 0x82ba65u,
+        Lufia2MenuEquipStrongestItems, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82BC96(CpuState *cpu) {
+    return ActorBridgeSceneOwners(cpu, 0x82bc96u,
+        Lufia2MenuDrawEquipmentRows, 2u);
+}
+
+RecompReturn Lufia2DecompBridge_82BCC4(CpuState *cpu) {
+    return ActorBridgeSceneOwners(cpu, 0x82bcc4u,
+        Lufia2MenuScrollEquipmentUp, 2u);
+}

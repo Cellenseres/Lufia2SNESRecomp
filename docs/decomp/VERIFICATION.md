@@ -1,3 +1,33 @@
+# Activate verified equipment callers - 2026-10-24
+
+Five previously verified routines now have production bindings: 82:B7E5,
+82:BA0C, 82:BA65, 82:BC96 and 82:BCC4. There are 2,059 ordinary bindings;
+99 of the 2,158 verified entries lack independent bindings. The semantic C
+and child revision remain unchanged.
+
+Two equipment family matrices pass 27,392 original-ROM/production-ABI cases,
+comparing CPU, full WRAM, ordered operand bus, child contexts, unwinds and
+return adaptation. This total includes unchanged siblings and the private
+B907 candidate. Strict MSVC C11/W4/WX passes. The intended bridge definitions
+and shared dependencies match those used by the proofs and runtime probes.
+
+Two paired input sequences cover 14,400 gameplay frames, with and without
+L/R member cycling. All five entries are reached; CPU, full WRAM, pixels
+and raw PCM remain identical. Guest clock and beam positions differ. These
+results establish neither cycle accuracy nor universal audio or FPS behavior.
+
+Private dispatch selection isolated the eight historical timing holds without
+repeated production regeneration. Three remain: 82:BD02 changes one PCM frame
+at 5467; 82:B907 changes 600 from 6601; 82:B6EF changes 522 from 5161 in the
+Change-menu sequence. Their verified C remains available, but production
+retains the original runtime until the consumer timing contract is repaired.
+No guessed cycle offset or original semantic change is introduced.
+
+Probes, failed trials and ROM remain private. No full decomp regression, CLI
+or standalone rebuild is repeated for this binding checkpoint. The reserved
+Windows integration build and generated selection checks are recorded in
+equipment-binding-timing/ACCEPTANCE_RECEIPT.json. Nothing was pushed.
+
 # Activate verified special-menu callers - 2026-10-24
 
 34 complete existing C callers now have production bindings,following the32
