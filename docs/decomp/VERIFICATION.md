@@ -1,3 +1,37 @@
+# Bind card reveal and animation owners - 2026-10-24
+
+84:B11E, 84:B13D and 84:B22B now select their verified semantic C through
+timed ordinary bindings. Repositioning and card turning retain their original
+C phases across seven exact post-wait continuations. Their existing child
+calls, stack frames and original byte-width counter behavior remain intact.
+The existing equipment and stake-animation continuations remain available.
+Two original RTS input handlers, 86:973C and 86:973D, also use the existing
+timed return helper (8,192 ROM/timed cases and 172 admission guards).
+There are 2,094 ordinary bindings and 64 verified entries without independent
+bindings. Internal continuations are not additional function entries.
+
+The shared checkpoint passes 12,288 original-parent ROM/timed ABI cases,
+360 child-context/unwind cases at all 20 call sites, 2,048 resumed cases with
+13,824 forced resumptions, 246 entry guards, 238 continuation guards and
+256 positive prior-continuation cases. The affected semantic module passes
+20,480 direct original-ROM cases, 143 guards, 1,280 stack endpoints and all
+36 child-site/mode pairs, including 36 unwinds and 180 changed returns.
+
+Synthetic probes enter original JSRs 84:AFB2, 84:B085 and 84:AFFC after normal
+production boot. Paired actual interpreter/NMI/device runs compare full
+WRAM/VRAM/CGRAM/OAM/high-OAM, pixels, PCM digests and architectural CPU plus
+master/coprocessor/beam/H/V state. Reposition and turn each keep all parent
+phases native after four and nine waits. Reveal retains the original final
+REP/RTS after its last wait; these two cleanup instructions still interpret.
+Exact counts and frame hashes are retained in the private production receipt.
+This is synthetic original-call integration, not manual minigame gameplay
+or a whole-game performance measurement. An initial private probe omitted
+the desktop host's extended audio-frame initialization; its legacy floating
+catch-up produced PCM rounding differences. That diagnostic is retained.
+The accepted replay uses the existing production initialization; no SDK audio
+behavior or test comparison was changed. No unrelated full regression is
+claimed. ROM, battery data, tests and proof tools remain private.
+
 # Resume all stake-animation frames - 2026-10-24
 
 84:C243 now has a timed ordinary binding and a native continuation at 84:C268

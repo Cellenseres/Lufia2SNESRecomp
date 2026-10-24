@@ -18395,10 +18395,53 @@ RecompReturn Lufia2DecompBridge_84C243(CpuState *cpu) {
 #endif
 }
 
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#include "card_animation_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84B11E(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedCardAnimation(cpu, 0x84b11eu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84b11eu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84B13D(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedCardAnimation(cpu, 0x84b13du);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84b13du);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84B22B(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedCardAnimation(cpu, 0x84b22bu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84b22bu);
+#endif
+}
+
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResumeReturn(cpu, landing);
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    if (Lufia2CardAnimationContinuationOwner(landing)) {
+        const uint32_t owner = Lufia2CardAnimationContinuationOwner(landing);
+        CardScoreClock clock = {0};
+        clock.call.cpu = cpu;
+        if (!cpu_dispatch_has_entry(cpu, owner) ||
+            !PrepareCardAnimationClock(&clock, landing))
+            return 0u;
+        const uint16_t target = (uint16_t)((cpu->ram[cpu->S + 1u] |
+            (uint16_t)cpu->ram[cpu->S + 2u] << 8u) + 1u);
+        return target >= 0x8000u ? 0x840000u | target : 0u;
+    }
     if (landing != 0x84c268u || !cpu->m_flag ||
         !StakeAnimationRegistersSupported(cpu) ||
         !cpu_dispatch_has_entry(cpu, 0x84c243u))
@@ -18420,6 +18463,10 @@ RecompReturn Lufia2DecompMenuResume(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResume(cpu, landing);
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    if (Lufia2CardAnimationContinuationOwner(landing)) {
+        cpu->host_return_valid = 2u;
+        return ActorBridgeTimedCardAnimation(cpu, landing);
+    }
     if (landing == 0x84c268u) {
         cpu->host_return_valid = 2u;
         return ActorBridgeTimedStakeAnimation(cpu, landing);
@@ -18427,4 +18474,22 @@ RecompReturn Lufia2DecompMenuResume(CpuState *cpu, uint32_t landing) {
 #endif
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     return ActorBridgeFallback(cpu, &frame, landing);
+}
+
+RecompReturn Lufia2DecompBridge_86973C(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedIdleReturn(cpu, 0x86973cu, Lufia2WorldMapModeZeroInput);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86973cu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86973D(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedIdleReturn(cpu, 0x86973du, Lufia2WorldMapModeNonzeroInput);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86973du);
+#endif
 }
