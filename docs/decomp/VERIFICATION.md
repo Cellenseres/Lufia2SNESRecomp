@@ -1,3 +1,31 @@
+# Bind board borders and frame updates - 2026-10-24
+
+Three existing verified functions gain timed ordinary bindings:84:CEE4,
+84:CF91 and84:CBCD. Semantic C remains unchanged. The consumer now selects
+2,068 functions;90 verified entries remain without independent bindings.
+
+Selection-border drawing and clearing use their complete original C loops.
+Their schedule follows the selected group, including both orientations.
+The shared frame operation calls the original particle update, sets the
+original upload flags and waits for the next frame. A real wait unwind
+retains its live guest stack and return PC; only final status/register
+restoration and RTS stay with the original interpreter after that unwind.
+Normally returning children complete the entire native function. Both
+incoming accumulator widths are supported. Other CPU/hardware contexts,
+unknown group indices and unsafe timing windows retain interpretation.
+
+The combined checkpoint passes12,288 original-parent ROM/timed-ABI cases,
+72 child-context/unwind cases across all four call sites,276 side-effect-
+free admission checks and512 border/native-frame compositions. Comparisons
+cover CPU, full WRAM, open bus, ordered fetch/data and per-opcode clocks at
+both ROM speeds. Child services are paired opaque results; these counts
+do not claim execution of every original child body or new minigame
+gameplay acceptance. Existing semantic proofs remain scoped to their
+unchanged sources. Private evidence:board-border-clock/.
+
+Tests, tools, ROM and saves remain private. No full unrelated regression
+or repeated platform matrix is claimed for this narrow integration batch.
+
 # Bind original card-score drawing - 2026-10-24
 
 Three existing verified functions gain timed ordinary bindings: 84:B54F

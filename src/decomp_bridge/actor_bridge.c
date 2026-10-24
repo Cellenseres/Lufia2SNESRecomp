@@ -18152,3 +18152,34 @@ RecompReturn Lufia2DecompBridge_84ADF3(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x84adf3u);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#include "board_border_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84CEE4(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedBoardBorder(cpu, 0x84cee4u, Lufia2BoardGameDrawSelectionBorder);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84cee4u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84CF91(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedBoardBorder(cpu, 0x84cf91u, Lufia2BoardGameClearSelectionBorder);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84cf91u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84CBCD(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedBoardBorder(cpu, 0x84cbcdu, Lufia2BoardGameAdvanceFrame);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84cbcdu);
+#endif
+}
