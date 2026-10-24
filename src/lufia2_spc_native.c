@@ -11,6 +11,12 @@
 #include "snes/dsp.h"
 #include "snes/saveload.h"
 #include "snesrecomp_platform/apu_program.h"
+#if defined(LUFIA2_ENABLE_SNES_DSP)
+#include "snesrecomp_platform/snes_dsp_bridge.h"
+extern uint32_t Lufia2SpcTransportTransferVars(const Lufia2SpcDriver *,
+    uint8_t command, uint8_t check, uint16_t *dirty_byte);
+static bool s_transfer_vars_readonly;
+#endif
 
 enum {
     DRIVER_ENTRY = 0x0300,
@@ -53,6 +59,8 @@ static QueuedAccess s_queue[QUEUE_LIMIT];
 static unsigned s_queue_count;
 /* Savestate load without chunk pending. */
 static bool s_loaded_without_state;
+/* An older interpreted snapshot may rejoin only at an empty main-loop boundary. */
+static bool s_resume_idle;
 
 static void Apply(Apu *apu, const QueuedAccess *access) {
     switch ((AccessKind)access->kind) {
@@ -143,6 +151,18 @@ static uint8_t ReadTimer(void *context, unsigned timer) {
     return apu_cpuRead((Apu *)context, (uint16_t)(0xFD + timer));
 }
 
+#if defined(LUFIA2_ENABLE_SNES_DSP)
+/* Called by the checked consumer overlay, never by standalone decomp. */
+void Lufia2SpcHostAramAccess(const Lufia2SpcDriver *driver, uint16_t address,
+                            uint32_t count, int writable) {
+    /* Kind 2 is a mutable SpcVariables borrow. Only the reviewed transfer
+     * certificate narrows it; every explicit byte write remains writable. */
+    if (writable == 2) writable = !s_transfer_vars_readonly;
+    snesrecomp_dsp_bridge_native_access((Apu *)driver->hardware->context,
+                                       address, count, writable);
+}
+#endif
+
 static void Bind(Apu *apu) {
     s_hardware = (Lufia2SpcHardware){apu,      ReadPort,     WritePort,
                                      ReadDsp,  WriteDsp,     Delay,
@@ -169,30 +189,71 @@ static bool DriverUploaded(const Apu *apu) {
 static void RunDriver(Apu *apu) {
     Bind(apu);
     s_run_delay = 0;
+#if defined(LUFIA2_ENABLE_SNES_DSP)
+    uint16_t dirty_byte;
+    s_transfer_vars_readonly = Lufia2SpcTransportTransferVars(
+        &s_driver, apu->inPorts[2], apu->inPorts[3], &dirty_byte) != 0;
+    snesrecomp_dsp_bridge_native_begin_tracked(apu);
+    /* All direct state/Directory borrows, including raw CPU track indices. */
+    snesrecomp_dsp_bridge_native_access(apu, 0, 0x9d2, 0);
+    if (s_transfer_vars_readonly && dirty_byte != UINT16_MAX)
+        snesrecomp_dsp_bridge_native_access(apu, dirty_byte, 1, 1);
+#endif
     Lufia2SpcDriverRun(&s_driver);
+#if defined(LUFIA2_ENABLE_SNES_DSP)
+    snesrecomp_dsp_bridge_native_end(apu);
+    s_transfer_vars_readonly = false;
+#endif
     s_run_delay = 0;
+}
+
+static bool ResumeIdleReady(const Apu *apu) {
+    return s_resume_idle && apu->spc->pc == 0x0388u &&
+        apu->spc->sp == 0xffu && !apu->spc->p && !apu->spc->stopped &&
+        apu->cpuCyclesLeft == 0 && !apu->inPorts[2] && !apu->inPorts[3] &&
+        !apu->outPorts[2] && !apu->outPorts[3] &&
+        !apu->timer[0].counter && !apu->timer[1].counter && !apu->timer[2].counter &&
+        DriverUploaded(apu);
 }
 
 static bool TakeOver(void *context, Apu *apu) {
     (void)context;
-    if (apu->spc->pc != DRIVER_ENTRY || !DriverUploaded(apu))
+    const bool resume_idle = ResumeIdleReady(apu);
+    if (!resume_idle && (apu->spc->pc != DRIVER_ENTRY || !DriverUploaded(apu)))
         return false;
+    if (resume_idle) memset(&s_driver, 0, sizeof s_driver);
     s_queue_count = 0;
     s_run_deferred = false;
     s_run_delay = 0;
     Bind(apu);
-    Lufia2SpcDriverStart(&s_driver, apu->ram, &s_hardware);
+#if defined(LUFIA2_ENABLE_SNES_DSP)
+    /* Activation only after the reviewed native-driver upload is proven.
+     * Capability refusal keeps the existing CPU S-DSP. */
+    snesrecomp_dsp_bridge_attach(apu);
+    snesrecomp_dsp_bridge_native_begin_tracked(apu);
+    /* All direct state/Directory borrows, including raw CPU track indices. */
+    snesrecomp_dsp_bridge_native_access(apu, 0, 0x9d2, 0);
+#endif
+    if (resume_idle)
+        s_driver.wait = LUFIA2_SPC_WAIT_IDLE;
+    else
+        Lufia2SpcDriverStart(&s_driver, apu->ram, &s_hardware);
+#if defined(LUFIA2_ENABLE_SNES_DSP)
+    snesrecomp_dsp_bridge_native_end(apu);
+#endif
+    s_resume_idle = false;
     s_active = true;
     return true;
 }
 
-/* Load without chunk: native if parked at entry; resume idle. */
+/* Missing native chunk: preserve SPC until a proven empty-loop rejoin. */
 static void SettleAfterLoad(Apu *apu) {
     s_loaded_without_state = false;
     s_queue_count = 0;
     s_run_deferred = false;
     s_active = apu->spc->pc == DRIVER_ENTRY && apu->cpuCyclesLeft != 0 &&
                DriverUploaded(apu);
+    s_resume_idle = !s_active && DriverUploaded(apu);
     if (!s_active)
         return;
     Bind(apu);
@@ -206,6 +267,10 @@ static bool Active(void *context, Apu *apu) {
     (void)context;
     if (s_loaded_without_state)
         SettleAfterLoad(apu);
+#if defined(LUFIA2_ENABLE_SNES_DSP)
+    if (!s_active)
+        snesrecomp_dsp_bridge_detach(apu->dsp);
+#endif
     return s_active;
 }
 
@@ -220,6 +285,9 @@ static void Run(void *context, Apu *apu) {
 
 static void Cycle(void *context, Apu *apu) {
     (void)context;
+#if defined(LUFIA2_ENABLE_SNES_DSP)
+    snesrecomp_dsp_bridge_clock(apu->dsp, apu->cycles);
+#endif
     if (s_queue_count == 0)
         return;
     ApplyDue(apu);
@@ -233,11 +301,25 @@ static void Loaded(void *context, Apu *apu) {
     (void)context;
     (void)apu;
     s_loaded_without_state = true;
+    s_resume_idle = false;
 }
 
-static const SnesRecompApuProgram kProgram = {NULL, TakeOver, Active, Run, Cycle, Loaded};
+/* Cycle only applies the queue head when due. */
+static uint32_t Idle(void *context, const Apu *apu) {
+    (void)context;
+    if (s_queue_count == 0)
+        return UINT32_MAX;
+    const int32_t wait = (int32_t)(s_queue[0].due - apu->cycles);
+    return wait > 0 ? (uint32_t)wait : 0;
+}
+
+static const SnesRecompApuProgram kProgram = {NULL, TakeOver, Active, Run, Cycle, Loaded, Idle};
 
 bool Lufia2SpcNativeInstall(void) {
+#if defined(LUFIA2_ENABLE_SNES_DSP)
+    extern uint32_t Lufia2SpcTransportContract(void);
+    if (Lufia2SpcTransportContract() != 0x00010002u) abort();
+#endif
     const char *interpreted = getenv("LUFIA2_SPC_INTERPRETED");
 
     if (!s_installed && !(interpreted && interpreted[0] == '1')) {
@@ -331,6 +413,7 @@ bool Lufia2SpcNativeLoadState(SaveLoadInfo *sli, Apu *apu) {
     s_driver.repeat_command = header.repeat_command;
     s_driver.repeat_arguments = header.repeat_arguments;
     s_loaded_without_state = false;
+    s_resume_idle = false;
     Bind(apu);
     return true;
 }

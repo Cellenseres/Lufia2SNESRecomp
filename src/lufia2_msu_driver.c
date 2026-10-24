@@ -10,6 +10,9 @@
 #include "snes/saveload.h"
 #include "snes/snes.h"
 #include "lufia2_log.h"
+#if defined(LUFIA2_ENABLE_SNES_DSP)
+#include "snesrecomp_platform/snes_dsp_bridge.h"
+#endif
 
 /* The SPC keeps playing at zero music volume; MSU follows it. */
 enum {
@@ -132,9 +135,14 @@ static uint32_t SongLoad(CpuState *cpu, uint32_t pc24) {
     SelectSong(s_loading_song);
 
     /* Read at note-on, so set before the upload. */
-    if (HushEnabled() && g_snes && g_snes->apu)
+    if (HushEnabled() && g_snes && g_snes->apu) {
         g_snes->apu->ram[SPC_MUSIC_VOLUME] =
             (uint8_t)(s_song != NO_SONG ? 0u : VOLUME_FULL);
+#if defined(LUFIA2_ENABLE_SNES_DSP)
+        snesrecomp_dsp_bridge_clock(g_snes->apu->dsp, g_snes->apu->cycles);
+        snesrecomp_dsp_bridge_aram_written(g_snes->apu->dsp, SPC_MUSIC_VOLUME, 1);
+#endif
+    }
     return 0;
 }
 
@@ -152,6 +160,9 @@ static void MsuPlay(void) {
 void Lufia2MsuDriverFrame(void) {
     if (!s_installed || s_song == NO_SONG || !g_snes || !g_snes->apu)
         return;
+#if defined(LUFIA2_ENABLE_SNES_DSP)
+    snesrecomp_dsp_bridge_before_read(g_snes->apu->dsp);
+#endif
     const uint8_t *spc = g_snes->apu->ram;
 
     if (!(spc[SPC_MUSIC_STATE] & SPC_MUSIC_PLAYING)) {

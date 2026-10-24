@@ -432,9 +432,17 @@ lufia2_prepare_dma_overlay(
 # The decompiled sound driver replaces the interpreted SPC-700 program.
 option(LUFIA2_ENABLE_NATIVE_SPC
     "Run the decompiled SPC driver instead of interpreting it" ON)
+option(LUFIA2_ENABLE_SNES_DSP
+    "Build the optional platform S-DSP backend seam (host registration required)" OFF)
 if(LUFIA2_ENABLE_NATIVE_SPC AND NOT LUFIA2_ENABLE_DECOMP)
     message(STATUS "Lufia2 native SPC driver OFF: needs LUFIA2_ENABLE_DECOMP")
     set(LUFIA2_ENABLE_NATIVE_SPC OFF)
+endif()
+if(LUFIA2_ENABLE_SNES_DSP)
+    if(NOT LUFIA2_ENABLE_NATIVE_SPC)
+        message(FATAL_ERROR "The S-DSP consumer seam requires native SPC takeover")
+    endif()
+    set(SNESRECOMP_PLATFORM_SNES_DSP_BRIDGE ON)
 endif()
 if(LUFIA2_ENABLE_NATIVE_SPC)
     include("${CMAKE_SOURCE_DIR}/lib/snesrecomp-platform/cmake/SnesRecompPlatformApuProgram.cmake")
@@ -442,6 +450,11 @@ if(LUFIA2_ENABLE_NATIVE_SPC)
         SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
     message(STATUS
         "Lufia2 native SPC driver ON: LUFIA2_SPC_INTERPRETED=1 restores the interpreter")
+endif()
+if(LUFIA2_ENABLE_SNES_DSP)
+    include("${CMAKE_SOURCE_DIR}/lib/snesrecomp-platform/cmake/SnesRecompPlatformSnesDsp.cmake")
+    snesrecomp_platform_overlay_snes_dsp(
+        SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
 endif()
 
 # The pinned interpreter clock calls clock_gettime() without including <time.h>,
@@ -665,6 +678,12 @@ target_include_directories(Lufia2Recomp PRIVATE
 
 if(LUFIA2_ENABLE_NATIVE_SPC)
     target_compile_definitions(Lufia2Recomp PRIVATE LUFIA2_ENABLE_NATIVE_SPC=1)
+endif()
+if(LUFIA2_ENABLE_SNES_DSP)
+    target_compile_definitions(Lufia2Recomp PRIVATE LUFIA2_ENABLE_SNES_DSP=1)
+    target_link_libraries(Lufia2Recomp PRIVATE snesrecomp::snes_dsp)
+    include("${CMAKE_SOURCE_DIR}/cmake/Lufia2SpcTransport.cmake")
+    lufia2_spc_transport_overlay(Lufia2Recomp)
 endif()
 
 target_compile_definitions(Lufia2Recomp PRIVATE
