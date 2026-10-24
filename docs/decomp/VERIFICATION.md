@@ -1,3 +1,53 @@
+# Card scene and score display reconstructed - 2026-10-24
+
+Eight complete original contracts in card_game_scene.c: B027 selects the
+three opening cards; B523 loads the scene resource and tilemap; B54F draws
+labels; ADC0 builds the score frame; ADF3 renders the hand score; AE30 draws
+a two-tile digit; AEE1 draws round values; AF11 is its shared balance tail.
+AF11 has a separate original entry, not a second copy of the same logic.
+2090 -> 2098 verified, zero drafts; 1988 active bindings unchanged.
+All eight remain unbound. One new three-word opening-choice field7000
+brings the WRAM map to830 regions. Previous semantic code is unchanged.
+
+B523 retains both incoming accumulator widths through PHP/PLP. AEE1 and
+AF11 use M1; other entries M0. X16/DP0/binary/live DB, hidden accumulator
+byte, original cursor frames, ROM motion paths, signed selection scans,
+24bit child frames and1024-word long-bank tilemap copy remain exact.
+AE43 remains an original hardware division child, including eight NOPs;
+no host arithmetic replacement or instantaneous-hardware timing claim.
+Two random round values are retained. Long invalid selection searches yield
+before exact B0A4/B0E8 after65536 indexed scan steps; no invented result.
+
+Shared checks:9216 direct original and4608 private ABI cases PASS, plus
+69 semantic/108 ABI guards,26 unique child unwinds,130 changed returns,
+576 stack endpoints and390 redirect probes. CPU/fullWRAM/ordered data,
+MMIO/device state and child snapshots match; zero primary fallback.
+88 coherent roots include both tilemap widths plus earlier opening-hand
+and scene-initialization parents. Real C descendants cover the seven new
+called helpers, all sixteen animations, scoring, deck setup, original
+resource decoder and random scaler. AEE1 is a root here; its AF11 tail is
+shared C. Counters are separated by native/reference and match exactly.
+Two indexed-scan prefixes compare directly and through the private ABI;
+four wrong-ROM controls are detected. Tests/tools/ROM remain private.
+
+Private fixture repairs: generated one duplicate M0 constructor before
+adding the intended M1 variant; call-site discovery initially omitted JSL;
+AF17 occurs in two root ranges but is one unique site. The shared baseline
+passes after these fixes. Its full matrix is retained unchanged; only the
+separate boundary proof corrected duplicate-site counting. Prefix stopping
+needed ordered trace progress at repeated internal PCs, in addition to
+child ordinal and stack. A separate corrected prefix fixture retains the
+original full CPU/RAM/bus comparisons. No production source fix was needed.
+Failed fixtures remain historical evidence, not acceptance results.
+
+MSVC/GCC/Clang/build results recorded in the acceptance receipt. No repeated
+full unchanged semantic suite or Linux/CLI rebuild, gameplay or FPS claim.
+Next: remaining special-menu controllers B827/C826/DA9B/F38A and meaningful
+missing children. AE43 is explicitly inventoried as a missing timed original
+function; it stays original until its delay contract can be preserved.
+Catalogue denominator grows for new original roots; no whole-ROM claim.
+SOLO only, no pushes. Owner build/windows and all foreign WIP preserved.
+
 # Card animation batch verified - 2026-10-24
 
 Sixteen NEW complete original functions in card_game_animation.c:
