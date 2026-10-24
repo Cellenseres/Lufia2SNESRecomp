@@ -1,3 +1,43 @@
+# Board selection and rendering verified - 2026-10-24
+
+Nine complete original contracts in `src/menu/board_game_selection.c`:
+84:CD5F remaining count,CD95 digit tiles,CEE4/CF91 selection border draw/clear,
+D016 group movement,D09B/D0CB cell tile lift/restore,D0EF group rotation and
+D17A whole-board rendering. Six PHP/PLP roots preserve either incoming M width;
+CD95/D09B/D0CB require M0. All require X16,DP0,binary arithmetic and live DB.
+2,152 verified entries,zero drafts,864 WRAM locations. All nine remain unbound;
+1,988 active bindings,actual production bridge and earlier semantic C unchanged.
+
+Original ROM tables drive border geometry,movement,rotation and glyphs. Clearing
+the border also retains its original frame child. Movement performs three phases
+of six tile transfers;Y is saved across draw animation. Rotation snapshots six
+cells before updating the cell-ID/location map. Full rendering writes25 original
+2x2 tile cells,retaining repeated reads,ADC attribute arithmetic and row strides.
+71D2..71D8 saved tiles and71DA..71E4 saved cells are adjacent named fields;
+70EA is a local card/poker workspace overlay,not a duplicate memory-map entry.
+
+Shared proof:7,680 direct original-ROM cases,3,840 private ABI cases,101 semantic
+guards,180 ABI guards,11 child contexts/unwinds,55 changed returns,960 positive
+stack endpoints and165 redirects. Both M widths and four data banks covered.
+CPU,full WRAM,ordered operand bus/MMIO/device state and child snapshots match;
+zero primary ABI fallbacks. Four literal65,536-child movement prefixes cover
+both incoming M widths through direct and ABI interfaces,with exact handoff PCs.
+272 compositions include the existing C826 controller and all nine new actual C
+descendants;27 positive descendant sets have equal native/reference call counts.
+The existing controller itself is a root,not a counted descendant. Nine altered-
+ROM controls are detected. New semantic source passed its first shared ROM run;
+no semantic correction or weakening of comparisons was required.
+
+Strict MSVC C11/W4/WX and GCC/Clang module checks plus reserved agent Release
+build belong to this checkpoint;logs and sealed receipt are private under
+solo-board-selection. Unchanged CLI,previous semantic sources and foreign work
+are hash-checked and reused. No unchanged full regression/Linux/CLI rebuild,
+physical timing,rendered gameplay or FPS claim. Tests/tools/ROM private;no push.
+
+Next coherent board group:D1EF result/marking,D456,D538 and D558 frame-related
+children. Controllers DA9B/F38A remain. Hardware-NOP children C028/AE43/CEB3
+stay original until their timing contract is properly representable.
+
 # Complete board session verified - 2026-10-24
 
 Five complete original contracts now live in `src/menu/board_game_session.c`:
