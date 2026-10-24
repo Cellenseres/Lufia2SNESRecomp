@@ -1,3 +1,29 @@
+# Card choices and board-round continuation - 2026-10-25
+
+84:B027 and CB64 now bind the existing full opening-card selection and board
+continuation C APIs. Consumer clocks cover 38 phases and 26 actual child
+sites, card-choice scans, board draw/input loops, conditional completion
+messages, PHP/PLP, both board entry accumulator widths and original RTS.
+The timing prefixes include their first scan; bounded admission preserves
+the original long-loop fallback for unsupported opaque-child data.
+
+The shared checkpoint passes 8,192 ROM/timed states, 468 altered-child states
+over all 26 sites, four over-limit search fallbacks, 1,456 pure admission
+cases and 13 feature gates. An initial timing prototype missed the first
+projected scan index; corrected before acceptance. Original semantic loops and
+their work limits are unchanged. Production uses original A689/A710 card
+initialization and AF4B/AF7D calls, then original C826 board initialization
+and CA52 calls at both accumulator widths. Both C bodies execute (1,2 hits);
+906 post-warmup frames preserve CPU/full WRAM/video/pixels/PCM, returned
+state and exact clocks. Parent decoding changes from 3,193 to 3,169; existing
+post-wait continuations remain interpreter owned. This is entry integration,
+not complete elimination of the minigame interpreter path.
+
+Strict C11, feature-off, reserved Release/default selection and generated
+wrappers are checked together. Full unrelated regression is deferred. The
+semantic dependency, 2,158 verified functions, zero drafts and 866 WRAM
+records are unchanged. Proofs/tools/ROM remain private; nothing is pushed.
+
 # Poker opponent and stake entries - 2026-10-25
 
 84:BC78, BF0B and BF67 now bind the existing complete opponent-turn,

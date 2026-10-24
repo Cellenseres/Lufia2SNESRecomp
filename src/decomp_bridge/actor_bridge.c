@@ -18654,6 +18654,29 @@ RecompReturn Lufia2DecompBridge_84BC78(CpuState *cpu) {
 #endif
 }
 
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_ROUND_SELECTION)
+#include "round_selection_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84B027(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_ROUND_SELECTION)
+    return ActorBridgeRoundSelection(cpu, 0x84b027u, Lufia2CardGameSelectOpeningCards);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84b027u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84CB64(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_ROUND_SELECTION)
+    return ActorBridgeRoundSelection(cpu, 0x84cb64u, Lufia2BoardGameContinueRound);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84cb64u);
+#endif
+}
+
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResumeReturn(cpu, landing);
