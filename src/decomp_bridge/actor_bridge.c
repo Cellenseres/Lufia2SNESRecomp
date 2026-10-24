@@ -18567,6 +18567,39 @@ RecompReturn Lufia2DecompBridge_84C794(CpuState *cpu) {
 #endif
 }
 
+
+RecompReturn Lufia2DecompBridge_84A569(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PALETTE_ENTRIES)
+    return ActorBridgePaletteEntry(cpu, 0x84a569u, Lufia2SpecialMenuUploadGraphics);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84a569u);
+#endif
+}
+
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_REPLAY)
+#include "menu_replay_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84AB23(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_REPLAY)
+    return ActorBridgeMenuReplay(cpu, 0x84ab23u, Lufia2CardGameChooseReplay);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84ab23u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84CAF1(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_REPLAY)
+    return ActorBridgeMenuReplay(cpu, 0x84caf1u, Lufia2BoardGameChooseReplay);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84caf1u);
+#endif
+}
+
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResumeReturn(cpu, landing);

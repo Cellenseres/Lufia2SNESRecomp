@@ -1,3 +1,31 @@
+# Bind special-menu upload and replay queries - 2026-10-24
+
+84:A569, 84:AB23 and 84:CAF1 now select their existing verified C APIs.
+Graphics upload retains saved registers/status, decompression, actual DMA,
+frame wait and RTS. Its shared palette consumer also accepts the original
+00/80 register-bank contexts alongside 7E. Root calls still require a real
+JSR frame; the upload's JSL child preserves its distinct return context.
+Replay queries retain cursor initialization, blinking, directional input,
+accept/cancel and saved accumulator width. Unsupported windows retain exact
+interpreter continuations. Portable semantic sources remain unchanged.
+Selection becomes 2,136 verified entries; 22 lack independent bindings,
+resolving 74 of the original 96 candidates.
+
+One combined checkpoint covers 20,480 ROM/timed cases, 378 altered-child
+cases over 21 sites, 438 pure admissions and 12 API/selection gates. The
+affected palette entries are included. Actual graphics callers under DB00
+and DB80 match across 52 frames with real decompression/DMA/waits; parent
+decoding drops 2,442 to 660. Replay callers include the original card-session
+and cursor-depth initialization, directions, confirm/cancel and both board
+entry widths. All four queries execute C, matching across 127 frames;
+parent decoding drops 661 to 607. Both comparisons cover CPU/full WRAM,
+video/pixels/PCM, returned-state hashes and exact clocks. The proven upload
+dependency is enabled equally in both replay arms. Established post-wait
+scheduler ownership remains unchanged. No whole-game removal claim is made.
+Strict C11, feature-off, reserved Release/default selection and catalogue
+checks cover this combined tree. Full unrelated regression is deferred.
+Tests, proof tools and ROM stay private. No push.
+
 # Bind poker animation and input actions - 2026-10-24
 
 84:C5AF, 84:C64B, 84:C73A and 84:C794 now select their existing verified

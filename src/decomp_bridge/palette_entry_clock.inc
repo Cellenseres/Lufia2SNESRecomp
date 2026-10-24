@@ -54,10 +54,10 @@ static bool PreparePaletteEntry(PaletteEntryClock *clock, uint32_t pc) {
         g_snes->cart->type != CART_LOROM || g_snes->cart->romSize < 0x140000u ||
         cpu->PB != bank >> 16 || cpu->emulation || cpu->m_flag > 1u ||
         cpu->x_flag || cpu->D || cpu->_flag_D || cpu->S < 0x1f10u || cpu->S > 0x1ffcu ||
-        cpu->host_return_valid != 2u ||
-        (bank != 0x840000u || cpu->DB != 0x7eu))
+        (cpu->host_return_valid != 2u && cpu->host_return_valid != 3u) ||
+        (bank != 0x840000u || (cpu->DB != 0u && cpu->DB != 0x80u && cpu->DB != 0x7eu)))
         return false;
-    const bool word = pc == 0x84a565u || pc == 0x84b5b9u ||
+    const bool word = pc == 0x84a569u || pc == 0x84a565u || pc == 0x84b5b9u ||
         pc == 0x84b5cbu || pc == 0x84b5ceu || pc == 0x84b5d1u ||
         pc == 0x84b5d4u || pc == 0x84b5d7u;
     if (cpu->m_flag == word)
@@ -168,6 +168,41 @@ static bool PreparePaletteEntry(PaletteEntryClock *clock, uint32_t pc) {
         PaletteEntryOpcode(clock, 0xb601u, 1u, 4u, 1u);
         clock->return_pc = 0x84b602u;
         break;
+    case 0x84a569u:
+        PaletteEntryOpcode(clock, 0xa569u, 1u, 4u, 2u);
+        PaletteEntryOpcode(clock, 0xa56au, 1u, 4u, 2u);
+        PaletteEntryOpcode(clock, 0xa56bu, 1u, 3u, 1u);
+        PaletteEntryOpcode(clock, 0xa56cu, 2u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xa56eu, 2u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xa570u, 3u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xa573u, 2u, 4u, 2u);
+        PaletteEntryOpcode(clock, 0xa575u, 2u, 2u, 0u);
+        PaletteEntryOpcode(clock, 0xa577u, 2u, 3u, 1u);
+        PaletteEntryOpcode(clock, 0xa579u, 4u, 8u, 3u);
+        break;
+    case 0x84a57du:
+        PaletteEntryOpcode(clock, 0xa57du, 2u, 2u, 0u);
+        PaletteEntryOpcode(clock, 0xa57fu, 3u, 4u, 1u);
+        PaletteEntryOpcode(clock, 0xa582u, 3u, 3u, 0u);
+        PaletteEntryOpcode(clock, 0xa585u, 3u, 5u, 2u);
+        PaletteEntryOpcode(clock, 0xa588u, 2u, 2u, 0u);
+        PaletteEntryOpcode(clock, 0xa58au, 3u, 4u, 1u);
+        PaletteEntryOpcode(clock, 0xa58du, 2u, 4u, 2u);
+        PaletteEntryOpcode(clock, 0xa58fu, 3u, 5u, 2u);
+        PaletteEntryOpcode(clock, 0xa592u, 2u, 2u, 0u);
+        PaletteEntryOpcode(clock, 0xa594u, 3u, 4u, 1u);
+        PaletteEntryOpcode(clock, 0xa597u, 2u, 4u, 2u);
+        PaletteEntryOpcode(clock, 0xa599u, 3u, 5u, 2u);
+        PaletteEntryOpcode(clock, 0xa59cu, 2u, 2u, 0u);
+        PaletteEntryOpcode(clock, 0xa59eu, 3u, 4u, 1u);
+        PaletteEntryOpcode(clock, 0xa5a1u, 3u, 6u, 2u);
+        break;
+    case 0x84a5a4u:
+        PaletteEntryOpcode(clock, 0xa5a4u, 1u, 4u, 1u);
+        PaletteEntryOpcode(clock, 0xa5a5u, 1u, 5u, 2u);
+        PaletteEntryOpcode(clock, 0xa5a6u, 1u, 5u, 2u);
+        clock->return_pc = 0x84a5a7u;
+        break;
     default:
         return false;
     }
@@ -194,7 +229,7 @@ static RecompReturn ActorBridgePaletteEntry(CpuState *cpu, uint32_t entry,
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     PaletteEntryClock clock = {0};
     clock.call = (ActorPushedCall){cpu, frame, RECOMP_RETURN_NORMAL};
-    if (!PreparePaletteEntry(&clock, entry))
+    if (cpu->host_return_valid != 2u || !PreparePaletteEntry(&clock, entry))
         return ActorBridgeFallback(cpu, &frame, entry);
     const Lufia2Memory memory = {FixedSpanRead, FixedSpanWrite, &clock.span, NULL, NULL};
     Lufia2CpuState state;
