@@ -1,3 +1,28 @@
+# Bind special-menu palette setup - 2026-10-24
+
+84:A529 now has an independent timed binding to its existing verified API.
+Both 256-byte original MVN loops retain every fetch, ROM read, WRAM write and
+clock. Original X/Y/status saves, two real child-call frames, resource setup
+and RTS remain intact. Unsupported entry/post-child contexts preserve the
+exact interpreter continuation. Portable semantics and metadata are unchanged.
+Selection becomes 2,124 verified entries, leaving 34 independent bindings;
+62 of the original 96 candidates have gained bindings.
+
+The shared checkpoint passes 4,096 original-ROM/timed cases, 36 altered-child
+cases over two sites, 88 pure admission checks and six API/selection gates.
+An actual 84:A689 caller/JSR:A696 comparison checks three post-warmup frames,
+all memory, CPU, video, PCM, returned-state hashes and exact clocks. All 512
+palette bytes execute in C. Twelve original post-wait instructions retain
+the established scheduler. The same-dependency reference prefix from the
+shared prototype is reused against a fresh special-only native run.
+
+The separate 86:B2F7 candidate remains unbound. Its literal ROM and copy
+checks pass, but the already-native scene-VM caller changes fallback scope
+when this child becomes bound. That production comparison differs by 9,818
+master clocks after the wait; no failing timing expectation was relaxed.
+The isolated reproduction and all tests/tools/ROM remain private. No full
+unrelated regression is claimed for this consumer-only addition.
+
 # Bind interrupt entry and empty return - 2026-10-24
 
 80:862D and 80:86C0 now have independent consumer bindings, including their
