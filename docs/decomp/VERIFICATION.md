@@ -1,3 +1,45 @@
+# Shared card-game stakes verified - 2026-10-24
+
+Seven complete original routines in `src/menu/card_game_stakes.c` reconstruct
+C1E8 refund,C20A charge,C22C clearing12sprites,C243 frame animation,C26F
+accepted stake,C299 tile digits and C2CE sprite digits. C299 is both a real
+JSR child and shared fall-through tail;one private helper serves both entries.
+All M0X0,DP0,binary/liveDB;2131verified,zero drafts,846WRAM locations.
+All seven remain unbound;1988 active bindings and earlier C bodies unchanged.
+The6008/600A/600C original multiply inputs/low result are now named.
+
+Original balance carry/borrow,ten-unit multiplier,24-frame motion,live scratch
+and row counters,ROM-backed digit tiles,OAM/tilemap write order,unchecked
+coordinate wrapping and actual child frames remain. No host arithmetic replaces
+the existing original multiplication algorithm. C028 player turn and C31B
+division remain original,including their hardware-NOP waits.
+
+Shared proof passed7168direct/3584privateABI,137preaccess guards,5call contexts/
+unwinds,25changed child returns,448stack endpoints and75redirects. CPU/full
+WRAM/ordered bus/MMIO/device state and child snapshots match;no primary ABI
+fallback.120composition cases use55 positive equal native/reference C descendant
+sets,including all seven new routines,existing poker/results/card pipelines,
+the real stake-input routine,multiplier,decoder and RNG. An additional original
+player-turn root executes original instructions and actual new C descendants;
+it is a private hybrid proof,not a new decompiled or runtime-bound parent.
+Input sequences raise,clear and confirm,covering real charge/refund descendants.
+A65536-child animation prefix matches directly and through private ABI.
+Four altered-ROM controls detect carry,tile row,sprite row and motion errors.
+
+Initial private composition omitted modeled input selection and an existing
+C350 child,causing an endless prompt. Separate corrected fixtures retain the
+failed history and prove the required descendants. The long-animation proof
+needs a larger trace buffer;all full comparisons remain. Only affected private
+checks were rerun;the passing baseline stayed frozen. Production C required
+no correction after its initial shared proof. Strict MSVC C11/W4/WX,GCC/Clang
+module checks and reserved agent Release integration pass. Earlier semantics,
+actual bridge/bindings,CLI binaries and foreign work remain hash-identical.
+No unchanged full regression/Linux/CLI rebuild,physical timing,rendered gameplay
+or FPS claim. Tests/tools/ROM private;no push;owner build/windows untouched.
+
+Next: original C028 and the other special-game controllers. Keep hardware-delay
+boundaries explicit;do not mark a partial player-turn prefix fully verified.
+
 # Poker opponent decisions verified - 2026-10-24
 
 Seven new complete original algorithms in `src/menu/poker_decisions.c`:
