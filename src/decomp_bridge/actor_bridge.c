@@ -5,6 +5,9 @@
 #include "lufia2/world_scene_timed_motion.h"
 #include "lufia2/world_scene_timed_windows.h"
 #include "lufia2/special_menu.h"
+#include "lufia2/card_game.h"
+#include "lufia2/poker.h"
+#include "lufia2/board_game.h"
 #include "lufia2/world_scene_particle_commands.h"
 #include "lufia2/menu_party_actions.h"
 #include "lufia2/menu_inventory_groups.h"
@@ -17642,4 +17645,164 @@ RecompReturn Lufia2DecompBridge_84A4FD(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_84A5DF(CpuState *cpu) {
     return ActorBridgeSpecialMenuLeaf(cpu, 0x84a5dfu,
         Lufia2SpecialMenuMultiplyWords, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84B4A7(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84b4a7u,
+        Lufia2CardGameBuildDeck, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84AF1C(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84af1cu,
+        Lufia2CardGameDealCard, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84AE5E(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84ae5eu,
+        Lufia2CardGameScoreHand, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84AB61(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84ab61u,
+        Lufia2CardGameRankHand, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84B16D(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84b16du,
+        Lufia2CardGameSwapSpriteBlocks, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84B274(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84b274u,
+        Lufia2CardGameHideCardSprites, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84B295(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84b295u,
+        Lufia2CardGameLocateCardTilemap, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84B2BC(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84b2bcu,
+        Lufia2CardGameBuildCardTiles, cpu->m_flag ? BATTLE_BRIDGE_M1X0 : BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84B387(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84b387u,
+        Lufia2CardGameDrawCardTilemap, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84B429(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84b429u,
+        Lufia2CardGameEmitCardSprite, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84B45B(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84b45bu,
+        Lufia2CardGameMoveCardSprite, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84B49B(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84b49bu,
+        Lufia2CardGameRetileCardSprite, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84AE30(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84ae30u,
+        Lufia2CardGameDrawScoreDigit, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84BA40(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84ba40u,
+        Lufia2PokerSumStakes, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84C3B4(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84c3b4u,
+        Lufia2PokerPrepareHandRanks, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84C55B(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84c55bu,
+        Lufia2PokerCountCardMatches, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84BB2F(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84bb2fu,
+        Lufia2PokerClassifyHand, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84C6E8(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84c6e8u,
+        Lufia2PokerDrawSeatResult, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84BBDA(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84bbdau,
+        Lufia2PokerLocateResultText, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84BD83(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84bd83u,
+        Lufia2PokerAcceptOpponentStake, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84BEE4(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84bee4u,
+        Lufia2PokerLocateStakeSprites, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84C22C(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84c22cu,
+        Lufia2CardGameClearStakeSprites, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84C299(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84c299u,
+        Lufia2CardGameDrawStakeTiles, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84C2CE(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84c2ceu,
+        Lufia2CardGameDrawStakeSprites, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84CBE2(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84cbe2u,
+        Lufia2BoardGameCountCompletedLines, cpu->m_flag ? BATTLE_BRIDGE_M1X0 : BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84CD95(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84cd95u,
+        Lufia2BoardGameDrawDigitTiles, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84D09B(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84d09bu,
+        Lufia2BoardGameLiftCellTiles, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84D0CB(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84d0cbu,
+        Lufia2BoardGamePlaceCellTiles, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84D0EF(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84d0efu,
+        Lufia2BoardGameRotateSelectedGroup, cpu->m_flag ? BATTLE_BRIDGE_M1X0 : BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84D17A(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84d17au,
+        Lufia2BoardGameDrawCells, cpu->m_flag ? BATTLE_BRIDGE_M1X0 : BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84D414(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84d414u,
+        Lufia2BoardGameDrawStakeDigitSprites, BATTLE_BRIDGE_M0X0);
+}
+
+RecompReturn Lufia2DecompBridge_84D538(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84d538u,
+        Lufia2BoardGameRebuildCellLocations, cpu->m_flag ? BATTLE_BRIDGE_M1X0 : BATTLE_BRIDGE_M0X0);
 }

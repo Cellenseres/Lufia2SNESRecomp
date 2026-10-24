@@ -1,3 +1,52 @@
+# Binding activation build accepted - 2026-10-24
+
+32 actual leaf bindings,128 generated wrappers,2020 selected entries. The
+reserved agent Release game build passes on the current combined worktree.
+The isolated intended commit also passes strict MSVC compilation and24576
+actual ROM/ABI comparisons. No new semantic body or public test is included.
+Evidence:solo-binding-activation/ACCEPTANCE_RECEIPT.json. Earlier wait/clock
+holds remain;continue binding the already verified related parent helpers.
+
+# Activate verified special-menu leaves - 2026-10-24
+
+Owner priority changed to activating the existing verified C before adding
+further decompilations.32 complete card/poker/board leaves now have actual
+production bridges and consumer bindings. Counts:2158verified,zero drafts,
+2020ordinary bindings,138verified entries without an independent binding.
+The32 functions cover deck construction/dealing/hand classification,card OAM
+and tile output,stake sprites,poker results and board cell/line operations.
+No new semantic algorithm or interpreter-elimination percentage is claimed.
+
+One grouped original-ROM comparison runs24576 cases through these actual
+production bridges,covering fullCPU,fullWRAM,ordered operand bus/MMIO and
+near-return adaptation. Zero fallback. Five PHP/PLP leaves accept both incoming
+M widths and both are covered;other leaves keep their established width.
+Ten family rejection matrices also pass. They include existing private parent
+projections;their aggregate totals are not presented as32new production proofs.
+Earlier original-ROM bodies and dependencies remain hash-identical,so their
+direct proofs are reused. No redundant full decomp regression or CLI rebuild.
+
+The private checkpoint distinguishes two actual-bridge source snapshots:
+current combined working tree,then the isolated intended commit without the
+parallel owner's uncommitted poll/fetch changes. Both ABI matrices pass. The
+production semantic and return helper paths are unchanged;read-only observation
+hooks remain private. Only the32bridge additions and their header imports are
+staged from actor_bridge.c. Foreign timing code remains unstaged and untouched.
+The reserved Windows agent integration build is recorded separately after it
+finishes;no whole-game timing,rendered special-menu acceptance or FPS claim.
+
+Existing frame/sound/interrupt owners,known equipment timing holds and inlined
+VM helpers are not force-bound by this checkpoint. Next activate related finite
+child-calling helpers as groups,then establish safe timing/ownership for their
+controllers. Update diagnostics to distinguish inline/timed-native execution
+from genuinely pending integration. Tests,tools,ROM and SRAM remain private.
+
+The newly started A2B3/A36A/A39B window reconstruction is deferred at the owner's
+request. Its source/header remain untracked and outside the build;draft metadata,
+WRAM and CMake edits are saved in solo-special-windows/PAUSED_FILES.json and
+removed from active metadata. No draft is promoted or counted as verified.
+SOLO;no push;owner build/windows untouched.
+
 # Board stakes, payout and particle contracts verified - 2026-10-24
 
 Six complete original routines are reconstructed in `board_game_results.c`:
