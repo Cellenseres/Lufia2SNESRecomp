@@ -1,3 +1,38 @@
+# Card-game controller reconstructed — 2026-10-24
+
+Five complete original bodies are verified in card_game_control.c:84:A705
+F0 controller, AAB5 hand-result layout, AB01 result-sprite preparation,
+AB23 replay selection and AD9D payout preparation. A705 enters/leaves
+M1X0; the four helpers M0X0. DP0, binary arithmetic, live DB. Eleven
+persistent menu/card WRAM regions are catalogued. 2,069 verified; no drafts.
+Native selection stays 1,988; all five new bodies remain runtime-unbound.
+
+The full controller includes initial deal, hit/stand polling, two middle
+hands, final-hand lookahead, scoring, special ranks, reveal, results, payout,
+replay and empty-balance exit. Original odd constant tests, signed branches,
+word reads across the balance, scratch writes and all child frames remain.
+A 65,536-child work prefix yields at the exact pending call with the saved
+bank/status intact. It does not skip original waits or manufacture a return.
+
+Combined proof: 11,264 direct ROM and 5,632 private consumer-ABI cases PASS;
+100 pre-access guards, 70 child unwinds, 350 changed-child returns, 320 stack
+endpoints and 1,050 return-redirection probes cover 69 call sites and 70
+site/mode pairs. A literal 65,536-call prefix matches the original. Thirty-two
+composed full roots execute real C scoring/ranking/result/sprite/replay/payout
+helpers 260/170/136/34/34/34 times, including repeat rounds and empty balance.
+CPU, full WRAM, ordered data/MMIO, device state and child snapshots agree.
+Four wrong-ROM controls detect middle-hand limits, final-hand logic, replay
+cursor origin and payout carry. Private projections are not active bindings.
+
+MSVC C11 proof build and strict GCC/Clang compilation of the new module PASS.
+The unchanged baseline matrix is reused for independent supplemental fixtures.
+No full unchanged semantic regression or whole Linux library rebuild was
+repeated. CLI sources/binaries, existing card rules and actual runtime bridge
+remain unchanged. Tests/tools/ROM remain local; no push. Windows integration
+uses only build/windows-decomp-agent; its final result is recorded privately.
+No runtime scheduling, rendered gameplay or FPS acceptance is claimed.
+Evidence: solo-card-controller/ACCEPTANCE_RECEIPT.json.
+
 # Card-game core reconstructed — 2026-10-24
 
 Five complete original routines are verified in src/menu/card_game.c:
