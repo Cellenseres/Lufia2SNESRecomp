@@ -1,3 +1,33 @@
+# Resume all stake-animation frames - 2026-10-24
+
+84:C243 now has a timed ordinary binding and a native continuation at 84:C268
+after its frame wait. All 24 frames use the same semantic sprite loop; host-
+stack unwinds retain only original CPU/WRAM state. No temporary game-state
+file or host coroutine object is needed. The shared menu-return gate preserves
+the previous seven equipment continuations through direct delegation. There
+are 2,089 ordinary bindings and 69 verified entries without independent
+bindings; the continuation is not a separate ROM function.
+
+The combined checkpoint passes 4,096 normal original-parent ROM/timed-ABI
+cases, 54 child-context/unwind cases at first/middle/last waits, 2,048 resumed
+cases with 49,152 forced native resumptions, 196 admission checks and 224
+positive legacy equipment-return delegation cases. All seven affected semantic
+stake functions pass 7,168 direct ROM cases, 53 guards, 448 stack endpoints
+and five child-site/mode pairs including five unwinds and 25 changed returns.
+
+A synthetic replay enters original JSR 84:AD6B after normal production boot.
+Its actual interpreter-return gate resumes native C 24 times. 25 paired frames
+match architectural CPU state, full WRAM/device/pixel/PCM digests and
+master/coproc/beam/H/V clocks. Stake-body decoding falls from 3,099 to 0, with
+one native root entry and 24 native resumptions. Both runs finish at master
+1,879,716,668. The probe injects the original call-site context; this is not
+manual minigame gameplay or a whole-game speedup claim. ROM and battery data
+remain read-only.
+
+Private evidence: stake-animation-clock/. Only semantic/runtime/binding/docs
+are committed. Tests, tools, ROM and replay artifacts stay private. Unrelated
+full regressions and platform matrices are not repeated for this checkpoint.
+
 # Bind rectangle and world-scene callers - 2026-10-24
 
 Fifteen existing verified functions gain timed ordinary bindings.82:83B5

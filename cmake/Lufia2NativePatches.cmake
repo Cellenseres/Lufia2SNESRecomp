@@ -316,7 +316,7 @@ uint64_t lufia2_frame_wait_ff_site_pairs_count(unsigned site) {
             if(LUFIA2_ENABLE_DECOMP AND NOT LUFIA2_DECOMP_REFERENCE_ONLY)
                 string(APPEND _helpers "#include \"src/decomp_bridge/world_resume.h\"\n")
                 string(APPEND _helpers "#include \"src/decomp_bridge/field_resume.h\"\n")
-                string(APPEND _helpers "#include \"src/decomp_bridge/equipment_resume.h\"\n")
+                string(APPEND _helpers "#include \"src/decomp_bridge/menu_resume.h\"\n")
                 set(_old [=[        if (is_call) {]=])
                 set(_new [=[        uint32_t _l2_resume_return = 0u;
         if (auto_quiescent && !stop_on_rti && op == 0x60u &&
@@ -356,31 +356,31 @@ uint64_t lufia2_frame_wait_ff_site_pairs_count(unsigned site) {
         /* Host-invoked interrupt handlers]=])
                 _lufia2_replace_native_seam(_text "${_old}" "${_new}")
                 set(_old [=[        if (is_call || _l2_resume_return) {]=])
-                set(_new [=[        uint32_t _l2_equipment_return = 0u;
+                set(_new [=[        uint32_t _l2_menu_return = 0u;
         if (auto_quiescent && !stop_on_rti && is_ret &&
-            Lufia2EquipmentContinuationOwner(((uint32_t)in.k << 16) | in.pc) &&
+            Lufia2MenuContinuationOwner(((uint32_t)in.k << 16) | in.pc) &&
             (!s_lle_master_deadline || cpu->master_cycles < s_lle_master_deadline)) {
             sync_interp_to_cpu(&in, cpu);
-            _l2_equipment_return = Lufia2DecompEquipmentResumeReturn(
+            _l2_menu_return = Lufia2DecompMenuResumeReturn(
                 cpu, ((uint32_t)in.k << 16) | in.pc);
         }
-        if (is_call || _l2_resume_return || _l2_equipment_return) {]=])
+        if (is_call || _l2_resume_return || _l2_menu_return) {]=])
                 _lufia2_replace_native_seam(_text "${_old}" "${_new}")
                 set(_old [=[const int has_body  = cpu_dispatch_has_entry(cpu, target);]=])
-                set(_new [=[const int has_body = _l2_equipment_return || cpu_dispatch_has_entry(cpu, target);]=])
+                set(_new [=[const int has_body = _l2_menu_return || cpu_dispatch_has_entry(cpu, target);]=])
                 _lufia2_replace_native_seam(_text "${_old}" "${_new}")
                 set(_old [=[RecompReturn _air = cpu_dispatch_pc_paired(cpu, target, _fs);]=])
-                set(_new [=[RecompReturn _air = _l2_equipment_return
-                    ? Lufia2DecompEquipmentResume(cpu, target)
+                set(_new [=[RecompReturn _air = _l2_menu_return
+                    ? Lufia2DecompMenuResume(cpu, target)
                     : cpu_dispatch_pc_paired(cpu, target, _fs);]=])
                 _lufia2_replace_native_seam(_text "${_old}" "${_new}")
                 set(_old [=[const uint32_t ret = _l2_resume_return ? _l2_resume_return :]=])
-                set(_new [=[const uint32_t ret = _l2_equipment_return ? _l2_equipment_return :
+                set(_new [=[const uint32_t ret = _l2_menu_return ? _l2_menu_return :
                     _l2_resume_return ? _l2_resume_return :]=])
                 _lufia2_replace_native_seam(_text "${_old}" "${_new}")
                 set(_old [=[if (!_l2_resume_return)
                 continue;]=])
-                set(_new [=[if (!_l2_resume_return && !_l2_equipment_return)
+                set(_new [=[if (!_l2_resume_return && !_l2_menu_return)
                 continue;]=])
                 _lufia2_replace_native_seam(_text "${_old}" "${_new}")
             endif()
