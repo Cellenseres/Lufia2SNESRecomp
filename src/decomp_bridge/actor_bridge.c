@@ -18183,3 +18183,55 @@ RecompReturn Lufia2DecompBridge_84CBCD(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x84cbcdu);
 #endif
 }
+
+#include "lufia2/battle_effect_returns.h"
+#include "lufia2/world_scene_returns.h"
+#include "lufia2/world_scene_timed_resources.h"
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#include "idle_return_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_819662(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedIdleReturn(cpu, 0x819662u, Lufia2BattleEffectReserved23);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x819662u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_819934(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedIdleReturn(cpu, 0x819934u, Lufia2BattleEffectReserved53);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x819934u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86A375(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedIdleReturn(cpu, 0x86a375u, Lufia2WorldMapIdleSceneObject);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86a375u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86AF38(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedIdleReturn(cpu, 0x86af38u, Lufia2WorldMapIdleSceneScript);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86af38u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86AFE2(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedIdleReturn(cpu, 0x86afe2u, Lufia2WorldMapIdleGroupScene);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86afe2u);
+#endif
+}

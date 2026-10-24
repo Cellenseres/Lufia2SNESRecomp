@@ -1,3 +1,21 @@
+# Bind original idle returns - 2026-10-24
+
+Five complete original RTS handlers gain timed ordinary bindings:81:9662,
+81:9934,86:A375,86:AF38 and86:AFE2. Their verified semantic functions do
+no work before returning. No game logic is replaced with a guessed no-op.
+The consumer calls these existing functions and performs the exact timed
+near return. Unsupported call frames or hardware contexts keep original
+interpretation. There are2,073 ordinary bindings and85 verified entries
+without independent bindings. This is a small integration gain;no whole-
+game speedup is claimed for removing these five single-opcode fallbacks.
+
+20,480 original-ROM/production-source ABI cases pass, comparing CPU/full
+WRAM/open bus/ordered fetch-data/per-opcode clocks. All four native M/X
+modes,decimal and status flags, varied DP/DB and stack positions,both ROM
+speeds are covered.430 side-effect-free admission checks pass. Semantic
+sources are unchanged. Private evidence:idle-return-clock/. No full
+unrelated regression or repeated platform matrix is claimed.
+
 # Bind board borders and frame updates - 2026-10-24
 
 Three existing verified functions gain timed ordinary bindings:84:CEE4,
