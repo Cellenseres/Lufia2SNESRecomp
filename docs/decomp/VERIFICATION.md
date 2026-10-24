@@ -1,3 +1,28 @@
+# Poker controller entry - 2026-10-25
+
+84:B827 binds the complete existing poker controller C API. Its consumer
+clock covers 62 phases and 36 original child sites, charge carry/borrow,
+deal/betting loops, tie/pot/replay/empty-balance paths, PHB/PLB, PHP/PLP and
+RTS. Original entry DB00/80/7E is admitted; mirror banks remain supported
+only through the explicit prologue before PLB selects7E. Invalid projected
+hand indices fall back before timing starts. Semantic code is unchanged.
+
+The shared checkpoint passes 12,288 ROM/timed states, 648 altered-child cases,
+six opaque-child data fallbacks, 1,924 pure guards, 74 mirror-bank checks,
+six bounded-data guards and eight feature gates. Original shop80:A341 through
+82:D69C,84:A689/A6CE exercises empty balance and a complete ten-coin round
+with DB00/80, using the Release actor feature definitions. Four C entries
+and 807 post-warmup frames preserve CPU/full WRAM/video/pixels/PCM,
+returned state and exact clocks. Parent decoding changes from920 to900:
+the first five parent instructions execute in C; after the first frame wait,
+existing continuations remain interpreted. This is entry integration,
+not complete native poker execution.
+
+Strict C11, feature-off, reserved Release/default selection and four generated
+wrappers share the checkpoint. Unrelated full regression is deferred. The
+2,158 verified functions, zero drafts and 866 WRAM records are unchanged.
+Tests, tools and ROM stay private. Nothing is pushed.
+
 # Board group movement entry - 2026-10-25
 
 84:D016 binds the complete existing group-movement C API. Its consumer clock
