@@ -15,7 +15,15 @@ static inline uint32_t Lufia2CardAnimationContinuationOwner(uint32_t landing) {
     }
 }
 
+static inline uint32_t Lufia2SpecialFadeContinuationOwner(uint32_t landing) {
+    return landing == 0x84a5c3u ? 0x84a5b5u :
+        landing == 0x84a5d8u ? 0x84a5cau : 0u;
+}
+
 static inline uint32_t Lufia2MenuContinuationOwner(uint32_t landing) {
+    const uint32_t fade = Lufia2SpecialFadeContinuationOwner(landing);
+    if (fade)
+        return fade;
     const uint32_t card = Lufia2CardAnimationContinuationOwner(landing);
     if (card)
         return card;

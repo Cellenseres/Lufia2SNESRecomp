@@ -18427,10 +18427,44 @@ RecompReturn Lufia2DecompBridge_84B22B(CpuState *cpu) {
 #endif
 }
 
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#include "special_fade_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84A5B5(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedSpecialFade(cpu, 0x84a5b5u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84a5b5u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84A5CA(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedSpecialFade(cpu, 0x84a5cau);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84a5cau);
+#endif
+}
+
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResumeReturn(cpu, landing);
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    if (Lufia2SpecialFadeContinuationOwner(landing)) {
+        CardScoreClock clock = {0};
+        clock.call.cpu = cpu;
+        if (cpu->S >= 0x1ffcu ||
+            !cpu_dispatch_has_entry(cpu, Lufia2SpecialFadeContinuationOwner(landing)) ||
+            !PrepareSpecialFadeClock(&clock, landing))
+            return 0u;
+        const uint16_t target = (uint16_t)((cpu->ram[cpu->S + 2u] |
+            (uint16_t)cpu->ram[cpu->S + 3u] << 8u) + 1u);
+        return target >= 0x8000u ? 0x840000u | target : 0u;
+    }
     if (Lufia2CardAnimationContinuationOwner(landing)) {
         const uint32_t owner = Lufia2CardAnimationContinuationOwner(landing);
         CardScoreClock clock = {0};
@@ -18463,6 +18497,10 @@ RecompReturn Lufia2DecompMenuResume(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResume(cpu, landing);
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    if (Lufia2SpecialFadeContinuationOwner(landing)) {
+        cpu->host_return_valid = 2u;
+        return ActorBridgeTimedSpecialFade(cpu, landing);
+    }
     if (Lufia2CardAnimationContinuationOwner(landing)) {
         cpu->host_return_valid = 2u;
         return ActorBridgeTimedCardAnimation(cpu, landing);

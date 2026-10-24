@@ -1,3 +1,27 @@
+# Bind special-menu fade owners - 2026-10-24
+
+84:A5B5 and 84:A5CA now run their verified original fade loops through timed
+ordinary bindings. Exact continuations at 84:A5C3/A5D8 retain the original
+saved status byte across frame waits. The return gate locates the parent
+behind that byte and reconstructs its original stack base; entry and resume
+share the same C fade phases. Both WRAM and mirrored system-bank contexts
+are admitted. There are 2,096 selected entries and 62 verified entries without
+independent bindings. The internal continuations are not new functions.
+
+The shared checkpoint passes 40,960 original-ROM/timed ABI cases in five
+data-bank contexts, 108 changed-child cases, 4,096 resumed cases with 36,760
+resumptions, 1,024 saved-status cases covering all 256 values, 180 entry
+guards, 80 continuation guards and 480 positive prior continuations. The
+affected semantic module passes 27,648 original-ROM cases, 44 guards,
+104 child-unwind cases and 260 changed-return cases.
+
+Actual production probes enter original JSRs 84:B5F5/AAAF after normal boot
+with desktop audio initialization. Both fades match 16 paired frames of
+architectural CPU, full memory/device/pixel/PCM digests and master/beam clocks.
+All 15 original waits per fade resume native C; body decoding falls 52 to 0.
+The probes inject original call contexts, not manual minigame gameplay.
+Tests, tools and ROM remain private. No unrelated full regression is claimed.
+
 # Bind card reveal and animation owners - 2026-10-24
 
 84:B11E, 84:B13D and 84:B22B now select their verified semantic C through
