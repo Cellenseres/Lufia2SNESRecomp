@@ -1,3 +1,23 @@
+# Bind party-refresh and layer-centering entries - 2026-10-24
+
+80:D5BC/D5EB/DB9D now have ordinary timed native bindings. Original PHY/PHA
+frames, all seven child-call sites, index-width changes and BRL to 80:CC35
+remain intact. Standalone centering exposes its two original operand-reader
+JSRs; internal event-VM paths retain inline readers. The sprite child returns
+X1, followed by the original REP and saved-register restoration. No fake RTS
+or guest frame is introduced. There are 2,115 selected verified entries and
+43 without independent bindings; 53 of the reported 96 are now bound.
+
+One shared checkpoint covers the three new and three existing event entries:
+147,456 original-ROM/timed cases, 270 altered-child cases over 15 call sites,
+36,864 actual-ROM reader compositions and 936 side-effect-free admission
+checks. The complete event VM passes 1,360 normal and 236 extension cases.
+Three paired production-registry probes after 5,000 boot/input frames match
+architectural CPU, full memory/device/pixel/PCM digests and exact clocks.
+Scoped parent decoding falls from 18/21/21 instructions to zero. The retained
+pre-change interpreter baselines also match. No whole-game speedup is claimed.
+Tests, diagnostics and ROM stay private.
+
 # Bind twelve original frame-wait entries - 2026-10-24
 
 Twelve verified wait entries now have ordinary consumer bindings: 80:9378,

@@ -39,13 +39,35 @@ static bool EventScriptByte(const CpuState *cpu, const EventScriptCursor *cursor
     return true;
 }
 
-static bool EventTailRegistersSupported(const CpuState *cpu) {
+static bool EventRefreshPhase(uint32_t pc) {
+    return pc == 0x80d5bcu || pc == 0x80d5ebu || pc == 0x80d5cfu ||
+        pc == 0x80d5d3u || pc == 0x80d5deu || pc == 0x80db9du ||
+        pc == 0x80dba1u || pc == 0x80dbacu || pc == 0x80dbbau || pc == 0x80dbbeu;
+}
+
+static bool EventRefreshDataBankSupported(const CpuState *cpu) {
+    const unsigned bank = cpu->DB;
+    if (bank < 0x40u || bank == 0x7eu || bank == 0x7fu ||
+        (bank >= 0x80u && bank < 0xc0u))
+        return true;
+    if (bank < 0xc0u || bank >= 0xd0u)
+        return false;
+    return ((bank & 0x7fu) * 0x8000u + 0x1fffu) < g_snes->cart->romSize;
+}
+
+static bool EventTailRegistersSupported(const CpuState *cpu, uint32_t pc) {
+    const bool refresh = EventRefreshPhase(pc);
+    const bool byte_index = pc == 0x80d5cfu || pc == 0x80d5d3u ||
+        pc == 0x80d5deu || pc == 0x80dbbeu;
+    const bool continuation = refresh && pc != 0x80d5bcu && pc != 0x80d5ebu && pc != 0x80db9du;
     if (!cpu->ram || !g_snes || !g_snes->cart ||
         g_snes->cart->type != CART_LOROM || !g_snes->cart->rom ||
         cpu->PB != 0x80u || cpu->emulation || cpu->m_flag > 1u ||
-        cpu->x_flag || cpu->D || cpu->_flag_D ||
-        cpu->S < 0x1f20u || cpu->S > 0x1ffcu)
+        cpu->x_flag != byte_index || cpu->D || cpu->_flag_D ||
+        cpu->S < (continuation ? 0x1f10u : 0x1f20u) || cpu->S > 0x1ffcu)
         return false;
+    if (refresh && pc != 0x80db9du && pc != 0x80dba1u)
+        return EventRefreshDataBankSupported(cpu);
     const EventScriptCursor cursor = {cpu->Y, cpu->DB, cpu->ram[0x1d199u]};
     uint8_t value;
     return EventScriptByte(cpu, &cursor, &value);
@@ -86,9 +108,73 @@ static bool PrepareEventTailClock(EventTailClock *clock, uint32_t pc) {
     clock->complete = false;
     const CpuState *cpu = clock->call.cpu;
     const bool word = pc == 0x80d2a5u || pc == 0x80d2adu;
-    if (!EventTailRegistersSupported(cpu) || cpu->m_flag == word)
+    if (!EventTailRegistersSupported(cpu, pc) || cpu->m_flag == word)
         return false;
     switch (pc) {
+    case 0x80d5ebu:
+        EventTailOpcode(clock, 0xd5ebu, 2u, 2u, 0u);
+        EventTailOpcode(clock, 0xd5edu, 2u, 5u, 2u);
+        EventTailOpcode(clock, 0xd5efu, 3u, 4u, 0u);
+        /* fall through */
+    case 0x80d5bcu:
+        EventTailOpcode(clock, 0xd5bcu, 1u, 4u, 2u);
+        EventTailOpcode(clock, 0xd5bdu, 2u, 3u, 0u);
+        EventTailOpcode(clock, 0xd5bfu, 2u, 3u, 1u);
+        EventTailOpcode(clock, 0xd5c1u, 1u, 3u, 1u);
+        EventTailOpcode(clock, 0xd5c2u, 3u, 4u, 1u);
+        EventTailOpcode(clock, 0xd5c5u, 1u, 3u, 1u);
+        EventTailOpcode(clock, 0xd5c6u, 2u, 2u, 0u);
+        EventTailOpcode(clock, 0xd5c8u, 3u, 6u, 2u);
+        EventTailOpcode(clock, 0xd5cbu, 4u, 8u, 3u);
+        break;
+    case 0x80d5cfu:
+        EventTailOpcode(clock, 0xd5cfu, 4u, 8u, 3u);
+        break;
+    case 0x80d5d3u:
+        EventTailOpcode(clock, 0xd5d3u, 1u, 4u, 1u);
+        EventTailOpcode(clock, 0xd5d4u, 3u, 4u, 1u);
+        EventTailOpcode(clock, 0xd5d7u, 1u, 4u, 1u);
+        EventTailOpcode(clock, 0xd5d8u, 2u, 3u, 1u);
+        EventTailOpcode(clock, 0xd5dau, 4u, 8u, 3u);
+        break;
+    case 0x80d5deu:
+        EventTailOpcode(clock, 0xd5deu, 2u, 3u, 0u);
+        EventTailOpcode(clock, 0xd5e0u, 1u, 5u, 2u);
+        EventTailOpcode(clock, 0xd5e1u, 3u, 4u, 0u);
+        clock->complete = true;
+        break;
+    case 0x80db9du:
+        EventTailOpcode(clock, 0xdb9du, 1u, 2u, 0u);
+        EventTailOpcode(clock, 0xdb9eu, 3u, 6u, 2u);
+        break;
+    case 0x80dba1u:
+        EventTailOpcode(clock, 0xdba1u, 1u, 2u, 0u);
+        EventTailOpcode(clock, 0xdba2u, 3u, 4u, 1u);
+        EventTailOpcode(clock, 0xdba5u, 2u, 3u, 1u);
+        EventTailOpcode(clock, 0xdba7u, 2u, 3u, 1u);
+        EventTailOpcode(clock, 0xdba9u, 3u, 6u, 2u);
+        break;
+    case 0x80dbacu:
+        EventTailOpcode(clock, 0xdbacu, 1u, 2u, 0u);
+        EventTailOpcode(clock, 0xdbadu, 3u, 4u, 1u);
+        EventTailOpcode(clock, 0xdbb0u, 2u, 3u, 1u);
+        EventTailOpcode(clock, 0xdbb2u, 2u, 3u, 1u);
+        EventTailOpcode(clock, 0xdbb4u, 1u, 4u, 2u);
+        EventTailOpcode(clock, 0xdbb5u, 1u, 3u, 1u);
+        EventTailOpcode(clock, 0xdbb6u, 4u, 8u, 3u);
+        break;
+    case 0x80dbbau:
+        EventTailOpcode(clock, 0xdbbau, 4u, 8u, 3u);
+        break;
+    case 0x80dbbeu:
+        EventTailOpcode(clock, 0xdbbeu, 2u, 3u, 0u);
+        EventTailOpcode(clock, 0xdbc0u, 2u, 2u, 0u);
+        EventTailOpcode(clock, 0xdbc2u, 3u, 6u, 2u);
+        EventTailOpcode(clock, 0xdbc5u, 1u, 4u, 1u);
+        EventTailOpcode(clock, 0xdbc6u, 1u, 5u, 2u);
+        EventTailOpcode(clock, 0xdbc7u, 3u, 4u, 0u);
+        clock->complete = true;
+        break;
     case 0x80d2bbu:
     case 0x80d2e1u:
     case 0x80d2eeu:
