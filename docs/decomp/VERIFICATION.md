@@ -1,3 +1,24 @@
+# Bind the original field-start tail - 2026-10-24
+
+80:8281 now calls the verified original one-JML semantic function and tails
+through the actual dispatcher to the existing native 83:ACB7 field setup.
+The naked boot context retains its guest stack. Both 80 and 00 LoROM mirrors
+fetch at their original speeds. Unsupported modes, paired-return contexts and
+unsafe hardware windows retain the exact original entry. There are now 2,100
+selected verified entries and 58 without independent bindings.
+
+The shared checkpoint passes 8,192 original-ROM/timed ABI cases across both
+mirrors and seven beam positions, plus 108 admission guards. A real-device
+registry replay enters the naked tail after 5,000 normal boot/input frames;
+the original generated callee symbol and HLE wrapper are both exercised.
+All 5,064 paired architectural CPU/full memory/device/pixel/PCM digests and
+exact clocks match, including 64 field frames after the injected tail. The
+native semantic body executes once. A natural boot/continue probe did not
+visit this entry and is explicitly excluded from binding-coverage claims:
+boot/reset interpreter ownership remains separate pending work. The replay
+does not establish a whole-game performance gain or manual gameplay coverage.
+Tests, ROM and diagnostic captures remain private.
+
 # Bind event-handler tail entries - 2026-10-24
 
 80:D2BB/D2E1/D2EE now have ordinary timed bindings. Their original BRL

@@ -18562,3 +18562,34 @@ RecompReturn Lufia2DecompBridge_80D2EE(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x80d2eeu);
 #endif
 }
+
+RecompReturn Lufia2DecompBridge_808281(CpuState *cpu) {
+    const uint32_t entry = (uint32_t)cpu->PB << 16 | 0x8281u;
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    if ((cpu->PB == 0u || cpu->PB == 0x80u) &&
+        cpu->m_flag == 1u && cpu->x_flag == 1u &&
+        cpu->X <= 0xffu && cpu->Y <= 0xffu && !cpu->host_return_valid &&
+        cpu->coprocessor_master_cycles == cpu->master_cycles &&
+        ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, false, 1363u, 128u) &&
+        g_snes->vPos < 224u && g_snes->hdmaBeamOff) {
+        const FixedSpanOpcode timing = {0x8281u, 4u, 4u, 0u};
+        FixedSpanClock clock = {0};
+        clock.cpu = cpu;
+        clock.bank = entry & 0xff0000u;
+        clock.timing = &timing;
+        clock.count = 1u;
+        const Lufia2Memory memory = {FixedSpanRead, FixedSpanWrite, &clock, NULL, NULL};
+        Lufia2CpuState state;
+        ActorBridgeLoad(cpu, &state);
+        state.program_bank = 0x80u;
+        const Lufia2ExecutionResult result = Lufia2StartFieldSystem(&memory, &state);
+        assert(result.flow == LUFIA2_EXECUTION_BOUNDARY && result.pc == 0x83acb7u);
+        ActorBridgeStore(cpu, &state);
+        BeginFixedSpanOpcode(&clock);
+        cpu->PB = state.program_bank;
+        return cpu_dispatch_pc_from(cpu, result.pc, frame.entry_s, entry);
+    }
+#endif
+    return ActorBridgeFallback(cpu, &frame, entry);
+}
