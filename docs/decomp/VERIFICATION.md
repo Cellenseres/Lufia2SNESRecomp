@@ -1,3 +1,44 @@
+# Poker hand results verified - 2026-10-24
+
+Ten complete original routines now reconstruct five-card preparation, masked
+frequency, hand measurement/classification, destructive rank sorting, showdown,
+seat sprites and result windows/text. Source: `src/menu/poker_results.c`;
+public API: `lufia2/poker.h`. Entries: C3B4, C42A, C55B, BB2F, BBF1,
+BA53, BA1F, C6E8, BAF1 and BBDA in bank84. All enter/exit M0X0 with
+DP0, binary arithmetic and live DB. 2117 verified, zero drafts, 842 WRAM
+locations; all ten remain unbound and the 1988 active bindings are unchanged.
+
+Original quirks remain: C3B4 tests7107 at10*seat, C521/C556 write the first
+70EF word without indexing, and C54B reads that first word. Signed N-bit
+comparisons, category memory increments, saved registers, hidden-card rules,
+shared returns, ordered bus accesses and original child frames are preserved.
+No host poker rules or sorting replace the game's algorithm.
+
+Shared proof passed 10240 direct and5120 private-ABI cases,195 entry guards,
+640 stack endpoints,16 call contexts/unwinds,80 changed child returns and240
+redirects. Classification additionally passed20480 combinations per interface
+covering all ten categories; signed/tied ranking128 per interface; the original
+zero-count65536-iteration frequency loop eight per interface. Four exact work
+prefixes match through both interfaces, including the internal C4D4 straight
+scan. CPU, full WRAM, ordered bus/MMIO/device state and child snapshots match.
+88 composed roots execute39 positive equal native/reference C descendant sets,
+including all ten new routines and the existing F4 controller/card pipeline.
+Five altered-ROM controls were detected. No primary ABI fallback occurred.
+
+The measurement matrix uses coherent DB7E/7F states; the other nine roots use
+four banks. Unmapped-bank frequency inputs can create enormous original loops;
+those are not claimed as full measurement acceptance. Earlier short witness
+and tied-prefix fixtures are retained as rejected history; separate corrected
+fixtures cover every unique site and the intended looping winner path.
+No production correction was needed after reconstruction. MSVC strict C11,
+GCC/Clang module checks and the reserved agent Release integration build pass.
+Existing semantic bodies, actual bridge/bindings and CLI binaries are unchanged.
+No repeated unchanged full regression, gameplay timing or FPS claim is made.
+Tests, proof tools and ROM stay private. No push; foreign work is preserved.
+
+Next: original opponent turn BC78, round selection BF0B and player action C028.
+Controllers C826/DA9B/F38A and timed AE43 remain separate missing algorithms.
+
 # Poker controller and card integration verified - 2026-10-24
 
 Nine NEW complete original functions in menu/poker.c: B827 F4 controller,
