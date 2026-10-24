@@ -18622,6 +18622,38 @@ RecompReturn Lufia2DecompBridge_84A689(CpuState *cpu) {
 #endif
 }
 
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_POKER_STAKE)
+#include "poker_stake_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84BF0B(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_POKER_STAKE)
+    return ActorBridgePokerStake(cpu, 0x84bf0bu, Lufia2PokerMatchOpponentStakes);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84bf0bu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84BF67(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_POKER_STAKE)
+    return ActorBridgePokerStake(cpu, 0x84bf67u, Lufia2PokerMatchOpponentStake);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84bf67u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84BC78(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_POKER_STAKE)
+    return ActorBridgePokerStake(cpu, 0x84bc78u, Lufia2PokerTakeOpponentTurn);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84bc78u);
+#endif
+}
+
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResumeReturn(cpu, landing);

@@ -1,3 +1,26 @@
+# Poker opponent and stake entries - 2026-10-25
+
+84:BC78, BF0B and BF67 now bind the existing complete opponent-turn,
+all-opponent matching and individual matching C APIs. The consumer clocks
+cover 64 phases and 39 real JSR/JSL sites, including seat iteration, rank
+search, random-budget branches, raise iteration, byte/word changes and RTS.
+Indexed accesses retain page/bank carry and the original 16-bit-index store
+cycle. No semantic algorithm or random/input behavior is replaced.
+
+Shared ROM/timed verification passes 12,288 states, 702 altered-child states
+over all 39 sites, 2,184 pure admission cases and 15 feature gates. The actual
+production comparison runs original A689/B827 initialization and dealing,
+then original B8D6/B8EA callers and the nested BF52 call. All three C bodies
+execute (2,3,2 hits) and preserve CPU/full WRAM/video/pixels/PCM, returned
+state and exact clocks across 165 post-warmup frames. Parent decoding falls
+from 566 to 322; original post-wait continuations remain interpreter owned.
+Unsupported contexts retain original execution, including changed child
+state, timing limits and unknown return ownership. Full unrelated regression
+is deferred; strict C11, feature-off and the reserved Release/default-selected
+generated wrappers are checked at the shared checkpoint. Semantic dependency
+and counts (2,158 verified, zero drafts, 866 WRAM) are unchanged. Proofs, tools
+and ROM remain private; nothing is pushed.
+
 # Event region and area handler entries - 2026-10-25
 
 80:D5F2 and 80:E50B have independent timed consumer bindings. Their full
