@@ -1,3 +1,26 @@
+# Poker showdown and board payouts - 2026-10-25
+
+84:BA53 and D456 bind the existing complete semantic C APIs. Consumer clocks
+cover 60 phases, 21 original child sites, signed line comparisons, input
+polls, literal payout loops, PHP/PLP and original RTS. Both board entry
+accumulator widths are preserved. Unsupported completed-line counts and
+rank-order data fall back before the corresponding timing phase; the
+original long loops are unchanged.
+
+The shared checkpoint passes 8,192 ROM/timed states, 378 altered-child cases,
+eight data-boundary fallbacks, 1,196 pure admission cases and 22 data guards.
+Original B827 setup/B922 showdown and C826 setup/CA8E payout callers execute
+both C bodies twice. 184 post-warmup frames preserve CPU/full WRAM,
+video/pixels/PCM, returned state and exact clocks. Parent decoding changes
+from 936 to 315; existing post-wait continuations remain interpreter owned.
+This proves entry integration, not removal of all minigame interpretation.
+
+Strict C11, feature gates, feature-off compilation, reserved Release build,
+default verified selection and generated wrappers share this checkpoint.
+Unrelated full regression is deferred. Semantic sources remain unchanged:
+2,158 verified functions, zero drafts and 866 WRAM records. Proofs, tools
+and ROM remain private. Nothing is pushed.
+
 # Card choices and board-round continuation - 2026-10-25
 
 84:B027 and CB64 now bind the existing full opening-card selection and board

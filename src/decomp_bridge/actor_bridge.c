@@ -18677,6 +18677,29 @@ RecompReturn Lufia2DecompBridge_84CB64(CpuState *cpu) {
 #endif
 }
 
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MINIGAME_RESULTS)
+#include "game_result_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84BA53(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MINIGAME_RESULTS)
+    return ActorBridgeGameResult(cpu, 0x84ba53u, Lufia2PokerResolveShowdown);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84ba53u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84D456(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MINIGAME_RESULTS)
+    return ActorBridgeGameResult(cpu, 0x84d456u, Lufia2BoardGamePayCompletedLines);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84d456u);
+#endif
+}
+
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResumeReturn(cpu, landing);
