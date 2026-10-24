@@ -1,3 +1,22 @@
+# Native reset entry - 2026-10-24
+
+The verified reset API now owns the original 26-instruction reset prefix.
+Both physical 00:8000 and canonical 80:8000 dispatch to the same bridge.
+Natural cold boot enters through the interpreter pre-opcode hook; that hook
+uses the same timed C implementation. Reset preserves original XCE, all
+MMIO writes, duplicated clears, stack replacement and naked JML to 80:8035.
+No guest return frame is fabricated. Unsupported contexts retain fallback.
+
+32,768 ROM/timed ABI comparisons cover both routes, bank mirrors, emulation
+states, ROM speeds and three beam starts. 212 side-effect-free admission
+checks pass. A real cold-boot comparison checks 5,100 paired frames: CPU,
+WRAM, video memories, pixels, PCM and exact clocks remain identical. Native
+reset executes once and removes 26 interpreted instructions in that probe.
+Six API/metadata/binding/reference/target gates pass. Semantic source is
+unchanged. Tests, proof tools, ROM and battery remain private and unmodified.
+Selection becomes 2,121 verified entries; 37 still lack independent bindings.
+This resolves 59 of the original 96; it is not whole-game coverage.
+
 # Bind text-scene setup entries - 2026-10-24
 
 80:BC3D and 80:BCBC now have ordinary timed native bindings to the existing

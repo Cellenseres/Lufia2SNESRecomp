@@ -2737,6 +2737,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
                                                wide_accumulator, 800u, 256u);
 }
 #include "fixed_span_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_RESET_ENTRY)
+#include "reset_entry_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_INPUT_STEPS)
 #include "battle_input_clock.inc"
 #endif
@@ -3787,6 +3790,9 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     interp_bridge_set_pre_opcode_hook(0x868b41u, ActorBridgeMenuFadeContinuation);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#if defined(LUFIA2_HAVE_NATIVE_RESET_ENTRY)
+    interp_bridge_set_pre_opcode_hook(0x008000u, ActorBridgeResetEntry);
+#endif
     interp_bridge_set_pre_opcode_hook(0x82fb94u, ActorBridgeInventorySearch);
     interp_bridge_set_pre_opcode_hook(0x83a746u, ActorBridgeActorFinePosition);
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TIMER_STEPS)
@@ -18784,4 +18790,16 @@ RecompReturn Lufia2DecompBridge_80BCBC(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     return ActorBridgeFallback(cpu, &frame, 0x80bcbcu);
 #endif
+}
+
+RecompReturn Lufia2DecompBridge_808000(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_RESET_ENTRY)
+    const uint32_t entry = ((uint32_t)cpu->PB << 16) | 0x8000u;
+    unsigned progress;
+    if (RunNativeResetEntry(cpu, entry, &progress))
+        return interp_tier_dispatch_tail(cpu, 0x808035u,
+            (entry & 0xff0000u) | 0x8031u, cpu->S, 0u);
+#endif
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, ((uint32_t)cpu->PB << 16) | 0x8000u);
 }
