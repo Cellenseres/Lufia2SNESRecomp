@@ -1,3 +1,31 @@
+# Event region and area handler entries - 2026-10-25
+
+80:D5F2 and 80:E50B have independent timed consumer bindings. Their full
+service APIs now expose the original E8B9 script-byte JSR through the child
+callback. Internal event-VM routes retain the existing inline reader. Original
+DB/Y saves, condition-list search, region coordinates, area header lookup,
+child unwinds and terminal BRL80:CC35 remain exact. No guest frame is invented.
+The field header advertises the reader-call contract; older dependencies,
+reference builds and unsupported timing/context retain the original fallback.
+
+Shared verification: 30,720 ROM/timed states for both new and three affected
+handlers, 360 altered-child states over 20 sites, 30,720 original-reader
+compositions, 728 pure admission cases and 12 feature gates pass. ROM-table,
+RAM-mirror, page/bank carry and conditional branches are covered. A controlled
+independent handler-entry fixture executes both C bodies twice through actual
+children: four frames preserve CPU/full WRAM/video/pixels/PCM, returned-state
+hashes and exact clocks; parent decoding falls from 114 to zero. This is ABI
+integration evidence, not new natural raw-JMP reachability. Existing native
+event-VM routes already call these operations internally; SDK JMP policy is
+unchanged. An initial fixture remained in its missing-object message child in
+both arms; it was rejected as completion evidence and replaced with bounded
+header/region records. No production workaround was made for that fixture.
+
+The final union includes bank-carry timing and changed child data banks.
+Strict C11, feature-off and reserved Release/default selection are checked at
+the shared checkpoint. Unrelated full regression is deferred. Metadata stays
+2,158 verified, zero drafts and 866 WRAM. Tests/tools/ROM remain private.
+
 # Bind special-menu controller and text window - 2026-10-24
 
 84:A689 and 80:9D3E now select their existing verified full C APIs. The shop's

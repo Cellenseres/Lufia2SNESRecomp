@@ -18994,3 +18994,25 @@ RecompReturn Lufia2DecompBridge_809D3E(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x809d3eu);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_EVENT_REGION_ENTRIES)
+#include "event_region_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_80D5F2(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_EVENT_REGION_ENTRIES)
+    return ActorBridgeTimedEventRegion(cpu, 0x80d5f2u, Lufia2FieldUpdateConditionalObjectRegion);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x80d5f2u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_80E50B(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_EVENT_REGION_ENTRIES)
+    return ActorBridgeTimedEventRegion(cpu, 0x80e50bu, Lufia2FieldApplyEventAreaTransition);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x80e50bu);
+#endif
+}
