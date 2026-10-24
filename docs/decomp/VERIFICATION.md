@@ -1,3 +1,40 @@
+# Card animation batch verified - 2026-10-24
+
+Sixteen NEW complete original functions in card_game_animation.c:
+AFB8/AFFC opening display,B11E reveal,B13D reposition,B16D sprite swaps,
+B22B turn,B274 hide,B295 locate,B2BC tile build,B387 tilemap,B3C9/B429
+sprite emission,B43B/B45B movement,B472/B49B retiling. 2074->2090verified,
+zero drafts;1988runtime bindings unchanged. All sixteen deliberately unbound.
+Four PHP/PLP helpers preserve both incoming accumulator widths;X16,DP0,
+binary/liveDB. One new48byte tile buffer7006brings WRAM map to829.
+The code retains all24sprites,six-by-four tiles,byte coordinate additions,
+ROR/ADC carry,word/byte scratch operations,status saves and original frames.
+AFB8 zero count means256iterations;B13D uses signed decrement;B3C9 first
+column reuses the accumulator when its row loop repeats. No ROM quirk fixed.
+
+Combined original proof:20480direct/10240privateABI cases,143semantic and
+240ABI preaccess guards,36child unwinds/180changed returns,1280stack edges,
+540redirect probes. CPU/fullWRAM/ordered data+MMIO/device/child snapshots
+match;zero primary ABI fallback.176composed roots execute all20incoming
+mode variants plus earlier opening/animated-deal parents. Fifteen helpers
+also execute as actual C descendants;B13D is tested as a root,not claimed
+as a nested descendant. Native/reference child counters are separate and
+match exactly. Four65536call prefixes (movement/retiling,both M widths)
+match exact pending boundaries. Four wrong-ROM controls detect regressions.
+
+No production changes were needed after the shared baseline proof. The first
+composition coverage assertion incorrectly required B13D to appear nested,
+though these parents never call it. Corrected that private assertion;its root
+coverage stays required. Only that affected supplemental proof was repeated.
+A private shell script first had CRLF endings;Linux compilation was retried
+with LF. Tests/tools/ROM stay private. Exact builds recorded in acceptance.
+No gameplay,FPS,physical NMI/VRAM timing or unchanged full-regression claim.
+
+Next explicit missing originals:B027 card selection/reveal,B523 scene resource
+and tilemap copy,B54F labels. Four other special-menu controllers remain.
+These newly inventoried roots grow the catalogue denominator honestly;the
+inventory is not proof of whole-ROM completeness. SOLO,no pushes.
+
 # Card-game actions and stake handling reconstructed - 2026-10-24
 
 Five complete original routines are verified:84:B57F scene setup(M1X0),
