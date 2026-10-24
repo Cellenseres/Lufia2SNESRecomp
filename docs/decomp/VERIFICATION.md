@@ -1,3 +1,27 @@
+# Bind cursor continuations and counted waits - 2026-10-24
+
+82:8A9B/8AD6 and 86:9748 now have ordinary timed bindings to their verified
+C owners. Cursor resumes expose the original correction JSRs and the live
+count-child frame. Their original BRA, error/position branches and RTS remain
+intact. The counted wait keeps width-sensitive DEC/BNE, real 86:974F child,
+byte-zero wrap and its original 4,096-step boundary. The existing frame/NMI
+scheduler remains the child owner. Selection is now 2,118 verified entries;
+40 lack independent bindings. This resolves 56 of the reported 96 entries.
+
+Shared checks pass 36,864 ROM/timed cases, 90 altered-child cases over five
+sites, 24,576 actual-count-child compositions and 288 pure admission guards.
+Both 4,096-step boundaries and the 256-wait byte-zero wrap match the ROM.
+The affected complete cursor-slide caller passes 1,472 cases. Twelve actual
+registry/NMI/return scenarios after 5,000 boot/input frames per arm match all
+41 subsequent CPU/full-memory/device/pixel/PCM digests, return-state hashes
+and exact clocks. Each native body is admitted four times. Cursor probes use
+explicit same-bank routing; the counted wait uses an original direct JSR.
+
+The inline-correction prototype matched literal ROM timing but diverged from
+the hybrid runtime by 18 master clocks. It was rejected. Real correction
+child calls preserve existing native child ownership; the retained baseline
+also remains unchanged. Tests, diagnostics and ROM remain private.
+
 # Bind party-refresh and layer-centering entries - 2026-10-24
 
 80:D5BC/D5EB/DB9D now have ordinary timed native bindings. Original PHY/PHA

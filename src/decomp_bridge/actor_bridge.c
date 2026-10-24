@@ -18732,3 +18732,34 @@ RecompReturn Lufia2DecompBridge_80DB9D(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x80db9du);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#include "continuation_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_828A9B(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedContinuation(cpu, 0x828a9bu, Lufia2MenuResumeVerticalCursorSlide);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x828a9bu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_828AD6(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedContinuation(cpu, 0x828ad6u, Lufia2MenuResumeHorizontalCursorSlide);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x828ad6u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_869748(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedContinuation(cpu, 0x869748u, Lufia2WorldWaitFrames);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x869748u);
+#endif
+}
