@@ -1,3 +1,22 @@
+# Bind event-handler tail entries - 2026-10-24
+
+80:D2BB/D2E1/D2EE now have ordinary timed bindings. Their original BRL
+returns to 80:CC35 with the script stack intact. Entry APIs expose all eight
+original reader/probe/sound calls; existing internal event-VM routes keep
+their inline readers. No fake RTS, guest frame or new metadata entry is added.
+The consumer selects 2,099 verified entries; 59 still lack an independent
+binding. Internal VM execution and independent entry selection are distinct.
+
+The shared checkpoint passes 73,728 ROM/timed ABI cases, 144 altered-child
+cases across eight call sites, 18,432 cases with actual original-ROM reader
+bodies, 288 entry guards and 192 post-child guards. The complete event VM
+passes 1,360 normal and 236 extension cases against the ROM. Production
+registry replays preserve architectural CPU, full memory/device/pixel/PCM
+digests and exact clocks for all three entries after 5,000 boot/input frames.
+The baseline also matches the retained pre-change baseline. Parent decoding
+falls from 3/7/10 instructions to zero in these scoped original-call probes.
+Tests, tools and ROM remain private; no whole-game speedup is claimed.
+
 # Bind special-menu fade owners - 2026-10-24
 
 84:A5B5 and 84:A5CA now run their verified original fade loops through timed
