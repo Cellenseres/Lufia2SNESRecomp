@@ -1,3 +1,68 @@
+# Poker controller and card integration verified - 2026-10-24
+
+Nine NEW complete original functions in menu/poker.c: B827 F4 controller,
+BA40 pot sum, C578 stakes display, C5AF deal, C64B animated message wait,
+C69C round reset, C73A opponent reveal, C794 input wait, C819 carryover.
+The controller preserves four hands, three action/deal rounds, entry charge,
+early round completion, tied-pot rollover, payout, replay and broke exit.
+2098 ->2107 verified, zero drafts;1988runtime bindings unchanged. All nine
+remain unbound. Eight persistent fields bring the WRAM map to838 entries;
+existing7107/710F fields now document all four poker seats. Those count
+macros have no consumer outside their generated definitions.
+
+B827 enters M1, saves original status/DB and restores them. C5AF preserves
+both incoming accumulator widths; other new roots enter M0. X16, DP0,
+binary/liveDB, hiddenB, actual2/3byte child frames and ordered bus effects
+remain. Signed9999 payout clamp and unsigned60000 rollover cap differ in
+the original and remain distinct. Waits, zero-byte256step deal motion and
+unchecked word loops remain;65536-child budgets yield exact pending calls.
+Unknown showdown and decision children remain explicit original services.
+
+AF11 is additionally verified for the real M0 caller B88C. C819 calls
+808878, whose PHP/PLP restores the caller width. The balance body is
+unchanged; only its entry guard accepts the newly proven width. Metadata
+exit is dynamic, both widths verified. No new AF11 entry or duplicate code.
+
+Final proof:12288direct original and6144privateABI cases,91semantic/
+144ABI guards,68site/mode unwinds,340changed child returns,768stack
+endpoints and1020redirect probes across67unique original call sites.
+192extra deal-phase cases cover face-up/covered paths at both widths.
+78whole-controller numeric cases cover rollover/payout boundaries.
+96composed roots use30positive matched native/reference descendant sets:
+new poker helpers,balance,eleven animation helpers,scene setup/tilemap,
+deck/shuffle/deal,replay,multiply,graphics upload,original decoder and RNG.
+Six65536-child prefixes match directly AND via private ABI:controller,
+both deal widths,animated wait,reveal and input wait. CPU/fullWRAM/ordered
+bus/MMIO/device state/child snapshots match;zero primary ABI fallback.
+Four wrong-ROM controls detect entry fee,rollover threshold,pot carry and
+stake destination changes. Tests/tools/ROM remain private.
+
+Original proof found a new-code height/style address mixup:601C is message
+height,601E remains window style. Corrected before acceptance,then rechecked
+all affected cases. Opponent50/40/30 values keep a neutral field name because
+their broader meaning is unproved; final naming revision was freshly built
+and checked. Source bodies otherwise unchanged after that correction.
+Private witness search needed512controller seeds to reach seat-active paths;
+short16seed historical branch is superseded. Separate fixtures retain the
+full comparisons and require every unique site,not only a total count.
+Composition site table includes the scene loader's original B534 JSL.
+Root prefix refills balance through an explicit modeled child,so original
+execution remains endless;otherwise entry fees legitimately ended it early.
+The narrow rollover mutant initially escaped unrelated states;the targeted
+78-edge matrix now detects that same change. No failed run is acceptance.
+
+Strict MSVC C11/W4/WX,GCC/Clang checks of both changed C modules and game
+build results are sealed in acceptance. Existing CLI binaries and previous
+semantic sources except the explicitly verified AF11 guard remain unchanged.
+No repeated full unchanged suite/Linux/CLI rebuild,physical timing,gameplay
+replay or FPS claim. Owner build/windows and foreign WIP untouched. No push.
+
+NEXT original poker children:BA53 showdown,BC78 opponent turn,BF0B round
+selection,C028 player action. Close their actual algorithms and ranking helpers
+as coherent batches. Other controllers C826/DA9B/F38A and timedAE43 remain.
+Catalogue denominator grows for new original roots;no whole-ROM completeness
+claim. SOLO only. Batched original fidelity remains the promotion bar.
+
 # Card scene and score display reconstructed - 2026-10-24
 
 Eight complete original contracts in card_game_scene.c: B027 selects the
