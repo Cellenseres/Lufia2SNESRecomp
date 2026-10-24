@@ -1,3 +1,38 @@
+# Newly reconstructed special-menu branch - 2026-10-24
+
+Six original contracts are newly reconstructed and verified in special_menu.c:
+84:A4DD tilemap clearing,A4FD sprite hiding,A5DF word multiplication,
+A5B5/A5CA fade loops andA689 special-menu selection/cleanup. The original
+82:D6B2 JML reaches this formerly unowned bank84 branch. These are new bodies,
+not aliases or instruction adapters. Canonical2,050->2,056;zero drafts;
+806WRAM records unchanged. Three finite leaves are native:1,985->1,988.
+Fade loops and dispatcher remain unbound pending actual scheduling/children.
+
+Original ordered stores,destructive16step multiply/carry,register leftovers,
+status/stack frames and selector comparisons remain literal. Multiply uses
+its original M0X0 caller contract;the other five useM1X0. Data bank remains
+live;DP0 and binary arithmetic are required. Unknown children remain explicit
+pushed calls;no wait or decompressor was replaced by a shortcut.
+
+Shared checkpoint:27,648direct original-ROM cases and13,824ABI cases pass.
+The ABI total contains9,728actual production-leaf cases and4,096private
+parent projections. Also116guards,104child unwinds,260changed-child returns,
+768positive stack-endpoint cases and three detected wrong-ROM controls.
+Two literal65,536iteration fade prefixes reach the exact next-JSR boundary
+with pending saved status. Parent children/fade completion are modeled;
+this is not asynchronous NMI/SPC/APU evidence.45redirect probes belong to
+private parent projections;zero fallback. CPU,full WRAM,ordered data/MMIO,
+device state and child-entry snapshots match original execution.
+
+Strict MSVC C11,Release game and standalone GCC/Clang warnings-as-errors
+PASS.12generated production wrappers checked. Existing shared algorithms,
+ABI structures and bridge prefix remain unchanged;CLI binaries identical.
+No full unchanged regression or broad frame/FPS claim. Eight confirmed missing
+setup/controller callees enter the original inventory explicitly;the larger
+124target mode-aware survey remains discovery. The old entry denominator
+was incomplete. Tests/tools/ROM stay private;foreign hashes intact,no push.
+Evidence:solo-special-menu/ACCEPTANCE_RECEIPT.json.
+
 # Finite mirrored and sloped scene windows - 2026-10-24
 
 Six complete existing C callers now have ordinary native bindings:

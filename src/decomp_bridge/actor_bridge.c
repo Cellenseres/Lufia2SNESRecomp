@@ -4,6 +4,7 @@
 #include "lufia2/decomp.h"
 #include "lufia2/world_scene_timed_motion.h"
 #include "lufia2/world_scene_timed_windows.h"
+#include "lufia2/special_menu.h"
 #include "lufia2/world_scene_particle_commands.h"
 #include "lufia2/menu_party_actions.h"
 #include "lufia2/menu_inventory_groups.h"
@@ -17615,4 +17616,30 @@ RecompReturn Lufia2DecompBridge_86B2B1(CpuState *cpu) {
 RecompReturn Lufia2DecompBridge_86B2B6(CpuState *cpu) {
     return ActorBridgeWorldSequence(cpu, 0x86b2b6u,
         Lufia2WorldMapSubmitSceneSlopedWindow2, 2u, false);
+}
+
+static RecompReturn ActorBridgeSpecialMenuLeaf(CpuState *cpu, uint32_t entry,
+                                               ActorWholeFunction function,
+                                               BattleBridgeWidth width) {
+    if (cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, entry);
+    }
+    return ActorBridgeBattleEntry(cpu, entry, function, NULL, 2u,
+        width, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+}
+
+RecompReturn Lufia2DecompBridge_84A4DD(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84a4ddu,
+        Lufia2SpecialMenuClearTilemaps, BATTLE_BRIDGE_M1X0);
+}
+
+RecompReturn Lufia2DecompBridge_84A4FD(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84a4fdu,
+        Lufia2SpecialMenuHideSprites, BATTLE_BRIDGE_M1X0);
+}
+
+RecompReturn Lufia2DecompBridge_84A5DF(CpuState *cpu) {
+    return ActorBridgeSpecialMenuLeaf(cpu, 0x84a5dfu,
+        Lufia2SpecialMenuMultiplyWords, BATTLE_BRIDGE_M0X0);
 }
