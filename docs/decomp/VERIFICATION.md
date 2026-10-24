@@ -1,3 +1,46 @@
+# Complete board session verified - 2026-10-24
+
+Five complete original contracts now live in `src/menu/board_game_session.c`:
+C826 controller, CAF1 replay, CB64 continuation, CCD3 cell draw and CDA8 draw
+animation. C826 supports both incoming M widths, normalizes to M1 and returns
+M1. The other four preserve the caller's M width through PHP/PLP. All require
+X16, DP0, binary arithmetic and live DB. Metadata has 2,143 verified entries,
+zero drafts and 862 WRAM locations. All five remain unbound; 1,988 active
+bindings and every earlier semantic C body are unchanged.
+
+The controller retains palette MVNs, DB saves, initial shuffling, slowdown
+counters, grouped/ungrouped draws, result/continuation/replay prompts and the
+empty-balance exit. A word decrement's N flag survives SEP at the group branch.
+The draw animation keeps original trigonometric children, byte-packed position
+arithmetic, angle/radius/fall-step/phase/timer behavior and confirm window.
+CEB3 remains an original multiplication child with all hardware-delay NOPs.
+Nine draw-state words are named; the layout document records their context.
+
+Shared proof passed 5,120 direct and 2,560 private-ABI cases, 190 entry guards,
+103 call contexts/unwinds, 515 changed returns, 640 stack endpoints and 1,545
+redirects. Six literal 65,536-child prefixes passed per interface for controller,
+replay and continuation at both widths. Continuous draw sequences match the
+original for 377 frames per width, 754 frames per interface. CPU, full WRAM,
+ordered bus/MMIO/device state and child snapshots match; no primary ABI fallback.
+80 compositions execute eighteen positive matched C descendant sets, including
+the four new phase helpers, seven existing board routines, decoder, RNG, original
+sine/cosine, graphics upload, tilemap clear and sprite hide. The controller itself
+is a root, not a counted descendant. Eight altered-ROM controls were detected.
+
+Original-ROM proof found and fixed a new-code cursor-address mistake: CAF1 uses
+OAM slot127 at02FC/02FE, not the7133 card-game selection-layout field. The final
+shared proof reran after correction. The private input fixture also needed the
+upper accumulator byte to exercise direction bits; every unique site is now
+required. Earlier failed checkpoints/logs remain historical and are not accepted.
+Strict MSVC C11/W4/WX, GCC/Clang module checks and agent Release build pass.
+Earlier sources, actual bridge/bindings, CLI binaries and foreign work remain
+hash-identical. Unknown rendering/frame/selection children remain explicit
+original services. No unchanged full regression/Linux/CLI rebuild, physical
+timing, rendered gameplay or FPS claim. Tests/tools/ROM private; no push.
+
+Next: remaining board selection/result children or controllers DA9B/F38A.
+AE43, C028 and its inline hardware timing remain original until representable.
+
 # Five-by-five board setup verified - 2026-10-24
 
 Seven complete original algorithms now live in `src/menu/board_game.c`:
