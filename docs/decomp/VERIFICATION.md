@@ -1,3 +1,23 @@
+# Bind opening-card actions - 2026-10-24
+
+84:AF4B, 84:AFB8, 84:AFFC and 84:B18E now select their existing verified C
+APIs. Preserve original motion/card pointers, byte-counter wrap, player-hand
+branch, indexed page-cross timing, 36 real JSR sites and live RTS frames.
+Unsupported entry or post-child windows retain exact interpreter continuations.
+Portable semantic sources remain unchanged. Selection becomes 2,129 verified
+entries; 29 lack independent bindings, resolving 67 of the original 96.
+
+One shared checkpoint covers 16,384 ROM/timed cases, 648 altered-child cases
+over all 36 sites, 352 pure admission checks and six API/selection gates.
+Actual original menu/video/card setup and original opening/deal callers match
+over 96 post-warmup frames: CPU/full WRAM/video/pixels/PCM, returned-state
+hashes and exact clocks. Every new C body executes. Parent decoding drops
+306 to 204 in this probe; established scheduler ownership after waits remains.
+This measures the tested caller sequence, not whole-game interpreter removal.
+Strict C11, feature-off and reserved Release/default selection checks belong
+to this combined checkpoint. Unrelated full regression is deferred.
+Tests, proof tools and ROM remain private. No push.
+
 # Bind card-scene initialization - 2026-10-24
 
 84:B57F now uses its verified C initialization API through the shared timed

@@ -18485,6 +18485,47 @@ RecompReturn Lufia2DecompBridge_84B57F(CpuState *cpu) {
 #endif
 }
 
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CARD_OPENING)
+#include "card_opening_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84AF4B(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CARD_OPENING)
+    return ActorBridgeCardOpening(cpu, 0x84af4bu, Lufia2CardGameDealOpeningHands);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84af4bu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84AFB8(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CARD_OPENING)
+    return ActorBridgeCardOpening(cpu, 0x84afb8u, Lufia2CardGameAnimateOpeningCard);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84afb8u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84AFFC(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CARD_OPENING)
+    return ActorBridgeCardOpening(cpu, 0x84affcu, Lufia2CardGameShowOpeningCard);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84affcu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84B18E(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CARD_OPENING)
+    return ActorBridgeCardOpening(cpu, 0x84b18eu, Lufia2CardGameAnimateDeal);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84b18eu);
+#endif
+}
+
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResumeReturn(cpu, landing);
