@@ -1,3 +1,33 @@
+# Special-menu video setup reconstructed - 2026-10-24
+
+Three complete original bodies are newly verified:84:A455 video initialization,
+A529 palette/resource preparation andA569 decompressed tile upload. Entries
+areM1X0/M1X0/M0X0;DP0,binary,liveDB. Canonical2,056->2,059;zero drafts;
+1,988native and806WRAM unchanged. These three remain runtime-unbound.
+
+Original video/window-register order,16byte scroll reset,two256byteA6->00
+MVNs,channel0DMA protocol,index/status/bank saves and exact JSR/JSL frames
+remain. Decompressor and frame waits are original child calls. No wait or
+decoder was replaced by a shortcut. Existing six special-menu bodies and
+production bridge/bindings are unchanged;public header additions preserve
+existing signatures and structures.
+
+Shared proof:12,288direct original-ROM cases,6,144private consumer-ABI
+projections,60guards,48unwinds,120changed-child returns and384valid stack
+endpoints PASS. Both child sites per routine have15return-redirection probes,
+90total.96parent compositions execute128actual existing clear/hide bridges
+and32literal C decompressor calls against original descendants,with zero
+nested fallback. Three wrong-ROM control families detect video bank,palette
+destination andDMA target differences. CPU,full WRAM,ordered data/MMIO,
+device state and child-entry snapshots match. Frame waits remain opaque;
+DMA evidence covers register protocol,not physical transfers or NMI timing.
+
+StrictMSVC C11,Release game and GCC/Clang warnings-as-errors PASS. Existing
+CLI binaries unchanged;no full unchanged regression,broad replay,FPS or
+physical VRAM/CGRAM/picture claim. Tests/tools/ROM private;foreign hashes
+intact,no push. Remaining confirmed controllers:A705,B827,C826,DA9B,F38A.
+Evidence:solo-special-menu-video/ACCEPTANCE_RECEIPT.json.
+
 # Newly reconstructed special-menu branch - 2026-10-24
 
 Six original contracts are newly reconstructed and verified in special_menu.c:
