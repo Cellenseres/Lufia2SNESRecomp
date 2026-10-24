@@ -1,3 +1,50 @@
+# Activate verified special-menu callers - 2026-10-24
+
+34 complete existing C callers now have production bindings,following the32
+leaf bindings in40d39ad.2054ordinary bindings,2158verified,zero drafts and866
+WRAM fields;104verified entries still lack independent bindings. No semantic
+algorithm is added or rewritten. The checkpoint includes card deck shuffle,
+result/stake display,poker ranking/opponent decisions and finite board setup,
+selection display,payout-step and particle work. Fifteen entries support both
+verified incoming M widths. AF11 M0 proof belongs to the later poker-control
+batch;its scene-only fixture originally exercised just M1. Both now use the
+same actual production bridge.
+
+One final34entry matrix plus AF11's later both-mode matrix passes30336 actual
+ROM/ABI comparisons. CPU,fullWRAM,ordered operand bus/MMIO,child snapshots and
+return adaptation agree;no new-root fallback. Family-level guard/unwind/changed
+return/redirect cases cover current production candidates and unchanged private
+siblings;their aggregate is not claimed as exclusively newly bound cases.
+1536 additional paired parent/descendant compositions pass.6844 descendant
+calls execute actual production bridges across17positive descendant entries.
+Other children remain explicit paired original services. This is synthetic
+contract/composition evidence,not rendered special-menu or timing acceptance.
+
+Poker reset C69C enters the existing A4FD/A4DD helpers in M0. Their current
+verified/production guards admit M1 only.64known width rejections across the
+composition matrix therefore execute the literal original children. Both
+architectural state and bus order match. No guard is silently widened and
+these64calls are not counted as native C. Future both-width proof can extend
+the old leaf contracts. Poker ranking/opponent compositions use coherent7E/7F
+hands;the extreme separate-entry matrices remain intact.
+
+Three copied old boundary harnesses failed coverage,not CPU/WRAM equivalence.
+The original accepted expanded fixtures were used:scene26unique sites share
+one overlapping tail;control expands root seeds;results expands256seeds and
+requires each site. Failed fixtures/logs are retained privately. Only affected
+checks were repaired;the final new-root matrix then ran on the frozen intended
+commit. No production semantic source change was needed. Compilation fixture
+forward-declaration/name repairs are also private,not game fixes.
+
+All prior semantic C is hash-identical;direct ROM and unchanged CLI/standalone
+proofs are reused. No unrelated full regression or CLI rebuild. Strict MSVC
+production ABI compiles;reserved Windows integration build recorded separately.
+No global CPU-cycle/audio/FPS or asynchronous-controller claim.36related
+frame-owning caller candidates remain deferred pending their scheduling proof.
+Known equipment/boot/NMI timing owners remain intact. SOLO,no push;tests,
+fixtures,proof tools and ROM stay local. Foreign shared-file changes are
+preserved through an index-only commit patch.
+
 # Binding activation build accepted - 2026-10-24
 
 32 actual leaf bindings,128 generated wrappers,2020 selected entries. The
