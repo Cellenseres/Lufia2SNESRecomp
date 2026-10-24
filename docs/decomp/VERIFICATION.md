@@ -1,3 +1,42 @@
+# Poker opponent decisions verified - 2026-10-24
+
+Seven new complete original algorithms in `src/menu/poker_decisions.c`:
+BC78 opponent turn, BF0B matching all opponents, BDC2 action choice,
+BF67 match/fold, BD83 accepting a stake, BD96 drawing stake sprites and
+BEE4 packing their origin. All M0X0,DP0,binary/liveDB. Metadata now has
+2124 verified functions, zero drafts and843 WRAM locations. All seven
+remain unbound;1988 active bindings and all earlier semantic bodies stay
+unchanged. The7149 origin is named;7127 also documents four seat words.
+
+The original randomized raise/call/fold thresholds, signed N-bit comparisons,
+99-stake cap, carry rotations, window and sprite effects, bank-relative
+records, saved scratch, frame waits and child frames are preserved. BC78
+computes11-1 but does not transfer it into X before7117/711F indexed reads;
+that original behavior remains. BEE0 is still an original call-through child,
+not another adapter counted as a newly decompiled algorithm.
+
+Shared proof passed7168 direct original and3584 private-ABI cases,138 entry
+guards,47 call contexts/unwinds,235 changed returns,448 stack endpoints
+and705 redirects. CPU/full WRAM/ordered bus/MMIO/device states and child
+snapshots match;no primary ABI fallback.96 composed roots use47 positive
+equal native/reference C descendant sets,including all seven new routines,
+ten hand-result routines,existing F4 controller,card pipeline,decoder and RNG.
+A literal65536-child opponent-loop prefix matches through both interfaces.
+Eight zero-round cases per interface each prove65536 countdown iterations,
+with65538 observed rank reads including setup. Four altered-ROM controls
+detect coordinate,stake destination,raise-cap and window-table corruption.
+
+The full action-choice matrix uses coherent DB7E/7F;the other six roots retain
+four banks. Unknown player-action,frame,sound,text and digit-render children
+remain explicit services. Existing native RNG/hand-rank helpers execute as C
+in composition;their reference descendants execute original ROM. No original
+algorithm is replaced with host poker rules or numerical shortcuts.
+Strict MSVC C11/W4/WX,GCC/Clang module checks and agent Release integration
+pass. Previous semantic sources,actual bridge/bindings,CLI binaries and foreign
+work are hash-preserved. No unchanged full regression,Linux/CLI rebuild,
+physical timing,rendered gameplay or FPS claim. Tests/tools/ROM remain private.
+No push. Next:C028 complete player turn and related original stake helpers.
+
 # Poker hand results verified - 2026-10-24
 
 Ten complete original routines now reconstruct five-card preparation, masked
