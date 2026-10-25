@@ -18774,6 +18774,19 @@ RecompReturn Lufia2DecompBridge_84C826(CpuState *cpu) {
 #endif
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_WORLD_PALETTE)
+#include "world_palette_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_86B2F7(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_WORLD_PALETTE)
+    return ActorBridgeWorldPalette(cpu, 0x86b2f7u, Lufia2WorldMapInstallSceneWindowPalette);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86b2f7u);
+#endif
+}
+
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResumeReturn(cpu, landing);

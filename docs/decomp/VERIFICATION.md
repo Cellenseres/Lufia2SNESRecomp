@@ -12774,3 +12774,24 @@ is implied. Counts are1,862 verified,zero drafts,1,829 bindings and795 WRAM
 fields. Full regression is deferred. Both atomic commits share this combined
 final state; no independent intermediate checkpoint is claimed. Tests remain
 private. Parallel renderer changes are outside this batch's ownership.
+
+## World scene palette entry - 2026-10-25
+
+The verified86:B2F7 API now has a timed consumer binding. It preserves the
+original child frames and both literal224/256-byte MVN copies. Existing
+semantic C is unchanged. Shared checks:8,192 ROM/timed cases across the
+palette entry pair,126 altered-child cases at seven sites,88 pure world
+admission cases and nine CMake gates pass. Original86:C21A -> C246 -> B2F7
+matches55 post-warmup hardware frames exactly, including all480 native
+palette bytes. An adjacent display-edge fixture safely retains LLE copies.
+After the first frame yield, original interpreter continuations remain.
+
+Native frame-poll hooks now retain ownership over the legacy fast-forward.
+The removed bypass could batch without refresh accounting and overshoot a
+frame deadline by9,818 master clocks. The corrected fixture restores native
+hooks after SDK hook removal, which clears the entire hook table. Corrected
+baseline/native and legacy-fast-forward-disabled reference traces match.
+This consumer clock fix leaves original ROM semantics unchanged.
+
+Strict C11 and the reserved Windows Release build pass. Tests/tools/ROM stay
+private. The unrelated full regression is deferred; nothing is pushed.
