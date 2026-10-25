@@ -1,3 +1,4 @@
+#include "lufia2/card_table.h"
 #include "equipment_resume.h"
 #include <stdint.h>
 
@@ -18962,6 +18963,28 @@ RecompReturn Lufia2DecompBridge_84A607(CpuState *cpu) {
 #else
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     return ActorBridgeFallback(cpu, &frame, 0x84a607u);
+#endif
+}
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CARD_TABLE)
+#include "card_table_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84DA9B(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CARD_TABLE)
+    return ActorBridgeCardTable(cpu, 0x84da9bu, Lufia2CardTableRunSession);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84da9bu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84F38A(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CARD_TABLE)
+    return ActorBridgeCardTable(cpu, 0x84f38au, Lufia2CardTableRunAlternateSession);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84f38au);
 #endif
 }
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {

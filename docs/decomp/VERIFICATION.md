@@ -1,3 +1,42 @@
+# Complete original card-table session owners - 2026-10-25
+
+84:DA9B..DC54 and 84:F38A..F4C5 now have complete portable C session
+owners and immediate verified consumer bindings. Their neutral public names
+are Lufia2CardTableRunSession and Lufia2CardTableRunAlternateSession.
+The C includes original palettes, graphics and callback setup, selection,
+hand/input loops, stake checks, repeated payout, cleanup and saved DB/status
+restoration. All 59 original child sites retain real JSR/JSL frames.
+
+Each original MVN remains a 256-byte ascending bus transfer with original
+register effects. Consumer timing accounts all 512 repeated MVN opcodes,
+including instruction fetches. It does not substitute memcpy or remove
+service/frame waits. A 4,096-child work boundary flushes pending zero-data
+instructions before handing off at the original unexecuted JSR.
+
+A shared two-owner checkpoint passes 4,096 semantic original-ROM cases,
+59 child unwinds, 295 changed returns and the original loop-boundary prefix.
+8,192 timed production-ABI cases and 354 changed child contexts cover all
+59 sites, both ROM speeds, all incoming M/X widths and live bank variants.
+CPU, full WRAM, ordered bus and per-opcode/master clocks agree. Two focused
+timed 4,096-call continuations also pass; their synthetic opaque services
+rephase admission hardware state between callbacks. They are boundary
+fixtures, not natural gameplay or frame-render acceptance.
+
+90 pure admission cases, 12 API/metadata/binding gates, strict MSVC/GCC/Clang
+C11, feature-off compilation, ordinary no-draft selection and one reserved
+Windows Release build pass. No unchanged full regression or unrelated
+CLI/platform build was repeated. Existing semantic helpers were unchanged.
+
+The ordinary manifest selects all 2,169 verified entries, with zero drafts
+or unmatched bindings. Eleven new WRAM locations document the table state.
+The hand words and stake reuse existing overlapping menu workspace, which
+is documented without introducing overlapping memory-map declarations.
+
+These complete parent contracts use explicit original service children.
+The 23 newly inventoried child entries remain separate decompilation work;
+no claim is made that these owners eliminate their children's interpreter
+execution or establish whole-game completion or a measured speedup.
+
 # Reconstruct the complete poker player turn - 2026-10-25
 
 84:C028 now reconstructs the complete original C028..C1E7 player action,
