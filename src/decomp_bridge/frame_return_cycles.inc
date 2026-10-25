@@ -79,7 +79,7 @@ static void Lufia2DecompFrameReturnContinue(long *steps, int auto_quiescent,
  * cannot match later states. Admission excludes the epoch-wrap boundary. */
 bool Lufia2DecompFramePollBatchSupported(uint32_t entry) {
     if (!s_frame_return_batch_allowed || s_interp_bus_timing_active ||
-        s_interp_continuous_read_epoch > UINT64_MAX - 128u ||
+        s_interp_continuous_read_epoch > UINT64_MAX - LUFIA2_FRAME_POLL_MAX_OPCODES ||
         Lufia2NativeObserversActive()) return false;
     /* The setter replaces an existing normalized PC in place. Cached slots
      * remain valid only while BOTH current keys and callbacks still match;
@@ -223,6 +223,18 @@ void Lufia2DecompFramePollProbe(const CpuState *cpu,uint32_t entry) {
  * reference path retains every event edge, refresh stall and APU flush.
  * No sound-port read or handshake is eligible. The original step loop owns
  * the final deadline crossing; a span uses at most 128 remaining opcode slots. */
+/* At most 1024 opcode slots, with at most 46 master clocks per pair.
+ * Reject an out-of-span 64-bit distance before narrowing its division. */
+static unsigned Lufia2DecompFramePollEdgeChunk(uint64_t need,
+    uint32_t pair_master, uint32_t first_master, unsigned chunk) {
+    const uint32_t limit = (chunk / 2u + 1u) * pair_master;
+    if (need > limit) return chunk;
+    const uint32_t pairs = need ? ((uint32_t)need - 1u) / pair_master : 0u;
+    const uint32_t tail = (uint32_t)need - pairs * pair_master;
+    const unsigned boundary = pairs * 2u + (tail <= first_master ? 1u : 2u);
+    return boundary < chunk ? boundary : chunk;
+}
+
 static bool Lufia2DecompFramePollClockedEdges(CpuState *cpu, uint32_t entry) {
 #if defined(SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY) && !defined(SNES_COSIM) && \
     !defined(SNESRECOMP_INTERP_PROFILE) && \
@@ -257,18 +269,21 @@ static bool Lufia2DecompFramePollClockedEdges(CpuState *cpu, uint32_t entry) {
     uint64_t phase, charged;
     snes_refresh_state_get(&phase, &charged);
     const uint64_t deadline = Lufia2DecompFrameReturnDeadline();
+    unsigned budget = s_frame_return_poll_opcode_budget;
+    if (budget > LUFIA2_FRAME_POLL_MAX_OPCODES) budget = LUFIA2_FRAME_POLL_MAX_OPCODES;
+    const uint32_t reserve = (budget + 127u) & ~127u;
+    _Static_assert(LUFIA2_FRAME_POLL_MAX_OPCODES <= 1024u, "review native poll clock bounds");
     if (phase >= 1364u || charged != cpu->master_cycles ||
-        deadline <= cpu->master_cycles || deadline - cpu->master_cycles <= 128u)
+        deadline <= cpu->master_cycles || deadline - cpu->master_cycles <= reserve)
         return false;
     const uint32_t compare_master =
         2u * cpu_region_speed(entry) + cpu_region_speed(0x40u);
     const uint32_t branch_master = 2u * cpu_region_speed(entry) + 6u;
     const uint32_t pair_master = compare_master + branch_master;
-    unsigned budget = s_frame_return_poll_opcode_budget;
-    if (budget > 128u) budget = 128u;
     unsigned pairs = budget / 2u;
-    const uint64_t room = deadline - cpu->master_cycles - 128u;
-    while (pairs && (uint64_t)pairs * pair_master > room) --pairs;
+    const uint64_t room = deadline - cpu->master_cycles - reserve;
+    if ((uint64_t)pairs * pair_master > room)
+        pairs = (uint32_t)room / pair_master;
     if (!pairs) return false;
     cpu->_flag_C = cpu->_flag_Z = 1u;
     cpu->_flag_N = 0u;
@@ -281,8 +296,9 @@ static bool Lufia2DecompFramePollClockedEdges(CpuState *cpu, uint32_t entry) {
         snes_refresh_state_get(&refresh_phase, &refresh_clock);
         /* Each span ends at the same original opcode which crosses a device
          * edge. Real refresh/beam/APU handlers execute there, never later.
-         * At most3064 raw+refresh clocks are admitted, crossing at most three
-         * refresh periods. The128-clock reserve covers their120 clocks. */
+         * Reserve 128 clocks per 128 opcode slots. For at most 1024 slots,
+         * raw clocks plus this reserve span fewer than 20 refresh periods;
+         * their maximum 800 clocks fit within the 1024-clock reserve. */
         const uint64_t edges[] = {
             1364u - refresh_phase,
             (g_snes->vPos < 225u && g_snes->hPos < 1024u ?
@@ -292,13 +308,7 @@ static bool Lufia2DecompFramePollClockedEdges(CpuState *cpu, uint32_t entry) {
             branch_master : compare_master;
         for (unsigned edge = 0u; edge < 2u; ++edge) {
             const uint64_t need = edges[edge];
-            const uint64_t full_pairs = need ? (need - 1u) / pair_master : 0u;
-            if (full_pairs <= chunk / 2u) {
-                const uint64_t tail = need - full_pairs * pair_master;
-                const uint64_t boundary = full_pairs * 2u +
-                    (tail <= first_master ? 1u : 2u);
-                if (boundary < chunk) chunk = (unsigned)boundary;
-            }
+            chunk = Lufia2DecompFramePollEdgeChunk(need, pair_master, first_master, chunk);
         }
         /* Auto-pad's start-of-vblank latch occurs before the first walk. */
         if (g_snes->autoJoyRead && g_snes->vPos == 225u && !g_snes->hPos)
@@ -309,13 +319,7 @@ static bool Lufia2DecompFramePollClockedEdges(CpuState *cpu, uint32_t entry) {
             const uint64_t threshold = bridge_bounce_flush_thresh();
             const uint64_t need = threshold > s_apu_pending_master ?
                 threshold - s_apu_pending_master : 0u;
-            const uint64_t full_pairs = need ? (need - 1u) / pair_master : 0u;
-            if (full_pairs <= chunk / 2u) {
-                const uint64_t tail = need - full_pairs * pair_master;
-                const uint64_t boundary = full_pairs * 2u +
-                    (tail <= first_master ? 1u : 2u);
-                if (boundary < chunk) chunk = (unsigned)boundary;
-            }
+            chunk = Lufia2DecompFramePollEdgeChunk(need, pair_master, first_master, chunk);
         }
         const unsigned compares = (chunk + ((opcode & 1u) ? 0u : 1u)) / 2u;
         const unsigned branches = chunk - compares;

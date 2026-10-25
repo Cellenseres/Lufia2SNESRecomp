@@ -262,3 +262,27 @@ from 43.376 to 42.362 ms; mean row hits rose from 2.618 to 7.855. All 119 jobs,
 five PICA readbacks and saved state matched. Both sanitizer builds passed
 24,580 dependency cases; removed ownership-mask and script-mode guards failed
 negative controls. These are internal emulator timings, still above budget.
+
+### Bounded native counter waits
+
+Verified counter waits may batch up to 1024 original opcodes per host dispatch,
+bounded by the caller's remaining step budget. Admission, original ROM bytes,
+counter equality, observer rejection, interrupt/DMA guards and epoch-overflow
+checks remain mandatory. Refresh reserve scales with the admitted budget;
+each device and APU boundary still executes at its original opcode. This is
+host scheduling, not a change to the semantic decomp or the game's wait time.
+
+Edge distances outside the bounded span are rejected before division. Within
+that span, a 32-bit quotient is sufficient; absolute guest clocks remain 64-bit.
+The r55 ARM output eliminates the two 64-bit division sites in this clocked
+path. The separate bus-accounted fallback retains its conservative limits.
+
+The fixed battle replay reduced mean guest time from 15.828 to 13.803 ms and
+frame time from 42.362 to 40.410 ms. The world-start replay reduced guest time
+from 8.930 to 6.797 ms; pacing absorbed the gain in its total frame time.
+Battle, world-start and the 600-frame boot replay each matched their complete
+reference end state. The boot replay does not establish a whole-frame speedup.
+Both GCC/Clang sanitizer runs passed 1,500,000 original event-ordered states
+and 46,184,128 bounded-division cases. Missing refresh, epoch, APU-edge and
+distance guards were detected by negative controls. Unchanged semantic tests
+are reused; no new full decompilation regression or hardware timing is claimed.

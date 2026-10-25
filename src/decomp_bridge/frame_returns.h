@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+/* Host batching only; original opcode and device clocks remain exact. */
+#define LUFIA2_FRAME_POLL_MAX_OPCODES 1024u
+
 struct CpuState;
 
 /* Exact NMI-counter pairs with verified semantic continuations. This
