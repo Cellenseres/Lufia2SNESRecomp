@@ -867,8 +867,15 @@ static uint16_t TableServiceWord(const CpuState *cpu, unsigned offset) {
 }
 
 static const TableServicePhase *FindTableServicePhase(uint16_t pc) {
-    for (unsigned i = 0u; i < sizeof table_service_phases / sizeof table_service_phases[0]; ++i)
-        if (table_service_phases[i].pc == pc) return table_service_phases + i;
+    unsigned first = 0u;
+    unsigned last = sizeof table_service_phases / sizeof table_service_phases[0];
+    while (first < last) {
+        const unsigned middle = first + (last - first) / 2u;
+        const TableServicePhase *phase = table_service_phases + middle;
+        if (phase->pc == pc) return phase;
+        if (phase->pc < pc) first = middle + 1u;
+        else last = middle;
+    }
     return NULL;
 }
 
