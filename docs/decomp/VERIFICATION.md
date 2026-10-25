@@ -1,3 +1,53 @@
+# Original command decoding and card-table rounds - 2026-10-25
+
+Four complete routines are reconstructed and bound: 84:9F1A consumes menu
+commands; 84:DC60 refreshes the round number; 84:DC87 advances normal and
+special rounds; 84:DE6E chooses an active column. The round owner includes
+all 207 original instructions through DE6D and its shared return at DD29.
+Direction/button priority, latch writes, status restoration, random calls,
+both column-selection waits and original wraparound behavior are preserved.
+Four additional WRAM records document counters and shared workspace reuse.
+
+The shared checkpoint covers 16,384 original-ROM cases, 22 child unwinds,
+110 changed returns, and 2,048 nested compositions with 6,823 real native
+child calls and 2,904 divider-NOP checkpoints. Consumer evidence covers
+2,048 timed ROM/ABI cases, 198 changed contexts across all 22 child sites,
+144 pure guards and 19 metadata/API/binding gates. Strict MSVC, ARM GCC,
+Windows Clang, feature-off and the reserved Windows Release pass. Unchanged
+earlier proofs are reused by source/constant-equivalence hashes; unrelated
+full regression is deferred. An indexed word-DEC timing discrepancy was
+corrected in the consumer model, preserving the original extra index cycle.
+
+All 64 actual generated-caller contexts match CPU, full WRAM and serialized
+hardware. Each case starts in a fresh process with the native SPC driver
+active. The original table initializer defines the ROM-derived fixture data;
+the original B00 reel step and valid press/release edges drive the waits.
+No guest operation or handshake is skipped. Real NMI uploads stay enabled.
+
+The current audio proof consumes the warmstart output and then collects fresh
+PCM each frame through the existing output API, rejecting ring overflow.
+Both arms produce the same 254,366 new samples across the physical contexts.
+This strengthens earlier full-ring/state comparisons, which alone did not
+prove fresh PCM-stream equality. Rollback does not restore every host audio
+transient, so individual cases are isolated rather than only their roots.
+
+The 512 alternating desktop timing intervals also match fresh PCM and final
+state. Median function-return costs in microseconds, reference/native:
+command 40.60/35.65; number refresh 876.40/874.05; round advance
+12319.60/12260.75; column choice 1862.25/1801.40. Column-choice interval
+means are 2109.79/2137.63 despite its lower median: no robust speedup is
+claimed for the long paths. Multi-frame intervals include deterministic PCM
+consumption/hash work. Separate APU/PPU/submission costs, natural gameplay,
+ARM performance and hardware 60 FPS remain unmeasured.
+
+Every direct caller admits the native body. Body completion and interpreted
+post-wait continuations are recorded separately; frame-yielding parents can
+continue through exact original boundaries. No new wait hooks are installed.
+Timing records use direct indexes and bounded buffers without clearing their
+unused contents. The generated APU caller, its object reference and linked
+definition are checked. Standard selection contains 2,197 verified bindings,
+zero drafts/unmatched bindings and 904 documented WRAM locations.
+
 # Original card-table input, line choice and numbers - 2026-10-25
 
 Eight complete original routines now have verified C and native bindings:
