@@ -1,3 +1,32 @@
+# Card and board session entries - 2026-10-25
+
+84:A705 and C826 bind the complete existing card and board controller C APIs.
+Consumer clocks cover 241 phases and 142 original child sites. Both literal
+256-byte MVNs preserve every fetched opcode and data transfer. Card exit
+joins AAAF/AAB2 admit the original word/byte modes; PHP/PLP restores the
+entry status. Board entry accepts both accumulator widths. Explicit DB
+prologues admit00/80/7E before selecting7E; unsupported states fall back.
+
+The shared checkpoint passes 8,192 ROM/timed states, 2,556 altered-child
+cases, six opaque-child rank-slot fallbacks, 7,488 pure guards, 288 mirror
+bank checks, six bounded-data guards and 13 feature gates. A prototype used
+a fixed card exit width; corrected to preserve actual incoming child width
+and both original join modes. The invalid-slot fixture also retains the
+original wrapped index behavior. Semantic C sources remain unchanged.
+
+Original shop80:A341 through82:D69C and84:A689 F0/F1 selectors exercises
+complete card/board sessions with DB00/80 and zero available balance, using
+all50 Release actor features. Both C bodies execute twice. 3084 post-warmup
+frames preserve CPU/full WRAM/video/pixels/PCM, returned state and exact
+clocks. Parent decoding changes from24,191 to23,125: card's first5 and board's
+first528 parent opcodes execute in C; post-frame-yield continuations remain
+interpreted. This is consumer entry integration, not fully native sessions.
+
+Strict C11, feature-off, reserved Release/default selection and eight generated
+wrappers share this checkpoint. Unrelated full regression is deferred.
+The2,158 verified functions, zero drafts and866 WRAM records are unchanged.
+Tests, tools and ROM remain private. Nothing is pushed.
+
 # Poker controller entry - 2026-10-25
 
 84:B827 binds the complete existing poker controller C API. Its consumer
