@@ -1058,6 +1058,10 @@ bool Lufia2BattleEffectsGpuHudLine(Ppu *ppu,unsigned line,Lufia2BattleEffectsLin
     if((ppu->screenEnabled[0]&2u) && PPU_bgTilemapAdr(ppu,1)==HUD_TILEMAP &&
         PPU_bgTileAdr(ppu,1)==HUD_GRAPHICS) {
         if(TitleLine(ppu,line) || PartyLine(ppu,line)) return true;
+        /* An identical saved scene needs no new visibility decision. HUD
+         * rows above still run, and pending title rows must still flush. */
+        if(s_scene_valid && s_hud_pending_begin>=s_hud_pending_end &&
+            !memcmp(s_scene_registers,&ppu->inidisp,sizeof s_scene_registers)) return false;
         /* Ordinary BG2 rows have no game-specific HUD relocation. Preserve
          * the exact scene/pending-title decision using main priority indices;
          * the GPU generates their finished pixels, including colour math. */

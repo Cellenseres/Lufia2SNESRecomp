@@ -207,3 +207,29 @@ profiling separately reduced policy checks from about 222 to one per frame.
 Both compilers' sanitizer checks covered 452 paired IRQ/timeline scenarios,
 including policy mutation, standalone checks and a rejected stale-epoch mutant.
 These are scoped emulator results, not hardware timing or a 60-FPS release.
+
+### Battle scene decisions and native HUD bounds
+
+An ordinary BG2 row needs no new visibility decision when its registers exactly
+match the already saved scene and no title rows await processing. Title and
+party rows are admitted first. The GPU consumer does not read the discarded
+index scratch; subsequent RGB replay clears and regenerates its own indices.
+Palette, OBJ and VRAM changes still reach the normal captured graphics path.
+
+The GPU capture must also express the software renderer's game-specific layer
+bounds. The battle HUD at tilemap `0x5c00`, character base `0x4000`, remains
+native-width on BG2. Export zero margins for that layer, including restored HUD
+scenes; retain authored BG1 margins and the other layers' existing policy.
+Otherwise wrapped BG2 tiles can appear over the widescreen background.
+
+The fixed 120-frame ARM comparison reduced mean draw time from 34.418 to
+28.916 ms and total frame time from 50.976 to 45.473 ms before the bounds fix
+(frames 11--120, normal helper pipeline, detail off, audio/widescreen on).
+All 119 GPU jobs and five PICA readbacks were byte-identical for the decision
+optimization. The bounds fix then removed the observed CPU/GPU margin mismatch:
+all five unscaled PICA pictures matched software pixels, 383,040 pixels total.
+Only qualified BG2 bounds and their hashes changed across the 119 jobs.
+Complete saved state stayed identical to both GPU and software references.
+GCC/Clang sanitizer checks covered 65,536 paired decisions and 102,400 viewport
+cases each; a missing pending-title guard was deliberately detected.
+These measurements remain scoped to that replay and are still above budget.

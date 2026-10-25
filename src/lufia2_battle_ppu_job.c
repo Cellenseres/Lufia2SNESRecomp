@@ -272,6 +272,12 @@ static SnesRecompPpuResult PrepareInternal(Lufia2BattlePpuJob *c,
             SnesPpuRasterBand next=c->scene_rows[y]?c->scenes[y]:*original;
             next.y_begin=(uint16_t)y;next.y_end=(uint16_t)(y+1u);
             memcpy(&p->inidisp,next.regs,PPU_SAVESTATE_REGS_SIZE);
+            /* Match the software HUD viewport before exporting tile data.
+             * Its BG2 map wraps outside the native centre otherwise. */
+            if(PPU_bgTilemapAdr(p,1)==0x5c00u && PPU_bgTileAdr(p,1)==0x4000u) {
+                next.bg[1].margin_left=0;
+                next.bg[1].margin_right=0;
+            }
             if(Lufia2BattleEffectsPlane(p,2u)) {
                 next.bg[2].margin_left=(uint8_t)p->extraLeftCur;
                 next.bg[2].margin_right=(uint8_t)p->extraRightCur;
