@@ -1,3 +1,38 @@
+# Reconstruct the complete poker player turn - 2026-10-25
+
+84:C028 now reconstructs the complete original C028..C1E7 player action,
+including the insufficient-gold message, stake charge and borrowing, signed
+raise clamp, repeated input, fold/commit and window cleanup. All 25 child
+sites retain their actual JSR/JSL frames. Child unwinds, unsupported return
+contexts and the 4,096-call work boundary resume original execution exactly.
+
+84:A607 adds its original JSL80953B/RTS sound forwarding contract; this is
+a required shared thunk, not another gameplay algorithm. Its child may
+return with either register width. The player restores its saved M0 status
+at C16F before choosing charge/refund; the linear disassembly's M1 annotation
+at C170 is not the actual ordinary path.
+
+Original multiplier/divider accesses and four/eight NOP waits remain. The
+consumer accounts each wait opcode and rebuilds timing after real children.
+The timing projection does not replace the original C algorithm or MMIO.
+
+One shared checkpoint covers 4,096 semantic ROM cases, 27 child-site/mode
+unwinds, 135 changed child returns and an exact 4,096-call loop boundary.
+The timed production-ABI union covers 8,192 cases and 156 altered child
+contexts and 78 no-change controls at all 26 original call sites, comparing CPU, full WRAM, ordered
+fetch/data bus, device state and opcode/master clocks. 89 pure admission
+checks and 13 API/metadata/binding gates pass. The affected four arithmetic
+routines pass 16,384 semantic and 73,728 timed cases after sharing the wait
+helper. Strict MSVC/GCC/Clang C11 and feature-off compilation pass.
+
+Reserved Windows Release build passes in build/windows-decomp-agent.
+Both new entries are immediately bound. The ordinary no-draft manifest
+selects all 2,167 verified entries with no unmatched bindings. These are
+entry-coverage counts, not whole-game completion or measured speedups.
+Private synthetic fixtures retain opaque service children except for the
+explicit original arithmetic child compositions. No new natural gameplay,
+full regression or unrelated CLI/platform rebuild is claimed here.
+
 # Native special-menu arithmetic - 2026-10-25
 
 84:A3FC, AE43, C31B and CEB3 now have complete original C routines and

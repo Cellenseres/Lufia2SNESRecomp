@@ -150,29 +150,12 @@ static bool PrepareSpecialArithmeticClock(SpecialArithmeticClock *clock,
     return phase < 1364u && (!current || current == cpu->master_cycles);
 }
 
-static void SpecialArithmeticWait(void *context, Lufia2CpuState *state, uint32_t pc) {
-    SpecialArithmeticClock *clock = context;
-    FixedSpanClock *span = &clock->span;
-    (void)state;
-    assert(span->index < span->count && !span->remaining);
-    const FixedSpanOpcode *op = span->timing + span->index;
-    assert((span->bank | op->pc) == pc && !op->data_bytes);
-    for (unsigned byte = 0u; byte < op->fetched; ++byte) {
-        bool progress = false;
-        const uint32_t address = pc + byte;
-        (void)Lufia2DecompFrameReturnReadByte(span->cpu, address, &progress);
-        span->fetch_master += cpu_region_speed(address);
-        span->progress |= progress;
-    }
-    FinishFixedSpanOpcode(span);
-}
-
 static RecompReturn ActorBridgeSpecialArithmetic(CpuState *cpu, uint32_t entry) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     SpecialArithmeticClock clock = {0};
     if (!PrepareSpecialArithmeticClock(&clock, cpu, entry)) return ActorBridgeFallback(cpu, &frame, entry);
     const Lufia2Memory memory = {FixedSpanRead, FixedSpanWrite, &clock.span,
-        SpecialArithmeticWait, &clock};
+        SpecialArithmeticWait, &clock.span};
     Lufia2CpuState state;
     ActorBridgeLoad(cpu, &state);
     Lufia2ExecutionResult result;

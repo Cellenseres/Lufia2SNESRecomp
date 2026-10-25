@@ -18898,6 +18898,10 @@ RecompReturn Lufia2DecompBridge_84A39B(CpuState *cpu) {
 #endif
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && (defined(LUFIA2_HAVE_NATIVE_SPECIAL_ARITHMETIC) || defined(LUFIA2_HAVE_NATIVE_POKER_PLAYER))
+#include "arithmetic_wait_clock.inc"
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_SPECIAL_ARITHMETIC)
 #include "special_arithmetic_clock.inc"
 #endif
@@ -18938,6 +18942,28 @@ RecompReturn Lufia2DecompBridge_84CEB3(CpuState *cpu) {
 #endif
 }
 
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_POKER_PLAYER)
+#include "poker_player_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84C028(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_POKER_PLAYER)
+    return ActorBridgePokerPlayer(cpu, 0x84c028u, Lufia2PokerTakePlayerTurn);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84c028u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84A607(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_POKER_PLAYER)
+    return ActorBridgePokerPlayer(cpu, 0x84a607u, Lufia2SpecialMenuSendSound);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84a607u);
+#endif
+}
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResumeReturn(cpu, landing);
