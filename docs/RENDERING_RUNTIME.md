@@ -233,3 +233,21 @@ Complete saved state stayed identical to both GPU and software references.
 GCC/Clang sanitizer checks covered 65,536 paired decisions and 102,400 viewport
 cases each; a missing pending-title guard was deliberately detected.
 These measurements remain scoped to that replay and are still above budget.
+
+### Effect actor preparation
+
+Effect actor ordering may be cached only during a certified read-only raster
+interval or while an owned replay policy is bound. Keep the original group and
+actor order. The dependent vertical candidate table also tracks OBJ size and
+interlace. Uncertified calls retain the original live scan; IRQ boundaries,
+policy rebinding, initialization and pixel restart invalidate the relevant
+cache. GPU jobs never retain these borrowed actor pointers.
+
+The same replay reduced mean draw time from 28.927 to 26.830 ms and total frame
+time from 45.474 to 43.376 ms. All 119 GPU jobs, five PICA readbacks and saved
+state matched the preceding reference. Each GCC/Clang sanitizer configuration,
+with and without the timeline feature, passed 20,480 renderer pairs including
+live writes, rebound policy addresses, signed coordinate edges, changing VRAM,
+OBJ size and interlace. Missing interval and row-key invalidation mutants failed
+as intended. A separate quiet-battle sprite-worker experiment gained only about
+0.05 ms in this replay and was not adopted. No console 60-FPS claim follows.

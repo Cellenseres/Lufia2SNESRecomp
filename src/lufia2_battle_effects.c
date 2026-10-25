@@ -2,6 +2,9 @@
 #include "lufia2_battle_effects.h"
 #include "lufia2_ppu_render_clone.h"
 #include "lufia2_ppu_host.h"
+#if defined(LUFIA2_NATIVE_PPU_TIMELINE)
+#include "lufia2_ppu_timeline.h"
+#endif
 #include "lufia2_ppu_row_cache.h"
 #include "snes/ws_shadow.h"
 #include "snesrecomp_platform/snes_bitplanes.h"
@@ -61,6 +64,15 @@ enum {
 };
 
 static const Lufia2BattleEffectsPixelPolicy *s_pixel_policy;
+typedef struct EffectActorList {
+    const uint8_t *actors[EFFECT_ACTOR_COUNT];
+    unsigned count;
+    uint32_t epoch;
+    bool valid,rows_valid,interlace;
+    unsigned size_mode;
+    uint32_t rows[256][2];
+} EffectActorList;
+static EffectActorList s_actor_primary,s_actor_replay;
 static Lufia2BattleEffectsSceneRecorder *s_gpu_scene;
 static void *s_gpu_scene_context;
 bool Lufia2BattleEffectsBeginGpuScene(Lufia2BattleEffectsSceneRecorder *recorder,void *context) {
@@ -113,6 +125,7 @@ const Lufia2BattleEffectsPixelPolicy *Lufia2BattleEffectsBindPixelPolicy(
         s_cached_pixel_policy = *p;
         s_cached_pixel_policy_valid = true;
     }
+    s_actor_replay.valid=false;s_actor_replay.count=0;
     s_pixel_policy = p; return previous;
 }
 static uint32_t *s_art;
@@ -192,6 +205,7 @@ static unsigned s_title_text_address;
 static uint16_t s_title_map[128], s_title_text[60 * 16];
 
 void Lufia2BattleEffectsInit(const uint8_t *rom, size_t size) {
+    s_actor_primary.valid=s_actor_replay.valid=false;
     s_gpu_row_valid=false;
     s_cached_pixel_policy_valid = false;
     s_nearest_valid=false;
@@ -323,6 +337,7 @@ bool Lufia2BattleEffectsPrepare(Ppu *ppu, bool wide,
 }
 
 void Lufia2BattleEffectsRestartPixels(unsigned width, unsigned height) {
+    s_actor_primary.valid=s_actor_replay.valid=false;
     s_scene_valid = false;
     s_title.ready = false;
     memset(s_hud_pending, 0, sizeof s_hud_pending);
@@ -492,6 +507,47 @@ static int ActorCoordinate(const uint8_t *actor, unsigned base, unsigned offset)
     return value < 32768u ? (int)value : (int)value - 65536;
 }
 
+/* Only certified guest intervals or an owned replay policy may be reused. */
+static EffectActorList *OrderedEffectActors(void) {
+    uint32_t epoch=0;
+#if defined(LUFIA2_NATIVE_PPU_TIMELINE)
+    if(!s_pixel_policy) epoch=Lufia2PpuTimelineReadOnlyEpoch();
+#endif
+    EffectActorList *list=s_pixel_policy?&s_actor_replay:epoch?&s_actor_primary:NULL;
+    if(!list) {s_actor_primary.valid=false;return NULL;}
+    if(!list->valid || (!s_pixel_policy && list->epoch!=epoch)) {
+        static const uint8_t order[3]={1,2,0};
+        list->count=0;
+        for(unsigned group=0;group<3;++group) for(unsigned id=0;id<EFFECT_ACTOR_COUNT;++id) {
+            const uint8_t *actor=PixelRam(EFFECT_ACTOR_FIRST+id*EFFECT_ACTOR_STRIDE);
+            if(actor[ACTOR_ACTIVE] && actor[ACTOR_VISIBLE] &&
+                ((actor[ACTOR_KIND]-2u)&3u)==order[group])
+                list->actors[list->count++]=actor;
+        }
+        list->epoch=epoch;list->valid=true;list->rows_valid=false;
+    }
+    return list;
+}
+
+static const uint32_t *EffectActorRow(EffectActorList *list,const Ppu *ppu,
+    const uint8_t sizes[8][2],unsigned line) {
+    if(line>=256u) return NULL;
+    const unsigned mode=PPU_objSize(ppu);
+    const bool interlace=PPU_objInterlace(ppu)!=0;
+    if(!list->rows_valid || list->size_mode!=mode || list->interlace!=interlace) {
+        memset(list->rows,0,sizeof list->rows);
+        for(unsigned i=0;i<list->count;++i) {
+            const uint8_t *a=list->actors[i];
+            const int top=ActorCoordinate(a,ACTOR_BASE_Y,ACTOR_OFFSET_Y)-(a[ACTOR_SIZE]?16:8);
+            const int height=sizes[mode][a[ACTOR_SIZE]&1u]/(interlace?2:1);
+            const int begin=top<0?0:top,end=top+height>256?256:top+height;
+            for(int y=begin;y<end;++y) list->rows[y][i>>5]|=UINT32_C(1)<<(i&31u);
+        }
+        list->size_mode=mode;list->interlace=interlace;list->rows_valid=true;
+    }
+    return list->rows[line];
+}
+
 bool Lufia2BattleEffectsSpriteMargins(Ppu *ppu, const uint16_t *vram, unsigned line) {
     if (!Lufia2BattleEffectsActive(ppu) || !*PixelRam(BATTLE_EFFECT_SCRIPTS))
         return false;
@@ -500,15 +556,20 @@ bool Lufia2BattleEffectsSpriteMargins(Ppu *ppu, const uint16_t *vram, unsigned l
         {16, 64}, {32, 64}, {16, 32}, {16, 32},
     };
     static const uint8_t group_order[3] = {1, 2, 0};
+    EffectActorList *ordered=OrderedEffectActors();
+    const uint32_t *row_actors=ordered?EffectActorRow(ordered,ppu,sizes,line):NULL;
+    if(row_actors && !(row_actors[0]|row_actors[1])) return false;
     bool occupied[kPpuBufWidth] = {false};
     bool drew = false;
     bool cleared = false;
     /* Recover actor pieces culled before OAM upload. */
-    for (unsigned order = 0; order < 3; ++order)
-        for (unsigned id = 0; id < EFFECT_ACTOR_COUNT; ++id) {
-            const uint8_t *actor = PixelRam(EFFECT_ACTOR_FIRST + id * EFFECT_ACTOR_STRIDE);
-            if (!actor[ACTOR_ACTIVE] || !actor[ACTOR_VISIBLE] ||
-                ((actor[ACTOR_KIND] - 2u) & 3u) != group_order[order])
+    const unsigned entries=ordered?ordered->count:3u*EFFECT_ACTOR_COUNT;
+    for(unsigned entry=0;entry<entries;++entry) {
+            if(row_actors && !(row_actors[entry>>5]&(UINT32_C(1)<<(entry&31u)))) continue;
+            const uint8_t *actor=ordered?ordered->actors[entry]:
+                PixelRam(EFFECT_ACTOR_FIRST+(entry%EFFECT_ACTOR_COUNT)*EFFECT_ACTOR_STRIDE);
+            if(!ordered && (!actor[ACTOR_ACTIVE] || !actor[ACTOR_VISIBLE] ||
+                ((actor[ACTOR_KIND]-2u)&3u)!=group_order[entry/EFFECT_ACTOR_COUNT]))
                 continue;
             const int half = actor[ACTOR_SIZE] ? 16 : 8;
             const unsigned size = sizes[PPU_objSize(ppu)][actor[ACTOR_SIZE] & 1u];
@@ -1248,6 +1309,8 @@ bool Lufia2BattleEffectsOpaque(unsigned pixel, unsigned index, bool sub) {
 
 
 void Lufia2BattleEffectsShutdown(void) {
+    memset(&s_actor_primary,0,sizeof s_actor_primary);
+    memset(&s_actor_replay,0,sizeof s_actor_replay);
     s_row_policy=NULL;
     s_index_line=false;
     s_gpu_row_valid=false;
