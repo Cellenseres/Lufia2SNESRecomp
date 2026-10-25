@@ -12795,3 +12795,25 @@ This consumer clock fix leaves original ROM semantics unchanged.
 
 Strict C11 and the reserved Windows Release build pass. Tests/tools/ROM stay
 private. The unrelated full regression is deferred; nothing is pushed.
+
+## Boot controller entry - 2026-10-25
+
+80:8035 now selects the existing verified boot-controller CAPI. A dedicated
+owned scheduler boundary handles its naked reset/JML entry without inventing
+a guest return frame. Child calls retain their literal JSR/JSL frames and
+propagate the existing interpreter unwind protocol. The shared checkpoint
+covers8,192 ROM/timed cases,252 altered-child cases at14 sites,108 pure
+admission cases,nine selection gates and nine scheduler ownership cases.
+Per-event reference pricing preserves the original MEMSEL transition.
+
+The natural cold-start fixture matches5,100 frames exactly in CPU,WRAM,
+video memories,pixels,PCM and master clocks. The body is reached once;
+seven parent opcodes move to C before the first child fallback. Subsequent
+continuations,including the literal NMI wait and SRAM checks,remain in the
+interpreter. This entry integration does not make the entire boot native.
+Cold boot admits inactive HDMA before the beam-off flag is published;
+pending initialization or active channels still reject native admission.
+
+Strict C11,feature-off,reserved Windows Release and default selection share
+this checkpoint. Tests/tools/ROM stay private;unrelated full regression is
+deferred. Original standalone semantics are unchanged. Nothing is pushed.

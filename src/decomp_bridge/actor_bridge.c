@@ -18787,6 +18787,30 @@ RecompReturn Lufia2DecompBridge_86B2F7(CpuState *cpu) {
 #endif
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BOOT_CONTROLLER)
+#include "boot_controller_clock.inc"
+#endif
+
+bool Lufia2DecompBootEntryReady(CpuState *cpu, uint32_t pc) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BOOT_CONTROLLER)
+    BootControllerClock clock = {0};
+    clock.call.cpu = cpu;
+    return pc == 0x808035u && !cpu->host_return_valid && PrepareBootController(&clock, pc);
+#else
+    (void)cpu; (void)pc;
+    return false;
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_808035(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BOOT_CONTROLLER)
+    return ActorBridgeBootController(cpu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x808035u);
+#endif
+}
+
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResumeReturn(cpu, landing);
