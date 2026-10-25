@@ -1,3 +1,40 @@
+# Native special-menu arithmetic - 2026-10-25
+
+84:A3FC, AE43, C31B and CEB3 now have complete original C routines and
+immediate consumer bindings. C31B is an original poker-player helper that
+was absent from the prior entry catalogue. All 2,165 verified entries are
+selected in both ordinary no-draft and reserved Release configurations;
+there are zero fallback candidates and no drafts.
+
+All divider/multiplier port accesses and original waits remain. The portable
+C emits a checkpoint for each original NOP; the consumer reads its original
+opcode and accounts its exact clocks individually. It does not replace
+arithmetic ports with host division/multiplication. C31B still multiplies only
+the low quotient byte; CEB3 retains its sign-bit/high-byte and OR-packing quirks.
+Consumer admission follows supported widths, live DP and safe deadline,
+interrupt, DMA and refresh conditions; other states retain original execution.
+
+The single shared four-entry checkpoint passes 16,384 semantic cases with
+CPU/full WRAM/ordered bus/math-device state and all NOP-PC/CPU snapshots,
+73,728 timed production-ABI cases, 180 pure guards and 20 contract gates.
+Strict MSVC/GCC/Clang C11, feature-off, ordinary selection, sixteen generated
+wrappers and one reserved Release build pass. No unchanged full regression
+or extra CLI/platform build was repeated.
+
+Four original JSR sites D508, ADF8, C12A and CDEC exercise the actual consumer
+bodies once each in 53 paired hardware frames, including immediate CPU/full
+WRAM return hashes. CPU, subsequent full WRAM, PPU memories, pixels, PCM,
+returns and exact clocks match byte-for-byte. Parent decoded instructions
+20/15/27/29 become 0/0/0/0 while every original wait remains timed. The current
+runtime arithmetic device computes immediately; explicit wait fetch/cycle
+checks prevent that model from hiding removed waits. No whole-game speedup
+or separate natural startup replay is claimed for this arithmetic-only batch.
+
+The checkpoint covers combined final sources before both commits. Tests,
+tools and ROM remain private; owner build/SRAM and unrelated WIP remain
+untouched. Nothing pushed. The full C028 player-action owner and remaining
+special-menu controllers are still outstanding semantic work.
+
 # Native nested special-menu windows - 2026-10-25
 
 The new 84:A2B3/A36A/A39B semantic bodies and consumer clocks save window
