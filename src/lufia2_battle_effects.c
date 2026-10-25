@@ -82,7 +82,7 @@ bool Lufia2BattleEffectsBeginGpuScene(Lufia2BattleEffectsSceneRecorder *recorder
 void Lufia2BattleEffectsEndGpuScene(void) {s_gpu_scene=NULL;s_gpu_scene_context=NULL;}
 static Lufia2BattleEffectsPixelPolicy s_cached_pixel_policy;
 static bool s_cached_pixel_policy_valid;
-static void InvalidatePixelRows(void);
+static void InvalidatePixelRows(bool preserve_scene);
 static bool PixelPoliciesEqual(const Lufia2BattleEffectsPixelPolicy *a,
     const Lufia2BattleEffectsPixelPolicy *b) {
     if(a->scripts!=b->scripts) return false;
@@ -121,7 +121,10 @@ const Lufia2BattleEffectsPixelPolicy *Lufia2BattleEffectsBindPixelPolicy(
     const Lufia2BattleEffectsPixelPolicy *previous = s_pixel_policy;
     if (p && (!s_cached_pixel_policy_valid ||
         !PixelPoliciesEqual(p, &s_cached_pixel_policy))) {
-        InvalidatePixelRows();
+        /* Qualified rows certify their resulting OBJ pixels separately. */
+        const bool preserve_scene=s_cached_pixel_policy_valid &&
+            s_cached_pixel_policy.scripts==p->scripts;
+        InvalidatePixelRows(preserve_scene);
         s_cached_pixel_policy = *p;
         s_cached_pixel_policy_valid = true;
     }
@@ -189,10 +192,10 @@ const Lufia2PpuRowPolicy *Lufia2BattleEffectsBindRowPolicy(const Lufia2PpuRowPol
     if(s_scene_rows) s_scene_rows->policy_checked=false;
     return previous;
 }
-static void InvalidatePixelRows(void) {
+static void InvalidatePixelRows(bool preserve_scene) {
     for (unsigned i = 0; i < 2; ++i)
         if (s_hud_rows[i]) memset(s_hud_rows[i]->valid, 0, sizeof s_hud_rows[i]->valid);
-    if (s_scene_rows) memset(s_scene_rows->valid, 0, sizeof s_scene_rows->valid);
+    if (s_scene_rows && !preserve_scene) memset(s_scene_rows->valid, 0, sizeof s_scene_rows->valid);
 }
 static struct {
     bool ready;

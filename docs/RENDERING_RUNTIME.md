@@ -251,3 +251,14 @@ live writes, rebound policy addresses, signed coordinate edges, changing VRAM,
 OBJ size and interlace. Missing interval and row-key invalidation mutants failed
 as intended. A separate quiet-battle sprite-worker experiment gained only about
 0.05 ms in this replay and was not adopted. No console 60-FPS claim follows.
+
+Qualified battle RGB rows certify their actual OBJ pixels and effect ownership
+before reuse. Actor/OAM metadata changes alone must not erase that certificate.
+Keep first-admission and script-mode invalidation, and retain the existing
+palette, VRAM, register, layout and qualified-OBJ checks. Separately rendered
+HUD source rows still retain their conservative metadata invalidation.
+The fixed replay changed mean draw time from 26.830 to 25.816 ms and frame time
+from 43.376 to 42.362 ms; mean row hits rose from 2.618 to 7.855. All 119 jobs,
+five PICA readbacks and saved state matched. Both sanitizer builds passed
+24,580 dependency cases; removed ownership-mask and script-mode guards failed
+negative controls. These are internal emulator timings, still above budget.
