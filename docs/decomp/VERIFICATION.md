@@ -1,3 +1,70 @@
+# Original card-table motion and attributes - 2026-10-25
+
+Nine complete original routines are reconstructed and immediately bound:
+84:E9E3 column motion;84:EA4B stopped-column refresh;84:EAA5 symbol drawing;
+84:ED9E round-buffer reset;84:EDCB line-attribute restoration;84:F034 panel
+attributes;84:F09C active-line attributes;84:F0D4 accent attributes;
+84:F105 the shared tile-attribute rectangle painter.
+
+The C preserves signed branches, rotates through carry, byte/word modes,
+status-before-index-pull behavior, ordered reads/writes, real child frames
+and the original E9B1 hardware wait. Two WRAM records bring the map to 892
+locations; shared board/poker scratch remains explicitly reused.
+
+The shared checkpoint covers 9,216 original-ROM cases, 8 child unwinds,
+40 changed returns and 2,304 actual nested C-versus-ROM compositions;
+4608 timed ABI cases and48 changed child contexts across all 8 sites;
+338 pure admission cases,33 metadata/API/binding gates,strict C11 with
+MSVC/GCC/Clang,feature-off and no-draft selection. Relevant old service
+lookup checks cover3584 timed cases,72 contexts,256 NMI bodies and 32 owner
+gates. One reserved Release plus the targeted admission rebuild pass.
+Unchanged semantic/compiler/gate evidence is reused by source hashes;
+no full unchanged regression or unrelated platform build is claimed.
+
+Actual generated JSR callers cover72 paired contexts with SPC enabled,
+both ROM speeds and real scheduler/NMI delivery for ED9E. CPU/full WRAM
+agree at original return; hardware and CPU agree at the normal scheduler
+return barrier. One raw early snapshot differs in four APU timing bytes:
+relative catch-up is deferred until that existing synchronization barrier.
+No snapshot field was excluded and no original delay or handshake removed.
+Native attempts,body admissions,remaining decoded bodies and bus callbacks
+are recorded separately. Safe near-event fallbacks remain intentional.
+
+The initial consumer incorrectly required a pre-opcode-hook ownership token
+for ordinary paired calls. Actual caller tests exposed zero native bodies.
+Only that inapplicable token check was removed; CPU/stack/mode,hardware,
+DMA/IRQ/NMI,event-window and budget checks remain. No new wait/NMI hooks
+were added. The existing 63-phase service lookup now uses binary search.
+Generated snes.c calls the optional APU idle seam; its compiled object and
+linked proof image resolve snesrecomp_apu_program_skip. Existing shared
+counter-poll classification remains linked and unchanged.
+
+Performance is a separate bounded desktop observation: 4 alternating arm
+runs per isolated root, 32 samples per arm/root, 576 total intervals. Sound
+and inputs match; state hashing and opcode profiling are outside timing.
+Isolated processes avoid carrying frame-driver transient state into another
+root. Function-return median microseconds are:
+
+| Original entry | Reference | Native |
+| --- | ---: | ---: |
+| 84:E9E3 | 451.25 | 238.9 |
+| 84:EA4B | 231.9 | 149.35 |
+| 84:EAA5 | 149.45 | 73.1 |
+| 84:ED9E | 2927.2 | 2771.65 |
+| 84:EDCB | 531.5 | 205.2 |
+| 84:F034 | 138.3 | 57.55 |
+| 84:F09C | 372.7 | 169.0 |
+| 84:F0D4 | 82.5 | 51.6 |
+| 84:F105 | 95.1 | 58.45 |
+
+ED9E includes a frame-driver wait interval; other rows measure a bounded
+original JSR. Scheduler-return latencies are recorded separately. These
+figures support only these fixtures, not natural sessions, ARM, whole-game
+performance or 60 FPS. Separate APU/PPU/submission costs remain unmeasured.
+2185 verified/selected entries, 0 draft and 0 static candidate fallbacks describe
+source selection,not an acceleration percentage. Catalogue and frontier are
+updated together; all local tests/tools,ROM and owner SRAM stay private.
+
 # Card-table consumer bookkeeping checkpoint - 2026-10-25
 
 The shared production-context check found unnecessary clearing of the entire
