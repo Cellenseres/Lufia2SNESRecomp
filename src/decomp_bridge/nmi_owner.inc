@@ -7,6 +7,10 @@ static int Lufia2DecompNmiHookHasOwner(uint32_t pc, int stop_on_rti,
     if (!stop_on_rti || auto_quiescent)
         return 0;
     switch (pc & 0x7fffffu) {
+#if defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
+    case 0x04f12fu:
+        return opcodes_left >= 26u;
+#endif
     case 0x008699u:
         return 1;
     case 0x05a8e7u:

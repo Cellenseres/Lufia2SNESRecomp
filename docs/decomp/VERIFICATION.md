@@ -1,3 +1,52 @@
+# Original card-table services - 2026-10-25
+
+Seven complete original routines are reconstructed in portable C and bound:
+84:F12F..F172 HDMA callback;84:F173..F19C HDMA table builder;
+84:F78F..F7D2 alternate symbols;84:EC4F..ED9D initialization;
+84:EDFA..EE4A and84:F7D3..F823 graphics;84:E9B1..E9E2 frame service.
+The canonical metadata profile is M1X0; tested admitted variants additionally
+preserve original incoming widths where the routine normalizes them.
+
+The C preserves original symbol/OAM initialization, random calls and signed
+selection branches, resource decompression callbacks, ordered1024-word copies,
+HDMA/MMIO writes, byte countdown behavior and saved status/stack effects.
+F12F restores status before Y/X/A, so final N/Z come from restored A.
+E9B1 restores status before Y/X, so final N/Z come from restored X.
+No original delay, decompressor or child behavior was optimized away.
+
+One bundled checkpoint covers7168 semantic original-ROM cases,12 child
+unwinds,60 changed returns;3584 timed ABI cases and72 child contexts across
+all12 real call sites;256 timed NMI callback bodies and32 owner gates.
+Decimal-mode seeds vary independently of data-bank selection. Comparison
+includes CPU,complete WRAM,ordered bus and per-opcode/master clocks.
+Opaque child fixtures prove the parent's boundary, not the child's algorithm.
+Long graphics phases retain an exact original-PC safety handoff near an NMI
+edge; these fixtures are not whole-session natural gameplay acceptance.
+
+A separate paired production proof covers48 physical NMI contexts, both ROM
+speeds,all four saved status modes and HDMA beam enabled/disabled states.
+It executes original RAM80:0067 JSL84:F12F, callback RTL, RAM RTS, full
+interrupt restoration and RTI. Native body hits48; original callback-body
+decodes944 become0. CPU,full WRAM and serialized hardware remain identical.
+The consumer reserves26 callback opcodes under the actual interrupt owner;
+unsupported contexts keep the original interpreter path without mutation.
+
+268 pure admission guards,27 API/metadata/binding gates,strict MSVC/GCC/Clang
+C11,feature-off compilation and ordinary no-draft source selection are part
+of the shared checkpoint. Reserved Release acceptance is recorded with the
+final receipt. No full unchanged regression or unrelated platform build was
+repeated. Semantic sources required no correction after their first ROM pass.
+Private harness fixes initialized diagnostic state and corrected compiler
+paths; they did not weaken expected ROM behavior or suppress source warnings.
+
+New semantic sources are card_table_hdma.c,card_table_graphics.c,
+card_table_initialization.c andcard_table_frame.c. Five nonoverlapping WRAM
+records are added;existing workspace records are reused explicitly.
+2176 verified/selected entries,0 drafts and0 static candidate fallbacks are
+the intended sealed selection,not a percentage of whole-game completion.
+The catalogue includes new missing frame children84:E9E3 and84:F034.
+ROM,owner SRAM,private tools/tests and unrelated WIP remain outside commits.
+
 # Complete original card-table session owners - 2026-10-25
 
 84:DA9B..DC54 and 84:F38A..F4C5 now have complete portable C session

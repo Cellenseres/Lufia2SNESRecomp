@@ -3,6 +3,9 @@
 #include <stdint.h>
 
 #include "cpu_state.h"
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
+static void ActorBridgeCardTableHdmaHook(CpuState *cpu, uint32_t pc);
+#endif
 #include "snes/interp_bridge.h"
 #include "lufia2/decomp.h"
 #include "lufia2/world_scene_timed_motion.h"
@@ -2701,6 +2704,9 @@ static void ActorBridgeNmiPrepareFrameRestore(CpuState *cpu, uint32_t pc) {
 #endif
 
 void Lufia2DecompInstallNmiHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
+    interp_bridge_set_pre_opcode_hook(0x84f12fu, ActorBridgeCardTableHdmaHook);
+#endif
     static const uint32_t entries[] = {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_ENTRY)
         0x00862du,
@@ -18985,6 +18991,73 @@ RecompReturn Lufia2DecompBridge_84F38A(CpuState *cpu) {
 #else
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     return ActorBridgeFallback(cpu, &frame, 0x84f38au);
+#endif
+}
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
+#include "table_service_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84F12F(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
+    return ActorBridgeTableService(cpu, 0u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84f12fu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84F173(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
+    return ActorBridgeTableService(cpu, 1u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84f173u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84F78F(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
+    return ActorBridgeTableService(cpu, 2u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84f78fu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84EC4F(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
+    return ActorBridgeTableService(cpu, 3u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84ec4fu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84EDFA(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
+    return ActorBridgeTableService(cpu, 4u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84edfau);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84F7D3(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
+    return ActorBridgeTableService(cpu, 5u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84f7d3u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84E9B1(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
+    return ActorBridgeTableService(cpu, 6u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84e9b1u);
 #endif
 }
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {
