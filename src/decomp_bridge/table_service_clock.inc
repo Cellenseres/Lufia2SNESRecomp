@@ -1092,7 +1092,7 @@ static RecompReturn ReturnTableServiceLong(CpuState *cpu, const ActorBridgeFrame
 
 static RecompReturn ActorBridgeTableService(CpuState *cpu, unsigned root) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    TableServiceClock clock = {0};
+    TableServiceClock clock;
     clock.root = root;
     clock.call = (ActorPushedCall){cpu, frame, RECOMP_RETURN_NORMAL};
     const uint32_t entry = table_service_entries[root];
@@ -1109,8 +1109,9 @@ static RecompReturn ActorBridgeTableService(CpuState *cpu, unsigned root) {
 }
 
 static void ActorBridgeCardTableHdmaHook(CpuState *cpu, uint32_t pc) {
-    TableServiceClock clock = {0};
-    clock.call.cpu = cpu;
+    TableServiceClock clock;
+    clock.root = 0u;
+    clock.call = (ActorPushedCall){cpu, {0}, RECOMP_RETURN_NORMAL};
     if (pc != 0x84f12fu || !PrepareTableServiceClock(&clock, pc, true)) return;
     const Lufia2ExecutionResult result = RunTableServiceBody(&clock);
     BeginFixedSpanOpcode(&clock.span);

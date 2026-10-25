@@ -1,3 +1,22 @@
+# Card-table consumer bookkeeping checkpoint - 2026-10-25
+
+The shared production-context check found unnecessary clearing of the entire
+9,000-opcode timing buffer at each table-service call. The consumer now
+initializes its control fields and writes every timing record before use.
+Original semantic C, bus operations, event boundaries and clocks are unchanged.
+
+Four matched desktop runs cover 3,072 full NMI executions with opcode
+profiling disabled. Baseline run means are 60.5-63.1 microseconds; native run
+means are 56.1-66.1 microseconds. Every resulting CPU/WRAM/hardware state agrees.
+The timing variation does not establish a reliable whole-frame speedup.
+Console, ARM, natural-session and 60-FPS performance remain unmeasured.
+
+After this change, the affected 3,584 timed ABI cases, 72 child contexts,
+256 NMI bodies and 32 owner gates pass again; the reserved incremental
+Release build passes. Unchanged semantic/compiler/contract checks are reused.
+The initial buffer-clearing version and follow-up share this final checkpoint;
+no unrelated regression or platform build was repeated.
+
 # Original card-table services - 2026-10-25
 
 Seven complete original routines are reconstructed in portable C and bound:
