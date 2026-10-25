@@ -5,15 +5,26 @@
 #include "snes/snes.h"
 #include <string.h>
 
+static uint32_t s_policy_epoch, s_next_policy_epoch;
+static bool s_drawing;
+
+uint32_t Lufia2PpuTimelineReadOnlyEpoch(void) { return s_policy_epoch; }
+
+static void ResumeReadOnlyInterval(void) {
+    if (!++s_next_policy_epoch) ++s_next_policy_epoch;
+    s_policy_epoch = s_next_policy_epoch;
+}
+
 bool Lufia2PpuTimelineDraw(Ppu *ppu, Dma *dma, Snes *snes,
                           uint8_t hdma_enable, const Lufia2PpuTimeline *timeline) {
-    if (!ppu || !dma || !snes || !timeline || !timeline->registers ||
+    if (s_drawing || !ppu || !dma || !snes || !timeline || !timeline->registers ||
         timeline->register_stride < PPU_SAVESTATE_REGS_SIZE ||
         timeline->register_stride > SIZE_MAX / LUFIA2_PPU_TIMELINE_ROWS ||
         (timeline->palettes && (timeline->palette_stride < sizeof ppu->cgram ||
             timeline->palette_stride > SIZE_MAX / LUFIA2_PPU_TIMELINE_ROWS)) ||
         !timeline->interrupt) return false;
 
+    s_drawing = true;
     /* The host owns HDMA for this frame. Reset can re-enable the core's beam,
      * so set this every time. Otherwise interrupt guest cycles run HDMA twice. */
     snes_set_hdma_beam_enabled(snes, false);
@@ -28,6 +39,7 @@ bool Lufia2PpuTimelineDraw(Ppu *ppu, Dma *dma, Snes *snes,
         if (hdma[channel].table) active[active_count++] = &hdma[channel];
     }
 
+    ResumeReadOnlyInterval();
     int trigger = snes->vIrqEnabled ? (int)snes->vTimer + 1 : -1;
     for (unsigned line = 0; line < LUFIA2_PPU_TIMELINE_ROWS; ++line) {
         memcpy(timeline->registers + line * timeline->register_stride,
@@ -49,10 +61,14 @@ bool Lufia2PpuTimelineDraw(Ppu *ppu, Dma *dma, Snes *snes,
         }
         active_count = remaining;
         if ((int)line == trigger) {
+            s_policy_epoch = 0;
             snes->inIrq = true;
             timeline->interrupt(timeline->interrupt_context);
+            ResumeReadOnlyInterval();
             trigger = snes->vIrqEnabled ? (int)snes->vTimer + 1 : -1;
         }
     }
+    s_policy_epoch = 0;
+    s_drawing = false;
     return true;
 }

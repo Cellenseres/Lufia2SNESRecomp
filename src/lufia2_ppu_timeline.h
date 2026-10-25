@@ -28,3 +28,9 @@ typedef struct Lufia2PpuTimeline {
  * H-only IRQ timing is not newly modeled here. */
 bool Lufia2PpuTimelineDraw(struct Ppu *ppu, struct Dma *dma, struct Snes *snes,
                           uint8_t hdma_enable, const Lufia2PpuTimeline *timeline);
+
+/* Guest-thread-only certificate. Nonzero during a serial raster interval in
+ * which guest execution is paused and HDMA writes only PPU registers. IRQ
+ * callbacks suspend the certificate and resume with a new epoch. Outside the
+ * authoritative walker, callers must keep checking their live inputs. */
+uint32_t Lufia2PpuTimelineReadOnlyEpoch(void);

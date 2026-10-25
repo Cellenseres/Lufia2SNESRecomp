@@ -6,6 +6,7 @@
 #include "lufia2_ppu_obj_capture.h"
 #include "lufia2_ppu_obj_defer.h"
 #include "lufia2_ppu_host.h"
+#include "lufia2_ppu_timeline.h"
 #include "lufia2_ppu_render_clone.h"
 #include "snes/ppu.h"
 #include "snes/ws_shadow.h"
@@ -36,6 +37,7 @@ struct Lufia2PpuOffload {
     Lufia2BattleEffectsPixelPolicy battle_policy;
     bool battle_sprite_rows[LUFIA2_PPU_VISIBLE_LINES][kPpuBufWidth];
     bool battle;
+    uint32_t battle_policy_epoch;
     PpuPixelPrioBufs objects[LUFIA2_PPU_VISIBLE_LINES];
     union {
         uint16_t obj_pixels[SNESRECOMP_PPU_MAX_WIDTH * LUFIA2_PPU_VISIBLE_LINES];
@@ -214,6 +216,7 @@ bool Lufia2PpuOffloadBegin(Lufia2PpuOffload *c, Ppu *p,
     if(!Lufia2PpuElasticPrepare(&c->elastic,&c->reference)) return false;
     c->live = p; c->width = width; c->extra = extra; c->lines = 0;
     c->battle = Lufia2BattleEffectsActive(p);
+    c->battle_policy_epoch = 0;
     if (c->battle) Lufia2BattleEffectsCapturePixelPolicy(&c->battle_policy);
     c->record_palettes = (Lufia2PpuPendingRasterMemoryFlags() & SNES_PPU_RASTER_MEMORY_CGRAM) != 0;
     if(menu && !Lufia2MenuUiBeginNativeBase(p)) return false;
@@ -260,11 +263,20 @@ bool Lufia2PpuOffloadRecordLine(Ppu *p, unsigned line) {
         c->result=SNESRECOMP_PPU_INCOMPLETE_LAYOUT;
         c->unsupported=SNES_PPU_UNSUPPORTED_LAYOUT_POLICY;return false;
     }
-    if (c->battle && !Lufia2BattleEffectsPixelPolicyMatches(&c->battle_policy)) {
-        Lufia2PpuOffloadFallback(c);
-        c->result = SNESRECOMP_PPU_INCOMPLETE_LAYOUT;
-        c->unsupported = SNES_PPU_UNSUPPORTED_LAYOUT_POLICY;
-        return false;
+    if (c->battle) {
+        const uint32_t epoch = Lufia2PpuTimelineReadOnlyEpoch();
+        /* The captured WRAM policy is immutable until guest code runs again.
+         * Check its full bytes at the interval's first row, after every IRQ,
+         * and on every standalone draw without an ownership certificate. */
+        if (!epoch || epoch != c->battle_policy_epoch) {
+            if (!Lufia2BattleEffectsPixelPolicyMatches(&c->battle_policy)) {
+                Lufia2PpuOffloadFallback(c);
+                c->result = SNESRECOMP_PPU_INCOMPLETE_LAYOUT;
+                c->unsupported = SNES_PPU_UNSUPPORTED_LAYOUT_POLICY;
+                return false;
+            }
+            c->battle_policy_epoch = epoch;
+        }
     }
     /* Until policy histories are recorded, a mid-frame host remap change
      * retains serial drawing. Already recorded lines used the entry policy. */

@@ -184,3 +184,26 @@ admission is actually exercised, the before/after costs, preserved contracts,
 and checks run/reused/deferred. Keep remaining performance work explicit without
 changing a correct semantic function's verification status to describe speed.
 Tests, proof tools, gameplay snapshots and raw captures remain private.
+
+### Raster policy validation intervals
+
+The serial PPU timeline exposes a guest-thread-only read-only epoch. Its HDMA
+walker reads source tables and writes PPU registers; guest execution is paused
+between interrupt callbacks. The epoch is suspended before each callback,
+renewed afterwards and cleared on exit. Reentrant walks reject before doing
+device work. GPU workers must not consume this guest-thread certificate.
+
+Battle capture compares its WRAM policy once per admitted interval, after every
+IRQ, and on every call outside this timeline. A mismatch retains the existing
+partial-frame fallback. The policy snapshot and its pixel dependencies do not
+change; this avoids repeating the same comparison for every scanline.
+
+Build72's isolated 120-frame battle comparison against Build71 kept audio,
+widescreen, inputs and the simulation unchanged. Without detail profiling,
+the measured mean draw time was 37.994 to 34.418 ms; frame time was 54.548 to
+50.976 ms (frames 11--120). Guest, upload and draw-command counters matched,
+and the complete 324,186-byte saved end state was byte-identical. Serial detail
+profiling separately reduced policy checks from about 222 to one per frame.
+Both compilers' sanitizer checks covered 452 paired IRQ/timeline scenarios,
+including policy mutation, standalone checks and a rejected stale-epoch mutant.
+These are scoped emulator results, not hardware timing or a 60-FPS release.
