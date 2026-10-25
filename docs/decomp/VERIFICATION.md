@@ -1,3 +1,43 @@
+# Native nested special-menu windows - 2026-10-25
+
+The new 84:A2B3/A36A/A39B semantic bodies and consumer clocks save window
+rectangles, draw their border rows and restore the original tiles. All three
+are selected immediately after their shared original-ROM/production-ABI proof.
+Default no-draft and reserved Release select 2,161 verified entries, zero
+fallback candidates. This batch adds algorithms, rather than exposing existing
+per-PC adapters as new semantic reconstruction.
+
+Consumer admission covers coherent five-level windows, bounded 32-by-32 tile
+rectangles, the original 0x800-byte save buffer, real return frames and safe
+interrupt/refresh/deadline windows. The semantic C also retains arbitrary-bank
+and malformed-dimension prefixes at exact original boundaries. Ineligible
+consumer contexts retain the original interpreter. Actual child calls invoke
+the native row body; child modes, changed bank, expiry and unwinds remain exact.
+
+Shared validation: 12,363 semantic ROM cases, 144 stack endpoints, 10,240 timed
+production-ABI cases, 48 altered-child cases across three sites, 159 pure guards,
+15 contract gates, strict MSVC/GCC/Clang C11, feature-off compilation, ordinary
+source selection and one reserved Windows Release build. Only final local
+scratch names changed afterward; all strict-MSVC code/read-only data sections
+are identical, and portable compiler checks cover the final source. No unchanged
+full regression or CLI rebuild was repeated.
+
+Original poker C054/C06F and B9E0 calls exercise push and pop with real guest
+JSR frames in 51 paired hardware frames. Native body counts are 1 push, 7 row
+calls and 1 pop. Parent decoded instructions change from 895/483/845 to 0/0/0.
+CPU, full WRAM, PPU memories, pixels, PCM, returned states and exact clocks
+match byte-for-byte. Both comparison arms use the same original callers;
+only the three new consumer bindings differ. The consumer clock copy carries
+explicit post-admission body counters; other runtime/SDK objects are from the
+reserved production build. A separate natural 5,100-frame startup/field
+comparison is identical and has zero window calls in both arms.
+
+The checkpoint covers the combined sources before the semantic/consumer
+commits; intermediate revisions were not independently tested. Tests, tools
+and ROM remain private. Owner build/SRAM and unrelated WIP remain untouched.
+No push. Next semantic work is the still missing poker-player action chain
+or the remaining special-menu controllers.
+
 # Final three consumer entries - 2026-10-25
 
 80:9C0F, 80:BA39 and 83:E10F complete the outstanding binding set. Default
