@@ -19132,6 +19132,82 @@ RecompReturn Lufia2DecompBridge_84F105(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x84f105u);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_LINES)
+#include "table_line_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84E194(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_LINES)
+    return ActorBridgeTableLine(cpu, 0u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84e194u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84E2A8(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_LINES)
+    return ActorBridgeTableLine(cpu, 1u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84e2a8u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84E30F(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_LINES)
+    return ActorBridgeTableLine(cpu, 2u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84e30fu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84EB36(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_LINES)
+    return ActorBridgeTableLine(cpu, 3u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84eb36u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84EBC0(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_LINES)
+    return ActorBridgeTableLine(cpu, 4u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84ebc0u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84EBDB(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_LINES)
+    return ActorBridgeTableLine(cpu, 5u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84ebdbu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84EC18(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_LINES)
+    return ActorBridgeTableLine(cpu, 6u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84ec18u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84DC55(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_LINES)
+    return ActorBridgeTableLine(cpu, 7u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84dc55u);
+#endif
+}
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResumeReturn(cpu, landing);

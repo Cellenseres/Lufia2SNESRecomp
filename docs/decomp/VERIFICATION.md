@@ -1,3 +1,43 @@
+# Original card-table input, line choice and numbers - 2026-10-25
+
+Eight complete original routines now have verified C and native bindings:
+84:DC55 command reader;84:E194 line selection;84:E2A8 credit spending;
+84:E30F extra-line marking;84:EB36 number drawing;84:EBC0 decimal division;
+84:EBDB number animation;84:EC18 number-sprite movement.
+
+The shared semantic checkpoint covers8192 original-ROM cases,32 child
+unwinds and160 changed returns. The unchanged seven-function proof is reused
+by exact source hashes;the command-reader dependency adds1024 cases.
+2048 nested compositions cover7720 native child calls and8144 exact divider
+NOP states. Consumer coverage:4096 timed ROM/ABI cases,288 changed child
+contexts across32 sites,292 pure admission checks and30 contract gates.
+Strict MSVC/ARM GCC/Windows Clang C11,feature-off and reserved Windows
+Release pass. Unchanged unrelated full regression is not rerun.
+
+64 isolated real generated-caller contexts match CPU,full WRAM,serialized
+hardware and PCM with native sound active.512 alternating desktop timing
+intervals cover all eight roots;256 additional intervals resolve uncertainty
+in the number-animation measurement. This is bounded injected-caller evidence,
+not natural gameplay,ARM performance or a60-FPS acceptance.
+
+The initial seven-binding candidate tripled line-selection latency. Binding
+the original command-reader dependency removes that measured regression,
+without changing existing wait hooks or loosening batching guards. Its
+matched median function-return cost is1450/1244us(reference/native).
+Number animation remains approximately at reference cost:the larger paired
+sample has mean2992/2963us and median2923/2952us at scheduler return.
+No robust animation speedup is claimed. Separate APU/PPU/submission costs
+remain unmeasured. Generated snes.c,compiled snes.obj and the linker map
+confirm that the APU skip caller is connected.
+
+Actual body admissions and completed bodies are counted separately. Frame
+waits may unwind parent C and continue through exact interpreted boundaries;
+binding selection does not imply full native execution after every wait.
+Original MMIO,NOPs,sound handshakes and the16-bit credit-borrow quirk remain.
+No new wait hooks,whole-table timing scans or full timing-buffer clears.
+Metadata totals:2193 verified/selected entries,zero drafts or unmatched
+bindings;900 documented WRAM locations. Tests,ROM and proof tools stay private.
+
 # Original card-table motion and attributes - 2026-10-25
 
 Nine complete original routines are reconstructed and immediately bound:
