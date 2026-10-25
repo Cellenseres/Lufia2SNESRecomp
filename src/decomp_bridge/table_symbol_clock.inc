@@ -678,6 +678,7 @@ static bool PlanSymbolPrepare(TableSymbolClock *clock, uint16_t pc) {
     if (pc != 0xe640u) return false;
     const CpuState *cpu = clock->call.cpu;
     const uint16_t column = TableSymbolBankWord(cpu, 0x713cu);
+    if (column > 2u) return false;
     const uint16_t x = (uint16_t)(column * 2u);
     const uint16_t previous = (uint16_t)(TableSymbolBankWord(cpu,
         (uint16_t)(0x7000u + x)) - 1u);
@@ -775,11 +776,13 @@ static bool PlanSymbolStop(TableSymbolClock *clock, uint16_t pc) {
         return y==6u || PlanSymbolLabels(clock,cpu->X,y);
     }
     if (pc != 0xe5c7u && pc != 0xe5e1u) return false;
+    if (pc==0xe5c7u && TableSymbolBankWord(cpu,0x713cu)>2u) return false;
     const uint16_t x = pc==0xe5c7u ?
         (uint16_t)(TableSymbolBankWord(cpu,0x713cu)*2u) : cpu->X;
     const uint16_t candidate = pc==0xe5c7u ?
         (uint16_t)(cpu->A+TableSymbolDirectWord(cpu,2u)) :
         TableSymbolDirectWord(cpu,2u);
+    if (x>4u || (x&1u)) return false;
     const uint16_t next_position = (uint16_t)(
         TableSymbolBankWord(cpu,(uint16_t)(0x712au+x)) +
         TableSymbolBankWord(cpu,(uint16_t)(0x7124u+x)));
@@ -897,6 +900,7 @@ static bool PlanSymbolStart(TableSymbolClock *clock, uint16_t pc) {
         LR(E969,E970,0u,y); LB(E973,timer!=1u);
         if (timer==1u) {
             const uint16_t x=TableSymbolBankWord(cpu,(uint16_t)(0x7136u+y));
+            if (x>28u || (x&3u)) return false;
             const unsigned rom_at=0x271f5u+x;
             if (rom_at+3u>=g_snes->cart->romSize) return false;
             const uint8_t *table=g_snes->cart->rom+rom_at;

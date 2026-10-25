@@ -1,3 +1,57 @@
+# Original card-table search choices - 2026-10-25
+
+Four complete original algorithms are reconstructed and bound: preferred-symbol
+search (84:E6C8), single-match choice (E74F), double-match choice (E773) and
+seventh-symbol scanning (E7EF). The double-match function includes its alternate
+E7D0..E7EE path and shared return at E7CF. Its internal branch is not a separate
+entry. The original search countdown, mode-byte tests, symbol reads, child
+frames and flags remain intact. Existing WRAM records gain explanatory notes;
+addresses, names, widths, counts and generated constants are unchanged.
+
+The shared proof covers 16,384 original-ROM cases, 13 child unwinds and 65
+changed returns. Another 2,048 nested cases exercise 94,382 native child calls
+and 12,852 exact multiplier-NOP states through six existing C children. All
+13 original child sites are covered. Consumer evidence adds 2,048 timed ROM/ABI
+cases and 117 changed contexts, 144 pure admission guards, 60 checks for prior
+reel-address domains, and 18 metadata/API/binding gates. Strict MSVC, ARM GCC,
+Windows Clang, feature-off, standard no-draft selection and the reserved Windows
+Release pass. Unchanged unrelated full regression is deferred.
+
+Consumer lookahead now retains the full 24-bit absolute-indexed address. Reads
+crossing from bank7E into bank7F remain correctly predicted. A lookahead beyond
+WRAM declines at the exact original child landing, preserving all actual bus
+reads through interpretation. Sixteen such timed cases and an explicit physical
+caller context verify the fallback rather than fabricating open-bus values.
+Existing reel planners also reject invalid columns, stopped indices and ramp
+offsets before raw lookups. The 60 focused cases cover their valid and invalid
+domains without changing original decomp semantics. No new wait hooks or looser
+hardware/IRQ/HDMA admission rules are introduced.
+
+All 64 fresh-process original-JSR contexts match CPU, full WRAM, serialized
+hardware and newly generated PCM. Both arms produce 1,465 fresh samples in total;
+short calls may produce zero samples. Warm output is consumed using the public
+DSP API, with overflow rejected. Actual native attempts, bodies, landings,
+completions and remaining interpreted opcodes are recorded separately. Every
+direct root admits its body; unsupported child landings can remain interpreted.
+Native selection is not a claim of complete C execution in every context.
+
+The shared 128 alternating desktop timing intervals preserve final state and
+fresh PCM. Median function-return microseconds, reference/native: preferred
+131.75/86.15; single 131.70/123.50; double 344.90/300.15; seventh 81.30/64.10.
+The first double-match native mean was higher due to one slow interval; the
+original result is retained. A targeted 64-interval follow-up measures means
+319.85/285.93 and medians 334.10/284.80. These bounded injected callers provide
+cost evidence, not a whole-game, ARM, target-hardware or 60-FPS claim.
+Interpreter and native timed data callbacks are counted separately. Timing
+includes probe bookkeeping and PCM consumption/hash work; separate APU, PPU,
+submission and waiting costs remain unmeasured.
+
+The generated APU idle caller, its compiled object reference and linked symbol
+are checked. Plans use direct indexes and bounded records, with no full-table
+searches or unused-buffer clears in the hot path. Standard selection contains
+2,209 verified entries, zero drafts/unmatched bindings and 904 WRAM records.
+Concurrent renderer/platform changes are preserved and outside this acceptance.
+
 # Original card-table symbols and matches - 2026-10-25
 
 Eight complete original routines are reconstructed and bound: stopping a reel,
