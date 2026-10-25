@@ -185,6 +185,35 @@ and checks run/reused/deferred. Keep remaining performance work explicit without
 changing a correct semantic function's verification status to describe speed.
 Tests, proof tools, gameplay snapshots and raw captures remain private.
 
+### Card-column continuation admission
+
+The original column algorithms also expose exact EA30/EAB4 loop boundaries.
+The consumer chooses whole sprite or symbol-row iterations that fit before the
+next frame/device boundary and deadline. CPU mode, stack ownership, DMA, IRQ,
+NMI, refresh and APU synchronization remain guarded. The normal standalone
+algorithms retain their original loops and bus behavior.
+
+Admission uses the maintained opcode-page chains, checks the live owner and
+rejects other hooks anywhere inside the interval. It does not scan the entire
+hook registry. A bounded local timing array replaces per-opcode host re-entry;
+no full memory or metadata copy is needed. Guest writes and opcode timing still
+run in original order. The last writing opcode supplies the exact quiescence
+progress index, including spans longer than 32 instructions. Existing wait-pair
+classification and its 1,024-opcode budget are unchanged.
+
+A rollback restore reinstalls hooks. Reference controls must be applied after
+loading the state, and actual native counts must prove which arm ran. An initial
+same-arm comparison was rejected for this reason. The final 224 distinct-arm
+pairs match CPU, full WRAM, serialized devices and new PCM; wait batching is
+unchanged. Actual generated/linked callers and both APU catch-up seams are checked.
+
+The final eight-repeat desktop comparison uses matched sound, inputs and builds,
+rotating old-build, hooks-removed and native arms. Hooks-removed/native median
+caller intervals are 9.309/8.793 ms (DEB9), 97.096/90.612 ms (F4C6) and
+15.788/14.560 ms (F648). Individual paired groups vary, including slower groups.
+These are bounded caller intervals spanning guest work, not per-frame timings,
+a whole-game result, an ARM result or hardware 60-FPS acceptance.
+
 ### Raster policy validation intervals
 
 The serial PPU timeline exposes a guest-thread-only read-only epoch. Its HDMA

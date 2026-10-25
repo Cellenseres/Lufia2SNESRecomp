@@ -61,5 +61,9 @@ void Lufia2DecompFrameReturnWriteWord(struct CpuState *cpu, uint32_t low,
 void Lufia2DecompFrameReturnAccountOpcode(struct CpuState *cpu, unsigned cycles,
                                           uint64_t master, bool progress);
 void Lufia2DecompFrameReturnComplete(unsigned count, unsigned progress_mask);
+unsigned Lufia2DecompFrameSpanBudget(uint32_t first, uint32_t end,
+    void (*owner)(struct CpuState *, uint32_t));
+/* Progress is one-based; zero means no observable progress. */
+void Lufia2DecompFrameReturnCompleteSpan(unsigned count, unsigned last_progress);
 
 #endif

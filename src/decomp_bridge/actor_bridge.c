@@ -7,6 +7,9 @@
 static void ActorBridgeCardTableHdmaHook(CpuState *cpu, uint32_t pc);
 #endif
 #include "snes/interp_bridge.h"
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_MOTION) && defined(LUFIA2_CARD_TABLE_COLUMN_SPANS)
+static void ActorBridgeColumnSpan(CpuState *cpu, uint32_t pc);
+#endif
 #include "lufia2/decomp.h"
 #include "lufia2/world_scene_timed_motion.h"
 #include "lufia2/world_scene_timed_windows.h"
@@ -3790,6 +3793,10 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_MOTION) && defined(LUFIA2_CARD_TABLE_COLUMN_SPANS)
+    interp_bridge_set_pre_opcode_hook(0x84ea30u, ActorBridgeColumnSpan);
+    interp_bridge_set_pre_opcode_hook(0x84eab4u, ActorBridgeColumnSpan);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_MENU_FADE_CONTINUATIONS)
     interp_bridge_set_pre_opcode_hook(0x868b2bu, ActorBridgeMenuFadeContinuation);
     interp_bridge_set_pre_opcode_hook(0x868b41u, ActorBridgeMenuFadeContinuation);
@@ -19050,6 +19057,9 @@ RecompReturn Lufia2DecompBridge_84E9B1(CpuState *cpu) {
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_MOTION)
 #include "table_motion_clock.inc"
+#if defined(LUFIA2_CARD_TABLE_COLUMN_SPANS)
+#include "column_span_clock.inc"
+#endif
 #endif
 
 RecompReturn Lufia2DecompBridge_84E9E3(CpuState *cpu) {

@@ -2,6 +2,7 @@
 
 static unsigned s_frame_return_opcodes;
 static unsigned s_frame_return_progress_mask;
+static unsigned s_frame_return_last_progress;
 
 bool Lufia2DecompFrameReturnCpuReady(void) {
     return !s_frame_return_interrupt_blocked;
@@ -54,6 +55,41 @@ void Lufia2DecompFrameReturnAccountOpcode(CpuState *cpu, unsigned cycles,
 void Lufia2DecompFrameReturnComplete(unsigned count, unsigned progress_mask) {
     s_frame_return_opcodes = count;
     s_frame_return_progress_mask = progress_mask;
+    s_frame_return_last_progress = 0u;
+}
+
+void Lufia2DecompFrameReturnCompleteSpan(unsigned count, unsigned last_progress) {
+    s_frame_return_opcodes = count;
+    s_frame_return_progress_mask = 0u;
+    s_frame_return_last_progress = last_progress;
+}
+
+unsigned Lufia2DecompFrameSpanBudget(uint32_t first, uint32_t end,
+    void (*owner)(CpuState *, uint32_t)) {
+    if (!s_frame_return_batch_allowed || s_interp_bus_timing_active ||
+        !owner || !s_frame_return_poll_opcode_budget ||
+        s_frame_return_poll_opcode_budget > LUFIA2_FRAME_POLL_MAX_OPCODES ||
+        Lufia2NativeObserversActive() || s_interp_continuous_read_epoch >
+            UINT64_MAX - 8u * s_frame_return_poll_opcode_budget)
+        return 0u;
+    first &= 0x7fffffu;
+    end &= 0x7fffffu;
+    if (first >= end || end - first > 256u)
+        return 0u;
+    bool found = false;
+    for (unsigned page = first >> 8; page <= ((end - 1u) >> 8); ++page) {
+        for (unsigned link = s_pre_opcode_hook_heads[page]; link;
+             link = s_pre_opcode_hook_next[link - 1u]) {
+            const unsigned slot = link - 1u;
+            const uint32_t pc = s_pre_opcode_hooks[slot].pc24;
+            if (pc < first || pc >= end)
+                continue;
+            if (pc != first || s_pre_opcode_hooks[slot].hook != owner)
+                return 0u;
+            found = true;
+        }
+    }
+    return found ? s_frame_return_poll_opcode_budget : 0u;
 }
 
 static void Lufia2DecompFrameReturnContinue(long *steps, int auto_quiescent,
@@ -63,6 +99,8 @@ static void Lufia2DecompFrameReturnContinue(long *steps, int auto_quiescent,
         return;
     *steps += (long)s_frame_return_opcodes - 1;
     if (auto_quiescent) {
+        if (s_frame_return_last_progress)
+            *steps = (long)(s_frame_return_opcodes - s_frame_return_last_progress);
         for (unsigned opcode = 0, mask = s_frame_return_progress_mask;
              opcode < s_frame_return_opcodes && mask; ++opcode, mask >>= 1u)
             if (mask & 1u)
@@ -72,6 +110,7 @@ static void Lufia2DecompFrameReturnContinue(long *steps, int auto_quiescent,
     }
     s_frame_return_opcodes = 0u;
     s_frame_return_progress_mask = 0u;
+    s_frame_return_last_progress = 0u;
 }
 
 /* No opcode hook/observer may be bypassed by a native pair. Every CMP
