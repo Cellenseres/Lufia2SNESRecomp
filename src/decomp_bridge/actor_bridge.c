@@ -3708,12 +3708,13 @@ static bool ActorBridgeFramePollSupported(const CpuState *cpu, uint32_t entry) {
  * opcode clock, refresh charge and APU boundary retains its original order. */
 static Lufia2ExecutionResult ActorBridgeFramePollIteration(
     const Lufia2Memory *memory, Lufia2CpuState *state, uint32_t entry) {
-    ActorPollIteration step = Lufia2FrameWaitPollStep;
-#if defined(LUFIA2_HAVE_NATIVE_TEXT_FRAME_WAIT)
-    if (entry == 0x80bf0du) step = Lufia2FrameWaitCounterStep;
-#endif
+    ActorPollIteration step =
 #if defined(LUFIA2_HAVE_NATIVE_ADDITIONAL_FRAME_WAITS)
-    if (entry == 0x85ec96u) step = Lufia2FrameWaitAdditionalStep;
+        Lufia2FrameWaitAdditionalStep;
+#elif defined(LUFIA2_HAVE_NATIVE_FRAME_COUNTER_STEPS)
+        Lufia2FrameWaitCounterStep;
+#else
+        Lufia2FrameWaitPollStep;
 #endif
     Lufia2ExecutionResult result = step(memory, state, entry);
     if (result.flow == LUFIA2_EXECUTION_BOUNDARY && result.pc == entry + 2u)
@@ -3727,14 +3728,7 @@ static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
      * beam, refresh and interrupt edge, and preserves every APU flush;
      * ordinary polls keep the
      * original dispatcher, including line-end events. */
-    if ((entry == 0x8293c8u || entry == 0x869752u
-#if defined(LUFIA2_HAVE_NATIVE_ADDITIONAL_FRAME_WAITS)
-         || entry == 0x85ec96u
-#endif
-#if defined(LUFIA2_HAVE_NATIVE_TEXT_FRAME_WAIT)
-         || entry == 0x80bf0du
-#endif
-        ) && Lufia2DecompFramePollTryIdle(cpu, entry))
+    if (Lufia2DecompFramePollIsCounterPair(entry) && Lufia2DecompFramePollTryIdle(cpu, entry))
         return;
     if (!ActorBridgeFramePollSupported(cpu, entry))
         return;
@@ -3746,14 +3740,7 @@ static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
         return;
     const bool branch = frame_poll_entries[index].branch;
     if (cpu->m_flag && !cpu->D && g_snes->hdmaBeamOff &&
-        (entry == 0x8293c8u || entry == 0x869752u
-#if defined(LUFIA2_HAVE_NATIVE_ADDITIONAL_FRAME_WAITS)
-         || entry == 0x85ec96u
-#endif
-#if defined(LUFIA2_HAVE_NATIVE_TEXT_FRAME_WAIT)
-         || entry == 0x80bf0du
-#endif
-        ) && Lufia2DecompFramePollBatchSupported(entry) &&
+        Lufia2DecompFramePollIsCounterPair(entry) && Lufia2DecompFramePollBatchSupported(entry) &&
         ActorBridgePollRunSupported(cpu, entry)) {
         ActorBridgePollRun(cpu, entry, ActorBridgeFramePollIteration, 2u, true);
         return;

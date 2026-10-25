@@ -36,10 +36,17 @@ function(lufia2_prepare_logo_wait sources_var)
                     getenv("SNESRECOMP_INTERP_RATE_LOG") != NULL ||
                     getenv("SNESRECOMP_WLOG_STATE") != NULL;
             bool hooked = false;
-            for (int h = 0; h < s_pre_opcode_hook_count; ++h)
+            /* Registry keys are normalized to 23 bits. Only page $00:80
+             * can contain either opcode; follow its maintained slot chain
+             * instead of scanning every registered continuation each pair. */
+            for (int h = (int)s_pre_opcode_hook_heads[0x80u] - 1; h >= 0;
+                 h = (int)s_pre_opcode_hook_next[h] - 1) {
                 if (s_pre_opcode_hooks[h].pc24 == 0x008084u ||
-                    s_pre_opcode_hooks[h].pc24 == 0x008086u)
+                    s_pre_opcode_hooks[h].pc24 == 0x008086u) {
                     hooked = true;
+                    break;
+                }
+            }
             const Cart *cart = g_snes->cart;
             if (!observers && !hooked && cart->rom && cart->romSize >= 0x88u &&
                 cart->rom[0x84] == 0xa5 && cart->rom[0x85] == 0x6a &&

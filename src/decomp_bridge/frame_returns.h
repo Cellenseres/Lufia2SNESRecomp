@@ -6,6 +6,33 @@
 
 struct CpuState;
 
+/* Exact NMI-counter pairs with verified semantic continuations. This
+ * classifies an entry only: it grants no permission to bypass hooks or clocks.
+ * Keep all native pair dispatch and timing gates on this same list. */
+static inline bool Lufia2DecompFramePollIsCounterPair(uint32_t entry) {
+    switch (entry) {
+    case 0x8293c8u:
+    case 0x83900eu:
+    case 0x8eb552u:
+    case 0x868b4eu:
+    case 0x869752u:
+    case 0x848d4fu:
+    case 0x80bf0du:
+    case 0x80937du:
+    case 0x848365u:
+    case 0x84a5aeu:
+    case 0x85851eu:
+    case 0x85ec96u:
+    case 0x85ecb9u:
+    case 0x8eb28au:
+    case 0x8ec2c6u:
+        return true;
+    default:
+        return false;
+    }
+}
+
+
 void Lufia2DecompInstallFrameReturnHooks(void);
 bool Lufia2DecompFramePollHookIsNative(
     void (*hook)(struct CpuState *, uint32_t));

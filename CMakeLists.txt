@@ -420,15 +420,8 @@ include("${CMAKE_SOURCE_DIR}/cmake/Lufia2PpuMosaic.cmake")
 lufia2_prepare_ppu_mosaic_overlay(
     SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
 
-if(LUFIA2_ENABLE_DMA_HOST_FASTFORWARD)
-    include("${CMAKE_SOURCE_DIR}/cmake/Lufia2DmaHostFastForward.cmake")
-    lufia2_prepare_dma_host_fastforward(
-        SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
-endif()
-include("${CMAKE_SOURCE_DIR}/cmake/Lufia2DmaOverlay.cmake")
-lufia2_prepare_dma_overlay(
-    SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
-
+# Establish the APU overlay before the owner of snes.c composes its
+# relative catch-up loop. Merely defining the idle API later is insufficient.
 # The decompiled sound driver replaces the interpreted SPC-700 program.
 option(LUFIA2_ENABLE_NATIVE_SPC
     "Run the decompiled SPC driver instead of interpreting it" ON)
@@ -451,6 +444,15 @@ if(LUFIA2_ENABLE_NATIVE_SPC)
     message(STATUS
         "Lufia2 native SPC driver ON: LUFIA2_SPC_INTERPRETED=1 restores the interpreter")
 endif()
+if(LUFIA2_ENABLE_DMA_HOST_FASTFORWARD)
+    include("${CMAKE_SOURCE_DIR}/cmake/Lufia2DmaHostFastForward.cmake")
+    lufia2_prepare_dma_host_fastforward(
+        SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
+endif()
+include("${CMAKE_SOURCE_DIR}/cmake/Lufia2DmaOverlay.cmake")
+lufia2_prepare_dma_overlay(
+    SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
+
 if(LUFIA2_ENABLE_SNES_DSP)
     include("${CMAKE_SOURCE_DIR}/lib/snesrecomp-platform/cmake/SnesRecompPlatformSnesDsp.cmake")
     snesrecomp_platform_overlay_snes_dsp(

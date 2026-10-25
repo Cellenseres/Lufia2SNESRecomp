@@ -1,3 +1,5 @@
+#include "decomp_bridge/frame_returns.h"
+
 static unsigned s_frame_return_opcodes;
 static unsigned s_frame_return_progress_mask;
 
@@ -210,8 +212,7 @@ static unsigned Lufia2NativeIdleContextReason(const CpuState *cpu,uint32_t entry
 /* Diagnostic wrapper calls this only with DetailProfile enabled. */
 void Lufia2DecompFramePollProbe(const CpuState *cpu,uint32_t entry) {
 #if defined(LUFIA2_NATIVE_IDLE_DIAGNOSTICS)
-    if (entry == 0x8293c8u || entry == 0x80bf0du ||
-        entry == 0x869752u || entry == 0x85ec96u)
+    if (Lufia2DecompFramePollIsCounterPair(entry))
         ++s_native_idle_contexts[Lufia2NativeIdleContextReason(cpu,entry)];
 #else
     (void)cpu; (void)entry;
@@ -226,8 +227,7 @@ static bool Lufia2DecompFramePollClockedEdges(CpuState *cpu, uint32_t entry) {
 #if defined(SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY) && !defined(SNES_COSIM) && \
     !defined(SNESRECOMP_INTERP_PROFILE) && \
     (!defined(SNESRECOMP_REVERSE_DEBUG) || !SNESRECOMP_REVERSE_DEBUG)
-    if (cpu != &g_cpu || (entry != 0x8293c8u && entry != 0x80bf0du &&
-        entry != 0x869752u && entry != 0x85ec96u) ||
+    if (cpu != &g_cpu || !Lufia2DecompFramePollIsCounterPair(entry) ||
         !Lufia2DecompFramePollBatchSupported(entry) ||
         !cpu->m_flag || cpu->x_flag > 1u || cpu->emulation || cpu->D ||
         cpu->S < 0x1f00u || cpu->S > 0x1fffu ||
@@ -350,8 +350,7 @@ bool Lufia2DecompFramePollTryIdle(CpuState *cpu, uint32_t entry) {
 #if defined(SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY) && !defined(SNES_COSIM) && \
     !defined(SNESRECOMP_INTERP_PROFILE) && \
     (!defined(SNESRECOMP_REVERSE_DEBUG) || !SNESRECOMP_REVERSE_DEBUG)
-    if (cpu != &g_cpu || (entry != 0x8293c8u && entry != 0x80bf0du &&
-        entry != 0x869752u && entry != 0x85ec96u) ||
+    if (cpu != &g_cpu || !Lufia2DecompFramePollIsCounterPair(entry) ||
         !Lufia2DecompFramePollBatchSupported(entry) ||
         !cpu->m_flag || cpu->x_flag > 1u || cpu->emulation || cpu->D ||
         cpu->S < 0x1f00u || cpu->S > 0x1fffu ||

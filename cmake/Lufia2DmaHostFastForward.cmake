@@ -36,6 +36,12 @@ function(lufia2_prepare_dma_host_fastforward sources_var core_root)
     string(REPLACE "${_old}" "${_new}" _text "${_text}")
     include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/../lib/snesrecomp-platform/cmake/SnesRecompPlatformBeam.cmake")
     snesrecomp_platform_patch_beam_clock(_text)
+    # Compose the optional native-program catch-up into this sole owner of
+    # snes.c. Without this seam the relative clock silently regresses to
+    # one host call per SPC cycle despite a registered native idle contract.
+    if(COMMAND snesrecomp_platform_patch_apu_catchup)
+        snesrecomp_platform_patch_apu_catchup(_text)
+    endif()
 
     set(_directory "${CMAKE_BINARY_DIR}/generated/dma-host-fastforward")
     set(_overlay "${_directory}/snes.c")
