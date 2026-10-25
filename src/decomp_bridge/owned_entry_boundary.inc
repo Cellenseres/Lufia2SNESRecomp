@@ -1,9 +1,9 @@
-static int Lufia2DecompRunBootEntry(Interp816 *in, CpuState *cpu, uint32_t entry) {
-    if (entry != 0x808035u || !cpu_dispatch_has_entry(cpu, entry))
+static int Lufia2DecompRunOwnedEntry(Interp816 *in, CpuState *cpu, uint32_t entry) {
+    if ((entry != 0x808035u && entry != 0x80ba39u && entry != 0x83e10fu) || !cpu_dispatch_has_entry(cpu, entry))
         return 0;
-    extern bool Lufia2DecompBootEntryReady(CpuState *, uint32_t);
+    extern bool Lufia2DecompOwnedEntryReady(CpuState *, uint32_t);
     sync_interp_to_cpu(in, cpu);
-    if (Lufia2DecompBootEntryReady(cpu, entry)) {
+    if (Lufia2DecompOwnedEntryReady(cpu, entry)) {
         bridge_apu_flush(cpu);
         const int saved_apu = g_interp_apu_driving;
         const int saved_base = s_interp_bounce_recomp_base;
@@ -38,7 +38,7 @@ static int Lufia2DecompRunBootEntry(Interp816 *in, CpuState *cpu, uint32_t entry
             }
             return 1;
         }
-        fprintf(stderr, "[boot-entry] unexpected return %d\n", (int)result);
+        fprintf(stderr, "[owned-entry] unexpected return %d\n", (int)result);
         bridge_apu_flush(cpu);
         return -1;
     }

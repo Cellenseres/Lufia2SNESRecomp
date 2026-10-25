@@ -1,3 +1,50 @@
+# Final three consumer entries - 2026-10-25
+
+80:9C0F, 80:BA39 and 83:E10F complete the outstanding binding set. Default
+selection and the reserved Release build select all 2,158 verified entries:
+zero unbound candidates, zero drafts. This resolves all 38 requested entries
+and the historical list of 96. Selection coverage does not measure total
+interpreter elimination or whole-game native execution.
+
+The scene consumer retains semantic callback C and clocks all nine selectors
+across 57 phases and 35 original child sites. C0B7 operands are genuine child
+calls, while internal text-VM compositions keep their inline reader. Sound
+entry executes its original four-opcode preparation before the existing
+native polling/transfer kernels. Object continuation executes its original
+eight-opcode dispatch prefix before its original group handler. The complete
+object VM remains available through E0FC; later unsupported continuations
+and timing contexts retain original interpreter execution. No wait, guest
+frame or original behavior is removed to improve the coverage counter.
+
+Boot's owned interpreter scheduler boundary also admits the raw scene and
+object entries. It preserves the bounce owner, stack base, APU driver and
+unwind destination. Waiting, stopped and pending-interrupt states are excluded.
+Contract gates require verified metadata, matching bindings and compatible
+headers, including the scene reader contract and boot preparation API.
+
+One combined checkpoint passes 40,960 sound/object ROM/timed prefix cases,
+8,192 scene cases, 630 altered-child cases at 35 sites, 166 pure-admission
+cases, 27 scheduler ownership cases and 26 contract gates. Affected existing
+scene-owner, recovery/display and internal BA39 tests pass 8,192, 512 and
+1,024 states. Strict C11, feature-off compilation, default no-draft source
+selection and the reserved Windows Release build pass. Unrelated full-suite
+and other-platform rebuilds are deferred.
+
+Instrumented consumer sources matching the installed sources execute all
+three bodies through original callers in 51 paired frames: original text
+9D31 dispatch and object E0C0 JSR E0FC use real guest frames. Both paths
+return identically; parent decoded opcodes change from 4/22/8 to 0/0/0.
+A separate natural 5,100-frame startup/field sequence has identical CPU,
+full WRAM, PPU memories, pixels, PCM and exact clocks throughout; the sound
+body executes once, reducing its entry decoding from four opcodes to zero.
+The controlled object fixture excludes the existing E0FC native parent in
+both arms solely to exercise the otherwise bypassed E10F entry.
+
+Validation covers the combined final sources before the two semantic commits
+and consumer commit, rather than claiming independent intermediate runs.
+Tests, tools and ROM remain private; owner build and SRAM are untouched.
+Nothing is pushed.
+
 # Card and board session entries - 2026-10-25
 
 84:A705 and C826 bind the complete existing card and board controller C APIs.

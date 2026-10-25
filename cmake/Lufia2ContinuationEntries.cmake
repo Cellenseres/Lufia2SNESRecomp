@@ -1,0 +1,53 @@
+include_guard(GLOBAL)
+
+function(lufia2_continuation_entries_available output target)
+    set(${output} FALSE PARENT_SCOPE)
+    if(NOT target STREQUAL "Lufia2Recomp" OR LUFIA2_DECOMP_REFERENCE_ONLY)
+        return()
+    endif()
+    set(_names Lufia2UploadBootSoundBlocks Lufia2ObjectContinueScript)
+    set(_headers system.h object_script.h)
+    set(_addresses "80:9C0F" "83:E10F")
+    set(_bridges Lufia2DecompBridge_809C0F Lufia2DecompBridge_83E10F)
+    set(_metadata_path "${LUFIA2_DECOMP_RESOLVED_ROOT}/metadata/functions.toml")
+    set(_bindings_path "${CMAKE_SOURCE_DIR}/recomp/decomp_bindings.toml")
+    if(NOT EXISTS "${_metadata_path}" OR NOT EXISTS "${_bindings_path}")
+        return()
+    endif()
+    file(READ "${_metadata_path}" _metadata)
+    file(READ "${_bindings_path}" _bindings)
+    foreach(_index RANGE 0 1)
+        list(GET _names ${_index} _name)
+        list(GET _headers ${_index} _header)
+        list(GET _addresses ${_index} _address)
+        list(GET _bridges ${_index} _bridge)
+        set(_path "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/${_header}")
+        if(NOT EXISTS "${_path}")
+            return()
+        endif()
+        file(READ "${_path}" _api)
+        string(REGEX MATCH
+            "\\[\\[function\\]\\][^[]*name[ \t]*=[ \t]*\"${_name}\"[^[]*"
+            _contract "${_metadata}")
+        string(REGEX MATCH
+            "\\[\\[binding\\]\\][^[]*address[ \t]*=[ \t]*\"${_address}\"[^[]*"
+            _binding "${_bindings}")
+        if(NOT _api MATCHES "${_name}[(]" OR
+           NOT _contract MATCHES "address[ \t]*=[ \t]*\"${_address}\"" OR
+           NOT _contract MATCHES "status[ \t]*=[ \t]*\"verified\"" OR
+           NOT _binding MATCHES "bridge[ \t]*=[ \t]*\"${_bridge}\"")
+            return()
+        endif()
+    endforeach()
+    file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/system.h" _sound_api)
+    set(_actor_header "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/actor.h")
+    if(NOT EXISTS "${_actor_header}")
+        return()
+    endif()
+    file(READ "${_actor_header}" _actor_api)
+    if(NOT _sound_api MATCHES "Lufia2BeginBootSoundTransfer[(]" OR
+       NOT _actor_api MATCHES "Lufia2ObjectDispatchOpcode[(]")
+        return()
+    endif()
+    set(${output} TRUE PARENT_SCOPE)
+endfunction()

@@ -18811,6 +18811,62 @@ RecompReturn Lufia2DecompBridge_808035(CpuState *cpu) {
 #endif
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_SCENE_OPERATION)
+#include "scene_operation_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_80BA39(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_SCENE_OPERATION)
+    return ActorBridgeSceneOperation(cpu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x80ba39u);
+#endif
+}
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CONTINUATION_ENTRIES)
+#include "continuation_entry_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_809C0F(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CONTINUATION_ENTRIES)
+    return ActorBridgeContinuationEntry(cpu, 0x809c0fu, Lufia2BeginBootSoundTransfer,
+        sound_entry_opcodes, sizeof sound_entry_opcodes / sizeof sound_entry_opcodes[0]);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x809c0fu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_83E10F(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CONTINUATION_ENTRIES)
+    return ActorBridgeContinuationEntry(cpu, 0x83e10fu, Lufia2ObjectDispatchOpcode,
+        object_continue_opcodes, sizeof object_continue_opcodes / sizeof object_continue_opcodes[0]);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x83e10fu);
+#endif
+}
+
+bool Lufia2DecompOwnedEntryReady(CpuState *cpu, uint32_t entry) {
+    switch (entry) {
+    case 0x808035u:
+        return Lufia2DecompBootEntryReady(cpu, entry);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_SCENE_OPERATION)
+    case 0x80ba39u: {
+        SceneOperationClock clock = {0}; clock.call.cpu = cpu;
+        return cpu->host_return_valid <= 3u && cpu->host_return_valid != 1u &&
+            PrepareSceneOperationClock(&clock, entry);
+    }
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CONTINUATION_ENTRIES)
+    case 0x83e10fu:
+        return ObjectContinuationSupported(cpu);
+#endif
+    default: return false;
+    }
+}
+
 uint32_t Lufia2DecompMenuResumeReturn(CpuState *cpu, uint32_t landing) {
     if (Lufia2EquipmentContinuationOwner(landing))
         return Lufia2DecompEquipmentResumeReturn(cpu, landing);
