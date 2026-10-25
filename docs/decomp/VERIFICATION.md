@@ -1,3 +1,56 @@
+# Original card-table symbols and matches - 2026-10-25
+
+Eight complete original routines are reconstructed and bound: stopping a reel,
+preparing its symbol search, selecting a matching symbol, retaining the round
+symbols, building the match matrix, reading a column, appending a symbol and
+starting the reels. Their entries are 84:E5B5, E640, E673, E817, E829, E906,
+E91B and E92A. Independent original function boundaries remain separate.
+The hardware multiplication, four NOP checkpoints, scratch overwrites, signed
+reel crossings, ramp table reads, sound calls and frame waits are preserved.
+
+Shared original-ROM verification covers 32,768 semantic cases, 16 child
+unwinds and 80 changed returns. Another 4,096 nested cases exercise 49,287
+native child calls and 6,144 exact arithmetic-NOP states. The consumer union
+covers 4,096 timed ROM/ABI cases and 144 changed contexts at all 16 child
+sites, 288 pure admission guards and 30 metadata/API/binding gates. Strict
+MSVC, ARM GCC and Windows Clang, feature-off compilation, default no-draft
+selection and the reserved Windows Release build pass. No unchanged full
+regression is repeated for this checkpoint or its commits.
+
+All 128 isolated actual original-JSR caller contexts match CPU, full WRAM,
+serialized hardware and newly produced PCM. Each case starts in a fresh
+process with the native SPC driver active; both arms produce 409,231 fresh
+samples in total. Warmstart output is consumed through the existing DSP API;
+new samples are collected per frame without overflowing the ring. Short
+bounded calls can produce zero samples; this is not independent evidence
+about their audio cost. Reel waits retain normal NMI uploads and guest time.
+
+The shared 256 alternating desktop timing intervals preserve final state and
+fresh PCM. Median function-return microseconds, reference/native: stop
+398.55/385.65; prepare 47.10/46.95; find 560.20/252.10; remember 39.00/35.85;
+match matrix 246.25/100.25; read column 97.85/56.10; append 38.75/36.10;
+start 22559.65/21851.90. The first find mean was worse despite its median;
+a focused 64-interval follow-up retains that original result and measures
+reference/native means 498.39/252.86 and medians 542.70/240.30. This supports
+lower bounded search/matrix costs, not a whole-game or hardware speed claim.
+
+Actual native attempts, bodies, child landings, yields, completions and
+remaining interpreted opcodes are recorded separately. Stop/start parents
+can yield at original frame/sound boundaries; their post-wait execution can
+remain interpreted. Selecting a binding does not prove full-body native
+execution. No new wait hooks or relaxed batch admissions are introduced.
+Interpreter bus callbacks and native timed data callbacks are counted
+separately in the private probe. Timing includes this instrumentation; frame
+intervals include PCM consumption/hash work. Separate APU/PPU/submission
+costs, natural-gameplay throughput, ARM performance and 60 FPS are unmeasured.
+
+Timing plans use direct opcode indexes and bounded records without clearing
+unused buffers. The generated APU idle caller, its compiled object reference
+and linked definition are checked. Standard selection has 2,205 verified
+entries, zero drafts/unmatched bindings and 904 documented WRAM locations.
+The concurrent battle actor-row cache is preserved; this menu checkpoint
+does not establish battle-renderer acceptance.
+
 # Original command decoding and card-table rounds - 2026-10-25
 
 Four complete routines are reconstructed and bound: 84:9F1A consumes menu
