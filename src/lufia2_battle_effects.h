@@ -76,6 +76,13 @@ bool Lufia2BattleEffectsGpuArtRow(const uint16_t palette[32],unsigned source_x,
     unsigned source_y,unsigned count,bool repeat,uint32_t *pixels);
 bool Lufia2BattleEffectsGpuHudLine(Ppu *ppu,unsigned line,
     Lufia2BattleEffectsLineRenderer *draw,Lufia2BattleEffectsLineRenderer *indices);
+/* Materialize the current immutable row only before a pixel consumer. The
+ * callback is synchronous, invoked at most once, and never retained. A true
+ * return still asks the caller to prepare inputs before rendering that row. */
+typedef void Lufia2BattleEffectsLineInputs(void *context,Ppu *ppu,unsigned line);
+bool Lufia2BattleEffectsGpuHudLineWithInputs(Ppu *ppu,unsigned line,
+    Lufia2BattleEffectsLineRenderer *draw,Lufia2BattleEffectsLineRenderer *indices,
+    Lufia2BattleEffectsLineInputs *inputs,void *context);
 void Lufia2BattleEffectsGpuWindows(const Ppu *ppu,unsigned line,SnesPpuResolvedWindow out[6]);
 bool Lufia2BattleEffectsWindows(const Ppu *ppu, unsigned layer,
                                int left, int right, int *w1_left, int *w1_right,

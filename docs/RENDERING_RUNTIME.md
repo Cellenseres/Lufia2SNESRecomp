@@ -286,3 +286,27 @@ Both GCC/Clang sanitizer runs passed 1,500,000 original event-ordered states
 and 46,184,128 bounded-division cases. Missing refresh, epoch, APU-edge and
 distance guards were detected by negative controls. Unchanged semantic tests
 are reused; no new full decompilation regression or hardware timing is claimed.
+
+### Preparing only consumed battle data
+
+Consecutive rows from the same immutable raster source reuse its adjusted
+registers and layer bounds. A changed opaque HUD state, restored scene source
+or window-policy boundary still builds and compares the complete band. This
+avoids copying and comparing the same 412-byte band on every unchanged row.
+
+CPU OBJ pixels and their ownership mask are materialized only before an index
+consumer, a pending HUD replay or an admitted RGB row. Register and palette
+histories still advance on every row. The synchronous input callback is local
+to that row, runs at most once and never escapes into a GPU job. Existing eager
+callers keep their original interface. Sprite selection and guest status flags
+are not repeated; the fallback capture remains unchanged.
+
+The fixed battle replay reduced mean draw time from 25.811 to 24.405 ms with
+interval reuse, then to 23.078 ms with demanded inputs. Total frame time changed
+from 40.410 to 37.672 ms. Each stage retained all 119 serialized jobs, five
+PICA readbacks, the blank-frame output and complete saved state byte-for-byte.
+Both GCC/Clang sanitizer runs passed 4096 actual raster-builder comparisons and
+65,536 eager/lazy/legacy HUD cases, including poisoned unused OBJ scratch.
+Missing source, HUD coverage, window, index-input and pending-input guards,
+and duplicate preparation, were rejected by negative controls. These are still
+over-budget internal emulator results, not a finished performance release.

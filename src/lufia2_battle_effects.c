@@ -1115,8 +1115,8 @@ void Lufia2BattleEffectsHudLine(Ppu *ppu, unsigned line,
         }
     }
 }
-bool Lufia2BattleEffectsGpuHudLine(Ppu *ppu,unsigned line,Lufia2BattleEffectsLineRenderer *draw,
-    Lufia2BattleEffectsLineRenderer *indices) {
+bool Lufia2BattleEffectsGpuHudLineWithInputs(Ppu *ppu,unsigned line,Lufia2BattleEffectsLineRenderer *draw,
+    Lufia2BattleEffectsLineRenderer *indices,Lufia2BattleEffectsLineInputs *inputs,void *context) {
     if(!Lufia2BattleEffectsGpuCompatible(ppu) || !line || line>224u) return false;
     if(PPU_forcedBlank(ppu)) return true;
     if((ppu->screenEnabled[0]&2u) && PPU_bgTilemapAdr(ppu,1)==HUD_TILEMAP &&
@@ -1131,6 +1131,7 @@ bool Lufia2BattleEffectsGpuHudLine(Ppu *ppu,unsigned line,Lufia2BattleEffectsLin
          * the GPU generates their finished pixels, including colour math. */
         const HudScanline *scan=PPU_bigTiles(ppu,1)?NULL:CachedHudScanline(ppu,line);
         if(!scan || scan->has_visible_pixels) {
+            if(inputs) {inputs(context,ppu,line);inputs=NULL;}
             indices(ppu,line);
             for(unsigned x=0;x<256;++x)
                 if(((ppu->bgBuffers[0].data[x+kPpuExtraLeftRight]>>8)&15u)==1u) return false;
@@ -1139,11 +1140,17 @@ bool Lufia2BattleEffectsGpuHudLine(Ppu *ppu,unsigned line,Lufia2BattleEffectsLin
     if(ppu->screenEnabled[0]&5u) {
         memcpy(s_scene_registers,&ppu->inidisp,sizeof s_scene_registers);s_scene_valid=true;
         for(unsigned row=s_hud_pending_begin;row<s_hud_pending_end;++row) if(s_hud_pending[row]) {
+            if(inputs) {inputs(context,ppu,line);inputs=NULL;}
             DrawHudOverlay(ppu,row+1u,s_hud_registers[row],draw);s_hud_pending[row]=false;
         }
         s_hud_pending_begin=224;s_hud_pending_end=0;
     }
     return false;
+}
+
+bool Lufia2BattleEffectsGpuHudLine(Ppu *ppu,unsigned line,Lufia2BattleEffectsLineRenderer *draw,
+    Lufia2BattleEffectsLineRenderer *indices) {
+    return Lufia2BattleEffectsGpuHudLineWithInputs(ppu,line,draw,indices,NULL,NULL);
 }
 
 static void ExtendSceneWindow(int left, int right,

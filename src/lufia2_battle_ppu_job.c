@@ -95,12 +95,26 @@ static void RecordedObjects(Ppu *p,const SnesPpuFrameCapture *cap,const uint64_t
         }
     }
 }
-static void RecordedRow(Ppu *p,const SnesPpuFrameCapture *cap,const uint64_t *coverage,
+static void RecordedRegisters(Ppu *p,const SnesPpuFrameCapture *cap,
     const SnesPpuRasterBand *band,unsigned y) {
     memcpy(&p->inidisp,band->regs,PPU_SAVESTATE_REGS_SIZE);
     if(cap->cgram_lines) memcpy(p->cgram,cap->cgram_lines+y*256u,sizeof p->cgram);
     p->mosaicStartLine=(uint8_t)(y+1u);
-    RecordedObjects(p,cap,coverage,y);
+}
+typedef struct BattleRowInputs {
+    const SnesPpuFrameCapture *capture;
+    const uint64_t *coverage;
+    const bool *sprites;
+    unsigned y;
+    bool ready;
+} BattleRowInputs;
+static void PrepareRecordedInputs(void *context,Ppu *ppu,unsigned line) {
+    BattleRowInputs *row=context;
+    (void)line;
+    if(row->ready) return;
+    RecordedObjects(ppu,row->capture,row->coverage,row->y);
+    if(row->sprites) Lufia2BattleEffectsRestoreSpriteRow(row->sprites+row->y*kPpuBufWidth);
+    row->ready=true;
 }
 static bool RecordedSceneObjects(const Lufia2BattlePpuJob *c,Ppu *p,unsigned line) {
     const SnesPpuFrameCapture *cap=c->qualified_capture;
@@ -199,10 +213,12 @@ static SnesRecompPpuResult PrepareInternal(Lufia2BattlePpuJob *c,
     for(unsigned bi=0;bi<cap->band_count;++bi) {
         const SnesPpuRasterBand *band=cap->bands+bi;
         for(unsigned y=band->y_begin;y<band->y_end;++y) {
-            RecordedRow(p,cap,c->qualified_coverage,band,y);
-            if(c->sprite_rows) Lufia2BattleEffectsRestoreSpriteRow(c->sprite_rows+y*kPpuBufWidth);
+            RecordedRegisters(p,cap,band,y);
             if(PPU_forcedBlank(p)) {Lufia2PpuUpdateBrightness(p);continue;}
-            if(Lufia2BattleEffectsGpuHudLine(p,y+1u,Lufia2PpuReplayBattleSourceLine,Lufia2PpuReplayBattleIndexLine)) {
+            BattleRowInputs inputs={cap,c->qualified_coverage,c->sprite_rows,y,false};
+            if(Lufia2BattleEffectsGpuHudLineWithInputs(p,y+1u,Lufia2PpuReplayBattleSourceLine,
+                Lufia2PpuReplayBattleIndexLine,PrepareRecordedInputs,&inputs)) {
+                PrepareRecordedInputs(&inputs,p,y+1u);
                 /* An admitted title/party row returns before any scene draw
                  * or mutation. Its recorded registers/objects are already
                  * installed above; do not restore the same row twice. */
@@ -266,10 +282,21 @@ static SnesRecompPpuResult PrepareInternal(Lufia2BattlePpuJob *c,
     Lufia2CapturePpuLayoutBoundaries(window_boundaries,live);
     SnesPpuResolvedWindow windows[6];
     const size_t first=offsetof(SnesPpuRasterBand,bg_mode);
+    const SnesPpuRasterBand *previous_source=NULL;
+    bool previous_covered=false;
     for(unsigned bi=0;bi<cap->band_count;++bi) {
         const SnesPpuRasterBand *original=cap->bands+bi;
         for(unsigned y=original->y_begin;y<original->y_end;++y) {
-            SnesPpuRasterBand next=c->scene_rows[y]?c->scenes[y]:*original;
+            const SnesPpuRasterBand *source=c->scene_rows[y]?c->scenes+y:original;
+            const bool covered=c->hud_rows[y] && !c->scene_rows[y];
+            const bool inherited=previous_source==source && previous_covered==covered;
+            previous_source=source;previous_covered=covered;
+            /* A repeated immutable source has the same adjusted registers and
+             * layer bounds. Window policy can change only at its known cuts. */
+            if(band_count && inherited && !window_boundaries[y+1u]) {
+                c->bands[band_count-1u].y_end=(uint16_t)(y+1u);continue;
+            }
+            SnesPpuRasterBand next=*source;
             next.y_begin=(uint16_t)y;next.y_end=(uint16_t)(y+1u);
             memcpy(&p->inidisp,next.regs,PPU_SAVESTATE_REGS_SIZE);
             /* Match the software HUD viewport before exporting tile data.
@@ -282,7 +309,7 @@ static SnesRecompPpuResult PrepareInternal(Lufia2BattlePpuJob *c,
                 next.bg[2].margin_left=(uint8_t)p->extraLeftCur;
                 next.bg[2].margin_right=(uint8_t)p->extraRightCur;
             }
-            if(c->hud_rows[y] && !c->scene_rows[y]) {next.forced_blank=true;next.regs[0]|=0x80u;}
+            if(covered) {next.forced_blank=true;next.regs[0]|=0x80u;}
             const bool same=band_count &&
                 !memcmp((const uint8_t *)(c->bands+band_count-1u)+first,
                     (const uint8_t *)&next+first,sizeof next-first);
