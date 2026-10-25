@@ -13064,3 +13064,12 @@ pending initialization or active channels still reject native admission.
 Strict C11,feature-off,reserved Windows Release and default selection share
 this checkpoint. Tests/tools/ROM stay private;unrelated full regression is
 deferred. Original standalone semantics are unchanged. Nothing is pushed.
+
+## Required consumer performance checkpoint
+
+Before adding or changing runtime bindings, read the mandatory
+[consumer performance contract](../RENDERING_RUNTIME.md#performance-requirements-for-consumer-integration).
+At the existing shared validation checkpoint, check actual native admission,
+hook interactions, generated caller composition and measured host work.
+Preserve original-ROM semantics; host optimizations need their own contract.
+Semantic verification, ABI correctness and measured performance are separate.
