@@ -352,8 +352,12 @@ reads/writes, progress masks, opcode clock boundaries, APU work and refresh
 accounting remain on their existing paths. This belongs to the consumer bridge,
 not to the standalone semantic decompilation.
 
-Sound opcode metadata uses a sorted lookup with the original linear lookup as
-the missing-key fallback. Sound and fixed-span comparisons cover complete CPU
+Sound opcode metadata builds a compact index once from its constant table,
+keeping the first definition and the original linear fallback for extra pages.
+Native CPU checkpoints execute on the game thread. The poll loop publishes
+changed registers at its branch checkpoint and normalizes the first entry,
+including a stale packed P byte; it omits only subsequent identity copies.
+The verified semantic read/branch routines still execute for every iteration. Sound and fixed-span comparisons cover complete CPU
 state, final bus latches, ordered data accesses, progress and clock accounting;
 observer, latch, bank-boundary and transfer-count negative controls are required.
 
@@ -392,3 +396,13 @@ original CPU RGB reference, and the complete saved state was unchanged. This
 is still an over-budget internal result. Additional phase scopes identify HUD,
 frame-freeze, source and art work; sampled scopes must not be added to inclusive
 parent times, and unmeasured zero fields are not evidence that work is absent.
+
+A second matched ARM batch with IPO enabled reduced boot guest work from
+86.548 to 85.202 ms by omitting identity poll stores, then to 84.581 ms with
+the metadata index. Battle guest/frame costs were effectively unchanged in
+that batch. Each GCC/Clang sanitizer comparison exercised 65,536 actual
+semantic sound/frame-poll runs; negative controls detected missing initial
+P normalization and missing publication of changed branch state. The full
+3580-frame scene suite retained all ten per-frame guest/control counters.
+IPO is a private console build experiment, not a change to game semantics or
+a standalone-decomp requirement. These figures remain above the frame budget.

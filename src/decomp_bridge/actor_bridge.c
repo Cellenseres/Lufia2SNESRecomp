@@ -3111,15 +3111,28 @@ static void ActorBridgeTimedWrite(void *context, uint32_t address, uint8_t value
 }
 
 static const ActorTimedOpcode *ActorBridgeSoundOpcode(uint16_t pc) {
-    unsigned first=0,end=sizeof sound_upload_opcodes/sizeof sound_upload_opcodes[0];
-    const unsigned count=end;
-    while(first<end) {
-        const unsigned middle=first+(end-first)/2u;
-        if(sound_upload_opcodes[middle].pc<pc)first=middle+1u;
-        else end=middle;
+    static uint8_t slots[2][256];
+    static bool indexed;
+    const unsigned count = sizeof sound_upload_opcodes / sizeof sound_upload_opcodes[0];
+    _Static_assert(sizeof sound_upload_opcodes / sizeof sound_upload_opcodes[0] < 256u,
+                   "sound opcode index must fit its slot representation");
+    if (!indexed) {
+        for (unsigned i = 0; i < count; ++i) {
+            const unsigned page = sound_upload_opcodes[i].pc >> 8;
+            if (page != 0x99u && page != 0x9cu) continue;
+            uint8_t *slot = &slots[page == 0x9cu][sound_upload_opcodes[i].pc & 255u];
+            if (!*slot) *slot = (uint8_t)(i + 1u);
+        }
+        indexed = true;
     }
-    if(first<count && sound_upload_opcodes[first].pc==pc)return sound_upload_opcodes+first;
-    for(unsigned i=0;i<count;++i)if(sound_upload_opcodes[i].pc==pc)return sound_upload_opcodes+i;
+    const unsigned page = pc >> 8;
+    if (page == 0x99u || page == 0x9cu) {
+        const unsigned slot = slots[page == 0x9cu][pc & 255u];
+        if (slot) return sound_upload_opcodes + slot - 1u;
+    }
+    /* An additional metadata page remains correct before its index is added. */
+    for (unsigned i = 0; i < count; ++i)
+        if (sound_upload_opcodes[i].pc == pc) return sound_upload_opcodes + i;
     return NULL;
 }
 static void ActorBridgeTimedFetch(ActorTimedBus *bus,uint32_t pc,unsigned fetched) {
@@ -3337,7 +3350,10 @@ static void ActorBridgePollRunCheckpoint(void *context, Lufia2CpuState *state,
     ActorPollRun *run = context;
     ActorTimedBus *bus = &run->bus;
     ActorBridgeTimedFinish(bus, pc);
-    ActorBridgeStore(bus->cpu, state);
+    /* The admitted read/branch iteration changes semantic registers only
+     * between its poll and branch checkpoints. At entry they were just loaded
+     * or retired at the preceding branch; clock accounting changes no flags. */
+    if (pc != run->entry || !bus->count) ActorBridgeStore(bus->cpu, state);
     const ActorTimedOpcode *op = pc == run->entry ? &run->poll : &run->branch;
     bus->opcode = op;
     bus->word_start =
@@ -3387,7 +3403,8 @@ static void ActorBridgePollRun(CpuState *cpu, uint32_t entry,
             break;
         ActorBridgeTimedFinish(&run.bus, result.pc);
         next = result.pc;
-        ActorBridgeStore(cpu, &state);
+        /* The branch checkpoint already published these exact registers;
+         * the semantic branch/return and its clock retirement do not edit them. */
     } while (next == entry && run.bus.count < 16u &&
              ActorBridgePollRunSupported(cpu, entry));
     if (!run.bus.count)
