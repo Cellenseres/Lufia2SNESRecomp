@@ -3,6 +3,9 @@
 #include <stdint.h>
 
 #include "cpu_state.h"
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CURSOR_INPUT)
+static void ActorBridgeCursorInputPhase(CpuState *cpu, uint32_t entry);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
 static void ActorBridgeCardTableHdmaHook(CpuState *cpu, uint32_t pc);
 #endif
@@ -3816,6 +3819,12 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CURSOR_INPUT)
+    interp_bridge_set_pre_opcode_hook(0x84a127u, ActorBridgeCursorInputPhase);
+    interp_bridge_set_pre_opcode_hook(0x84a222u, ActorBridgeCursorInputPhase);
+    interp_bridge_set_pre_opcode_hook(0x84a257u, ActorBridgeCursorInputPhase);
+    interp_bridge_set_pre_opcode_hook(0x84a2acu, ActorBridgeCursorInputPhase);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_MOTION) && defined(LUFIA2_CARD_TABLE_COLUMN_SPANS)
     interp_bridge_set_pre_opcode_hook(0x84ea30u, ActorBridgeColumnSpan);
     interp_bridge_set_pre_opcode_hook(0x84eab4u, ActorBridgeColumnSpan);
@@ -19948,5 +19957,18 @@ RecompReturn Lufia2DecompBridge_84C7A6(CpuState *cpu) {
 #else
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     return ActorBridgeFallback(cpu, &frame, 0x84c7a6u);
+#endif
+}
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CURSOR_INPUT)
+#include "cursor_input_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84A112(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CURSOR_INPUT)
+    return ActorBridgeCursorInput(cpu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84a112u);
 #endif
 }

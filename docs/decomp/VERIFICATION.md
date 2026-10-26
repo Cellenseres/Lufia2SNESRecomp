@@ -1,3 +1,45 @@
+# Special-menu cursor input checkpoint — 2026-10-26
+
+The complete verified 84:A112 cursor algorithm is selected through shared
+semantic phases. Four bounded hooks stop before original child JSRs; child
+calls, waits and returns remain owned by the existing runtime. Indexed timing
+plans reuse hook-page admission without new wait exemptions or nested child
+dispatch. Unsupported states keep the original-code fallback.
+
+The shared checkpoint covers the standalone parent, child/edge/composition
+contracts recorded in DECOMP_STATUS, 20,480 phase prefixes and 10,240 clocked
+ROM/ABI cases. The first 6,144 unaffected phase cases were reused after an
+indexed-RMW timing correction; the affected final 4,096 pass separately.
+Another 240 admission cases, 432 actual registry checks, seven CMake gates,
+feature-undefined consumer compilation and Windows Release pass. Strict
+MSVC/ARM GCC/Clang semantic results are reused unchanged. No unrelated full
+regression or independent test of each intermediate commit is claimed.
+
+Sixty-four reference/candidate pairs inject the original JSR into an equally
+restored, naturally warmed production context. They cover two data banks,
+FastROM settings, static/animated definitions and real directional input.
+Return and natural frame-end CPU/WRAM/hardware plus fresh PCM match exactly.
+All four hooks execute; reference native-body counts are zero. Wait attempts
+match in all pairs. Admissions are equal in 48, one higher in 12 and one lower
+in four; these counts are not claimed identical. Certified wait classification,
+budgets and device guards are unchanged. Compiled relative and absolute APU
+idle calls and the production link map are checked separately.
+
+For one scoped context, raw cursor opcodes fall from 876 to 54, with 822 native
+opcodes across 74 phase bodies. Whole-interval bridge byte-read callbacks fall
+from 7,323 to 4,949; byte writes remain 1,118. The 48 alternating fixed-affinity
+cost pairs include counter and PCM-consumption work. Reference/candidate median
+return intervals in four contexts are 4,128/3,331, 8,030/8,055, 7,685/7,433 and
+8,245/7,869 us. Samples scatter, with mixed mean/median rankings. These are
+bounded desktop observations, not robust general acceleration, natural game
+frequency, isolated frame costs, ARM performance or hardware/60-FPS acceptance.
+Guest/APU/PPU/submission costs are not separately measured in this fixture.
+
+Private failed controls are retained: a missing instrumentation brace executed
+extra opcodes, and a save-without-restore arm was compared with a restored arm.
+Neither is production evidence. Final pairs restore both arms and apply hook
+controls after restore and seeding. Tests, captures and proof tools stay private.
+
 # Special-menu cursor and payout checkpoint — 2026-10-26
 
 Four verified original routines (84:A000/A02A/A0DA/C7A6) are selected through
