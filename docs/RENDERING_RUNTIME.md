@@ -517,3 +517,50 @@ semantic, codec and whole-game regressions are not repeated. Tests, images,
 fixtures and detailed source/output hashes stay private in the task worktree's
 build/menu-info directory. The task branch is codex/menu-info-regression;
 main, the semantic/platform pins and owner build/windows are untouched.
+
+### Item/spell list scrolling — regression repair, 2026-10-26
+
+Main 9cce334 integrates the information-window repair above.
+
+The same d2e388e import also removed d9133c4's list-scrolling repair. Inventory
+glyphs traverse twelve-pixel screen bands; deriving independently movable text
+objects from eight-pixel tile rows splits names during the original animation.
+List collection again follows the live viewport at WRAM 1532, with six fixed
+screen bands, for either item or two-column spell lists. Description windows
+retain their separate intact text region and suppress inventory bindings.
+
+The complete twelve-pixel capture height is stored in each list text object.
+Thus occupancy, source ownership, RGB composition, retained blit dirty rows,
+primitive reuse and indexed claims inherit the same extent without additional
+per-pixel work or separate flag caches. Existing eight-pixel layout destinations
+retain their four-pixel scroll gap. Object IDs and the layout file format stay
+unchanged. The structure key includes viewport position and active row HDMA.
+No semantic decompilation, runtime binding, guest clock or APU seam changed.
+
+One shared checkpoint covers 1,278 paired production frames: 317 each for native,
+wide default and wide shipped-layout Items, and 327 for shipped-layout Spells.
+The route scrolls down and back up, then opens/closes information. CPU, full
+WRAM, PPU registers/VRAM/OAM/CGRAM, DMA and freshly rendered PCM hashes match
+throughout. Native and default-wide pictures are unchanged; all 207 captured
+default-wide RGB centres match native. Corrected authored-layout output changes
+30 Item and 12 Spell frames. Selected before/after scroll images were inspected.
+The replay also checks admitted retained blits against RGB composition and
+admitted indexed list claims for their full twelve-pixel height. No GPU or
+console execution is implied by these CPU-side plan checks.
+
+Matched scrolling-interval medians (guest / PPU+menu / PCM microseconds):
+
+| Profile | Before | After |
+| --- | ---: | ---: |
+| Wide default | 688.7 / 1959.8 / 15.0 | 704.3 / 1957.4 / 15.0 |
+| Wide shipped layout | 597.2 / 1659.2 / 12.6 | 601.1 / 1649.9 / 12.7 |
+| Spell shipped layout | 607.8 / 2320.3 / 13.7 | 618.7 / 2310.9 / 13.5 |
+
+These are single matched replays, not a performance promotion. Submission and
+waiting are unmeasured. Windows Release passes; unrelated semantic suites were
+not repeated. Private sources, replay logs and hashes are in build/menu-scroll.
+The initial private linker glob picked up obsolete split-bank objects; the
+fixture now uses exactly the actual production link's input objects. The native
+centre check compares RGB, since native and overlay alpha conventions differ.
+The first two completed profiles were reused after correcting an overly strict
+fixture expectation that even the unedited layout must change its picture.

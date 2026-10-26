@@ -25,6 +25,8 @@ enum { WIDTH = LUFIA2_UI_NATIVE_WIDTH, HEIGHT = LUFIA2_UI_HEIGHT,
        WINDOW = 0, TEXT = 1, SPRITE = 2, GROUP = 3, CURSOR = 4,
        CURSOR_POINT = 5, TEXT_REGION = 6, SPRITE_SLOT = 7, WINDOW_SOURCE = 8 };
 enum { PARTY_HIGHLIGHT = 9 };
+enum { LIST_VIEWPORT_TOP = 0x1532, LIST_ROW_SPACING = 12,
+       LIST_ROW_GAP = 4, LIST_TEXT_SLOT = 254 };
 enum { MAIN_MENU_SCENE = 0x6098f96f, TIME_GOLD_WINDOW = 0x1000150e,
        GOLD_TEXT = 0x20001916, LEGACY_GOLD_SUFFIX = 0x2000191c };
 typedef struct MenuLayoutRecord {
@@ -125,7 +127,7 @@ static struct {
     unsigned count,theme;
     uint32_t scene;
     uint64_t layout;
-    bool valid, description_window;
+    bool valid, description_window, text_rows;
 } s_menu_structure;
 
 static const uint8_t *SpriteSnapshot(unsigned snapshot) {
@@ -475,22 +477,28 @@ static void CollectDescriptionText(void) {
     }
 }
 static void CollectListSlots(const Ppu *ppu) {
-    if ((s_theme != 2 && s_theme != 3) || s_description_window) return;
+    if ((s_theme != 2 && s_theme != 3) || !s_text_rows || s_description_window) return;
     /* $82:AC84 and $82:8526 reserve six rows. */
     unsigned columns = s_theme == 3 ? 2 : 1;
     for (unsigned row = 0; row < 6; ++row) for (unsigned column = 0; column < columns; ++column) {
         unsigned tile = (0x3448u - 0x3000u + row * 0x80u + column * 0x1cu) / 2;
         int x = (tile % 32) * 8 - ppu->hScroll[2];
-        int y = TextRowY(ppu, tile / 32);
+        /* The ROM scrolls glyphs through fixed twelve-pixel screen bands.
+           Following tile rows moves fragments independently of their item. */
+        int y = (g_ram[LIST_VIEWPORT_TOP] | (unsigned)g_ram[LIST_VIEWPORT_TOP + 1] << 8)
+            - 1 + row * LIST_ROW_SPACING;
         for (unsigned i = 0; i < s_count; ++i) {
             const Lufia2MenuUiObject *window = &s_objects[i];
-            if (window->kind != WINDOW || x < window->x + 8 || y < window->y + 8 ||
+            if (window->kind != WINDOW || x < window->x + 8 || y < window->y + 6 ||
                 x + 8 > window->x + window->width - 8 ||
-                window->height < 64 || TextRowY(ppu, 17) + 8 > window->y + window->height) continue;
+                window->height < 64 || y + LIST_ROW_SPACING > window->y + window->height - 2) continue;
             unsigned remaining = window->x + window->width - 8 - x;
             unsigned width = columns == 2 && remaining > 112 ? 112 : remaining;
             uint32_t parent = window->id;
-            int index = AddObject(0x20000000u | (tile / 32) << 8 | (tile % 32), TEXT, x, y, width, 8, 255);
+            /* Store the full capture extent in the object so occupancy,
+               retained caches, RGB and indexed plans share the same bounds. */
+            int index = AddObject(0x20000000u | (tile / 32) << 8 | (tile % 32),
+                TEXT, x, y, width, LIST_ROW_SPACING, LIST_TEXT_SLOT);
             if (index >= 0) s_objects[index].parent = parent;
             break;
         }
@@ -889,8 +897,9 @@ static bool MenuStructure(Ppu *ppu) {
     if(s_menu_structure.valid && s_menu_structure.layout==s_layout_generation &&
        s_menu_structure.members==g_ram[0x0a7a] &&
        s_menu_structure.description_window==s_description_window &&
-       (!s_description_window || s_menu_structure.description_top==
-            (g_ram[0x1532] | (unsigned)g_ram[0x1533] << 8)) &&
+       s_menu_structure.text_rows==s_text_rows &&
+       s_menu_structure.description_top==
+            (g_ram[LIST_VIEWPORT_TOP] | (unsigned)g_ram[LIST_VIEWPORT_TOP + 1] << 8) &&
        !memcmp(s_menu_structure.scroll,scroll,sizeof scroll) &&
        !memcmp(s_menu_structure.text_y,s_text_row_y,sizeof s_text_row_y) &&
        !memcmp(s_menu_structure.rom_tables,tables,sizeof tables) &&
@@ -955,6 +964,7 @@ static bool MenuStructure(Ppu *ppu) {
     memcpy(s_menu_structure.objects,s_objects,s_count*sizeof *s_objects);
     memcpy(s_menu_structure.text_occupancy,s_text_occupancy,sizeof s_text_occupancy);
     s_menu_structure.description_window=s_description_window;
+    s_menu_structure.text_rows=s_text_rows;
     s_menu_structure.description_top=(uint16_t)(g_ram[0x1532] | (unsigned)g_ram[0x1533] << 8);
     s_menu_structure.valid=true;return true;
 }
@@ -1531,6 +1541,10 @@ static MenuDestination ResolveObjectDestination(unsigned index, unsigned depth) 
         if (l) {
             d.x = p.x + l->x; d.y = p.y + l->y;
             d.width = l->width; d.height = l->height; d.visible &= l->visible != 0;
+            /* Existing layouts describe eight-pixel letters. Preserve their
+               four-pixel scroll gap without changing the file format. */
+            if (o->kind == TEXT && o->slot == LIST_TEXT_SLOT &&
+                d.height >= LIST_ROW_SPACING - LIST_ROW_GAP) d.height += LIST_ROW_GAP;
         }
     } else if (l) {
         d.x = l->x + ((int)s_width - CANVAS) / 2; d.y = l->y;
