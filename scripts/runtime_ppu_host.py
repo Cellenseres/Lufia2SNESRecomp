@@ -92,6 +92,22 @@ def record_sprites(original):
     return original
 
 
+def qualify_sprite_effects(fast):
+    # The evaluator cannot execute guest code between selection and tile fetch.
+    # Keep the selected OAM order and reuse its read-only effect classification.
+    fast = replace(fast, '  uint8_t foundSprites[128];',
+        '  uint8_t foundSprites[128];\n  bool foundEffects[128];')
+    fast = replace(fast, '      if (Lufia2BattleEffectsSprite(ppu, index >> 1) ||',
+        '      const bool effect = Lufia2BattleEffectsSprite(ppu, index >> 1);\n'
+        '      if (effect ||')
+    fast = replace(fast, '          foundSprites[spritesFound - 1] = index;',
+        '          foundSprites[spritesFound - 1] = index;\n'
+        '          foundEffects[spritesFound - 1] = effect;')
+    fast = replace(fast, '            const bool battle_effect_sprite = Lufia2BattleEffectsSprite(ppu, slot);',
+        '            const bool battle_effect_sprite = foundEffects[i - 1];')
+    return fast
+
+
 def transform_sprites(text):
     name = 'ppu_evaluateSprites'
     matches = [(match, end) for match, end in definitions(text) if match['name'] == name]
@@ -124,6 +140,7 @@ def transform_sprites(text):
     fast = replace(fast, 'uint32 bits = plane >> shift;', 'uint32 bits = plane >> (4 * shift);')
     fast = replace(fast, 'int pixel = (bits >> 0) & 1 | (bits >> 7) & 2 |\n                    (bits >> 14) & 4 | (bits >> 21) & 8;',
         'int pixel = bits & 15u;')
+    fast = qualify_sprite_effects(fast)
     wrapper = '''static bool ppu_evaluateSprites(Ppu *ppu, int line) {
   if (lufia2_ppu_host_costs_enabled)
     return ppu_evaluateSprites_Host(ppu, line);

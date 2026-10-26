@@ -166,7 +166,7 @@ bool Lufia2DecompFramePollBatchSupported(uint32_t entry) {
  * No pointer is retained past this call, and mapper/allocation/timing refusal
  * leaves every latch untouched for the ordinary fetch callbacks. */
 bool Lufia2DecompPollFetchOpcode(CpuState *cpu, uint32_t pc, uint32_t fetched) {
-    if (fetched < 2u || fetched > 4u || (pc & 0xff000000u) ||
+    if (fetched < 1u || fetched > 4u || (pc & 0xff000000u) ||
         !s_frame_return_batch_allowed || s_interp_bus_timing_active ||
         Lufia2NativeObserversActive() || !g_snes ||
         !g_snes->cart || g_snes->cart->type != CART_LOROM ||

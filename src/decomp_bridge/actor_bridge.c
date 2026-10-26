@@ -3110,18 +3110,31 @@ static void ActorBridgeTimedWrite(void *context, uint32_t address, uint8_t value
     bus->progress |= progress;
 }
 
+static const ActorTimedOpcode *ActorBridgeSoundOpcode(uint16_t pc) {
+    unsigned first=0,end=sizeof sound_upload_opcodes/sizeof sound_upload_opcodes[0];
+    const unsigned count=end;
+    while(first<end) {
+        const unsigned middle=first+(end-first)/2u;
+        if(sound_upload_opcodes[middle].pc<pc)first=middle+1u;
+        else end=middle;
+    }
+    if(first<count && sound_upload_opcodes[first].pc==pc)return sound_upload_opcodes+first;
+    for(unsigned i=0;i<count;++i)if(sound_upload_opcodes[i].pc==pc)return sound_upload_opcodes+i;
+    return NULL;
+}
+static void ActorBridgeTimedFetch(ActorTimedBus *bus,uint32_t pc,unsigned fetched) {
+    if(Lufia2DecompPollFetchOpcode(bus->cpu,pc,fetched)) {
+        bus->master=(uint64_t)fetched*cpu_region_speed(pc);
+        bus->transfers=fetched;
+    } else for(unsigned byte=0;byte<fetched;++byte)
+        (void)ActorBridgeTimedRead(bus,pc+byte);
+}
 static void ActorBridgeSoundUploadCheckpoint(void *context, Lufia2CpuState *state,
                                              uint32_t pc) {
     ActorTimedBus *bus = context;
     ActorBridgeTimedFinish(bus, pc);
     ActorBridgeStore(bus->cpu, state);
-    const ActorTimedOpcode *op = NULL;
-    for (unsigned i = 0u;
-         i < sizeof sound_upload_opcodes / sizeof sound_upload_opcodes[0]; ++i)
-        if (sound_upload_opcodes[i].pc == (uint16_t)pc) {
-            op = sound_upload_opcodes + i;
-            break;
-        }
+    const ActorTimedOpcode *op = ActorBridgeSoundOpcode((uint16_t)pc);
     if (!op)
         return;
     bus->opcode = op;
@@ -3132,8 +3145,7 @@ static void ActorBridgeSoundUploadCheckpoint(void *context, Lufia2CpuState *stat
     bus->progress = false;
     bus->cycles = op->cycles + (op->direct && (state->direct_page & 0xffu)) +
                   (op->indexed && state->y >= 0x100u);
-    for (unsigned byte = 0u; byte < op->fetched; ++byte)
-        (void)ActorBridgeTimedRead(bus, pc + byte);
+    ActorBridgeTimedFetch(bus,pc,op->fetched);
 }
 
 enum {
@@ -3430,13 +3442,7 @@ static void ActorBridgeSoundPollRun(CpuState *cpu, uint32_t entry) {
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_TRANSFER_OPCODES)
 static void ActorBridgeSoundTransferOpcode(CpuState *cpu, uint32_t entry) {
-    const ActorTimedOpcode *opcode = NULL;
-    for (unsigned i = 0u;
-         i < sizeof sound_upload_opcodes / sizeof sound_upload_opcodes[0]; ++i)
-        if (sound_upload_opcodes[i].pc == (uint16_t)entry) {
-            opcode = sound_upload_opcodes + i;
-            break;
-        }
+    const ActorTimedOpcode *opcode = ActorBridgeSoundOpcode((uint16_t)entry);
     const bool wide = entry == 0x809c38u || entry == 0x809c3bu ||
                       (entry >= 0x809c4cu && entry <= 0x809c58u);
     if (!opcode || entry >> 16 != 0x80u || cpu->m_flag != !wide ||

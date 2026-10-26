@@ -18,7 +18,10 @@ static const char *const s_names[LUFIA2_PERF_COUNT] = {
     "native_bus_sample", "native_clock_sample", "native_spc_body_sample",
     "battle_freeze", "battle_job", "battle_scene", "battle_hud",
     "battle_overlay", "battle_art", "battle_post",
-    "ppu_run_line", "ppu_record", "battle_policy"
+    "ppu_run_line", "ppu_record", "battle_policy",
+    "hud_source", "hud_scan", "hud_geometry", "hud_title", "hud_party",
+    "job_objects", "job_registers", "job_sources",
+    "job_freeze_frame", "job_compact", "job_edge_sample", "job_art_row", "job_windows"
 };
 
 void Lufia2PerfInit(Lufia2PerfClock clock, bool enabled) {

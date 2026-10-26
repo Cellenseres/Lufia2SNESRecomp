@@ -36,7 +36,10 @@ static void FinishFixedSpanOpcode(FixedSpanClock *clock) {
 static void BeginFixedSpanOpcode(FixedSpanClock *clock) {
     while (!clock->remaining && clock->index < clock->count) {
         const FixedSpanOpcode *timing = clock->timing + clock->index;
-        for (unsigned byte = 0u; byte < timing->fetched; ++byte) {
+        const uint32_t pc=clock->bank|timing->pc;
+        if(Lufia2DecompPollFetchOpcode(clock->cpu,pc,timing->fetched)) {
+            clock->fetch_master+=(uint64_t)timing->fetched*cpu_region_speed(pc);
+        } else for (unsigned byte = 0u; byte < timing->fetched; ++byte) {
             bool progress = false;
             const uint32_t address = clock->bank | (uint16_t)(timing->pc + byte);
             (void)Lufia2DecompFrameReturnReadByte(clock->cpu, address, &progress);

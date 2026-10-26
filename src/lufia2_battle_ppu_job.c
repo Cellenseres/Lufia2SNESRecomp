@@ -176,6 +176,19 @@ static bool RecordGpuScene(void *context,Ppu *p,unsigned line) {
     }
     c->scene_rows[y]=1;return true;
 }
+static SnesRecompPpuResult FreezeJobFrame(SnesRecompPpuFrame *frame,const SnesPpuFrameCapture *cap) {
+    return snesrecomp_ppu_frame_freeze(frame,cap,NULL,0);
+}
+static SnesRecompPpuResult CompactJobArt(const SnesRecompPpuJobImage *images,
+    SnesRecompPpuSource *sources,uint16_t count,uint32_t *packed,uint32_t capacity,SnesRecompPpuJobImage *output_image) {
+    return snesrecomp_ppu_source_image_compact(images,0,sources,count,packed,capacity,
+        SNESRECOMP_PPU_SOURCE_COMPACT_EDGE_TILES,output_image,sources);
+}
+static SnesRecompPpuResult SampleJobEdge(const SnesPpuFrameCapture *cap,const SnesPpuRasterBand *band,
+    const SnesRecompWindowSpan *windows,unsigned count,uint8_t layer,uint16_t x,uint16_t y,
+    uint8_t *opaque_screens,uint8_t *priority) {
+    return snesrecomp_ppu_mode1_layer_screens_windows(cap,band,windows,count,layer,x,y,opaque_screens,priority);
+}
 static SnesRecompPpuResult PrepareInternal(Lufia2BattlePpuJob *c,
     const Ppu *live,const SnesRecompPpuFrame *frame,SnesRecompPpuJobImage *images,uint16_t *image_count,
     SnesRecompPpuOverlay *overlays,uint16_t *overlay_count,const SnesRecompPpuSource **sources,uint16_t *source_count) {
@@ -334,7 +347,7 @@ static SnesRecompPpuResult PrepareInternal(Lufia2BattlePpuJob *c,
         resolved.raster_memory_flags|=SNES_PPU_RASTER_MEMORY_CGRAM;
     }
     resolved.resolved_windows=c->windows;resolved.obj_pixels=c->objects;resolved.obj_pitch=width;
-    const SnesRecompPpuResult frozen=snesrecomp_ppu_frame_freeze(c->frame,&resolved,NULL,0);
+    const SnesRecompPpuResult frozen=FreezeJobFrame(c->frame,&resolved);
     if(frozen!=SNESRECOMP_PPU_OK) return frozen;
     cap=snesrecomp_ppu_frame_capture(c->frame);
     /* Deferred HUD scenes can replace a row's captured palette. Resolve art
@@ -361,12 +374,13 @@ static SnesRecompPpuResult PrepareInternal(Lufia2BattlePpuJob *c,
             if(source_y<0) source_y=0;
             if(source_y>=224) source_y=223;
             uint8_t priorities[2][2]={{0,0},{0,0}};
-            for(unsigned sub=0;sub<2;++sub) for(unsigned side=0;side<2;++side) {
+            for(unsigned side=0;side<2;++side) {
                 const int edge=side?right-1:left;
-                bool opaque=false;uint8_t priority=0;
-                if(edge>=0 && edge<(int)width && snesrecomp_ppu_mode1_layer_sample_windows(cap,b,windows,window_count,0,sub,
-                    (uint16_t)edge,(uint16_t)y,&opaque,&priority)!=SNESRECOMP_PPU_OK) return SNESRECOMP_PPU_UNSUPPORTED;
-                priorities[sub][side]=opaque?priority:0;
+                uint8_t opaque_screens=0,priority=0;
+                if(edge>=0 && edge<(int)width && SampleJobEdge(cap,b,windows,window_count,0,
+                    (uint16_t)edge,(uint16_t)y,&opaque_screens,&priority)!=SNESRECOMP_PPU_OK) return SNESRECOMP_PPU_UNSUPPORTED;
+                priorities[0][side]=(opaque_screens&1u)?priority:0;
+                priorities[1][side]=(opaque_screens&2u)?priority:0;
             }
             for(unsigned sub=0;sub<2;++sub) {
                 if(!((sub?b->sub_enable:b->main_enable)&1u) || (sub && !(b->cgwsel&2u))) continue;
@@ -398,9 +412,8 @@ static SnesRecompPpuResult PrepareInternal(Lufia2BattlePpuJob *c,
         } else if(!Lufia2BattleEffectsGpuArtPalette(live,art_palette,images,
             &centre_left,&centre_right)) return SNESRECOMP_PPU_RESOURCE_LIMIT;
         SnesRecompPpuJobImage compact;
-        const SnesRecompPpuResult result=snesrecomp_ppu_source_image_compact(images,0,
-            c->sources,c->source_count,c->compact_art,sizeof c->compact_art/sizeof *c->compact_art,
-            SNESRECOMP_PPU_SOURCE_COMPACT_EDGE_TILES,&compact,c->sources);
+        const SnesRecompPpuResult result=CompactJobArt(images,c->sources,c->source_count,c->compact_art,
+            sizeof c->compact_art/sizeof *c->compact_art,&compact);
         if(result==SNESRECOMP_PPU_OK) images[0]=compact;
         else if(result!=SNESRECOMP_PPU_UNSUPPORTED) return result;
     } else {

@@ -339,3 +339,56 @@ Both GCC/Clang sanitizer runs passed 4096 actual raster-builder comparisons and
 Missing source, HUD coverage, window, index-input and pending-input guards,
 and duplicate preparation, were rejected by negative controls. These are still
 over-budget internal emulator results, not a finished performance release.
+
+### Native opcode fetches and shared frame-clock conversion
+
+Native sound checkpoints and fixed-span bridges may fold one to four discarded
+opcode bytes through the existing LoROM fetch certificate. Admission excludes
+observers, per-access timing, unsupported mappers, incomplete ROM storage and
+bank-crossing fetches. A refusal leaves the CPU and cartridge latches untouched
+for the ordinary byte callbacks. An accepted fetch supplies the original last
+byte and cartridge bus address and charges every original transfer. Data
+reads/writes, progress masks, opcode clock boundaries, APU work and refresh
+accounting remain on their existing paths. This belongs to the consumer bridge,
+not to the standalone semantic decompilation.
+
+Sound opcode metadata uses a sorted lookup with the original linear lookup as
+the missing-key fallback. Sound and fixed-span comparisons cover complete CPU
+state, final bus latches, ordered data accesses, progress and clock accounting;
+observer, latch, bank-boundary and transfer-count negative controls are required.
+
+The platform APU-clock overlay is independent of interpreted SPC event batching.
+Native-SPC consumers apply it after any DSP runtime overlay. Both the normal
+guest-clock expression and the extended-frame header use the same exact reduced
+integer conversion. Applying only the header does not optimize the normal clock.
+Per-source compiler options and include order must survive this composition.
+
+Controlled ARM boot comparisons reduced mean guest work from 108.316 to
+97.989 ms with clock integration, then to 92.617 ms with native fetches and
+metadata lookup. All three runs produced the same complete 45-frame saved
+state. The fixed battle replay reduced guest work from 13.449 to 12.801 ms
+with the native fetch changes. These improvements do not resolve the remaining
+transition and battle budget violations, and do not establish hardware 60 FPS.
+
+### Sharing background samples across screens
+
+An edge sample may query main and sub screen together. Enable bits and windows
+are resolved independently; tile address calculation and pixel decoding are
+shared. The result mask identifies the opaque screens, and priority is meaningful
+only when that mask is nonzero. The existing single-screen API keeps its output
+and refusal contract, including transparent-pixel priority. This is a portable
+PPU operation, not a console-specific rendering rule.
+
+Qualified OBJ validation uses aligned word loads only when the actual row is
+four-byte aligned. Halfword-aligned storage and odd row pitches retain the
+unaligned-safe copy path. No cast may introduce an unaligned load or violate
+aliasing rules. Accepted sprite effect ownership is reused between selection
+and reverse tile fetching within one evaluator call; guest execution cannot
+intervene, and OAM order and sprite-limit status remain unchanged.
+
+The shared sampling and OBJ-load changes reduced warm battle draw time from
+22.959 to 21.721 ms with identical inputs. Five native PICA images matched the
+original CPU RGB reference, and the complete saved state was unchanged. This
+is still an over-budget internal result. Additional phase scopes identify HUD,
+frame-freeze, source and art work; sampled scopes must not be added to inclusive
+parent times, and unmeasured zero fields are not evidence that work is absent.

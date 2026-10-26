@@ -425,7 +425,7 @@ bool Lufia2BattleEffectsGpuArtPalette(const Ppu *ppu,const uint16_t *palette,
     *image=(SnesRecompPpuJobImage){pixels,s_art_width,(uint16_t)s_art_width,(uint16_t)s_art_height};
     *center_left=s_center_left;*center_right=s_center_right;return true;
 }
-bool Lufia2BattleEffectsGpuArtRow(const uint16_t palette[32],unsigned source_x,
+bool Lufia2BattleEffectsGpuArtRow(const uint16_t *palette,unsigned source_x,
     unsigned source_y,unsigned count,bool repeat,uint32_t *pixels) {
     if(!palette || !pixels || !s_art || !s_art_palette || source_y>=s_art_height ||
         source_x>=s_art_width || !count || (!repeat && count>s_art_width-source_x)) return false;
@@ -1207,7 +1207,7 @@ void Lufia2BattleEffectsBeginLine(const Ppu *ppu) {
 }
 void Lufia2BattleEffectsBeginIndexLine(void) {s_index_line=true;}
 void Lufia2BattleEffectsEndIndexLine(void) {s_index_line=false;}
-void Lufia2BattleEffectsGpuWindows(const Ppu *ppu,unsigned line,SnesPpuResolvedWindow out[6]) {
+void Lufia2BattleEffectsGpuWindows(const Ppu *ppu,unsigned line,SnesPpuResolvedWindow *out) {
     for(unsigned layer=0;layer<6;++layer) {
         SnesPpuResolvedWindow *r=out+layer;
         memset(r,0,sizeof *r);r->selector=255u;

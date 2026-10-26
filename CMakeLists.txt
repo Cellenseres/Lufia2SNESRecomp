@@ -459,6 +459,12 @@ if(LUFIA2_ENABLE_SNES_DSP)
         SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
 endif()
 
+if(LUFIA2_ENABLE_NATIVE_SPC)
+    include("${CMAKE_SOURCE_DIR}/lib/snesrecomp-platform/cmake/SnesRecompPlatformApuClock.cmake")
+    snesrecomp_platform_overlay_apu_clock(
+        SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
+endif()
+
 # The pinned interpreter clock calls clock_gettime() without including <time.h>,
 # so CLOCK_MONOTONIC is undeclared on POSIX. Supply the header from the build
 # instead of editing the pinned tree.
