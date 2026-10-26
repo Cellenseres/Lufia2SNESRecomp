@@ -432,3 +432,21 @@ cycle work and wrong callback-slot negative controls are detected. The changed
 APU keeps full ASan/UBSan; only the unchanged upstream DSP oracle excludes its
 known negative-shift UB in that harness. These are incremental host savings,
 not a 60-FPS result or a solution to the remaining splash sound-upload cost.
+## Build workspace and retention
+
+Keep current implementation code, firmware integration and required build
+scripts in the task's Git worktree. Numbered `.agent` experiments must never
+hold the only copy. Save these changes on the private port branch before
+removing their scratch copies. Port-only changes remain outside `main` until
+separately authorized.
+
+Reuse a stable workspace and incremental build directories. Retain the current
+candidate and only references still needed for active comparisons. Before
+deleting an older experiment, consolidate unique needed sources and reusable
+checks, replace its path dependencies, and verify the retained inputs. Compact
+historical evidence with revisions and hashes rather than keeping duplicate
+source trees and compiler outputs indefinitely. Record reclaimed space.
+
+Cleanup must verify absolute paths and affect only this task's obsolete files.
+Preserve active or foreign builds, protected paths, user saves, toolchains and
+needed assets. Never copy a ROM into snapshots, evidence archives or packages.
