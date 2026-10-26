@@ -48,6 +48,7 @@ uint32_t Lufia2DecompNativeIdleDiagnostics(uint64_t out[16],uint64_t contexts[16
 void Lufia2DecompFramePollProbe(const struct CpuState *cpu,uint32_t entry);
 bool Lufia2DecompPollFetchOpcode(struct CpuState *cpu, uint32_t pc, uint32_t fetched);
 bool Lufia2DecompFrameReturnCpuReady(void);
+bool Lufia2DecompFrameRangeQuiet(uint32_t first, uint32_t end);
 
 uint8_t Lufia2DecompFrameReturnReadByte(struct CpuState *cpu, uint32_t address,
                                         bool *progress);

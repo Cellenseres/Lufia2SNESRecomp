@@ -19910,3 +19910,43 @@ RecompReturn Lufia2DecompBridge_84F74E(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x84f74eu);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CURSOR_PAYOUT)
+#include "cursor_payout_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84A000(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CURSOR_PAYOUT)
+    return ActorBridgeCursorPayout(cpu, 0u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84a000u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84A02A(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CURSOR_PAYOUT)
+    return ActorBridgeCursorPayout(cpu, 1u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84a02au);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84A0DA(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CURSOR_PAYOUT)
+    return ActorBridgeCursorPayout(cpu, 2u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84a0dau);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84C7A6(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CURSOR_PAYOUT)
+    return ActorBridgeCursorPayout(cpu, 3u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84c7a6u);
+#endif
+}

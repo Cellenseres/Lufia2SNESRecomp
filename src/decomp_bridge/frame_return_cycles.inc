@@ -8,6 +8,25 @@ bool Lufia2DecompFrameReturnCpuReady(void) {
     return !s_frame_return_interrupt_blocked;
 }
 
+bool Lufia2DecompFrameRangeQuiet(uint32_t first, uint32_t end) {
+    if (g_interp_bridge_pc_hook || Lufia2NativeObserversActive())
+        return false;
+    first &= 0x7fffffu;
+    end &= 0x7fffffu;
+    if (first >= end || end - first > 256u ||
+        (first >> 16) != ((end - 1u) >> 16))
+        return false;
+    for (unsigned page = first >> 8; page <= ((end - 1u) >> 8); ++page) {
+        for (unsigned link = s_pre_opcode_hook_heads[page]; link;
+             link = s_pre_opcode_hook_next[link - 1u]) {
+            const uint32_t pc = s_pre_opcode_hooks[link - 1u].pc24;
+            if (pc >= first && pc < end)
+                return false;
+        }
+    }
+    return true;
+}
+
 void Lufia2DecompFrameReturnWriteByte(CpuState *cpu, uint32_t address, uint8_t value,
                                       bool *progress) {
     const uint64_t before = g_interp_bridge_write_epoch;

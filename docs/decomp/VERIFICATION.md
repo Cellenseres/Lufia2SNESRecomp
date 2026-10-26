@@ -1,3 +1,38 @@
+# Special-menu cursor and payout checkpoint — 2026-10-26
+
+Four verified original routines (84:A000/A02A/A0DA/C7A6) are selected through
+whole-operation bridges. Their consumer plans use indexed timing records and
+existing hook-page chains. No opcode hooks or wait-site exemptions are added;
+certified wait limits and device admission remain unchanged. Feature absence
+keeps the original-code fallback available.
+
+The shared checkpoint covers 16,384 parent-ROM cases, 48 zero/overflow prefixes,
+2,048 composed payout cases with 31,303 native arithmetic/credit children,
+8,192 timed ROM/ABI cases, 168 admission guards, 405 actual registry checks,
+15 capability gates and 64 production-context reference/candidate pairs.
+Strict MSVC, ARM GCC and Clang C11, feature-undefined consumer compilation and
+the reserved Windows Release build pass. Unchanged unrelated full regression
+is deferred; intermediate commits were not independently retested.
+
+Production pairs match return CPU/WRAM, natural frame-end CPU/WRAM/serialized
+hardware and fresh PCM. Immediate A000 return serialization differs within the
+measured APU aggregate until normal synchronization; it is not a claim of
+immediate full-device equality. Native admission is exercised in all candidate
+contexts; reference body counts are zero. Wait admissions are equal or one
+higher for push/pop, with no lost admissions in the 64 pairs; skipped APU cycles
+match. Actual compiled relative and absolute APU callers and the linked
+bridges/library bodies are inspected separately.
+
+Async child returns can resume original continuations. The measured payout
+context retains 48 raw opcodes versus 62 in its reference; selection does not
+mean fully native multi-frame execution. Matched desktop cost samples were
+collected with sound and equal inputs. Follow-up cursor-push medians are
+424.85/412.45 us and payout medians 3198.85/3232.85 us (reference/candidate).
+Payout paired differences scatter across zero: neither stable acceleration
+nor stable regression is established. Performance remains unproven beyond
+this bounded scope; no whole-frame, ARM, hardware or 60-FPS pass is claimed.
+Tests, raw samples, fixtures and failure controls remain private.
+
 # Original card-table search choices - 2026-10-25
 
 Four complete original algorithms are reconstructed and bound: preferred-symbol
