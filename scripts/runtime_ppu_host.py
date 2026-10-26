@@ -419,12 +419,16 @@ def transform_menu_background(text):
     if callback not in text:
         raise ValueError('Known complete menu callback changed')
     text=text.replace(callback,
+        'PpuMaskMenuSpriteCapture(ppu, y);\n  '
         '(lufia2_ppu_host_costs_enabled ? Lufia2MenuUiReplayLine : Lufia2MenuUiLine)'
         '(ppu, y, PpuDrawMenuOverlayLine);')
     return text
 
 
 def transform(text):
+    # The common source owner masks its single menu seam. Relocate that call
+    # to every retained/early-return seam below, without duplicating it.
+    text = replace(text, '  PpuMaskMenuSpriteCapture(ppu, y);\n', '')
     name = 'PpuDrawBackground_4bpp'
     matches = [(match, end) for match, end in definitions(text) if match['name'] == name]
     if len(matches) != 1:

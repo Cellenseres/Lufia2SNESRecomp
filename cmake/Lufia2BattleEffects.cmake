@@ -202,15 +202,18 @@ function(lufia2_ppu_battle_effects source_var)
     _lufia2_replace_battle_seam(_source "${_old}" "${_new}"
         "Battle actor margin seam changed")
     set(_old "static NOINLINE void PpuDrawWholeLine(Ppu *ppu, uint y) {")
-    set(_new "static void PpuDrawBattleMarginLine(Ppu *ppu, unsigned y);\nstatic void PpuDrawMenuOverlayLine(Ppu *ppu, unsigned y);\n${_old}")
+    set(_new "static void PpuDrawBattleMarginLine(Ppu *ppu, unsigned y);\nstatic void PpuDrawMenuOverlayLine(Ppu *ppu, unsigned y);\nstatic void PpuMaskMenuSpriteCapture(Ppu *ppu, unsigned line);\n${_old}")
     _lufia2_replace_battle_seam(_source "${_old}" "${_new}"
         "Battle HUD renderer boundary changed")
     set(_old [=[  PpuWriteOverlayRenderLine(ppu, kPpuOverlaySource_Obj, y);
 }]=])
     set(_new [=[  PpuWriteOverlayRenderLine(ppu, kPpuOverlaySource_Obj, y);
   Lufia2BattleEffectsHudLine(ppu, y, PpuDrawBattleMarginLine);
+  PpuMaskMenuSpriteCapture(ppu, y);
   Lufia2MenuUiLine(ppu, y, PpuDrawMenuOverlayLine);
 }
+
+#include "lufia2_menu_sprite_window.inc"
 
 static void PpuDrawBattleMarginLine(Ppu *ppu, unsigned y) {
   ClearBackdrop(ppu, &ppu->objBuffer);

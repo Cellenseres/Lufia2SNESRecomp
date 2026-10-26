@@ -450,3 +450,70 @@ source trees and compiler outputs indefinitely. Record reclaimed space.
 Cleanup must verify absolute paths and affect only this task's obsolete files.
 Preserve active or foreign builds, protected paths, user saves, toolchains and
 needed assets. Never copy a ROM into snapshots, evidence archives or packages.
+
+
+### Item and spell information windows — regression repair, 2026-10-26
+
+The retained-renderer import d2e388e dropped the b7953a4 generated capture
+renderer include and reverted c436fb1's live BG3 HDMA descriptor check to
+shared F7..FB scratch. The old fixed include remained in the tree, but the
+compiled caller no longer used it. A source file containing the fix therefore
+did not establish that the current renderer applied it.
+
+The common generated PPU now resolves its own main-OBJ window and clears only
+hidden capture spans before menu composition. Both ordinary and retained early
+returns use that same preparation; subscreen pixels, math and visible OBJ stay
+unchanged. Native-index capture retains its existing window/material policy.
+The retained generator moves the common call to its five complete/early-return
+seams without duplicating the primary call. No additional render pass, PPU
+clone, guest operation, hook or timing/batching admission is introduced.
+
+Menu text again follows the live enabled direct BG3VOFS descriptor at 7E:80C0,
+not scratch reused for WOBJSEL. The description's live direct WOBJSEL table at
+7E:81C0 identifies the information view. Its glyphs can cross tile boundaries;
+the consumer moves the original rendered text area intact and does not revive
+inventory-row TEXT_REGION bindings from the same window ID. Existing inventory
+geometry applies again after the information view closes. The structure cache
+includes description activation and viewport position; indexes and row caches
+remain enabled. Neither the ROM text nor original menu semantics are rewritten.
+
+One affected checkpoint passes 208 native/wide/window/subscreen/layout cases,
+28 HDMA descriptor guards and eight common-renderer/host-patch-off controls.
+The reported hidden OBJ fixture goes from 131 opaque pixels to zero. Fast
+colour admission is exercised separately; its original isolated reference and
+the common renderer agree. These synthetic PPU cases model battle effects as
+inactive and are not whole-game semantic or PCM evidence.
+
+The final production-object replay covers 822 paired frames: 203 each for
+native, wide default and wide shipped-layout item views, plus 213 spell-view
+frames. CPU, WRAM, PPU-register/VRAM/OAM/CGRAM/DMA and freshly rendered PCM hashes
+match before/after throughout. The native picture is unchanged. Three complete
+RGB frames of the default wide centre equal native rendering, including the
+description text. Selected entry and steady information frames were inspected.
+The private spell fixture initially navigated right to STATUS; its corrected
+SPELL route goes down. The three unchanged item arms were reused after that
+fixture-only change, not represented as newly executed routes.
+
+Actual production render-path observations, in microseconds (before/after
+median among active information frames), are:
+
+| Profile | Guest | PPU and menu | PCM rendering |
+| --- | ---: | ---: | ---: |
+| Wide default, 27 information frames | 391.8 / 411.5 | 1378.5 / 1384.4 | 5.9 / 6.2 |
+| Wide shipped layout, 27 information frames | 390.6 / 411.4 | 1375.7 / 1375.0 | 5.7 / 6.1 |
+| Spell layout, 9 information frames | 474.4 / 425.7 | 2097.1 / 1907.5 | 7.3 / 6.9 |
+
+These are one matched replay per arm, with brief selected-frame fixture logging,
+not statistically robust acceleration measurements. Guest binding selection,
+wait/APU batching and timing sources are unchanged. The ordinary release uses
+the common renderer; the optional fast colour path was checked independently.
+A separate 48-pair warm PPU-only observation preserves cache hits (zero new
+colour admissions during that warm interval); its prior admission control is
+positive. Submission/waiting and hardware frame rates are not measured. No
+60-FPS or console-performance promotion follows from this presentation repair.
+
+Windows Release and the separately linked production replay pass. Unchanged
+semantic, codec and whole-game regressions are not repeated. Tests, images,
+fixtures and detailed source/output hashes stay private in the task worktree's
+build/menu-info directory. The task branch is codex/menu-info-regression;
+main, the semantic/platform pins and owner build/windows are untouched.

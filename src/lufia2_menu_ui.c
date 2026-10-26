@@ -1,4 +1,5 @@
 #include "lufia2_menu_ui.h"
+#include "snes/dma.h"
 #include "lufia2_ppu_render_clone.h"
 #include "lufia2_ppu_row_cache.h"
 #include "lufia2_battle_effects.h"
@@ -16,6 +17,8 @@
 #endif
 
 extern uint8_t g_ram[0x20000];
+extern Dma *g_dma;
+extern uint8_t g_snesrecomp_last_hdmaen;
 
 enum { WIDTH = LUFIA2_UI_NATIVE_WIDTH, HEIGHT = LUFIA2_UI_HEIGHT,
        CANVAS = LUFIA2_UI_CANVAS_WIDTH, MAX_RECORDS = 4096,
@@ -93,7 +96,7 @@ static uint64_t s_menu_prepare_us, s_menu_check_us, s_menu_resolve_us, s_menu_co
 void Lufia2MenuUiSetClock(uint64_t (*clock_us)(void)) { s_menu_clock=clock_us; }
 static uint64_t MenuClock(void) { return s_menu_clock?s_menu_clock():0; }
 static int s_text_scroll[HEIGHT];
-static bool s_text_rows;
+static bool s_text_rows, s_description_window;
 static int s_text_row_y[32];
 static unsigned s_text_row_vscroll;
 static bool s_text_row_y_valid;
@@ -116,13 +119,13 @@ static void MenuIndexedLayoutReset(void);
 static struct {
     Lufia2MenuUiObject objects[LUFIA2_MENU_UI_MAX_OBJECTS];
     uint32_t text_occupancy[HEIGHT][WIDTH/32];
-    uint16_t maps[3*1024],scroll[5];
+    uint16_t maps[3*1024],scroll[5],description_top;
     int text_y[32];
     uint8_t rom_tables[16],members;
     unsigned count,theme;
     uint32_t scene;
     uint64_t layout;
-    bool valid;
+    bool valid, description_window;
 } s_menu_structure;
 
 static const uint8_t *SpriteSnapshot(unsigned snapshot) {
@@ -200,9 +203,28 @@ void Lufia2MenuUiLatchSprites(const Ppu *ppu) {
 static void ReadTextRowScroll(void) {
     s_text_row_y_valid=false;
     s_text_rows = false;
-    if (g_ram[0xfa] != 0x12 || g_ram[0xfb] != 2 || g_ram[0xf9] != 0x7e) return;
-    unsigned pointer = g_ram[0xf7] | (unsigned)g_ram[0xf8] << 8;
-    if (pointer != 0x80c0) return;
+    s_description_window = false;
+    if (!g_dma) return;
+    bool active = false;
+    /* Description setup reuses F7..FB for the OBJ mask before BG3 changes.
+       Read the live direct BG3VOFS descriptor, not that shared scratch. */
+    for (unsigned i = 0; i < 8; ++i) {
+        const DmaChannel *channel = &g_dma->channel[i];
+        /* $82:FE98 publishes the description's direct WOBJSEL table.
+           Its text reuses the list tilemap but is not a six-row list. */
+        if ((g_snesrecomp_last_hdmaen & (1u << i)) &&
+            channel->bAdr == 0x25 && channel->mode == 2 &&
+            !channel->indirect && !channel->fromB &&
+            channel->aBank == 0x7e && channel->aAdr == 0x81c0)
+            s_description_window = true;
+        if ((g_snesrecomp_last_hdmaen & (1u << i)) &&
+            channel->bAdr == 0x12 && channel->mode == 2 &&
+            !channel->indirect && !channel->fromB &&
+            channel->aBank == 0x7e && channel->aAdr == 0x80c0)
+            active = true;
+    }
+    if (!active) return;
+    unsigned pointer = 0x80c0;
     unsigned y = 0;
     while (y < HEIGHT && pointer < 0x81c0) {
         unsigned control = g_ram[pointer++];
@@ -434,8 +456,26 @@ static bool TextOwnsPoint(int x, int y) {
     return (unsigned)x<WIDTH && (unsigned)y<HEIGHT &&
         ((s_text_occupancy[y][(unsigned)x/32u]>>((unsigned)x&31u))&1u)!=0;
 }
+static void CollectDescriptionText(void) {
+    if (!s_description_window) return;
+    const int top = (g_ram[0x1532] | (unsigned)g_ram[0x1533] << 8) - 1;
+    for (unsigned i = 0; i < s_count; ++i) {
+        const Lufia2MenuUiObject *window = &s_objects[i];
+        if (window->kind != WINDOW || window->width < 32 || window->height < 64 ||
+            top < window->y + 6 || top >= window->y + window->height - 8) continue;
+        /* Description glyphs cross tile-row boundaries. Move the original
+           rendered text area intact, not independently recognised tile runs
+           or inventory slots which split the first letters off a line. */
+        const unsigned row = ((window->id >> 8) & 255u) + 1u;
+        const unsigned column = (window->id & 255u) + 1u;
+        const int index = AddObject(0x20000000u | row << 8 | column, TEXT,
+            window->x + 8, window->y + 6, window->width - 16, window->height - 12, 255);
+        if (index >= 0) s_objects[index].parent = window->id;
+        return;
+    }
+}
 static void CollectListSlots(const Ppu *ppu) {
-    if (s_theme != 2 && s_theme != 3) return;
+    if ((s_theme != 2 && s_theme != 3) || s_description_window) return;
     /* $82:AC84 and $82:8526 reserve six rows. */
     unsigned columns = s_theme == 3 ? 2 : 1;
     for (unsigned row = 0; row < 6; ++row) for (unsigned column = 0; column < columns; ++column) {
@@ -750,6 +790,13 @@ static void CollectTextBindings(const Ppu *ppu) {
     for (unsigned i = 0; i < s_layout_count; ++i) {
         const MenuLayoutRecord *l = &s_layout[i];
         if (l->kind != TEXT_REGION || l->scene != s_scene || FindObject(l->id) >= 0) continue;
+        if (s_description_window) {
+            const int parent = FindObject(l->parent);
+            /* Item/spell layouts still contain inventory-row bindings with
+               the same window ID. They must not split the description. */
+            if (parent >= 0 && s_objects[parent].kind == WINDOW &&
+                s_objects[parent].height >= 64) continue;
+        }
         unsigned tx = l->id >> 28 == 10 ? l->id & 31 : l->id & 255;
         unsigned ty = l->id >> 28 == 10 ? (l->id >> 5) & 31 : (l->id >> 8) & 255;
         int x = (int)tx * 8 - ppu->hScroll[2], y = TextRowY(ppu, ty);
@@ -841,6 +888,9 @@ static bool MenuStructure(Ppu *ppu) {
     const uint16_t *maps=PpuRenderVram(ppu);
     if(s_menu_structure.valid && s_menu_structure.layout==s_layout_generation &&
        s_menu_structure.members==g_ram[0x0a7a] &&
+       s_menu_structure.description_window==s_description_window &&
+       (!s_description_window || s_menu_structure.description_top==
+            (g_ram[0x1532] | (unsigned)g_ram[0x1533] << 8)) &&
        !memcmp(s_menu_structure.scroll,scroll,sizeof scroll) &&
        !memcmp(s_menu_structure.text_y,s_text_row_y,sizeof s_text_row_y) &&
        !memcmp(s_menu_structure.rom_tables,tables,sizeof tables) &&
@@ -889,6 +939,7 @@ static bool MenuStructure(Ppu *ppu) {
     if (!s_scene) s_scene = 1;
     CollectPartyFields(ppu);
     CollectPartyHighlights(ppu);
+    CollectDescriptionText();
     CollectListSlots(ppu);
     CollectNumericFields(ppu);
     CollectTextBindings(ppu);
@@ -903,6 +954,8 @@ static bool MenuStructure(Ppu *ppu) {
     memcpy(s_menu_structure.maps,maps,sizeof s_menu_structure.maps);
     memcpy(s_menu_structure.objects,s_objects,s_count*sizeof *s_objects);
     memcpy(s_menu_structure.text_occupancy,s_text_occupancy,sizeof s_text_occupancy);
+    s_menu_structure.description_window=s_description_window;
+    s_menu_structure.description_top=(uint16_t)(g_ram[0x1532] | (unsigned)g_ram[0x1533] << 8);
     s_menu_structure.valid=true;return true;
 }
 static void MenuPrepare(Ppu *ppu, bool enabled, unsigned width, bool prefer_indices) {
@@ -1123,6 +1176,11 @@ bool Lufia2MenuUiRecordIndexedLine(const Ppu *ppu,unsigned line) {
     s_cached_index_ppu=NULL;s_cached_index_line=0;
     s_primitive_colour_ppu=NULL;s_primitive_colour_line=0;s_primitive_colour_draw=NULL;
     ++s_rows;return true;
+}
+uint32_t *Lufia2MenuUiSpriteCaptureRow(const Ppu *ppu,unsigned line) {
+    if(!ppu || !s_active || s_rendering || s_native_primitives || !line || line>HEIGHT)
+        return NULL;
+    return s_planes[2][line-1];
 }
 bool Lufia2MenuUiPrimitiveRowsForLine(const Ppu *ppu,unsigned line,
     Lufia2MenuUiPrimitiveRows *rows) {

@@ -49,6 +49,9 @@ typedef struct Lufia2MenuUiPrimitiveRows {
     const uint32_t *pixels[3];
     const uint16_t *priority[2];
 } Lufia2MenuUiPrimitiveRows;
+/* Borrow the primary RGB capture only while composing a real menu row.
+ * The PPU resolves its own OBJ window before either colour path consumes it. */
+uint32_t *Lufia2MenuUiSpriteCaptureRow(const Ppu *ppu,unsigned line);
 bool Lufia2MenuUiPrimitiveRowsForLine(const Ppu *ppu,unsigned line,
                                     Lufia2MenuUiPrimitiveRows *rows);
 typedef bool Lufia2MenuUiColourRenderer(Ppu *ppu,unsigned line,unsigned pass,uint32_t *row);
