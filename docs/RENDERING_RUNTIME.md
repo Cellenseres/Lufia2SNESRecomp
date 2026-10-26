@@ -406,3 +406,29 @@ P normalization and missing publication of changed branch state. The full
 3580-frame scene suite retained all ten per-frame guest/control counters.
 IPO is a private console build experiment, not a change to game semantics or
 a standalone-decomp requirement. These figures remain above the frame budget.
+
+
+### Bounded hook lookup and short APU requests
+
+The opcode registry retains its normalized keys, page membership and original
+slot chains. A fixed 1024-slot index maps to at most 512 registered callbacks;
+it adds 2048 bytes and performs no allocation. Replacement and reset update the
+same registry contract, and a full table still rejects additional entries.
+Neither lookup nor a cache hit grants permission to bypass another hook.
+
+One-cycle APU requests use the existing exact cycle routine directly. Longer
+requests retain idle-span discovery and its event boundaries. Ports, timers,
+native program actions, DSP work and the return budget are not skipped.
+
+Matched ARM boot work changed from 84.553 to 81.947 ms with the hook index,
+then to 81.484 ms with direct single-cycle stepping. Warm battle guest costs
+were effectively unchanged between the latter two variants (12.310/12.303 ms).
+The complete boot and battle saved states and all ten per-frame guest/control
+columns over the 3580-frame suite matched. Suite timings are excluded because
+another build ran concurrently. Registry checks cover 262788 setter/lookup
+comparisons per sanitizer compiler, including 512 colliding entries. APU tests
+compare ordered actions, state and PCM with original cycle stepping; missing
+cycle work and wrong callback-slot negative controls are detected. The changed
+APU keeps full ASan/UBSan; only the unchanged upstream DSP oracle excludes its
+known negative-shift UB in that harness. These are incremental host savings,
+not a 60-FPS result or a solution to the remaining splash sound-upload cost.
