@@ -1,3 +1,38 @@
+## Member-menu source selection and continuations — 2026-10-27
+
+Verified member status and spell-selection routines now have selected consumer
+bridges at 82:9E67, 82:B2FE and 82:B370. The main-menu inline dispatch preserves
+paired caller ownership when entering the two controllers. Child calls still
+use original pushed frames, including regular long-call return ownership.
+
+Twenty semantic prefix contracts expose the original operations between child
+calls. Nineteen hooks are installed; a redundant backwards-branch hook is
+omitted. Prefixes execute neither child JSR/JSL nor parent RTS. Their clocked
+bus callbacks retain original fetches, data ordering and per-opcode accounting,
+including the scheduler's progress bitmask. Admission bounds WRAM/ROM accesses
+before the next HDMA/line or vertical event and device deadline. It checks each
+executed opcode range through existing page chains; only the current exact
+owned entry can be bypassed. Foreign hooks and observers still refuse batching.
+No certified wait classification or APU synchronization seam is weakened.
+
+Shared ROM/ABI verification and the final reserved Windows Release pass. The
+actual nineteen-hook registry preserves all 252 other hooks in 353 checks.
+Nine sampled hot wait PCs retain their hash-lookup lengths. In the natural
+600-frame menu replay, new C operations replace 45 interpreted opcodes, leaving
+66 original opcodes at unsafe boundaries. All frame-state hash records, fresh
+PCM bytes and five complete hardware snapshots match. Wait counters match;
+this menu fixture has zero admitted idle batches in both arms, so it does not
+establish general wait acceleration. Both actual compiled APU idle calls and
+the normal-source link are checked separately.
+
+Three alternating fixed-affinity replay pairs have reference/native median
+5.052/5.113 seconds and mean 4.931/5.733 seconds with private counters and PCM
+consumption retained. Artifact export is disabled for these timing runs.
+The sample is noisy and concurrent owner builds may contribute contention;
+there is no demonstrated speedup or whole-game, ARM or 60-FPS acceptance.
+The change reconstructs and admits original menu work; selection alone remains
+insufficient performance evidence. See docs/decomp/VERIFICATION.md for scopes.
+
 # Shared rendering and runtime work
 
 The consumer owns Lufia-specific layout decisions. `snesrecomp-platform` owns

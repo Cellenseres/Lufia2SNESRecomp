@@ -13,6 +13,10 @@ static void ActorBridgeCardTableHdmaHook(CpuState *cpu, uint32_t pc);
 static void ActorBridgePanelCopySpan(CpuState *cpu, uint32_t entry);
 #endif
 #include "snes/interp_bridge.h"
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS)
+static void ActorBridgeMemberScreenPhase(CpuState *cpu, uint32_t entry);
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_MOTION) && defined(LUFIA2_CARD_TABLE_COLUMN_SPANS)
 static void ActorBridgeColumnSpan(CpuState *cpu, uint32_t pc);
 #endif
@@ -59,6 +63,11 @@ typedef struct ActorBridgeFrame {
     uint8_t hrv;
     uint32_t host_return_pc24;
 } ActorBridgeFrame;
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS)
+static RecompReturn ActorBridgeMemberDispatch(CpuState *cpu,
+    const ActorBridgeFrame *frame);
+#endif
+
 
 static uint8_t ActorBridgeRead(void *context, uint32_t address) {
     return cpu_read8(
@@ -3822,6 +3831,17 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS)
+    static const uint32_t member_phases[] = {
+        0x829e67u, 0x829e74u, 0x829e7fu, 0x829e88u, 0x829e92u,
+        0x829e97u, 0x829ed6u, 0x829ee9u, 0x82b301u, 0x82b309u,
+        0x82b315u, 0x82b31au, 0x82b343u, 0x82b34fu, 0x82b35cu,
+        0x82b364u, 0x82b369u, 0x82b373u, 0x82b37bu
+    };
+    for (unsigned index = 0u; index < sizeof member_phases / sizeof member_phases[0]; ++index)
+        interp_bridge_set_pre_opcode_hook(member_phases[index], ActorBridgeMemberScreenPhase);
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PANEL_INPUT)
     interp_bridge_set_pre_opcode_hook(0x84ef68u, ActorBridgePanelCopySpan);
     interp_bridge_set_pre_opcode_hook(0x84ef7cu, ActorBridgePanelCopySpan);
@@ -14320,7 +14340,11 @@ RecompReturn Lufia2DecompBridge_82A4BE(CpuState *cpu) {
     if (cpu->emulation || cpu->_flag_D || cpu->x_flag || cpu->PB != 0x82u || cpu->D ||
         cpu->S < 0x1f20u || cpu->S > 0x1ffcu)
         return ActorBridgeFallback(cpu,&frame,0x82a4beu);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS)
+    return ActorBridgeMemberDispatch(cpu, &frame);
+#else
     return ActorBridgeWholeX16(cpu,0x82a4beu,Lufia2MenuDispatchMainSelection,2u);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_808117(CpuState *cpu) {
@@ -20037,5 +20061,38 @@ RecompReturn Lufia2DecompBridge_84EFC4(CpuState *cpu) {
 #else
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     return ActorBridgeFallback(cpu, &frame, 0x84efc4u);
+#endif
+}
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS)
+#include "lufia2/menu_member_screens.h"
+#include "member_screen_clock.inc"
+#include "member_screen_bridge.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_829E67(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS)
+    return ActorBridgeMemberScreen(cpu, 0x829e67u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x829e67u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82B2FE(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS)
+    return ActorBridgeMemberScreen(cpu, 0x82b2feu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82b2feu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82B370(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS)
+    return ActorBridgeMemberScreen(cpu, 0x82b370u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82b370u);
 #endif
 }

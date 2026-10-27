@@ -1,3 +1,50 @@
+# Member-screen consumer checkpoint — 2026-10-27
+
+Three original main-menu routines are reconstructed at 82:9E67, 82:B2FE and
+82:B370. Their twenty semantic prefixes continue those algorithms; they are
+not additional ROM functions. Whole routines and prefixes share portrait and
+spell operations. Prefixes stop before the original child call or return.
+
+The shared semantic checkpoint covers 1,536 whole-routine cases, 1,536 composed
+cases, all 30 child sites, 30 unwinds and 150 changed returns. Prefixes add 9,490
+admitted CPU/WRAM/ordered timed-bus cases and 7,406 refusals. Actual hook ABI adds
+4,806 admissions and 314 refusals, checking redirects, opcode totals and
+scheduler progress masks. Whole-bridge ABI covers another 2,304 cases and 270
+changed-return/unwind cases. Strict MSVC, ARM GCC and Clang pass; thirteen CMake
+capability checks include an older API and disabled/reference configurations.
+The capability-undefined actor bridge and final reserved Windows Release pass.
+These checks share a batch checkpoint; no unrelated full regression is claimed.
+
+Nineteen installed hooks check only executed opcode ranges through maintained
+page chains. Only the current entry's exact owned hook can be bypassed. The
+backwards feedback branch has no redundant hook; its destination already owns
+the continuation. The actual registry passes 353 checks and retains all 252
+other hooks. Sampled hot wait-hook lookup lengths match the reference. No
+wait-batching exemption or standalone timing shortcut is introduced.
+
+The main-menu dispatcher preserves its paired caller frame when it selects a
+new controller; disabling the three bindings preserves the original LLE route.
+Production reference controls remove only these entries and nineteen hooks,
+after restoring identical guest and extended APU frame-clock state.
+
+The natural 600-frame menu replay replaces 45 of 111 interpreter opcodes in the
+three routines. All 600 frame-state hash records, 333,438 fresh PCM samples and
+five complete serialized hardware snapshots match; PCM and snapshots are also
+compared byte for byte. Wait attempt/admission counts match. Native-SPC stays
+active. Emitted wrappers, the actual normal-source link map and compiled
+absolute/relative APU idle callers are inspected. Unsafe phases keep original
+execution; neither every opcode nor every entry body is always admitted.
+
+Entry-only integration admitted just six opcodes and was rejected as sufficient
+coverage. A later empty PROFILE_ONLY environment variable suppressed snapshot
+exports; that run is excluded from state acceptance. Accepted final arms have
+nonempty artifacts. Three alternating fixed-affinity cost pairs retain private
+counters and PCM consumption while disabling artifact export. Replay medians
+are 5.052/5.113 seconds, reference/native; means are 4.931/5.733 seconds. Samples
+are noisy and may include concurrent owner-build contention. No speedup,
+isolated guest/frame improvement, ARM result or hardware 60-FPS claim follows.
+Tests, captures and detailed receipts remain private.
+
 # Input-panel consumer checkpoint — 2026-10-27
 
 Six verified original entries (84:EE4B/EF4E/EF60/EF74/EF88/EFC4) are selected.
