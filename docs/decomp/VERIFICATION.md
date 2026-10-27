@@ -1,3 +1,55 @@
+# Input-panel consumer checkpoint — 2026-10-27
+
+Six verified original entries (84:EE4B/EF4E/EF60/EF74/EF88/EFC4) are selected.
+The parent uses child-boundary plans and structured command decisions. Palette
+MVN retains all 256 original opcode fetches and ordered byte transfers. The
+copy entries share a six-opcode timing pattern in nine slots, admitting up to
+128 words within the existing 1,024-opcode budget. Only EF68/EF7C gain hooks;
+maintained page chains reject foreign hooks and preserve certified waits.
+Original decompression, waits, sound handshakes and device work remain intact.
+
+The shared checkpoint passes 2,048 actual bridge timed ABI cases, eight outer
+4,096-frame continuations, 384 pure guards, 482 actual registry checks and 16
+capability gates. Parent timing plans have another 3,712 original-prefix cases.
+Copy/append and resource/parser prefixes have their separately recorded timing
+proofs. External children are controlled in the ABI fixture; the outer-bound
+fixture uses controlled virtual device windows. These are distinct from the
+48 actual production original-caller pairs. Feature-undefined compilation and
+the reserved Windows Release build pass. Unchanged standalone strict MSVC,
+ARM GCC and Clang semantic proofs are reused. No unrelated full regression or
+independent test of intermediate commits is claimed.
+
+Production pairs use identical restored guest state, complete extended APU
+frame-clock state and fresh-process consumer-ring history. Reference controls
+are applied after restore and seeding. Returned CPU/WRAM and non-APU hardware,
+complete natural frame-end hardware and nonempty fresh PCM match in all 48
+pairs. Sixteen pairs differ in immediate internal APU aggregation until normal
+synchronization; this is not an immediate full-device equality claim. Every
+candidate routine executes, while reference native body counts are zero.
+Wait attempts and admissions match in all pairs. Actual compiled relative and
+absolute APU calls and unmodified production link symbols are inspected.
+Absolute idle calls execute in these fixtures; relative calls are present but
+not exercised by their extended frame timeline.
+
+One panel context reduces raw owner opcodes from 32,911 to 1,625, with 30,642
+native copy opcodes. Byte-read callbacks fall from 191,689 to 102,983; byte
+writes remain 24,960. The parent can resume original continuations after an
+asynchronous child, so selection does not mean fully native multi-frame work.
+
+Forty-eight alternating, fixed-affinity desktop cost pairs include private
+counters and PCM consumption. Reference/native median return intervals are
+72,965/70,223 us for the panel, 506/559 for resource setup, 3,268/1,050 and
+3,564/1,186 for the two copies, 522/557 for command append and 558/540 for
+sequence matching. Samples are noisy: panel mean moves in the opposite
+direction to its median, and short services have mixed costs. These are bounded
+caller observations, not isolated frame, ARM, hardware or 60-FPS acceptance.
+
+Rejected fixture controls are retained privately. An old rollback reference
+omitted extended host-frame-clock state and produced zero new PCM. The first
+fresh warm-state creator also retained different consumer-ring history. Neither
+is accepted evidence. Final arms restore the same guest and frame clock in
+fresh processes; no ROM is copied into evidence or distributed tests.
+
 # Special-menu cursor input checkpoint — 2026-10-26
 
 The complete verified 84:A112 cursor algorithm is selected through shared

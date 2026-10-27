@@ -9,6 +9,9 @@ static void ActorBridgeCursorInputPhase(CpuState *cpu, uint32_t entry);
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
 static void ActorBridgeCardTableHdmaHook(CpuState *cpu, uint32_t pc);
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PANEL_INPUT)
+static void ActorBridgePanelCopySpan(CpuState *cpu, uint32_t entry);
+#endif
 #include "snes/interp_bridge.h"
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_MOTION) && defined(LUFIA2_CARD_TABLE_COLUMN_SPANS)
 static void ActorBridgeColumnSpan(CpuState *cpu, uint32_t pc);
@@ -3819,6 +3822,10 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PANEL_INPUT)
+    interp_bridge_set_pre_opcode_hook(0x84ef68u, ActorBridgePanelCopySpan);
+    interp_bridge_set_pre_opcode_hook(0x84ef7cu, ActorBridgePanelCopySpan);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CURSOR_INPUT)
     interp_bridge_set_pre_opcode_hook(0x84a127u, ActorBridgeCursorInputPhase);
     interp_bridge_set_pre_opcode_hook(0x84a222u, ActorBridgeCursorInputPhase);
@@ -19970,5 +19977,65 @@ RecompReturn Lufia2DecompBridge_84A112(CpuState *cpu) {
 #else
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     return ActorBridgeFallback(cpu, &frame, 0x84a112u);
+#endif
+}
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PANEL_INPUT)
+#include "panel_copy_clock.inc"
+#include "panel_input_clock.inc"
+#include "panel_input_bridge.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_84EE4B(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PANEL_INPUT)
+    return ActorBridgePanelInput(cpu, 0x84ee4bu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84ee4bu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84EF4E(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PANEL_INPUT)
+    return ActorBridgePanelInput(cpu, 0x84ef4eu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84ef4eu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84EF60(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PANEL_INPUT)
+    return ActorBridgePanelCopy(cpu, 0x84ef60u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84ef60u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84EF74(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PANEL_INPUT)
+    return ActorBridgePanelCopy(cpu, 0x84ef74u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84ef74u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84EF88(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PANEL_INPUT)
+    return ActorBridgePanelInput(cpu, 0x84ef88u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84ef88u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_84EFC4(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PANEL_INPUT)
+    return ActorBridgePanelInput(cpu, 0x84efc4u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84efc4u);
 #endif
 }

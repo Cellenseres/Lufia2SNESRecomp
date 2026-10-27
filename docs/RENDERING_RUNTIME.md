@@ -185,6 +185,32 @@ and checks run/reused/deferred. Keep remaining performance work explicit without
 changing a correct semantic function's verification status to describe speed.
 Tests, proof tools, gameplay snapshots and raw captures remain private.
 
+### Input-panel copy and child phases
+
+The panel consumer repeats a six-opcode copy pattern using nine timing slots,
+with at most 128 words per span. Existing page indexes certify the live EF68/
+EF7C owner, reject foreign hooks and honor the 1,024-opcode budget, devices,
+refresh and deadlines. The exact final writing opcode supplies quiescence
+progress. Child-boundary plans retain palette MVN fetches and the 4,096-frame
+input continuation. No wait classification or APU caller is replaced.
+
+The 48 original-caller comparisons preserve CPU/WRAM, non-APU return devices,
+complete natural frame-end devices and fresh PCM. Sixteen immediate APU states
+remain differently aggregated until regular synchronization. Wait attempts and
+admissions match. Native admission and compiled/linked APU callers are checked;
+the extended-frame contexts exercise absolute catch-up, not the relative seam.
+
+Matched desktop median copy intervals improve from 3,268 to 1,050 us and from
+3,564 to 1,186 us. Whole-panel measurements remain noisy, and short resource/
+append services do not show a consistent gain. These are caller intervals,
+with counters and PCM consumption, not frame or hardware acceptance. Detailed
+scope and costs are recorded in the verification document.
+
+A private rollback comparison must also restore the complete extended APU
+frame clock and equivalent audio consumer-ring history. An older guest blob
+alone produced zero new PCM in a fresh process and was rejected. Restore every
+relevant clock component; never treat silent output as sound verification.
+
 ### Card-column continuation admission
 
 The original column algorithms also expose exact EA30/EAB4 loop boundaries.
