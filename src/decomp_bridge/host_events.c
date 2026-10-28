@@ -504,6 +504,10 @@ void Lufia2DecompSetMenuDispatchEvent(Lufia2DecompMenuDispatchEvent callback) {
     CpuEventSet(&menu_dispatch_event, callback);
 }
 
+int Lufia2DecompMenuDispatchObserved(void) {
+    return menu_dispatch_event.count != 0u;
+}
+
 void Lufia2DecompMenuDispatch(CpuState *cpu, uint32_t pc) {
     CpuEventDispatch(&menu_dispatch_event, cpu, pc);
 }

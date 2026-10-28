@@ -1,0 +1,43 @@
+include_guard(GLOBAL)
+
+function(lufia2_main_menus_available output target)
+    set(${output} FALSE PARENT_SCOPE)
+    if(NOT target STREQUAL "Lufia2Recomp" OR LUFIA2_DECOMP_REFERENCE_ONLY)
+        return()
+    endif()
+    set(_names Lufia2MenuBuildOptionsScreen Lufia2MenuRefreshOptions Lufia2MenuSetOptionIndicators Lufia2MenuBuildCapsuleScreen Lufia2MenuRunScenarioItems Lufia2MenuRunOptionsScreen Lufia2MenuRunCapsuleScreen Lufia2MenuRunCapsuleAction Lufia2MenuDrawCapsuleExperience Lufia2MenuFindScenarioItem)
+    set(_headers menu_options_screen.h menu_options_screen.h menu_options_screen.h menu_capsule_screen.h menu_scenario_items.h menu_options_screen.h menu_capsule_screen.h menu_capsule_screen.h menu_capsule_screen.h menu_scenario_items.h)
+    set(_addresses "82:A023" "82:A07D" "82:A0C7" "82:A0E3" "82:A88E" "82:BF13" "82:BFC5" "82:C044" "82:D121" "82:FC3F")
+    set(_bridges Lufia2DecompBridge_82A023 Lufia2DecompBridge_82A07D Lufia2DecompBridge_82A0C7 Lufia2DecompBridge_82A0E3 Lufia2DecompBridge_82A88E Lufia2DecompBridge_82BF13 Lufia2DecompBridge_82BFC5 Lufia2DecompBridge_82C044 Lufia2DecompBridge_82D121 Lufia2DecompBridge_82FC3F)
+    set(_metadata_path "${LUFIA2_DECOMP_RESOLVED_ROOT}/metadata/functions.toml")
+    set(_bindings_path "${CMAKE_SOURCE_DIR}/recomp/decomp_bindings.toml")
+    if(NOT EXISTS "${_metadata_path}" OR NOT EXISTS "${_bindings_path}")
+        return()
+    endif()
+    file(READ "${_metadata_path}" _metadata)
+    file(READ "${_bindings_path}" _bindings)
+    foreach(_index RANGE 0 9)
+        list(GET _names ${_index} _name)
+        list(GET _headers ${_index} _header)
+        list(GET _addresses ${_index} _address)
+        list(GET _bridges ${_index} _bridge)
+        set(_path "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/${_header}")
+        if(NOT EXISTS "${_path}")
+            return()
+        endif()
+        file(READ "${_path}" _api)
+        string(REGEX MATCH
+            "\\[\\[function\\]\\][^[]*name[ \t]*=[ \t]*\"${_name}\"[^[]*"
+            _contract "${_metadata}")
+        string(REGEX MATCH
+            "\\[\\[binding\\]\\][^[]*address[ \t]*=[ \t]*\"${_address}\"[^[]*"
+            _binding "${_bindings}")
+        if(NOT _api MATCHES "${_name}[(]" OR
+           NOT _contract MATCHES "address[ \t]*=[ \t]*\"${_address}\"" OR
+           NOT _contract MATCHES "status[ \t]*=[ \t]*\"verified\"" OR
+           NOT _binding MATCHES "bridge[ \t]*=[ \t]*\"${_bridge}\"")
+            return()
+        endif()
+    endforeach()
+    set(${output} TRUE PARENT_SCOPE)
+endfunction()

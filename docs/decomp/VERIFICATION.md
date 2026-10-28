@@ -1,3 +1,32 @@
+# Main-menu consumer checkpoint - 2026-10-28
+
+Nine original options, capsule and scenario-item routines are reconstructed;
+the tenth entry exposes the existing scenario-item lookup. Their original-ROM
+contracts pass5120 direct and5120 composed cases,90 child sites/unwinds,
+450 changed returns,76 refusals,512 selectors and four negative controls.
+Actual bridge ABI passes7680 cases and810 changed-return/unwind cases.
+
+Production comparison exposed an existing unclocked82:8028 inline dispatcher.
+The consumer now accounts its original16 opcodes under bounded admission;
+3072 additional CPU/WRAM/ordered timed-bus cases pass. Internal dispatch spans
+refuse active menu subscribers; the existing callback-aware compatibility route
+is retained, with no new full timing proof for that legacy route. Standalone
+semantics and original waits remain unchanged. No new opcode hooks are installed.
+
+The1000-frame production replay has equal CPU/WRAM/device state records,
+five byte-identical full hardware snapshots and552971 fresh PCM samples.
+Reference/native raw opcodes in the new owner ranges are490/422. Both arms use
+the common dispatcher correction; only the ten new bindings differ. Wait attempts
+match at9103326; neither arm admits a wait batch in this replay. This proves
+state equivalence here, not wait throughput or native execution of every path.
+
+Three alternating fixed-affinity cost pairs use uninstrumented normal production
+objects with artifact export off and PCM consumption on. Reference/native medians
+are8.370539/8.360311seconds, too close for a meaningful speedup claim. No ARM or
+hardware60FPS claim follows. Seven capability gates, strict compilers and the
+reserved Windows Release pass. Tests and captures remain private; no unrelated
+full regression is claimed. Prior rejected private samples are excluded.
+
 # Member-screen consumer checkpoint — 2026-10-27
 
 Three original main-menu routines are reconstructed at 82:9E67, 82:B2FE and

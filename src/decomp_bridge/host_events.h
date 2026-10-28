@@ -139,6 +139,7 @@ void Lufia2DecompCaveDefeatReset(CpuState *cpu, uint32_t pc);
 
 typedef void (*Lufia2DecompMenuDispatchEvent)(CpuState *, uint32_t);
 void Lufia2DecompSetMenuDispatchEvent(Lufia2DecompMenuDispatchEvent callback);
+int Lufia2DecompMenuDispatchObserved(void);
 void Lufia2DecompMenuDispatch(CpuState *cpu, uint32_t pc);
 
 #endif

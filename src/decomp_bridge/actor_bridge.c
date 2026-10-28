@@ -63,7 +63,11 @@ typedef struct ActorBridgeFrame {
     uint8_t hrv;
     uint32_t host_return_pc24;
 } ActorBridgeFrame;
-#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS)
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+static RecompReturn ActorBridgeTimedMenuDispatch(CpuState *cpu);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && \
+    (defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS) || defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS))
 static RecompReturn ActorBridgeMemberDispatch(CpuState *cpu,
     const ActorBridgeFrame *frame);
 #endif
@@ -14315,7 +14319,11 @@ RecompReturn Lufia2DecompBridge_828028(CpuState *cpu) {
     if (cpu->emulation || cpu->_flag_D || cpu->x_flag || cpu->PB != 0x82u || cpu->D ||
         cpu->S < 0x1f20u || cpu->S > 0x1ffcu)
         return ActorBridgeFallback(cpu,&frame,0x828028u);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+    return ActorBridgeTimedMenuDispatch(cpu);
+#else
     return ActorBridgeWholeX16(cpu,0x828028u,Lufia2MenuDispatchInlineTable,2u);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_82E8CB(CpuState *cpu) {
@@ -14340,7 +14348,8 @@ RecompReturn Lufia2DecompBridge_82A4BE(CpuState *cpu) {
     if (cpu->emulation || cpu->_flag_D || cpu->x_flag || cpu->PB != 0x82u || cpu->D ||
         cpu->S < 0x1f20u || cpu->S > 0x1ffcu)
         return ActorBridgeFallback(cpu,&frame,0x82a4beu);
-#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS)
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && \
+    (defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS) || defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS))
     return ActorBridgeMemberDispatch(cpu, &frame);
 #else
     return ActorBridgeWholeX16(cpu,0x82a4beu,Lufia2MenuDispatchMainSelection,2u);
@@ -20069,6 +20078,17 @@ RecompReturn Lufia2DecompBridge_84EFC4(CpuState *cpu) {
 #include "member_screen_clock.inc"
 #include "member_screen_bridge.inc"
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+#include "lufia2/menu_options_screen.h"
+#include "lufia2/menu_capsule_screen.h"
+#include "lufia2/menu_scenario_items.h"
+#include "main_menu_clock.inc"
+#include "main_menu_bridge.inc"
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && \
+    (defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS) || defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS))
+#include "main_menu_selection_bridge.inc"
+#endif
 
 RecompReturn Lufia2DecompBridge_829E67(CpuState *cpu) {
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS)
@@ -20094,5 +20114,95 @@ RecompReturn Lufia2DecompBridge_82B370(CpuState *cpu) {
 #else
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     return ActorBridgeFallback(cpu, &frame, 0x82b370u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82A023(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+    return ActorBridgeMainMenu(cpu, 0x82a023u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82a023u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82A07D(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+    return ActorBridgeMainMenu(cpu, 0x82a07du);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82a07du);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82A0C7(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+    return ActorBridgeMainMenu(cpu, 0x82a0c7u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82a0c7u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82A0E3(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+    return ActorBridgeMainMenu(cpu, 0x82a0e3u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82a0e3u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82A88E(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+    return ActorBridgeMainMenu(cpu, 0x82a88eu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82a88eu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82BF13(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+    return ActorBridgeMainMenu(cpu, 0x82bf13u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82bf13u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82BFC5(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+    return ActorBridgeMainMenu(cpu, 0x82bfc5u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82bfc5u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82C044(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+    return ActorBridgeMainMenu(cpu, 0x82c044u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82c044u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82D121(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+    return ActorBridgeMainMenu(cpu, 0x82d121u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82d121u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82FC3F(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+    return ActorBridgeMainMenu(cpu, 0x82fc3fu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82fc3fu);
 #endif
 }
