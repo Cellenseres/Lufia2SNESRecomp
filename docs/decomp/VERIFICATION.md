@@ -1,3 +1,31 @@
+# Inactive HDMA native-wait admission - 2026-10-28
+
+Counter waits previously rejected hdmaBeamOff=false even with no active or
+pending HDMA channels. The consumer now checks actual channel ownership: MDMA,
+active HDMA and pending HDMA remain excluded when applicable. Terminated but
+still enabled HDMA channels remain excluded because frame initialization can
+reload them. An inactive channel cannot arm itself during read-only polling.
+No semantic decomp,binding,hook,clock arithmetic or1024-opcode limit changes.
+The same bounded eight-channel pass serves both certified idle routes; there
+is no added full function-table search,copy,allocation or cache invalidation.
+
+524288 channel combinations pass with no state mutation; missing-active and
+missing-pending guard controls are detected. Reversing only this admission
+change restores the exact previous clock source. Existing event/refresh/APU,
+observer and deadline certificates still bound every admitted original opcode.
+Two1000-frame production sequences match every CPU/WRAM/device record,ten
+complete hardware snapshots,544492/556258 fresh PCM samples and ordered HDMA
+hashes. Field wait attempts drop9135472->26274,with18917 admitted batches;
+menu attempts9096966->7574286,with3157 batches. APU calls/skipped cycles match
+1387515/16867917(field) and1422214/17229394(menu); active menu HDMA stays guarded.
+
+Three alternating fixed-affinity pairs use uninstrumented Windows production
+objects,equal inputs,normal audio consumption and no artifact export. The1000-frame
+headless field core+APU replay median falls6.5359357->0.2676739seconds. This is
+neither graphical frame rate nor an ARM/console60FPS claim. Reserved Windows
+Release passes. No standalone source changes or unrelated full regression;
+tests,captures and diagnostic counters stay private.
+
 # Dekompressor copy admission - 2026-10-28
 
 The consumer reserves96 master cycles for an ordinary original MVN byte and192

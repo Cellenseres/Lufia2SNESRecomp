@@ -293,6 +293,18 @@ static unsigned Lufia2DecompFramePollEdgeChunk(uint64_t need,
     return boundary < chunk ? boundary : chunk;
 }
 
+static bool FramePollChannelsIdle(const Snes *snes) {
+    const Dma *dma = snes->dma;
+    if (!snes->hdmaBeamOff && dma->hdmaPendingInit)
+        return false;
+    for (unsigned index = 0u; index < 8u; ++index) {
+        const DmaChannel *channel = dma->channel + index;
+        if (channel->dmaActive || (!snes->hdmaBeamOff && channel->hdmaActive))
+            return false;
+    }
+    return true;
+}
+
 static bool Lufia2DecompFramePollClockedEdges(CpuState *cpu, uint32_t entry) {
 #if defined(SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY) && !defined(SNES_COSIM) && \
     !defined(SNESRECOMP_INTERP_PROFILE) && \
@@ -304,7 +316,7 @@ static bool Lufia2DecompFramePollClockedEdges(CpuState *cpu, uint32_t entry) {
         cpu->PB != entry >> 16 || !cpu->ram || !g_snes ||
         g_snes->ram != cpu->ram || !g_snes->apu || !g_snes->dma ||
         g_snes->inNmi || g_snes->inIrq || g_snes->hIrqEnabled ||
-        g_snes->vIrqEnabled || !g_snes->hdmaBeamOff ||
+        g_snes->vIrqEnabled ||
         g_snes->beamMasterLast != cpu->master_cycles ||
         g_snes->hPos >= 1364u || g_snes->vPos >= 262u ||
         snesrecomp_beam_hold_active() || !g_snes->cart)
@@ -313,8 +325,8 @@ static bool Lufia2DecompFramePollClockedEdges(CpuState *cpu, uint32_t entry) {
     if (cart->type != CART_LOROM || cart->superfx || cart->cx4 || cart->dsp1 ||
         cart->sdd1 || cart->sa1 || g_snes->dma->dmaBusy || g_snes->dma->dmaTimer)
         return false;
-    for (unsigned channel = 0; channel < 8u; ++channel)
-        if (g_snes->dma->channel[channel].dmaActive) return false;
+    if (!FramePollChannelsIdle(g_snes))
+        return false;
     const uint32_t offset = (((entry >> 16) & 0x7fu) << 15) | (entry & 0x7fffu);
     if (!cart->rom || offset >= cart->romSize || cart->romSize - offset < 4u ||
         cart->rom[offset] != 0xc5u || cart->rom[offset + 1u] != 0x40u ||
@@ -419,7 +431,7 @@ bool Lufia2DecompFramePollTryIdle(CpuState *cpu, uint32_t entry) {
         cpu->PB != entry >> 16 || !cpu->ram || !g_snes ||
         g_snes->ram != cpu->ram || !g_snes->apu || !g_snes->dma ||
         g_snes->inNmi || g_snes->inIrq || g_snes->hIrqEnabled ||
-        g_snes->vIrqEnabled || !g_snes->hdmaBeamOff ||
+        g_snes->vIrqEnabled ||
         g_snes->beamMasterLast != cpu->master_cycles ||
         g_snes->hPos >= 1364u || g_snes->vPos >= 262u ||
         snesrecomp_beam_hold_active() || !g_snes->cart)
@@ -428,8 +440,8 @@ bool Lufia2DecompFramePollTryIdle(CpuState *cpu, uint32_t entry) {
     if (cart->type != CART_LOROM || cart->superfx || cart->cx4 || cart->dsp1 ||
         cart->sdd1 || cart->sa1 || g_snes->dma->dmaBusy || g_snes->dma->dmaTimer)
         return Lufia2NativeIdleDenied(8);
-    for (unsigned channel = 0; channel < 8u; ++channel)
-        if (g_snes->dma->channel[channel].dmaActive) return Lufia2NativeIdleDenied(9);
+    if (!FramePollChannelsIdle(g_snes))
+        return Lufia2NativeIdleDenied(9);
     const uint32_t offset = (((entry >> 16) & 0x7fu) << 15) | (entry & 0x7fffu);
     if (!cart->rom || offset >= cart->romSize || cart->romSize - offset < 4u ||
         cart->rom[offset] != 0xc5u || cart->rom[offset + 1u] != 0x40u ||
