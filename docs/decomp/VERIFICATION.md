@@ -1,3 +1,34 @@
+# Battle timer scan continuation - 2026-10-28
+
+The consumer uses the shared original timer-controller entry85:8F1B and
+handler return85:8F3C. Each admitted phase ends at the real handler target
+with its8F3B frame preserved,or before original RTS8F49. The NMI interpreter
+retains handler execution,return ownership and event boundaries. A96-opcode
+reservation bounds a phase; stack,CPU,IRQ,DMA,refresh and physical HDMA/beam
+windows remain guarded. Existing8F1F/8F3E and wave/ripple hooks remain fallback
+paths. API availability is gated against the verified85:8DC5 parent.
+
+8192 ROM timing plans,8192 actual hook spans,2162 guard/admission cases and
+6676 service cases pass. Two timing/landing faults are detected; strictMSVC,
+Clang,WindowsRelease and optional-NMI-off compile pass. Generated interpreter
+ownership and actual actor references are checked. No unrelated full suite
+was rerun. The optional-off guard does not change the tested active body.
+
+The1200-frame matched production replay has identical CPU,WRAM,device and
+HDMA records,five full hardware snapshots and670463 fresh PCM samples.
+The new continuation admits74 of316 observed uses; the entry hook has no use
+in this fixture because its existing parent already executes the prefix.
+Actual raw opcodes521216->520811. Wait9423216attempts/1944batches and
+APU1838713calls/20758459skipped cycles are unchanged. One fixed-affinity
+uninstrumented core/audio pair measured12.5560712->10.1360654s with identical
+final state and PCM. This single noisy pair establishes no statistical
+speedup,FPS target or whole-game performance claim. Receipt:
+.agent/decomp/runtime-frontier/timer-controller-entry/ACCEPTANCE.json.
+
+No new canonical metadata/binding count is claimed. An independent whole-call
+consumer ABI for85:8F1B remains separate work; these are certified NMI phases
+of the existing parent,not an always-refused replacement binding.
+
 # Inactive HDMA native-wait admission - 2026-10-28
 
 Counter waits previously rejected hdmaBeamOff=false even with no active or
