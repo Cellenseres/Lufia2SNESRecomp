@@ -762,3 +762,29 @@ or frontend/console FPS. The uninstrumented binaries also match CPU, WRAM,
 hardware and PCM. Reserved Windows Release and strict C11 checks pass.
 Unchanged semantic algorithms and capability gates are reused; unrelated full
 regression is deferred. Private evidence: runtime-frontier/effect-post-hdma.
+
+
+## Battle target-name continuations - 2026-10-28
+
+The original clear loops at81:D58D/D7C5/D8CC now share the existing selector's
+C algorithm through bounded continuations. Up to eight indexed stores retain
+all original opcode fetches, writes, flags and per-opcode device/APU timing.
+Admission shrinks the span to fit its real deadline and ends before HDMA or
+the next scanline. Observer/interior-hook checks use the maintained page index.
+Three capability-gated hooks require verified81:D4E0 and the matching API/body;
+these phases add no canonical function or binding count.
+
+One shared checkpoint covers18,432 original spans and next-opcode rejoins,
+99 refusal cases,491,040 raster/deadline cases,57 portable API cases and eight
+capability gates. Strict MSVC/Clang C11 and the reserved Windows Release pass.
+The original-ROM test caught and corrected an X16 indexed-store timing error.
+A matched1,200-frame battle preserves CPU/WRAM/device/HDMA records, five full
+hardware snapshots and670,463 fresh PCM samples. Two sites admit1,938 spans
+covering10,537 stores; the third cancel site has ROM/ABI coverage only.
+Interpreted opcodes fall616,104->584,493. Existing wait/APU counts are identical.
+
+Three alternating fixed-affinity pairs without profiling give core-plus-audio
+medians7.9710139->8.2796385 seconds, with substantial variation. This is evidence
+of reduced interpretation, not an established performance improvement; no FPS
+claim is made. Unrelated full regression and other-platform builds are deferred.
+Private evidence: runtime-frontier/target-name-spans/ACCEPTANCE.json.
