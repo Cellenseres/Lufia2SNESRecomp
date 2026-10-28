@@ -27,10 +27,14 @@ static MainMenuService MainMenuServiceAt(uint32_t entry) {
         {0x82a07du, Lufia2MenuRefreshOptions},
         {0x82a0c7u, MainMenuIndicators},
         {0x82a0e3u, Lufia2MenuBuildCapsuleScreen},
+        {0x82a1d8u, Lufia2MenuBuildCapsuleFeedingScreen},
+        {0x82a233u, Lufia2MenuBuildCapsuleFeedingPanels},
         {0x82a88eu, Lufia2MenuRunScenarioItems},
         {0x82bf13u, Lufia2MenuRunOptionsScreen},
         {0x82bfc5u, Lufia2MenuRunCapsuleScreen},
         {0x82c044u, Lufia2MenuRunCapsuleAction},
+        {0x82c0acu, Lufia2MenuRunCapsuleFeeding},
+        {0x82c170u, Lufia2MenuChooseCapsule},
         {0x82d121u, Lufia2MenuDrawCapsuleExperience},
         {0x82fc3fu, MainMenuScenarioItem}
     };
@@ -47,7 +51,9 @@ static MainMenuService MainMenuServiceAt(uint32_t entry) {
 static bool MainMenuChildMode(const CpuState *cpu, uint32_t site) {
     const bool wide = site == 0x82a03bu || site == 0x82a044u ||
         site == 0x82a149u || site == 0x82a155u || site == 0x82a8c7u ||
-        site == 0x82a900u;
+        site == 0x82a900u || site == 0x82a24cu || site == 0x82a255u ||
+        site == 0x82a25eu || site == 0x82a267u || site == 0x82a273u ||
+        site == 0x82c19au || site == 0x82c163u;
     const bool byte_index = site == 0x82a115u || site == 0x82a11du ||
         site == 0x82a176u;
     return cpu->m_flag == (wide ? 0u : 1u) &&
@@ -84,6 +90,7 @@ static RecompReturn ActorBridgeMainMenu(CpuState *cpu, uint32_t entry) {
         &screen.clock.span, NULL, NULL};
     Lufia2CpuState state;
     ActorBridgeLoad(cpu, &state);
+    state.resume_pc = entry;
     const Lufia2ExecutionResult result = service(&memory, &state,
         MainMenuBridgeChild, &screen);
     if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)

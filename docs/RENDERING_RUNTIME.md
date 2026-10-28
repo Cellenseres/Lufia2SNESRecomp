@@ -1,3 +1,38 @@
+# Capsule consumer checkpoint - 2026-10-28
+
+Five original routines at82:FBA7/A233/A1D8/C170/C0AC are selected after complete
+semantic verification. The standalone retains original stack/status restoration,
+ordered inventory transfers, capsule availability and feeding child boundaries.
+No new opcode hooks or changes to original waits are installed.
+
+The shared original proof covers2560 direct+2560 composed cases,65 child sites
+and unwinds,325 changed returns,35 unsupported entries,1024 backup edges and
+four negative controls. Three strict compilers pass. Actual consumer ABI covers
+3840 new cases and585 changed returns: roots0..3 reuse3072+360 unchanged cases;
+the final feeding fixture supplies768+225, including four debug-feed sites.
+Affected older menu bindings pass7680 cases+810 returns. Backup adds1536 timed
+calls of588 original opcodes,30 refusals and640 HDMA admission combinations.
+The final timing-plan replay admits32178 spans and refuses3150 unsafe contexts.
+
+Two natural1000-frame sequences match every CPU/WRAM/device record, ten complete
+hardware snapshots and556258/552971 fresh PCM samples. All five new bodies run
+across those inputs. Feeding raw opcode counts fall747->146; selection25->20.
+A separate identical active-HDMA input produces22 matching ordered transfers,
+including source/value/master/beam timestamps, equal states and556401 PCM.
+The consumer permits only WRAM-sourced,PPU-targeted HDMA in the proven backup
+and initial feeding prefix. Per-opcode clock synchronization keeps HDMA live;
+other MMIO phases retain their existing raster fences. No transfer is skipped.
+
+Five alternating fixed-affinity cost pairs use uninstrumented production
+objects,artifact export off and PCM consumption on. Reference/native medians
+are6.4241173/6.4800721seconds,with noisy overlapping ranges; no speedup or60FPS
+claim follows. Wait attempts/admissions match9096966/0 in the feeding replay;
+APU calls/skipped cycles match1422214/17229394. This fixture does not establish
+wait-batch throughput. Generated and linked APU idle seams remain present.
+Eight capability gates,feature-off compilation and reserved Windows Release
+pass. Tests and captures stay private. Unchanged original semantic proofs are
+reused by source hash; no unrelated full regression is claimed for this batch.
+
 # Main-menu consumer checkpoint - 2026-10-28
 
 Nine original options, capsule and scenario-item routines are reconstructed;

@@ -20082,8 +20082,11 @@ RecompReturn Lufia2DecompBridge_84EFC4(CpuState *cpu) {
 #include "lufia2/menu_options_screen.h"
 #include "lufia2/menu_capsule_screen.h"
 #include "lufia2/menu_scenario_items.h"
+#include "lufia2/menu_capsule_selection.h"
+#include "menu_wram_hdma.inc"
 #include "main_menu_clock.inc"
 #include "main_menu_bridge.inc"
+#include "capsule_backup_bridge.inc"
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && \
     (defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS) || defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS))
@@ -20204,5 +20207,50 @@ RecompReturn Lufia2DecompBridge_82FC3F(CpuState *cpu) {
 #else
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     return ActorBridgeFallback(cpu, &frame, 0x82fc3fu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82FBA7(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+    return ActorBridgeCapsuleBackup(cpu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82fba7u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82A233(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+    return ActorBridgeMainMenu(cpu, 0x82a233u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82a233u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82A1D8(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+    return ActorBridgeMainMenu(cpu, 0x82a1d8u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82a1d8u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82C170(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+    return ActorBridgeMainMenu(cpu, 0x82c170u);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82c170u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82C0AC(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MAIN_MENUS)
+    return ActorBridgeMainMenu(cpu, 0x82c0acu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x82c0acu);
 #endif
 }
