@@ -39,7 +39,8 @@ static bool EffectSlotClockSupported(const CpuState *cpu, uint32_t entry,
     const unsigned budget = EffectSlotClockBudget(cpu, advance);
     if (cpu->master_cycles > UINT64_MAX - budget)
         return false;
-    const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
+    const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u &&
+        g_snes->hPos < 1024u
         ? 1024u : 1364u;
     if (!ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, false,
             fence - budget - 1u, budget))

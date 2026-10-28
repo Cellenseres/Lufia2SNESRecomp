@@ -13643,3 +13643,29 @@ At the existing shared validation checkpoint, check actual native admission,
 hook interactions, generated caller composition and measured host work.
 Preserve original-ROM semantics; host optimizations need their own contract.
 Semantic verification, ABI correctness and measured performance are separate.
+
+
+## Effect slots after HDMA - 2026-10-28
+
+Four existing effect-slot phases (81:8A7E/8AAA/8AC1/8B1B) now admit entry
+after the scanline's HDMA event when their complete reserved span ends before
+the line boundary. Previously the 1024-clock fence also rejected these late
+entries. Entry before HDMA still requires the entire span to finish before
+HDMA. Existing deadlines, refresh reserve, interrupt, DMA and CPU guards remain.
+No new hook, binding, semantic function, opcode timing or guest speed changed.
+
+The shared original-ROM checkpoint passes 9,216 spans and next-opcode rejoins,
+246 preaccess guards, 5,760 prior temporal cases and 6,480 post-HDMA cases.
+The old condition is rejected by the new admission negative control. A matched
+1,200-frame synthetic actor-contact battle preserves every captured frame
+state, five complete hardware snapshots and 670,463 fresh PCM samples.
+Interpreted opcodes fall from 662,932 to 616,104; accepted slot-hook bodies
+increase from 42,287 to 47,543. Wait batching and APU call counts are identical.
+
+Three alternating fixed-affinity pairs without opcode/hook/APU profiling give
+median core-plus-audio times of 8.2273365 seconds before and 8.3382124 after.
+Results vary; this checkpoint establishes less interpretation, not a speedup
+or frontend/console FPS. The uninstrumented binaries also match CPU, WRAM,
+hardware and PCM. Reserved Windows Release and strict C11 checks pass.
+Unchanged semantic algorithms and capability gates are reused; unrelated full
+regression is deferred. Private evidence: runtime-frontier/effect-post-hdma.
