@@ -358,6 +358,12 @@ function(lufia2_add_nmi_continuations target core_root)
                         APPEND PROPERTY COMPILE_DEFINITIONS
                             "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_CLEANUP_STEPS=1>")
                 endif()
+                lufia2_battle_effect_clear_spans_available(_battle_effect_clear_spans)
+                if(_battle_effect_clear_spans)
+                    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                        APPEND PROPERTY COMPILE_DEFINITIONS
+                            "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_CLEAR_SPANS=1>")
+                endif()
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleQueueSteps.cmake")
                 lufia2_battle_queue_steps_available(_battle_queue_steps)
                 if(_battle_queue_steps)

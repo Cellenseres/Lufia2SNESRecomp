@@ -1,3 +1,38 @@
+# Bounded battle-effect cleanup - 2026-10-28
+
+The cleanup at81:8BFB uses the original ordered WMDATA clear through a bounded
+semantic service. The consumer admits up to32 iterations only within the live
+opcode budget,deadline,refresh and beam/HDMA window. The actual maximum in the
+matched fixture is23bytes. Every STZ,DEX and BNE keeps its original cycles and
+bus behavior. Every port write advances the bridge epoch; the final write's
+one-based opcode index preserves quiescence progress beyond a32-bit mask.
+No shared clock representation,guest speed,MMIO,wait or sound work changes.
+
+The same hook site remains registered. Quiet-range and normalized-page owner
+checks exclude observers and changed hooks; no full-registry scan is added.
+Older semantic APIs retain the unchanged four-byte consumer. The CMake gate
+accepts the new API,selects that legacy fallback and rejects a draft parent.
+Actual generated12-opcode minimum admission remains; larger spans additionally
+obey the interpreter's remaining opcode budget. Source/API presence alone is
+not the acceptance evidence: actual actor symbols and production uses are
+checked below.
+
+Shared checks:78336 public ROM cases,1320 actual timed-hook cases,3055360
+window cases,55refusals and256 complete2048-byte clears/1572864 original ops.
+StrictMSVC/Clang,legacy consumer compile andWindowsRelease pass. Independent
+wrong-MMIO and omitted-deadline controls are detected. Full unrelated suites
+are deferred; this is the changed semantic/consumer batch's combined state.
+
+The1200-frame matched production sequence has identical CPU/WRAM/device/HDMA
+records,five full hardware snapshots and670463 fresh PCM samples. Actual
+native clear bytes13961->21509; attempts14108->5253,bodies3493->2186,max4->23.
+Raw opcodes520811->498167;only81:8BFB/8BFE/8BFF decrease,by7548 each.
+Wait9423216attempts/1944batches andAPU1838713calls/20758459skipped cycles match.
+One fixed-affinity uninstrumented core/audio pair measured8.2274298->7.6039187s
+with identical final state/PCM. A single pair does not establish statistical
+speedup,whole-game performance or60FPS. Private receipt:
+.agent/decomp/runtime-frontier/effect-clear-span/ACCEPTANCE.json.
+
 # Battle timer scan continuation - 2026-10-28
 
 The consumer uses the shared original timer-controller entry85:8F1B and

@@ -2808,7 +2808,11 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 #include "effect_dispatch_clock.inc"
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_CLEANUP_STEPS)
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_CLEAR_SPANS)
+#include "effect_clear_span_clock.inc"
+#else
 #include "effect_cleanup_clock.inc"
+#endif
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_WIDTH)
 #include "nmi_timer_clock_guard.inc"

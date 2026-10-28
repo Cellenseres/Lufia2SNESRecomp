@@ -27,3 +27,18 @@ function(lufia2_battle_effect_cleanup_steps_available output)
         set(${output} TRUE PARENT_SCOPE)
     endif()
 endfunction()
+
+function(lufia2_battle_effect_clear_spans_available output)
+    set(${output} FALSE PARENT_SCOPE)
+    lufia2_battle_effect_cleanup_steps_available(_steps)
+    if(NOT _steps)
+        return()
+    endif()
+    file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/battle_effect_slot_steps.h" _api)
+    file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/src/battle/battle_effect_engine.c" _implementation)
+    if(_api MATCHES "Lufia2BattleEffectClearByteSpan[(]" AND
+       _api MATCHES "LUFIA2_BATTLE_EFFECT_CLEAR_SPAN_MAX_BYTES[ \t]*=[ \t]*32u" AND
+       _implementation MATCHES "Lufia2BattleEffectClearByteSpan[(][^;{]*[{]")
+        set(${output} TRUE PARENT_SCOPE)
+    endif()
+endfunction()
