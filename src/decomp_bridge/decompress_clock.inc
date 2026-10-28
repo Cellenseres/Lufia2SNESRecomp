@@ -2,7 +2,9 @@
 
 enum {
     DECOMPRESS_PHASE_BUDGET = 384u,
-    DECOMPRESS_FLAG_BUDGET = 512u
+    DECOMPRESS_FLAG_BUDGET = 512u,
+    DECOMPRESS_COPY_BYTE_BUDGET = 96u,
+    DECOMPRESS_COPY_END_BUDGET = 192u
 };
 
 typedef struct DecompressClock {
@@ -204,8 +206,9 @@ static bool DecompressClockSupported(const CpuState *cpu, uint32_t entry) {
     flagged = first == 0x808f40u;
     advance = first == 0x808f14u;
 #endif
-    const unsigned budget = flagged || advance
-        ? DECOMPRESS_FLAG_BUDGET : DECOMPRESS_PHASE_BUDGET;
+    const unsigned budget = copy
+        ? (cpu->A ? DECOMPRESS_COPY_BYTE_BUDGET : DECOMPRESS_COPY_END_BUDGET)
+        : flagged || advance ? DECOMPRESS_FLAG_BUDGET : DECOMPRESS_PHASE_BUDGET;
     if ((!copy && !flagged && !advance &&
             first != 0x808eefu && first != 0x808efau) ||
         cpu->D || cpu->_flag_D || cpu->x_flag || cpu->m_flag != !copy ||

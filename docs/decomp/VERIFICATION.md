@@ -1,3 +1,22 @@
+# Dekompressor copy admission - 2026-10-28
+
+The consumer reserves96 master cycles for an ordinary original MVN byte and192
+for the final byte plus restore tail,instead of384 for both. Worst slow-ROM
+instruction costs are52/146 plus40 refresh reserve. Original bus order,MVN
+repetition,flags,stack and per-opcode device synchronization are unchanged.
+No new semantic function,binding or hook is introduced.
+
+Actual original-ROM ABI proof:8192 copy cases and next-instruction rejoins,
+8 full mixed decompressions,4 overlapping-copy compositions,175 guard refusals,
+and576 final raster/deadline cases(256 admit,320 refuse). The1000-frame
+production replay matches every frame state,five complete hardware snapshots
+and556258 fresh PCM samples. Actual raw interpreter instructions drop15814->15444;
+MVN808F66 drops749->451. Wait/APU counters remain identical. Three alternating
+fixed-affinity pairs use uninstrumented production objects with equal inputs:
+reference/candidate medians6.1703576/6.2077594seconds. No runtime speedup or60FPS
+claim follows. Reserved Windows Release passes; no unrelated full regression.
+Standalone semantic code is unchanged. Tests/captures remain private.
+
 # Capsule consumer checkpoint - 2026-10-28
 
 Five original routines at82:FBA7/A233/A1D8/C170/C0AC are selected after complete
