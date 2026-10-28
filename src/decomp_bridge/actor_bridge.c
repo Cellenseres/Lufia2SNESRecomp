@@ -2774,6 +2774,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
                                                wide_accumulator, 800u, 256u);
 }
 #include "fixed_span_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_WIDTH)
+#include "nmi_hdma_window.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_STEPS)
 #include "battle_target_name_clock.inc"
 #endif

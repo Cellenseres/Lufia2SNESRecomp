@@ -12,7 +12,7 @@ static bool NmiTimerClockSupported(const CpuState *cpu, uint32_t entry,
         cpu->coprocessor_master_cycles != cpu->master_cycles)
         return false;
     if (!g_snes || g_snes->ram != cpu->ram || !g_snes->inNmi || g_snes->inIrq ||
-        !g_snes->hdmaBeamOff || g_snes->hIrqEnabled || g_snes->vIrqEnabled ||
+        g_snes->hIrqEnabled || g_snes->vIrqEnabled ||
         g_snes->hPos >= 1364u || g_snes->vPos >= 262u ||
         g_snes->beamMasterLast != cpu->master_cycles || !g_snes->dma ||
         g_snes->dma->dmaBusy || g_snes->dma->dmaTimer)
@@ -30,6 +30,7 @@ static bool NmiTimerClockSupported(const CpuState *cpu, uint32_t entry,
     const unsigned next_line = g_snes->vPos < 225u ? 225u : 262u;
     const uint64_t before_edge =
         (uint64_t)(next_line - g_snes->vPos) * 1364u - g_snes->hPos;
-    return master_budget < before_edge;
+    return master_budget < before_edge &&
+        NmiSpanAvoidsHdma(g_snes, master_budget, false);
 }
 

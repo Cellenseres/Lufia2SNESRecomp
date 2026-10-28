@@ -26,7 +26,7 @@ static bool RippleStepClockSupported(const CpuState *cpu, uint32_t entry) {
         if (!Lufia2DecompNmiHasInterruptOwner() || cpu->DB != 0x85u ||
             cpu->emulation || cpu->S < 0x1f00u || cpu->S > 0x1ffau ||
             !g_snes->dma || g_snes->ram != cpu->ram || g_snes->inIrq ||
-            !g_snes->hdmaBeamOff || g_snes->hIrqEnabled || g_snes->vIrqEnabled ||
+            g_snes->hIrqEnabled || g_snes->vIrqEnabled ||
             g_snes->hPos >= 1364u ||
             g_snes->beamMasterLast != cpu->master_cycles ||
             g_snes->dma->dmaBusy || g_snes->dma->dmaTimer ||
@@ -43,7 +43,7 @@ static bool RippleStepClockSupported(const CpuState *cpu, uint32_t entry) {
         const unsigned next_line = g_snes->vPos < 225u ? 225u : 262u;
         const uint64_t before_edge =
             (uint64_t)(next_line - g_snes->vPos) * 1364u - g_snes->hPos;
-        return budget < before_edge;
+        return budget < before_edge && NmiSpanAvoidsHdma(g_snes, budget, true);
 #else
         return false;
 #endif

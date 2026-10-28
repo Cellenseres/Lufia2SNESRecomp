@@ -13695,3 +13695,28 @@ medians7.9710139->8.2796385 seconds, with substantial variation. This is evidenc
 of reduced interpretation, not an established performance improvement; no FPS
 claim is made. Unrelated full regression and other-platform builds are deferred.
 Private evidence: runtime-frontier/target-name-spans/ACCEPTANCE.json.
+
+
+## NMI work with HDMA enabled - 2026-10-28
+
+The consumer now distinguishes HDMA feature enable from its next physical
+transfer. NMI ownership can persist into visible scanlines after a long
+handler. Finite timer/ripple phases may run when their complete reservation
+ends before HDMA or the next line; complete ripple/primary-wave builders
+with HDMA enabled remain confined to the remaining VBlank. Existing owner,
+stack, interrupt, DMA, refresh and synchronized beam/APU guards remain.
+No hook, semantic routine, clock descriptor or guest behavior changed.
+
+The shared checkpoint passes38,784 original spans and rejoins,512 original
+RTI suffixes,780 portable timer cases,211 refusal cases and5,003,152 window
+cases. All2,455,496 previously allowed window cases remain allowed; an unsafe
+window mutant is rejected. Strict C11 and reserved Windows Release pass.
+A1,200-frame battle preserves all captured CPU/WRAM/device/HDMA records,
+five hardware snapshots and670,463 fresh PCM samples. Interpreted opcodes
+fall584,493->521,216. Actual use includes20 whole ripple builders,7 whole
+primary-wave builders and6,932 shorter phase admissions. Wait/APU counts
+are identical. A single fixed-affinity uninstrumented core/audio pair measures
+9.497871->8.0837394 seconds, with identical end state and PCM. This single
+sample is not statistical speedup acceptance or a frontend/console FPS claim.
+Unrelated standalone suites and full regression were deferred.
+Private evidence: runtime-frontier/battle-nmi-admission/ACCEPTANCE.json.
