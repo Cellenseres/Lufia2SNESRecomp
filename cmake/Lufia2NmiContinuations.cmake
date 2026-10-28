@@ -344,6 +344,12 @@ function(lufia2_add_nmi_continuations target core_root)
                         APPEND PROPERTY COMPILE_DEFINITIONS
                             "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_SLOT_STEPS=1>")
                 endif()
+                lufia2_battle_effect_slot_headers_available(_battle_effect_slot_headers)
+                if(_battle_effect_slot_headers)
+                    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                        APPEND PROPERTY COMPILE_DEFINITIONS
+                            "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_SLOT_HEADERS=1>")
+                endif()
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleEffectDispatchSteps.cmake")
                 lufia2_battle_effect_dispatch_steps_available(_battle_effect_dispatch_steps)
                 if(_battle_effect_dispatch_steps)

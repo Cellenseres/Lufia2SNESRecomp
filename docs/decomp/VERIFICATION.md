@@ -1,3 +1,36 @@
+# Partial effect-slot timer admission - 2026-10-28
+
+The matched battle refusal profile shows valid CPU/slot contexts: all observed
+refusals at81:8A7E/8AAA/8AC1/8B1B come from the certified time window. The
+original full slot can exceed that window while its two/six-opcode timer
+header still fits. The consumer then runs the shared original header and
+continues at the real advance boundary. All previous full admissions remain;
+advance timing is unchanged. No original opcode,store,wait or sound work is
+removed. The existing four hook sites and14-opcode minimum reservation stay.
+New prefix admissions additionally require a quiet internal opcode range;
+no observer or foreign mid-header hook is bypassed. Older semantic APIs keep
+the previous full-step fallback. Lookups remain on normalized hook-page lists.
+
+Shared validation:11280 full/header ROM/clock states,1128 decimal semantic
+states,763840 windows,12existing semantic guards,128consumer refusals and10
+new API/observer refusals pass. The legacy-only build passes6768/752states
+and the same old guards. Two independent wrong-landing/omitted-observer
+controls are detected. StrictMSVC/Clang,API gate current/legacy/draft,
+WindowsRelease and actual actor symbol/generated caller checks pass. Ten
+parent/step bodies are text-identical to the previous verified revision;
+prior whole-parent evidence is reused only for those unchanged bodies.
+Full unrelated suites/platform rebuilds are deferred.
+
+In1200matched production frames,all CPU/WRAM/device/HDMA records,five full
+hardware snapshots and670463fresh PCM samples are identical. Script headers
+add4918native prefixes;actor headers add10743. All47543previous full native
+uses remain. Attempts and advance counts are unchanged. Raw498167->465081;
+only the timer-header PCs decrease. Wait9423216attempts/1944batches and
+APU1838713calls/20758459skipped cycles match. One fixed-affinity uninstrumented
+core/audio pair measured7.904854->7.74617s with matching final state and PCM.
+This is no statistical speedup,whole-game or60FPS claim. Private receipt:
+.agent/decomp/runtime-frontier/effect-slot-headers/ACCEPTANCE.json.
+
 # Bounded battle-effect cleanup - 2026-10-28
 
 The cleanup at81:8BFB uses the original ordered WMDATA clear through a bounded
