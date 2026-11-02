@@ -18381,6 +18381,82 @@ RecompReturn Lufia2DecompBridge_86AFB1(CpuState *cpu) {
 #endif
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_PARTY_MEMBER_CHANGES_API)
+#include "member_change_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_81F639(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_PARTY_MEMBER_CHANGES_API)
+    return ActorBridgeMemberChange(cpu, 0x81f639u, 0u, Lufia2PartyAddMemberStatus);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x81f639u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_81F647(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_PARTY_MEMBER_CHANGES_API)
+    return ActorBridgeMemberChange(cpu, 0x81f647u, 1u, Lufia2PartyClearMemberStatus);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x81f647u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_81F655(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_PARTY_MEMBER_CHANGES_API)
+    return ActorBridgeMemberChange(cpu, 0x81f655u, 2u, Lufia2PartyAddRecordStatus);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x81f655u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_81F66A(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_PARTY_MEMBER_CHANGES_API)
+    return ActorBridgeMemberChange(cpu, 0x81f66au, 3u, Lufia2PartyClearRecordStatus);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x81f66au);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_81F683(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_PARTY_MEMBER_CHANGES_API)
+    return ActorBridgeMemberChange(cpu, 0x81f683u, 4u, Lufia2PartyAddMemberHp);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x81f683u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_81F6A8(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_PARTY_MEMBER_CHANGES_API)
+    return ActorBridgeMemberChange(cpu, 0x81f6a8u, 5u, Lufia2PartySubtractMemberHp);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x81f6a8u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_81F6D7(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_PARTY_MEMBER_CHANGES_API)
+    return ActorBridgeMemberChange(cpu, 0x81f6d7u, 6u, Lufia2PartyAddMemberMp);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x81f6d7u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_81F6FC(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_PARTY_MEMBER_CHANGES_API)
+    return ActorBridgeMemberChange(cpu, 0x81f6fcu, 7u, Lufia2PartySubtractMemberMp);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x81f6fcu);
+#endif
+}
+
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
 #include "rectangle_call_clock.inc"
 #endif

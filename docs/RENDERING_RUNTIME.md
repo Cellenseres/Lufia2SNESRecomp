@@ -969,3 +969,33 @@ concurrently with compilation;it is not accepted as performance evidence.
 Guest RTS fetches,stack reads,timing and original return semantics remain.
 No full decomp regression was rerun for these empty endpoints;the shared
 affected union and optional integration builds cover the changed contract.
+
+## Party member status and vital changes — 2026-11-02
+
+Eight previously uncatalogued original routines in 81:F639–F722 now use
+shared status and vital-value C algorithms. Their consumer executes each
+accepted call through the existing FixedSpanClock, with immutable plans for
+18 original paths. Planning performs bounded RAM/ROM peeks, with no timing
+table search, allocation or per-call plan copy. No PC hooks are added, and
+certified wait/APU batching and its generated callers are unchanged.
+
+Admission requires native M1X0, a paired frame, ordinary RAM records, a
+matching LoROM cartridge, quiet code ranges and sufficient uninterrupted
+clock room. Status paths accept either decimal flag. Vital paths currently
+admit binary arithmetic; decimal execution retains the original fallback,
+while the standalone C implementation preserves decimal behavior. The
+prologue's original Y truncation is also applied when choosing the timing
+path. An early timing fixture caught its omission at HP case 72.
+
+65536 standalone original-ROM cases compare CPU, full WRAM and ordered bus/
+MMIO, plus 40 refusal cases. The shared consumer proof covers 32768 calls
+across fast/slow ROM, low-WRAM mirrors, both WRAM banks and cross-bank RTL
+returns, plus 784 read-only admission cases. All pass. The 4552 mixed-frame
+return dispatches preserve the original RTS paths; they are not entry
+fallbacks. Every accepted fixture call executes the semantic C body.
+
+These paths have no direct far-JSL byte references in the inspected ROM;
+this does not exclude indirect invocation. Current gameplay frequency and
+before/after gameplay cost remain unmeasured. No game-wide speedup or FPS
+claim follows from these entries or fixture admission counts. The affected
+semantic/ABI union replaces another full regression for this checkpoint.
