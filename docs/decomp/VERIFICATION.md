@@ -1,3 +1,32 @@
+# Exact effect-slot advance admission - 2026-11-02
+
+The existing original advance operations at81:8AAA and81:8B1B now have an
+additional consumer admission path after the conservative old path declines.
+It accounts for fifteen original ROM fetches,two WRAM accesses,seven internal
+cycles,the final branch and actual refresh phase. A zero refresh watermark
+keeps the conservative tax. All old guards,event boundaries and admissions
+remain. New admissions require a quiet internal hook range. No semantic API,
+hook site,canonical function or binding was added; standalone C is unchanged.
+Generated callers still reserve14 header opcodes and8 advance opcodes.
+
+Shared checks pass15792 original-ROM/timed states,1128 decimal states,
+1309440 advance windows,763840 legacy/header windows and166 guards/API checks.
+The clock proof additionally compiles the actual SDK refresh implementation.
+Legacy API checks pass6768 timed states,752 decimal states and140 guards.
+Independent omitted-refresh and omitted-observer controls fail as intended.
+StrictMSVC,WindowsRelease and actual linked native advance references pass.
+Unchanged semantic source retains its prior whole-parent evidence; unrelated
+full regression and platform rebuilds were deferred.
+
+Across1200 matched production frames,CPU/WRAM/device/HDMA records,five full
+hardware snapshots and670463 fresh PCM samples match exactly. Additional
+native advances:1866 script,3951 actor. Raw465081->418545;only the sixteen
+advance PCs decrease. Wait9423216attempts/1944batches andAPU1838713calls/
+20758459skipped cycles are unchanged. One fixed-affinity uninstrumented pair
+measured7.6135047->7.5337641seconds with identical final state and PCM. This
+is not statistical speedup,whole-game coverage or60FPS evidence. Private
+receipt:.agent/decomp/runtime-frontier/effect-slot-advance/ACCEPTANCE.json.
+
 # Partial effect-slot timer admission - 2026-10-28
 
 The matched battle refusal profile shows valid CPU/slot contexts: all observed

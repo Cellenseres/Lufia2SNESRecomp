@@ -60,6 +60,23 @@ static bool EffectSlotClockSupported(const CpuState *cpu, uint32_t entry,
         EffectSlotClockWindowSupported(cpu, entry, EffectSlotClockBudget(cpu, advance));
 }
 
+static bool EffectSlotAdvanceClockSupported(const CpuState *cpu, uint32_t entry,
+                                            bool actors) {
+    if (!EffectSlotClockContextSupported(cpu, entry, actors, true) ||
+        !Lufia2DecompFrameRangeQuiet(entry + 1u, entry + 15u))
+        return false;
+    uint64_t phase, charged;
+    snes_refresh_state_get(&phase, &charged);
+    if (phase >= 1364u || (charged && charged != cpu->master_cycles))
+        return false;
+    const unsigned fetch_clocks = 15u * cpu_region_speed(entry);
+    unsigned budget = fetch_clocks + 58u;
+    if (cpu->ram[EFFECT_SLOT_COUNTER_ADDRESS] == 1u)
+        budget -= 6u;
+    if (!charged || phase + budget >= 1364u)
+        budget += 40u;
+    return EffectSlotClockWindowSupported(cpu, entry, budget);
+}
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_SLOT_HEADERS)
 static bool EffectSlotHeaderClockSupported(const CpuState *cpu, uint32_t entry,
                                            bool actors) {
@@ -91,7 +108,8 @@ static void ActorBridgeEffectSlotStep(CpuState *cpu, uint32_t entry) {
     const bool actors = entry == 0x818ac1u || entry == 0x818b1bu;
     const bool advance = entry == 0x818aaau || entry == 0x818b1bu;
     bool header_only = false;
-    if (!EffectSlotClockSupported(cpu, entry, actors, advance)) {
+    if (!EffectSlotClockSupported(cpu, entry, actors, advance) &&
+        !(advance && EffectSlotAdvanceClockSupported(cpu, entry, actors))) {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_SLOT_HEADERS)
         if (advance || !EffectSlotHeaderClockSupported(cpu, entry, actors))
             return;
