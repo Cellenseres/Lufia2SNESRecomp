@@ -999,3 +999,36 @@ this does not exclude indirect invocation. Current gameplay frequency and
 before/after gameplay cost remain unmeasured. No game-wide speedup or FPS
 claim follows from these entries or fixture admission counts. The affected
 semantic/ABI union replaces another full regression for this checkpoint.
+
+## Field developer controls and Cave diagnostics - 2026-11-02
+
+Seven previously missing original routines now have verified C implementations
+and consumer bindings: 8E:B0D4/B134/B13B/B150/B23F/B275 and 85:84C6.
+Existing B142/B149 reuse the same input algorithm and now also admit X8.
+The controller retains its five pushed child calls; the Cave map retains
+256 cells, its stair marker, eight values and the bounded link count.
+
+Consumer timing reuses FixedSpanClock. Immutable timing segments repeat for
+map cells, links and sprites without copying an opcode timeline or scanning
+the binding table. Each accepted parent remains inside C between actual
+child boundaries; it does not redispatch each original opcode. No PC hooks
+were added. Admission checks CPU mode, stack, RAM mappings, observer-free
+code ranges, DMA/IRQ state, synchronized clocks and remaining device budget.
+Every child return is checked again before continuing. Unsupported contexts
+retain the original execution route. Binary timing admission is separate
+from the standalone renderer's original decimal arithmetic support.
+
+The shared checkpoint covers 41728 original-ROM leaf cases, 1024 controller
+cases, 35 standalone child-context/unwind cases and 26 no-access refusals.
+Separate consumer checks compare CPU, full WRAM, ordered fetch/data phases,
+open bus and guest clocks across 50448 leaf calls and 8192 controller calls.
+1024 composed controller runs include 125 actual native sprite-grid calls;
+45 changed child contexts and 846 read-only admission cases also pass.
+The divider retains its MMIO sequence, JSR and both original RTS visits.
+
+These are diagnostic paths with no measured gameplay invocation frequency.
+The fixture establishes native admission and exact guest costs; it does not
+establish a before/after whole-frame speedup or hardware FPS result. Prior
+certified wait/APU batching remains owned by its existing source composition.
+Full regression is deferred; this checkpoint runs the affected union once
+and rechecks focused failures without repeating unrelated green suites.

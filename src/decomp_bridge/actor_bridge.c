@@ -12614,22 +12614,35 @@ RecompReturn Lufia2DecompBridge_869A71(CpuState *cpu) {
         0, Lufia2WorldMapReadTileClass, 2u, BATTLE_BRIDGE_M1X0, 0, 0x86, 0);
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_FIELD_DEVELOPER_CONTROLS_API) && defined(LUFIA2_CAVE_DIAGNOSTICS_API)
+static RecompReturn ActorBridgeFieldDiagnostic(CpuState *, uint32_t,
+    unsigned, ActorWholeFunction);
+#endif
+
 RecompReturn Lufia2DecompBridge_8EB142(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_FIELD_DEVELOPER_CONTROLS_API) && defined(LUFIA2_CAVE_DIAGNOSTICS_API)
+    return ActorBridgeFieldDiagnostic(cpu, 0x8eb142u, 2u, Lufia2FieldConsumePressedLow);
+#else
     if (cpu->PB != 0x8eu || !cpu->m_flag ||
         cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
         return ActorBridgeFallback(cpu, &frame, 0x8eb142u);
     }
     return ActorBridgeWhole(cpu, 0x8eb142u, Lufia2FieldConsumePressedLow, 3u);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_8EB149(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_FIELD_DEVELOPER_CONTROLS_API) && defined(LUFIA2_CAVE_DIAGNOSTICS_API)
+    return ActorBridgeFieldDiagnostic(cpu, 0x8eb149u, 3u, Lufia2FieldConsumePressedHigh);
+#else
     if (cpu->PB != 0x8eu || !cpu->m_flag ||
         cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
         return ActorBridgeFallback(cpu, &frame, 0x8eb149u);
     }
     return ActorBridgeWhole(cpu, 0x8eb149u, Lufia2FieldConsumePressedHigh, 3u);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_8EB7CD(CpuState *cpu) {
@@ -20392,5 +20405,73 @@ RecompReturn Lufia2DecompBridge_82C0AC(CpuState *cpu) {
 #else
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     return ActorBridgeFallback(cpu, &frame, 0x82c0acu);
+#endif
+}
+
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_FIELD_DEVELOPER_CONTROLS_API) && defined(LUFIA2_CAVE_DIAGNOSTICS_API)
+#include "field_diagnostic_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_8EB134(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_FIELD_DEVELOPER_CONTROLS_API) && defined(LUFIA2_CAVE_DIAGNOSTICS_API)
+    return ActorBridgeFieldDiagnostic(cpu, 0x8eb134u, 0u, Lufia2FieldConsumeSecondPadHigh);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x8eb134u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_8EB13B(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_FIELD_DEVELOPER_CONTROLS_API) && defined(LUFIA2_CAVE_DIAGNOSTICS_API)
+    return ActorBridgeFieldDiagnostic(cpu, 0x8eb13bu, 1u, Lufia2FieldConsumeSecondPadLow);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x8eb13bu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_8EB23F(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_FIELD_DEVELOPER_CONTROLS_API) && defined(LUFIA2_CAVE_DIAGNOSTICS_API)
+    return ActorBridgeFieldDiagnostic(cpu, 0x8eb23fu, 4u, Lufia2CaveDrawDiagnosticValue);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x8eb23fu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_8EB275(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_FIELD_DEVELOPER_CONTROLS_API) && defined(LUFIA2_CAVE_DIAGNOSTICS_API)
+    return ActorBridgeFieldDiagnostic(cpu, 0x8eb275u, 5u, Lufia2CaveDivideDiagnosticCoordinate);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x8eb275u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_8EB150(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_FIELD_DEVELOPER_CONTROLS_API) && defined(LUFIA2_CAVE_DIAGNOSTICS_API)
+    return ActorBridgeFieldDiagnostic(cpu, 0x8eb150u, 6u, Lufia2CaveDrawDiagnostics);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x8eb150u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_8584C6(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_FIELD_DEVELOPER_CONTROLS_API) && defined(LUFIA2_CAVE_DIAGNOSTICS_API)
+    return ActorBridgeFieldDiagnostic(cpu, 0x8584c6u, 7u, Lufia2FieldDrawDiagnosticSpriteGrid);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x8584c6u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_8EB0D4(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_FIELD_DEVELOPER_CONTROLS_API) && defined(LUFIA2_CAVE_DIAGNOSTICS_API)
+    return ActorBridgeDeveloperControls(cpu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x8eb0d4u);
 #endif
 }
