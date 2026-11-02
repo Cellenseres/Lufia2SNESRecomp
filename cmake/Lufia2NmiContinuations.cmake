@@ -74,6 +74,11 @@ function(lufia2_add_nmi_continuations target core_root)
             include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2FrameReturns.cmake")
             lufia2_frame_returns_available(_frame_returns ${target})
             if(_frame_returns)
+                include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2FixedMessageWaits.cmake")
+                lufia2_fixed_message_waits_available(_fixed_message_waits)
+                if(_fixed_message_waits)
+                    list(APPEND _definitions LUFIA2_HAVE_NATIVE_FIXED_MESSAGE_WAITS=1)
+                endif()
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleRippleSteps.cmake")
                 lufia2_battle_ripple_steps_available(_ripple_steps)
                 lufia2_battle_ripple_word_steps_available(_ripple_word_steps)
@@ -886,10 +891,10 @@ function(lufia2_add_nmi_continuations target core_root)
                     endif()
                 endforeach()
                 string(REPLACE "${_paired_begin}"
-                    "                const bool paired_tracked = FramePairedCallTracks(target);\n                FramePairedCallContext paired_previous;\n                if (paired_tracked) {\n                    paired_previous = s_frame_paired_call;\n                    s_frame_paired_call = (FramePairedCallContext){cpu, target & 0x7fffffu,\n                        in.waiting || in.stopped || in.nmiWanted || in.irqWanted};\n                }\n${_paired_begin}"
+                    "                const bool paired_tracked = FramePairedCallTracks(target);\n                FramePairedCallContext paired_previous;\n                int paired_auto_quiescent;\n                if (paired_tracked) {\n                    paired_previous = s_frame_paired_call;\n                    paired_auto_quiescent = s_frame_return_auto_quiescent;\n                    s_frame_return_auto_quiescent = auto_quiescent;\n                    s_frame_paired_call = (FramePairedCallContext){cpu, target & 0x7fffffu,\n                        in.waiting || in.stopped || in.nmiWanted || in.irqWanted};\n                }\n${_paired_begin}"
                     _text "${_text}")
                 string(REPLACE "${_paired_end}"
-                    "                if (paired_tracked)\n                    s_frame_paired_call = paired_previous;\n${_paired_end}"
+                    "                if (paired_tracked) {\n                    s_frame_paired_call = paired_previous;\n                    s_frame_return_auto_quiescent = paired_auto_quiescent;\n                }\n${_paired_end}"
                     _text "${_text}")
                 string(PREPEND _text
                     "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/paired_call_context.inc\"\n")

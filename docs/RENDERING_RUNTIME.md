@@ -1114,3 +1114,24 @@ or game-wide speedup claim. Single paired CPU/APU times are noisy; no FPS
 acceptance is inferred. The new `$81:AD96/$81:AEEA` semantic entries still
 need their own timed parent integration. This prerequisite adds no new
 decompiled algorithm or canonical native binding.
+
+## Fixed-message parent timing and paired APU context — 2026-11-02
+
+The verified AD96/AEEA message routines use immutable bounded own-opcode spans
+between child calls. The existing copier is composed only after all its timing,
+stack, source, hook and hardware guards. Unknown/unsafe returns resume the exact
+original landing; real frame yields retain interpreter continuation ownership.
+The bridge does not add per-opcode hooks or claim that every later frame runs
+natively. No new semantic algorithm is counted for this consumer checkpoint.
+
+The scoped paired caller must also propagate and restore the interpreter's
+`auto_quiescent` context. Merely recording interrupt readiness loses the original
+APU progress-flush partition. A real production comparison caught a 7e-15 APU
+remainder difference despite matching CPU, RAM and total clocks. The corrected
+producer restores both contexts before every return or unwind. Tracking remains
+limited to copier/message targets and nested calls inside those scopes; other
+AOT calls do not save or copy these contexts. Certified wait/APU batches remain.
+
+Eight production pairs and shared menu/field/boot replays pass with bit-identical
+serialized hardware and PCM. Matched hot-path timing and organic battle use are
+separate evidence; this checkpoint claims neither a battle hit rate nor 60 FPS.

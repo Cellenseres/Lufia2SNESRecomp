@@ -65,11 +65,11 @@ static void MessageCopyWrite(void *context, uint32_t address, uint8_t value) {
     FixedSpanWrite(&clock->span, address, value);
 }
 
-static bool MessageCopyClockSupported(const CpuState *cpu) {
+static bool MessageCopyClockSupported(const CpuState *cpu, bool parent_span) {
     if (cpu->D || cpu->_flag_D || cpu->host_return_valid != 3u ||
         cpu->S < 0x1f20u || cpu->X < 0x8000u || cpu->X > 0xffdbu ||
         (cpu->x_flag && (cpu->X > 0xffu || cpu->Y > 0xffu)) ||
-        (!Lufia2DecompFrameReturnCpuReady() &&
+        (!parent_span && !Lufia2DecompFrameReturnCpuReady() &&
          !Lufia2DecompFramePairedCallReady(cpu, 0x8594e7u)) ||
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
         cpu->master_cycles > UINT64_MAX - MESSAGE_COPY_CLOCK_ROOM ||
@@ -84,10 +84,8 @@ static bool MessageCopyClockSupported(const CpuState *cpu) {
     return phase < 1364u && (!charged || charged == cpu->master_cycles);
 }
 
-static RecompReturn ActorBridgeTimedMessageCopy(CpuState *cpu) {
+static RecompReturn RunTimedMessageCopy(CpuState *cpu) {
     ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
-    if (!MessageCopyClockSupported(cpu))
-        return ActorBridgeFallback(cpu, &frame, 0x8594e7u);
     frame.host_return_pc24 = (uint32_t)cpu->ram[cpu->S + 3u] << 16 |
         (uint16_t)(((uint16_t)cpu->ram[cpu->S + 2u] << 8 |
                     cpu->ram[cpu->S + 1u]) + 1u);
@@ -106,4 +104,11 @@ static RecompReturn ActorBridgeTimedMessageCopy(CpuState *cpu) {
         clock.span.index == clock.span.count && !clock.span.remaining);
     ActorBridgeStore(cpu, &state);
     return ReturnTimedLongCall(cpu, &frame, result.pc);
+}
+
+static RecompReturn ActorBridgeTimedMessageCopy(CpuState *cpu) {
+    if (MessageCopyClockSupported(cpu, false))
+        return RunTimedMessageCopy(cpu);
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x8594e7u);
 }

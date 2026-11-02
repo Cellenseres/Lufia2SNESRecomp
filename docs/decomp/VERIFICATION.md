@@ -1,3 +1,44 @@
+# Fixed-message parent consumer checkpoint — 2026-11-02
+
+Verified original entries `$81:AD96` and `$81:AEEA` now have consumer bindings.
+Their C algorithms were already reconstructed in child `4b1446c`; this checkpoint
+adds no semantic algorithm. Immutable timing spans cover their own instructions,
+child frames, normal returns, timer edits and bounded-loop handoffs. The existing
+37-byte copier executes directly only after its full timing/device/observer guard.
+Other children retain the established dispatch and unwind paths. No opcode hook
+or shared wait-batch change is introduced.
+
+MSVC and Clang each pass 1,475 clocked parent cases with 318,860 child-entry
+comparisons and 84 entry refusals. Original copier execution is composed with
+modeled other services; complete parent paths, changed child modes/returns,
+physical span refusals and all three 4,096-loop limits are covered. The affected
+copier additionally passes 16,384 timing inputs and 46 guards. Seven CMake gates,
+4,096 paired-context cases, frame-off and older-API compiler gates pass.
+
+Eight actual generated/linked production pairs match CPU, full WRAM, serialized
+hardware, guest/master clocks and refresh state. A private WRAM caller invokes
+unaltered original targets; no ROM is copied or modified. At normal admission,
+raw parent/caller operations fall from six to one (AD96), four to one (AEEA).
+Parent hooks retain six/four; copier hooks retain the original copier fallback.
+Near-line-end guards decline safely. The first real frame wait yields; original
+continuations after that unwind still run in the interpreter. This does not
+claim uninterrupted native execution across frames or complete descendant timing.
+
+The production comparison caught a missing paired APU progress-flush context:
+one route differed only in the final floating-point APU remainder by about
+7e-15. Passing the original auto-quiescent setting into the tracked paired call,
+and restoring it before normal/unwind propagation, makes the complete serialized
+state bit-identical. Other AOT targets avoid this context bookkeeping. No waits,
+APU cycles, MMIO accesses or sound handshakes are removed.
+
+The final reserved Release build links both generated bindings. Shared
+600-menu/600-field/1,200-boot replays match CPU/WRAM/hardware/PCM and native APU-idle
+counts. CPU/APU interval milliseconds (reference/candidate) were 189.865/182.597,
+168.442/172.486 and 469.761/400.383: noisy single pairs, not a speedup claim.
+These scenes do not establish organic battle use. Full decomp regression was
+not repeated: semantic code and shared clocks/waits are unchanged; new and
+affected integration checks share this checkpoint. Tests and receipts stay local.
+
 # Fixed-message copy consumer checkpoint — 2026-11-02
 
 The existing `$85:94E7` copier transfers 37 bytes through the original WRAM
