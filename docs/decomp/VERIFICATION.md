@@ -1,3 +1,40 @@
+# Bounded menu rectangle columns - 2026-11-02
+
+The existing82:83D2 hook can process several original columns within the
+remaining opcode and physical device budget. The standalone service shares
+the complete parent's cell stores. No hook sites added; the prior opcode
+fallback remains. Optional API detection preserves older semantic libraries
+and refuses draft parents. Host clocks and admission remain consumer-only.
+
+The hook-budget implementation shares strict and certified-owned lookups.
+Strict behavior matches524288 baseline registry cases;524288 owned registry
+cases cover same-owner,foreign,missing and observer rejection. Two fault
+controls detect wrong cell writes and omitted foreign-hook guards. Original
+ROM/ABI checks cover4096 semantic+2560 timed spans,12 public+29 consumer guards
+and8192 full-parent cases. StrictMSVC/Clang, legacy-only consumer compilation,
+isolated actual current/legacy/draft CMake gates and WindowsRelease pass.
+The actual linked actor object references the column API and owned budget.
+
+Matched production runs compare each frame's CPU/WRAM/hardware/HDMA and fresh
+PCM, plus full hardware snapshots and ordered HDMA output. Boot/load1800
+frames admits144 spans/470 columns, reducing raw interpreter opcodes from
+177430 to174610. Each of the six original column PCs accounts for470 fewer
+interpreter calls. All states and979026 PCM samples match. Default-menu1200
+and battle1200 controls are identical; no rectangle spans admitted there.
+Battle retains386157 raw calls/670463 PCM. Wait/APU counters match each pair.
+
+One fixed-affinity boot/load pair using the normal production interpreter
+and uninstrumented actors costs8.5319191s reference and8.3269914s candidate.
+Final CPU/WRAM/hardware and fresh PCM match the observed runs. This single
+pair is not statistical speedup or FPS acceptance. Other platforms and the
+unrelated full regression are deferred; unchanged proofs were not repeated.
+
+A rejected private observation variant lacked braces around the raw-opcode
+counter and executed an extra opcode. Corrected instrumentation alone was
+recompiled before these accepted runs. No production workaround was needed.
+Private evidence:runtime-frontier/rectangle-column-span/{CHECKS,RUNTIME,COST}.
+Tests and ROM remain private; owner build/windows was untouched.
+
 # Bounded effect record-pointer phase - 2026-11-02
 
 The existing full script/actor advance operations share their original pointer

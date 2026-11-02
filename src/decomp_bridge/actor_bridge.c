@@ -3680,7 +3680,16 @@ static const ActorMenuRectangleOpcode menu_rectangle_opcodes[] = {
     {{0x83e9u, 1u, 4u, 0u, 0u, 0u}, 0u},
 };
 
+#if defined(LUFIA2_HAVE_NATIVE_MENU_RECTANGLE_SPANS)
+static void ActorBridgeMenuRectangleStep(CpuState *cpu, uint32_t entry);
+#include "rectangle_span_clock.inc"
+#endif
+
 static void ActorBridgeMenuRectangleStep(CpuState *cpu, uint32_t entry) {
+#if defined(LUFIA2_HAVE_NATIVE_MENU_RECTANGLE_SPANS)
+    if (entry == 0x8283d2u && RunRectangleColumnSpan(cpu, entry))
+        return;
+#endif
     const ActorMenuRectangleOpcode *selected = NULL;
     for (unsigned i = 0;
          i < sizeof menu_rectangle_opcodes / sizeof menu_rectangle_opcodes[0]; ++i)

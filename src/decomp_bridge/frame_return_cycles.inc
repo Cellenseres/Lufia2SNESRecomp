@@ -83,9 +83,10 @@ void Lufia2DecompFrameReturnCompleteSpan(unsigned count, unsigned last_progress)
     s_frame_return_last_progress = last_progress;
 }
 
-unsigned Lufia2DecompFrameSpanBudget(uint32_t first, uint32_t end,
-    void (*owner)(CpuState *, uint32_t)) {
-    if (!s_frame_return_batch_allowed || s_interp_bus_timing_active ||
+static unsigned FrameSpanHookBudget(uint32_t first, uint32_t end,
+    void (*owner)(CpuState *, uint32_t), bool allow_internal) {
+    if ((allow_internal && g_interp_bridge_pc_hook) ||
+        !s_frame_return_batch_allowed || s_interp_bus_timing_active ||
         !owner || !s_frame_return_poll_opcode_budget ||
         s_frame_return_poll_opcode_budget > LUFIA2_FRAME_POLL_MAX_OPCODES ||
         Lufia2NativeObserversActive() || s_interp_continuous_read_epoch >
@@ -103,12 +104,23 @@ unsigned Lufia2DecompFrameSpanBudget(uint32_t first, uint32_t end,
             const uint32_t pc = s_pre_opcode_hooks[slot].pc24;
             if (pc < first || pc >= end)
                 continue;
-            if (pc != first || s_pre_opcode_hooks[slot].hook != owner)
+            if ((!allow_internal && pc != first) ||
+                s_pre_opcode_hooks[slot].hook != owner)
                 return 0u;
-            found = true;
+            found |= pc == first;
         }
     }
     return found ? s_frame_return_poll_opcode_budget : 0u;
+}
+
+unsigned Lufia2DecompFrameSpanBudget(uint32_t first, uint32_t end,
+    void (*owner)(CpuState *, uint32_t)) {
+    return FrameSpanHookBudget(first, end, owner, false);
+}
+
+unsigned Lufia2DecompFrameOwnedSpanBudget(uint32_t first, uint32_t end,
+    void (*owner)(CpuState *, uint32_t)) {
+    return FrameSpanHookBudget(first, end, owner, true);
 }
 
 static void Lufia2DecompFrameReturnContinue(long *steps, int auto_quiescent,

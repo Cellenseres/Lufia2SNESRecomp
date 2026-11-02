@@ -586,6 +586,13 @@ function(lufia2_add_nmi_continuations target core_root)
                                _rectangle_contract MATCHES "address[ \t]*=[ \t]*\"82:83B5\"" AND
                                _rectangle_contract MATCHES "status[ \t]*=[ \t]*\"verified\"")
                                 list(APPEND _definitions LUFIA2_HAVE_NATIVE_MENU_RECTANGLE_STEPS=1)
+                                set(_rectangle_source "${LUFIA2_DECOMP_RESOLVED_ROOT}/src/menu/menu_tile_clear.c")
+                                if(EXISTS "${_rectangle_source}" AND _rectangle_api MATCHES "Lufia2MenuClearLayerRectangleColumns[(]")
+                                    file(READ "${_rectangle_source}" _rectangle_implementation)
+                                    if(_rectangle_implementation MATCHES "Lufia2MenuClearLayerRectangleColumns[(][^;{]*[{]")
+                                        list(APPEND _definitions LUFIA2_HAVE_NATIVE_MENU_RECTANGLE_SPANS=1)
+                                    endif()
+                                endif()
                             endif()
                         endif()
                         if(_api MATCHES "Lufia2SoundPollIteration[(]" AND
