@@ -20515,3 +20515,25 @@ RecompReturn Lufia2DecompBridge_81BACB(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x81bacbu);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_WINDOW_HDMA_API)
+#include "window_hdma_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_85AA7F(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_WINDOW_HDMA_API)
+    return ActorBridgeWindowHdma(cpu, 0x85aa7fu, Lufia2BattleInitializeWindowHdma);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x85aa7fu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_85AAC3(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_WINDOW_HDMA_API)
+    return ActorBridgeWindowHdma(cpu, 0x85aac3u, Lufia2BattleRestoreWindowCompositing);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x85aac3u);
+#endif
+}
