@@ -28,6 +28,7 @@ static RecompReturn ActorBridgeTimedIdleReturn(CpuState *cpu, uint32_t entry,
     ActorBridgeLoad(cpu, &state);
     const Lufia2ExecutionResult result = run(&memory, &state);
     assert(result.flow == LUFIA2_EXECUTION_RETURNED && result.pc == entry);
-    ActorBridgeStore(cpu, &state);
+    /* Idle callbacks preserve registers; only synchronize flag mirrors. */
+    cpu_mirrors_to_p(cpu);
     return ReturnTimedMenuCall(cpu, &frame, entry);
 }

@@ -2726,7 +2726,7 @@ static void ActorBridgeNmiPrepareFrameRestore(CpuState *cpu, uint32_t pc) {
 #endif
 
 void Lufia2DecompInstallNmiHooks(void) {
-#if defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
     interp_bridge_set_pre_opcode_hook(0x84f12fu, ActorBridgeCardTableHdmaHook);
 #endif
     static const uint32_t entries[] = {
@@ -18360,6 +18360,24 @@ RecompReturn Lufia2DecompBridge_86AFE2(CpuState *cpu) {
 #else
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     return ActorBridgeFallback(cpu, &frame, 0x86afe2u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86AFB0(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_WORLD_SCENE_IDLE_SEQUENCES_API)
+    return ActorBridgeTimedIdleReturn(cpu, 0x86afb0u, Lufia2WorldMapIdleSceneSequence8);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86afb0u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86AFB1(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_WORLD_SCENE_IDLE_SEQUENCES_API)
+    return ActorBridgeTimedIdleReturn(cpu, 0x86afb1u, Lufia2WorldMapIdleSceneSequence9);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86afb1u);
 #endif
 }
 

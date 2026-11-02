@@ -941,3 +941,31 @@ All end states/PCM match. Earlier variants showed substantial host drift;
 these small samples establish no statistical/global speedup or frontend FPS.
 The control also improves;the whole difference cannot be assigned to rows.
 Private evidence:runtime-frontier/word-ripple-row/ACCEPTANCE.json.
+
+## Original idle scene returns — 2026-11-02
+
+Scene selectors8/9 in86:AF0A call the original single-RTS entries86:AFB0/
+AFB1. Their verified bindings reuse the existing timed idle-return owner;
+no hooks,wait admission,APU seams or new timing framework are added. The
+portable header capability preserves builds against the previous API.
+The shared owner now synchronizes flag mirrors without copying unchanged
+registers back. This relies on all9 callbacks being immutable original RTS
+functions;the standalone immutability check guards that precondition.
+
+36864 original-ROM/timed cases compare CPU,WRAM,ordered fetch/data bus and
+clock/refresh/beam state;4608 portable immutability/bank checks and774
+admission checks pass. A deliberate portable CPU mutation is rejected.
+The actual generated Bank86 callers select both bridges,and Agent Windows
+Release links successfully. Prior-header and frame-return-off actor builds
+pass. The latter exposed an existing card-table HDMA registration guard;
+registration now requires the same frame-return feature as its implementation.
+
+The matched native microfixture executes1.8million calls per sample with
+zero fallbacks. Reference samples take0.099–0.147s;candidate0.098–0.120s.
+Noise and overlapping distributions do not establish a speedup. These are
+bounded host-call measurements,not gameplay/FPS acceptance. A larger full
+differential-fixture timing also includes interpreter/seeding work and ran
+concurrently with compilation;it is not accepted as performance evidence.
+Guest RTS fetches,stack reads,timing and original return semantics remain.
+No full decomp regression was rerun for these empty endpoints;the shared
+affected union and optional integration builds cover the changed contract.
