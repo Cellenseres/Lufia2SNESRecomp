@@ -586,6 +586,40 @@ function(lufia2_add_nmi_continuations target core_root)
                                 list(APPEND _definitions LUFIA2_HAVE_NATIVE_FRAME_SAVE_STEPS=1)
                             endif()
                         endif()
+                        set(_session_initializers_ready ${_frame_polls})
+                        foreach(_initializer_spec
+                            "84:9C9B|Lufia2BattleInitializePreviewBackground|battle.h|battle/battle_frame_setup.c"
+                            "86:920E|Lufia2WorldMapRunFixedStartSession|world_map.h|world/world_scene.c")
+                            string(REPLACE "|" ";" _initializer_fields "${_initializer_spec}")
+                            list(GET _initializer_fields 0 _initializer_address)
+                            list(GET _initializer_fields 1 _initializer_name)
+                            list(GET _initializer_fields 2 _initializer_header)
+                            list(GET _initializer_fields 3 _initializer_source)
+                            string(REGEX MATCH
+                                "\\[\\[function\\]\\][^[]*name[ \t]*=[ \t]*\"${_initializer_name}\"[^[]*"
+                                _initializer_contract "${_metadata}")
+                            if(NOT _initializer_contract MATCHES "address[ \t]*=[ \t]*\"${_initializer_address}\"" OR
+                               NOT _initializer_contract MATCHES "entry_mx[ \t]*=[ \t]*\"M1X0\"" OR
+                               NOT _initializer_contract MATCHES "exit_mx[ \t]*=[ \t]*\"M1X0\"" OR
+                               NOT _initializer_contract MATCHES "status[ \t]*=[ \t]*\"verified\"")
+                                set(_session_initializers_ready FALSE)
+                            endif()
+                            foreach(_initializer_path
+                                "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/${_initializer_header}"
+                                "${LUFIA2_DECOMP_RESOLVED_ROOT}/src/${_initializer_source}")
+                                if(EXISTS "${_initializer_path}")
+                                    file(READ "${_initializer_path}" _initializer_text)
+                                    if(NOT _initializer_text MATCHES "${_initializer_name}[(]")
+                                        set(_session_initializers_ready FALSE)
+                                    endif()
+                                else()
+                                    set(_session_initializers_ready FALSE)
+                                endif()
+                            endforeach()
+                        endforeach()
+                        if(_session_initializers_ready)
+                            list(APPEND _definitions LUFIA2_HAVE_NATIVE_SESSION_INITIALIZERS=1)
+                        endif()
                         set(_dissolve_header "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/battle.h")
                         set(_dissolve_source "${LUFIA2_DECOMP_RESOLVED_ROOT}/src/battle/battle_transition_setup.c")
                         if(_frame_polls AND EXISTS "${_dissolve_header}" AND EXISTS "${_dissolve_source}")

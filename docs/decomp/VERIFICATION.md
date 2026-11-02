@@ -1,3 +1,42 @@
+# Original initialization entries — 2026-11-02
+
+Two missing original bodies are reconstructed: `$84:9C9B` (57 bytes before
+`$84:9CD4`) and `$86:920E` (62 bytes before `$86:924C`). The preview clears
+brightness/scroll state and runs the existing background updater. The fixed
+world session preserves status/bank, binds resource zero, sets the original
+position `(600, 3272)` and modes, then uses the existing session frame setup.
+Existing update/frame algorithms are shared unchanged, not duplicated.
+
+The preview's original `JSL $81:C2FB` calls an `RTS` routine. Real execution
+lands at `$81:9CB8` with one saved bank byte still on the stack. This behavior
+is retained. Normal modeled child returns exercise the remaining caller
+contract; they do not establish a normal original preview return.
+
+The shared semantic batch covers 4,096 CPU/WRAM/ordered-data comparisons,
+child-entry witnesses, original first-child execution and modeled child
+unwinds, plus 14 no-access refusals. Strict MSVC/Clang C11 passes.
+
+The consumer uses immutable timing records and the existing fixed-span clock.
+It installs no new opcode hooks or timing core. Native prefixes include the
+first real pushed child frame: 12 preview or nine world opcodes. Runtime then
+continues through the original child/continuation machinery. Remaining setup
+and shared tails are not claimed as timed native execution through these
+entries. All waits, MMIO, sound handshakes and original stack behavior remain.
+
+8,192 timed prefix inputs yield 3,250 admissions and 4,942 conservative declines;
+70 context/hook/deadline guards pass. CPU, full WRAM, ordered fetch/data,
+open bus and every guest/master opcode clock match. Six CMake selection gates
+and feature-off/older-header compiler gates pass. No new full regression was
+run; unchanged shared timing and wait implementations reuse their earlier
+proofs. The reserved Windows Release build and actual generated/linked callers pass.
+The owner build directory was not touched. Catalogue refresh follows the atomic
+checkpoint; no additional semantic regression is claimed for documentation edits.
+
+These cold initialization entries have no observed ordinary gameplay caller.
+No production throughput or FPS gain is claimed. The preceding production
+profile preserves matching CPU/WRAM/hardware/PCM and native APU idle steps;
+its counters are private, and its rejected early instrumentation is excluded.
+
 # Dissolve controller checkpoint - 2026-11-02
 
 The original85:E7C5 and85:E8E8 routines add209 previously missing ROM bytes;

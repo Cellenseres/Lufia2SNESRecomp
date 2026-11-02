@@ -7906,6 +7906,30 @@ RecompReturn Lufia2DecompBridge_83FCD1(CpuState *cpu) {
 typedef Lufia2ExecutionResult (*ActorSceneOwnersFunction)(
     const Lufia2Memory *, Lufia2CpuState *, Lufia2PushedChildCall, void *);
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_SESSION_INITIALIZERS)
+#include "session_initializer_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_849C9B(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_SESSION_INITIALIZERS)
+    return ActorBridgeSessionInitializer(cpu, 0x849c9bu,
+        Lufia2BattleInitializePreviewBackground);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x849c9bu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_86920E(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_SESSION_INITIALIZERS)
+    return ActorBridgeSessionInitializer(cpu, 0x86920eu,
+        Lufia2WorldMapRunFixedStartSession);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x86920eu);
+#endif
+}
+
 static RecompReturn ActorBridgeBattleSessionCalls(
     CpuState *cpu, ActorSceneOwnersFunction run);
 
