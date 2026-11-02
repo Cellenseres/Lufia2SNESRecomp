@@ -1,3 +1,45 @@
+# Decompressor advance admission — 2026-11-02
+
+The existing flag-advance C step now reserves 320 rather than 512 master
+clocks. A conservative original bound is 34 CPU cycles at at most eight
+master clocks each, plus one 40-clock refresh: 312 clocks. The consumer
+keeps the original per-opcode accounting; no guest time is removed.
+Only this phase may also run strictly after the visible HDMA point when
+its whole reservation fits before line end. Position1024 itself declines.
+The indexed quiet-range check rejects foreign hooks and observers across
+both the ordinary advance path and the stream-rollover branch.
+
+Standalone decomp, original waits/MMIO/APU handshakes, hook registration,
+shared timing and certified wait batching are unchanged. This is consumer
+admission optimization, not another decompiled algorithm or function count.
+Three proposed title/menu byte gaps were already internal C and were
+recorded as such rather than duplicated.
+
+The shared checkpoint covers 40,960 phase cases and original next-instruction
+rejoins,175 guards,144 exact-fence cases,716 additional temporal/hook cases,
+eight complete mixed streams and four overlapping MVN streams. The same
+phase suite passes MSVC and Clang C11. Its 480 temporal admissions include
+early-line states; they are not all new late-line admissions. Another24,576
+reference cases/rejoins,114 guards,216 fences and8+4 compositions pass.
+CPU, full WRAM, ordered fetch/data, open bus, guest/master clocks, refresh,
+beam positions and progress masks match the original interpreter.
+
+In the matched600-frame menu replay, actual interpreted opcodes fall from
+3081 to2957. Completed native advance spans rise61->82 and advance opcodes
+374->498; all124 saved interpreter opcodes are accounted for by native C.
+The same original production control, instrumented before/after, and actual
+new production objects match CPU/WRAM/hardware/PCM/native APU idle state.
+Matched600 field and1200 boot replays also retain their original states.
+Counter-off CPU/APU time was166.931->164.309ms for the whole menu interval;
+field152.458->150.487ms and boot358.880->357.992ms. These single paired timings
+are noisy and do not establish an FPS or general runtime speedup. The proven
+improvement is reduced interpretation in that specific menu interval.
+
+Windows Release rebuilt incrementally in build/windows-decomp-agent; actual
+production objects pass the menu comparison. Owner build/windows remains
+untouched. Full regression was deferred; unchanged semantic and shared wait/
+NMI/APU inputs reuse earlier proofs. Tests and profiling stay private.
+
 # Original initialization entries — 2026-11-02
 
 Two missing original bodies are reconstructed: `$84:9C9B` (57 bytes before

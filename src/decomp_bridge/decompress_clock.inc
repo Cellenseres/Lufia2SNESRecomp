@@ -3,6 +3,7 @@
 enum {
     DECOMPRESS_PHASE_BUDGET = 384u,
     DECOMPRESS_FLAG_BUDGET = 512u,
+    DECOMPRESS_ADVANCE_BUDGET = 320u,
     DECOMPRESS_COPY_BYTE_BUDGET = 96u,
     DECOMPRESS_COPY_END_BUDGET = 192u
 };
@@ -208,7 +209,8 @@ static bool DecompressClockSupported(const CpuState *cpu, uint32_t entry) {
 #endif
     const unsigned budget = copy
         ? (cpu->A ? DECOMPRESS_COPY_BYTE_BUDGET : DECOMPRESS_COPY_END_BUDGET)
-        : flagged || advance ? DECOMPRESS_FLAG_BUDGET : DECOMPRESS_PHASE_BUDGET;
+        : flagged ? DECOMPRESS_FLAG_BUDGET
+        : advance ? DECOMPRESS_ADVANCE_BUDGET : DECOMPRESS_PHASE_BUDGET;
     if ((!copy && !flagged && !advance &&
             first != 0x808eefu && first != 0x808efau) ||
         cpu->D || cpu->_flag_D || cpu->x_flag || cpu->m_flag != !copy ||
@@ -227,7 +229,11 @@ static bool DecompressClockSupported(const CpuState *cpu, uint32_t entry) {
     if (refresh_phase >= 1364u || refresh_clock != cpu->master_cycles ||
         !g_snes || g_snes->vPos >= 262u)
         return false;
-    const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
+    if (advance && !Lufia2DecompFrameRangeQuiet(entry + 1u,
+            0x808f32u + mirror))
+        return false;
+    const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u &&
+        (!advance || g_snes->hPos <= 1024u)
         ? 1024u : 1364u;
     return ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1ffbu, true,
         fence - budget - 1u, budget);
