@@ -1032,3 +1032,47 @@ establish a before/after whole-frame speedup or hardware FPS result. Prior
 certified wait/APU batching remains owned by its existing source composition.
 Full regression is deferred; this checkpoint runs the affected union once
 and rechecks focused failures without repeating unrelated green suites.
+
+## Alternate ripple setup and native admission - 2026-11-02
+
+Three missing original routines are now reconstructed and bound: 81:BACB
+selects one of four ripple paths, 85:A76E initializes the alternate scroll
+table, and 85:A7B1 builds its split scroll values. The selector reads its
+original ROM table; unknown targets remain exact original continuations.
+The table builder preserves the WRAM read at 7E:210D, ordered word writes,
+carry between shift and addition, and original decimal behavior.
+
+Descriptor construction is shared with existing 85:A701. Its consumer now
+executes the real 85:A736 child in the same timed C call, removing the one
+nested host dispatch from an accepted initialization. Both selector branches
+are checked with their actual native initializers. Shared timed RTL handling
+also replaces identical return implementations in party and diagnostic code.
+
+Inlining checks the indexed hook-page registry. Only the exact registered
+ripple clock callbacks at A736/A74F/A760 are accepted as certified owners;
+foreign callbacks, misplaced owned callbacks and observers retain fallback.
+The strict quiet-range API keeps its original behavior. No hook is added or
+removed, and the existing NMI ripple and counter-wait batches remain intact.
+
+A prior diagnostic fixture used a permissive quiet-range stub and missed
+the production predicate's 256-byte limit. Its 8E:B0D4..B288 interval now
+uses two bounded ranges. Before this correction the guard always refused
+native execution, despite selected bindings and passing semantic fixtures.
+The replacement proof executes the actual production range implementation,
+with registered clock identities and explicit foreign-hook negative cases.
+
+The shared checkpoint passes 21504 portable ROM comparisons and 27 no-access
+refusals. The consumer passes 32768 timed calls, including 128 actual composed
+initializers, 18 child-return contexts and 376 read-only admission cases.
+7936 unknown-target handoffs preserve malformed/unrecognized selector values;
+they are not initial-entry fallbacks. Production range checks additionally
+pass 24576 indexed-versus-linear comparisons and 802 admission scenarios.
+The shared RTL/range changes pass 32768 existing party and 58640 diagnostic
+timed cases, preserving their CPU, WRAM, fetch/data phases and guest clocks.
+
+Consumer timing currently admits binary arithmetic in synchronized ordinary
+contexts; unsupported modes, NMI/IRQ execution, observers and device deadlines
+retain original execution. The standalone routines preserve their declared
+ROM contracts. No current gameplay frequency, before/after whole-frame cost
+or FPS result is established by these synthetic checks. Full regression is
+deferred in favor of the affected shared union and incremental Release build.

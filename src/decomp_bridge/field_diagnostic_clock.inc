@@ -265,21 +265,6 @@ static bool PrepareFieldDiagnostic(FieldDiagnosticClock *clock, CpuState *cpu,
     return true;
 }
 
-static RecompReturn ReturnDiagnosticLongCall(CpuState *cpu,
-    const ActorBridgeFrame *frame, uint32_t source) {
-    const uint16_t stack = cpu->S;
-    bool progress = false;
-    (void)Lufia2DecompFrameReturnReadByte(cpu, source, &progress);
-    const uint16_t low = Lufia2DecompFrameReturnReadByte(cpu, ++cpu->S, &progress);
-    const uint16_t high = Lufia2DecompFrameReturnReadByte(cpu, ++cpu->S, &progress);
-    const uint8_t bank = Lufia2DecompFrameReturnReadByte(cpu, ++cpu->S, &progress);
-    Lufia2DecompFrameReturnAccountOpcode(cpu, 6u,
-        cpu_region_speed(source) + 3u * 8u + 2u * 6u, progress);
-    const uint32_t target = (uint32_t)bank << 16 | (uint16_t)((high << 8 | low) + 1u);
-    cpu->PB = bank;
-    return ActorBridgeResolveReturn(cpu, frame, 3u, source, stack, target);
-}
-
 static RecompReturn ActorBridgeFieldDiagnostic(CpuState *cpu, uint32_t entry,
     unsigned operation, ActorWholeFunction run) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
@@ -294,7 +279,7 @@ static RecompReturn ActorBridgeFieldDiagnostic(CpuState *cpu, uint32_t entry,
     assert(!clock.span.count && !clock.span.remaining && result.flow == LUFIA2_EXECUTION_RETURNED);
     ActorBridgeStore(cpu, &state);
     if (operation == 2u || operation == 3u || operation == 7u)
-        return ReturnDiagnosticLongCall(cpu, &frame, result.pc);
+        return ReturnTimedLongCall(cpu, &frame, result.pc);
     return ReturnTimedMenuCall(cpu, &frame, result.pc);
 }
 
@@ -335,7 +320,7 @@ static RecompReturn ActorBridgeDeveloperControls(CpuState *cpu) {
     assert(!clock.span.count && !clock.span.remaining);
     if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
         return interp_tier_dispatch_tail(cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
-    return ReturnDiagnosticLongCall(cpu, &frame, result.pc);
+    return ReturnTimedLongCall(cpu, &frame, result.pc);
 }
 
 #undef DIAGNOSTIC_SPAN

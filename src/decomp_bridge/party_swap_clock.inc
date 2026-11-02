@@ -92,6 +92,21 @@ static RecompReturn ReturnTimedMenuCall(CpuState *cpu, const ActorBridgeFrame *f
     return ActorBridgeResolveReturn(cpu, frame, 2u, source, stack, target);
 }
 
+static RecompReturn ReturnTimedLongCall(CpuState *cpu,
+    const ActorBridgeFrame *frame, uint32_t source) {
+    const uint16_t stack = cpu->S;
+    bool progress = false;
+    (void)Lufia2DecompFrameReturnReadByte(cpu, source, &progress);
+    const uint16_t low = Lufia2DecompFrameReturnReadByte(cpu, ++cpu->S, &progress);
+    const uint16_t high = Lufia2DecompFrameReturnReadByte(cpu, ++cpu->S, &progress);
+    const uint8_t bank = Lufia2DecompFrameReturnReadByte(cpu, ++cpu->S, &progress);
+    Lufia2DecompFrameReturnAccountOpcode(cpu, 6u,
+        cpu_region_speed(source) + 3u * 8u + 2u * 6u, progress);
+    const uint32_t target = (uint32_t)bank << 16 | (uint16_t)((high << 8 | low) + 1u);
+    cpu->PB = bank;
+    return ActorBridgeResolveReturn(cpu, frame, 3u, source, stack, target);
+}
+
 static RecompReturn RunPartySwap(CpuState *cpu, const ActorBridgeFrame *frame) {
     PartySwapClock clock = {0};
     PreparePartySwapClock(&clock, cpu);

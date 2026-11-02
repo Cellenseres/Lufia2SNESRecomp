@@ -1,4 +1,5 @@
 #include "decomp_bridge/frame_returns.h"
+#include <stddef.h>
 
 static unsigned s_frame_return_opcodes;
 static unsigned s_frame_return_progress_mask;
@@ -8,7 +9,8 @@ bool Lufia2DecompFrameReturnCpuReady(void) {
     return !s_frame_return_interrupt_blocked;
 }
 
-bool Lufia2DecompFrameRangeQuiet(uint32_t first, uint32_t end) {
+bool Lufia2DecompFrameRangeAllows(uint32_t first, uint32_t end,
+    bool (*owned)(uint32_t, void (*)(struct CpuState *, uint32_t))) {
     if (g_interp_bridge_pc_hook || Lufia2NativeObserversActive())
         return false;
     first &= 0x7fffffu;
@@ -20,11 +22,16 @@ bool Lufia2DecompFrameRangeQuiet(uint32_t first, uint32_t end) {
         for (unsigned link = s_pre_opcode_hook_heads[page]; link;
              link = s_pre_opcode_hook_next[link - 1u]) {
             const uint32_t pc = s_pre_opcode_hooks[link - 1u].pc24;
-            if (pc >= first && pc < end)
+            if (pc >= first && pc < end &&
+                (!owned || !owned(0x800000u | pc, s_pre_opcode_hooks[link - 1u].hook)))
                 return false;
         }
     }
     return true;
+}
+
+bool Lufia2DecompFrameRangeQuiet(uint32_t first, uint32_t end) {
+    return Lufia2DecompFrameRangeAllows(first, end, NULL);
 }
 
 void Lufia2DecompFrameReturnWriteByte(CpuState *cpu, uint32_t address, uint8_t value,

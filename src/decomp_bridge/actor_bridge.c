@@ -10011,12 +10011,21 @@ RecompReturn Lufia2DecompBridge_819393(CpuState *cpu) {
     return ActorBridgeSceneOwners(cpu, 0x819393u, Lufia2BattleEffectSpawnCurrentTargetScript, 2u);
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_SPLIT_RIPPLE_API)
+static RecompReturn ActorBridgeSplitRipple(CpuState *, uint32_t,
+    unsigned, ActorWholeFunction);
+#endif
+
 RecompReturn Lufia2DecompBridge_85A701(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_SPLIT_RIPPLE_API)
+    return ActorBridgeSplitRipple(cpu, 0x85a701u, 3u, NULL);
+#else
     if (cpu->PB != 0x85u || !cpu->m_flag || cpu->x_flag || cpu->D != 0u || cpu->S < 0x1f00u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
         return ActorBridgeFallback(cpu, &frame, 0x85a701u);
     }
     return ActorBridgeSceneOwners(cpu, 0x85a701u, Lufia2BattleInitializeRipple, 3u);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_85DC6F(CpuState *cpu) {
@@ -20473,5 +20482,36 @@ RecompReturn Lufia2DecompBridge_8EB0D4(CpuState *cpu) {
 #else
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     return ActorBridgeFallback(cpu, &frame, 0x8eb0d4u);
+#endif
+}
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_SPLIT_RIPPLE_API)
+#include "split_ripple_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_85A7B1(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_SPLIT_RIPPLE_API)
+    return ActorBridgeSplitRipple(cpu, 0x85a7b1u, 0u, Lufia2BattleBuildSplitRippleTable);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x85a7b1u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_85A76E(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_SPLIT_RIPPLE_API)
+    return ActorBridgeSplitRipple(cpu, 0x85a76eu, 1u, Lufia2BattleInitializeSplitRipple);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x85a76eu);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_81BACB(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_SPLIT_RIPPLE_API)
+    return ActorBridgeSplitRipple(cpu, 0x81bacbu, 2u, NULL);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x81bacbu);
 #endif
 }

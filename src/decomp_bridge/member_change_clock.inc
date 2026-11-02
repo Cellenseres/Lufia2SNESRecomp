@@ -100,15 +100,5 @@ static RecompReturn ActorBridgeMemberChange(CpuState *cpu, uint32_t entry,
     ActorBridgeStore(cpu, &state);
     if (plan->frame_size == 2u)
         return ReturnTimedMenuCall(cpu, &frame, result.pc);
-    const uint16_t stack = cpu->S;
-    bool progress = false;
-    (void)Lufia2DecompFrameReturnReadByte(cpu, result.pc, &progress);
-    const uint16_t low = Lufia2DecompFrameReturnReadByte(cpu, ++cpu->S, &progress);
-    const uint16_t high = Lufia2DecompFrameReturnReadByte(cpu, ++cpu->S, &progress);
-    const uint8_t bank = Lufia2DecompFrameReturnReadByte(cpu, ++cpu->S, &progress);
-    Lufia2DecompFrameReturnAccountOpcode(cpu, 6u,
-        cpu_region_speed(result.pc) + 3u * 8u + 2u * 6u, progress);
-    const uint32_t target = (uint32_t)bank << 16 | (uint16_t)((high << 8 | low) + 1u);
-    cpu->PB = bank;
-    return ActorBridgeResolveReturn(cpu, &frame, 3u, result.pc, stack, target);
+    return ReturnTimedLongCall(cpu, &frame, result.pc);
 }
