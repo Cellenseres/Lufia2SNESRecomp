@@ -20752,3 +20752,16 @@ RecompReturn Lufia2DecompBridge_81AEEA(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x81aeeau);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_WIDTH)
+#include "menu_width_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_808866(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_WIDTH)
+    return ActorBridgeTimedMenuWidth(cpu);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x808866u);
+#endif
+}

@@ -1,3 +1,36 @@
+# Caller-width text checkpoint — 2026-11-02
+
+The missing `$80:8866..8877` entry now shares the existing semantic string VM
+and has a verified consumer binding. It accepts A low as the line width;
+`$80:8878` retains its original thirty-two-column behavior. No duplicate VM or
+additional algorithm coverage is claimed for this eighteen-byte alternative.
+The unchanged MSVC/Clang semantic proofs cover 1,024 cases per entry; another
+1,024 original caller cases cover four operand families.
+
+MSVC/Clang each pass 4,096 clocked plain-text cases and 55 no-access refusals.
+Coverage includes every supported width/length, M0/M1 restoration, source banks
+and endpoints, original stack/RTL, flags, ordered fetch/data and opcode clocks.
+The conservative guard rejects controls, wrapping, extended glyphs, raw mode,
+aliasing/unsafe memory, device edges, observer hooks and insufficient deadlines.
+Nine metadata/API CMake gates, 4,096 context cases, frame-off/old-API compiler
+checks and the reserved Windows Release build pass. No new opcode hook is added.
+
+Sixteen generated/linked pairs compare the original byte interpreter with the
+native body. Original VM helpers are explicitly interpreter-pinned in both arms:
+the first mixed oracle entered the old AOT VM, charged 417 versus the original
+1,194 caller cycles, and was rejected. Five additional default-runtime pairs
+confirm unchanged unsafe-input/hook fallback. Admitted original cases reduce
+50–732 interpreted opcodes to two. Complete CPU/WRAM/hardware/clocks match.
+Matched 600-menu/600-field/1,200-boot frames preserve hardware/PCM/native idle.
+
+Three 1,000-call samples with profiling disabled have median 108.667 ms original
+interpreter versus 44.622 ms native and identical complete state. Whole-menu
+CPU/APU costs vary across repeated normal-draw samples (reference 174–176 ms,
+candidate 171–189 ms per 600 frames); no whole-game speedup is established.
+The original certified wait batches and native APU idle remain enabled.
+No full regression was rerun. Private evidence:
+`runtime-frontier/text-alternatives/WIDTH_ACCEPTANCE.json`.
+
 # Resource formatter checkpoint — 2026-11-02
 
 New original `$85:C5B5..C60D` semantic C is verified and consumer-bound.

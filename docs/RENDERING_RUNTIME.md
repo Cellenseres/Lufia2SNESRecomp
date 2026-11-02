@@ -1,3 +1,22 @@
+# Caller-width menu text — 2026-11-02
+
+The new original `$80:8866` alternate entry shares the semantic string VM.
+Its consumer has immutable setup/character/end timing phases and no per-opcode
+host handoffs. A scan of at most thirty-two WRAM bytes admits only plain text
+that fits the requested width. Separate indexed hook ranges cover the entry,
+VM and glyph writer. Unsafe inputs and complex controls use the original path.
+No wait, MMIO, APU cycle or sound handshake is removed.
+
+Sixteen linked original-interpreter pairs, five default-fallback pairs and
+600-menu/600-field/1,200-boot hardware/PCM replays pass. Matched 1,000-call
+median is 108.667 ms interpreted versus 44.622 ms native, complete state equal.
+This deliberately uses the original byte-interpreter VM as oracle: the older
+AOT/native VM route undercharges this caller's original timing and is not a
+valid clock reference. That pre-existing broader timing debt is not rewritten
+in this checkpoint. Repeated whole-menu costs overlap and establish no general
+speedup; ordinary entry frequency remains unmeasured. Certified wait batching
+and the generated native APU idle interface remain intact.
+
 # Resource formatter integration — 2026-11-02
 
 The newly reconstructed `$85:C5B5` continuation uses immutable timing phases,
