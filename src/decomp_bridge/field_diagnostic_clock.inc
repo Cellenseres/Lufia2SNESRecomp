@@ -205,7 +205,8 @@ static bool FieldDiagnosticWindow(const CpuState *cpu, uint32_t entry, unsigned 
         cpu->master_cycles > UINT64_MAX - budget ||
         !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1ffcu, false, 1363u, budget) ||
         !(cpu->DB == 0x7eu || cpu->DB == 0x7fu || (cpu->DB & 0x7fu) < 0x40u) ||
-        !Lufia2DecompFrameRangeQuiet(0x8eb0d4u, 0x8eb288u) ||
+        !Lufia2DecompFrameRangeQuiet(0x8eb0d4u, 0x8eb1d4u) ||
+        !Lufia2DecompFrameRangeQuiet(0x8eb1d4u, 0x8eb288u) ||
         !Lufia2DecompFrameRangeQuiet(0x8584c6u, 0x85850eu))
         return false;
     const unsigned line = g_snes->vPos;
