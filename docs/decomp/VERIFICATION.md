@@ -1,3 +1,26 @@
+# Fixed-message semantic checkpoint — 2026-11-02
+
+Child 4b1446c8726091ea217ddebbdf9dbd2d959abd75: genuine missing original81:AD96/81:AEEA,
+40+34 bytes. Shared frame/countdown and second-message tails;not aliases.
+Original first-frame ADD5 rejoin,saved timer,bus order and childframes remain.
+MSVC/Clang C11:2068 cases across new and affected AD8D/AEE1,1991 returns,
+77 boundary/unwind outcomes,394087 child entries,18 no-access refusals.
+Includes original8594E7 copying,modeled child returns/unwinds,child mode/DP/
+decimal changes,timer edits and four4096-loop boundaries. CPU/fullWRAM and
+ordered data match interp816. Metadata check PASS. Private guard harness
+initially omitted documented resume_pc output;corrected. Clang identified
+an unused harness variable;removed. Production code did not need a fix.
+
+Portable semantics verified;consumer integration PENDING. No runtime binding,
+new hook,clock plan,production replay/full build/FPS acceptance is claimed.
+Existing8594E7 WholeAnyWidth does not establish timed parent execution.
+Do not copy legacy untimed adapters or add tiny prefixes to inflate counts.
+Next:complete timed consumer scope with actual child clocks/yields/returns;
+otherwise prioritize another substantial missing algorithm and record gap.
+
+Root runtime/CMake/bindings/wait/NMI/APU unchanged. Tests/ROM private,no push,
+subagents or owner build/windows use. Foreign files preserved. Goal ACTIVE.
+
 # Decompressor advance admission — 2026-11-02
 
 The existing flag-advance C step now reserves 320 rather than 512 master
