@@ -148,3 +148,57 @@ static RecompReturn ActorBridgeTimedMenuLeaf(CpuState *cpu, bool pointer_offset)
     ActorBridgeStore(cpu, &state);
     return ReturnTimedMenuCall(cpu, &frame, result.pc);
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FIXED_CURSOR)
+static const FixedSpanOpcode fixed_cursor_setup[] = {
+    {0xa00fu, 3u, 3u, 0u}, {0xa012u, 2u, 4u, 2u},
+    {0xa014u, 3u, 3u, 0u}, {0xa017u, 2u, 4u, 2u},
+    {0xa019u, 3u, 3u, 0u}, {0xa01cu, 3u, 3u, 0u},
+    {0xa01fu, 3u, 6u, 2u}
+};
+
+typedef struct FixedCursorClock {
+    FixedSpanClock span;
+    ActorPushedCall call;
+} FixedCursorClock;
+
+static uint8_t FixedCursorChild(void *context, Lufia2CpuState *state,
+    uint32_t target, uint32_t site, uint8_t frame_size) {
+    FixedCursorClock *clock = context;
+    BeginFixedSpanOpcode(&clock->span);
+    assert(clock->span.index == clock->span.count && !clock->span.remaining);
+    assert(target == 0x8289c4u && site == 0x82a01fu && frame_size == 2u);
+    return ActorBridgePushedChild(&clock->call, state, target, site, frame_size);
+}
+
+static RecompReturn ActorBridgeTimedFixedCursor(CpuState *cpu) {
+    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    const uint32_t entry = 0x82a00fu;
+    const uint32_t fallback = cpu->PB == 2u ? 0x02a00fu : entry;
+    if (cpu->D || cpu->_flag_D ||
+        !MenuLeafClockSupported(cpu, entry, 0x82a023u))
+        return ActorBridgeFallback(cpu, &frame, fallback);
+    if (frame.hrv == 2u)
+        frame.host_return_pc24 = Lufia2DecompFramePairedReturnPc(cpu, entry);
+    FixedCursorClock clock = {0};
+    clock.call = (ActorPushedCall){cpu, frame, RECOMP_RETURN_NORMAL};
+    clock.span.cpu = cpu;
+    clock.span.bank = 0x820000u;
+    clock.span.timing = fixed_cursor_setup;
+    clock.span.count = sizeof fixed_cursor_setup / sizeof(FixedSpanOpcode);
+    const Lufia2Memory memory = {
+        FixedSpanRead, FixedSpanWrite, &clock.span, NULL, NULL};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result =
+        Lufia2MenuCreateFixedCursorPair(&memory, &state, FixedCursorChild, &clock);
+    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
+        return (RecompReturn)((int)clock.call.unwound - 1);
+    assert(result.flow == LUFIA2_EXECUTION_RETURNED && result.pc == 0x82a022u);
+    ActorBridgeStore(cpu, &state);
+    if (!MenuLeafClockSupported(cpu, entry, 0x82a023u))
+        return interp_tier_dispatch_tail(cpu, result.pc, result.pc,
+            frame.entry_s, frame.hrv);
+    return ReturnTimedMenuCall(cpu, &frame, result.pc);
+}
+#endif

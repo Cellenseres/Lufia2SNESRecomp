@@ -78,6 +78,10 @@ function(lufia2_add_nmi_continuations target core_root)
                 lufia2_menu_leaves_available(_menu_leaves)
                 if(_menu_leaves)
                     list(APPEND _definitions LUFIA2_HAVE_NATIVE_MENU_LEAVES=1)
+                    lufia2_fixed_cursor_available(_fixed_cursor)
+                    if(_fixed_cursor)
+                        list(APPEND _definitions LUFIA2_HAVE_NATIVE_FIXED_CURSOR=1)
+                    endif()
                 endif()
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2MenuWidth.cmake")
                 lufia2_menu_width_available(_menu_width)
@@ -906,7 +910,7 @@ function(lufia2_add_nmi_continuations target core_root)
                     endif()
                 endforeach()
                 string(REPLACE "${_paired_begin}"
-                    "                const bool paired_tracked = FramePairedCallTracks(target);\n                FramePairedCallContext paired_previous;\n                uint32_t paired_previous_return_pc;\n                int paired_auto_quiescent;\n                if (paired_tracked) {\n                    paired_previous = s_frame_paired_call;\n                    paired_previous_return_pc = s_frame_paired_return_pc;\n                    s_frame_paired_return_pc =\n                        ((target & 0x7fffffu) == 0x008af7u ||\n                         (target & 0x7fffffu) == 0x02f4d7u)\n                        ? (_l2_menu_return ? _l2_menu_return :\n                           _l2_resume_return ? _l2_resume_return :\n                           (pc_before + (uint32_t)call_len +\n                            (uint32_t)cpu_dispatch_inline_arg_bytes(target)) & 0xffffffu)\n                        : UINT32_MAX;\n                    paired_auto_quiescent = s_frame_return_auto_quiescent;\n                    s_frame_return_auto_quiescent = auto_quiescent;\n                    s_frame_paired_call = (FramePairedCallContext){cpu, target & 0x7fffffu,\n                        in.waiting || in.stopped || in.nmiWanted || in.irqWanted};\n                }\n${_paired_begin}"
+                    "                const bool paired_tracked = FramePairedCallTracks(target);\n                FramePairedCallContext paired_previous;\n                uint32_t paired_previous_return_pc;\n                int paired_auto_quiescent;\n                if (paired_tracked) {\n                    paired_previous = s_frame_paired_call;\n                    paired_previous_return_pc = s_frame_paired_return_pc;\n                    s_frame_paired_return_pc =\n                        ((target & 0x7fffffu) == 0x008af7u ||\n                         (target & 0x7fffffu) == 0x02f4d7u ||\n                         (target & 0x7fffffu) == 0x02a00fu)\n                        ? (_l2_menu_return ? _l2_menu_return :\n                           _l2_resume_return ? _l2_resume_return :\n                           (pc_before + (uint32_t)call_len +\n                            (uint32_t)cpu_dispatch_inline_arg_bytes(target)) & 0xffffffu)\n                        : UINT32_MAX;\n                    paired_auto_quiescent = s_frame_return_auto_quiescent;\n                    s_frame_return_auto_quiescent = auto_quiescent;\n                    s_frame_paired_call = (FramePairedCallContext){cpu, target & 0x7fffffu,\n                        in.waiting || in.stopped || in.nmiWanted || in.irqWanted};\n                }\n${_paired_begin}"
                     _text "${_text}")
                 string(REPLACE "${_paired_end}"
                     "                if (paired_tracked) {\n                    s_frame_paired_call = paired_previous;\n                    s_frame_paired_return_pc = paired_previous_return_pc;\n                    s_frame_return_auto_quiescent = paired_auto_quiescent;\n                }\n${_paired_end}"

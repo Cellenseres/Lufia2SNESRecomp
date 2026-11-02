@@ -1,6 +1,6 @@
 include_guard(GLOBAL)
 
-function(lufia2_menu_leaves_available output)
+function(lufia2_menu_contracts_available output)
     set(${output} FALSE PARENT_SCOPE)
     set(_header "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu.h")
     set(_metadata_file "${LUFIA2_DECOMP_RESOLVED_ROOT}/metadata/functions.toml")
@@ -9,9 +9,7 @@ function(lufia2_menu_leaves_available output)
     endif()
     file(READ "${_header}" _api)
     file(READ "${_metadata_file}" _metadata)
-    foreach(_item IN ITEMS
-        "80:8AF7|Lufia2MenuResolvePointerOffset|menu_string"
-        "82:F4D7|Lufia2MenuCycleNameEntrySelection|name_entry")
+    foreach(_item IN LISTS ARGN)
         string(REPLACE "|" ";" _fields "${_item}")
         list(GET _fields 0 _address)
         list(GET _fields 1 _name)
@@ -35,4 +33,17 @@ function(lufia2_menu_leaves_available output)
         endif()
     endforeach()
     set(${output} TRUE PARENT_SCOPE)
+endfunction()
+
+function(lufia2_menu_leaves_available output)
+    lufia2_menu_contracts_available(_available
+        "80:8AF7|Lufia2MenuResolvePointerOffset|menu_string"
+        "82:F4D7|Lufia2MenuCycleNameEntrySelection|name_entry")
+    set(${output} ${_available} PARENT_SCOPE)
+endfunction()
+
+function(lufia2_fixed_cursor_available output)
+    lufia2_menu_contracts_available(_available
+        "82:A00F|Lufia2MenuCreateFixedCursorPair|menu_cursor_callers")
+    set(${output} ${_available} PARENT_SCOPE)
 endfunction()

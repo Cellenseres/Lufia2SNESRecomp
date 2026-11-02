@@ -1,3 +1,19 @@
+# Fixed cursor preset integration — 2026-11-03
+
+The missing `$82:A00F` preset is reconstructed in the standalone decomp and
+bound through a quiet-WRAM/VBlank consumer span. Its seven setup/call opcodes
+and RTS retain fetch/data order, guest/master clocks and the actual frame.
+Unsafe contexts resume the original entry with the original bank. The original
+cursor child still uses its existing integration; its legacy clock debt is
+outside this parent checkpoint and is not claimed fixed or certified.
+
+Twelve matched real production pairs preserve complete CPU/WRAM/hardware and
+clocks; accepted paths reduce raw interpreted instructions10 to2. With detail
+profiling off, three 5,000-call samples improve median54.987 to48.207ms. These
+are constructed same-bank caller costs, not a measured organic hotspot or FPS.
+The producer adds this target to the existing scoped return context, with no
+new opcode hook, whole-table scan, context copy, wait/APU bypass or budget change.
+
 # Small menu leaf integration — 2026-11-03
 
 The new `$80:8AF7` and `$82:F4D7` bodies demonstrate why native selection and

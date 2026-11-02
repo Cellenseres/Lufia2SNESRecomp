@@ -1,3 +1,33 @@
+# Fixed cursor-pair preset — 2026-11-03
+
+`Lufia2MenuCreateFixedCursorPair` reconstructs the previously missing twenty-byte
+body at `$82:A00F..A022`. It selects grid `$1C`, styles `$0401` and sprite slots
+seven/eight, then invokes the existing cursor builder at `$82:89C4`. The JSR
+frame retains `$A021`. This differs from the equipment preset's grid `$23`,
+slots eight/nine and cursor-moving child. Its wider UI purpose is unproven.
+
+MSVC and Clang C11 each pass 6,144 original-ROM differential cases plus four
+no-access guards: original child, existing semantic child composition and
+unwound child boundary. CPU, complete WRAM and ordered data are compared;
+live DB/DP, decimal and DP/stack effects remain literal.
+
+The separate consumer passes 3,072 timed cases and 52 no-access refusals with
+each compiler. It accounts for its setup, pushed JSR frame and final RTS;
+unknown/rewritten paired returns retain dispatch. Twelve actual production
+pairs match CPU/WRAM/hardware/clocks, including safe admission and mirror,
+DB/DP, decimal, hook and deadline fallbacks. Existing child integration is
+retained in both arms: its legacy timing debt is not newly certified here.
+Three 5,000-call samples improve median54.987 to48.207ms with profiling off;
+raw interpreted opcodes10 to2. No organic frequency or global FPS claim.
+
+The shared checkpoint also passes 11 cursor availability gates, 14 existing
+leaf availability gates, five producer-composition gates, 4,096 paired-context
+cases per compiler, older-API/frame-off compiler gates and the reserved Windows
+Release build. The actual generated caller records the new target's expected
+return PC and restores nested context. No new opcode hooks, polling budgets or
+APU seams are changed. Full regression and CLI were not rerun; their earlier
+results apply only to unchanged covered sources, not a newly tested revision.
+
 # Menu leaf helper checkpoint — 2026-11-03
 
 New original `$80:8AF7..8B08` and `$82:F4D7..F4F3` bodies are verified and

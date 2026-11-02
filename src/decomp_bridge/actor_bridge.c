@@ -20787,3 +20787,13 @@ RecompReturn Lufia2DecompBridge_82F4D7(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x82f4d7u);
 #endif
 }
+
+RecompReturn Lufia2DecompBridge_82A00F(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_FIXED_CURSOR)
+    return ActorBridgeTimedFixedCursor(cpu);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame,
+        cpu->PB == 2u ? 0x02a00fu : 0x82a00fu);
+#endif
+}
