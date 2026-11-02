@@ -20537,3 +20537,25 @@ RecompReturn Lufia2DecompBridge_85AAC3(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x85aac3u);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_LISTED_TARGET_SCRIPTS_API)
+#include "target_scripts_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_819D75(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_LISTED_TARGET_SCRIPTS_API)
+    return ActorBridgeTargetScripts(cpu, false);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x819d75u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_819FAB(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_LISTED_TARGET_SCRIPTS_API)
+    return ActorBridgeTargetScripts(cpu, true);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x819fabu);
+#endif
+}
