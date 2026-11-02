@@ -7,7 +7,7 @@ typedef enum CapsuleBackupPhase {
 
 typedef struct CapsuleBackupClock {
     FixedSpanClock span;
-    FixedSpanOpcode word_timing[6];
+    const struct CapsuleInventoryPlan *plan;
     CapsuleBackupPhase phase;
     unsigned word;
 } CapsuleBackupClock;
@@ -19,13 +19,57 @@ static const FixedSpanOpcode capsule_backup_begin[] = {
     {0xfbb0u, 1u, 4u, 1u}, {0xfbb1u, 2u, 3u, 0u},
     {0xfbb3u, 3u, 3u, 0u}
 };
-static const FixedSpanOpcode capsule_backup_word[] = {
+static const FixedSpanOpcode capsule_backup_word_0[] = {
+    {0xfbb6u, 3u, 5u, 2u}, {0xfbb9u, 3u, 7u, 2u},
+    {0xfbbcu, 1u, 2u, 0u}, {0xfbbdu, 1u, 2u, 0u},
+    {0xfbbeu, 3u, 3u, 0u}, {0xfbc1u, 2u, 3u, 0u}
+};
+static const FixedSpanOpcode capsule_backup_word_1[] = {
     {0xfbb6u, 3u, 6u, 2u}, {0xfbb9u, 3u, 7u, 2u},
     {0xfbbcu, 1u, 2u, 0u}, {0xfbbdu, 1u, 2u, 0u},
     {0xfbbeu, 3u, 3u, 0u}, {0xfbc1u, 2u, 3u, 0u}
 };
-static const FixedSpanOpcode capsule_backup_restore[] = {
+static const FixedSpanOpcode capsule_backup_word_2[] = {
+    {0xfbb6u, 3u, 6u, 2u}, {0xfbb9u, 3u, 7u, 2u},
+    {0xfbbcu, 1u, 2u, 0u}, {0xfbbdu, 1u, 2u, 0u},
+    {0xfbbeu, 3u, 3u, 0u}, {0xfbc1u, 2u, 2u, 0u}
+};
+static const FixedSpanOpcode capsule_backup_return[] = {
     {0xfbc3u, 1u, 4u, 1u}, {0xfbc4u, 1u, 4u, 1u}
+};
+static const FixedSpanOpcode capsule_reload_begin[] = {
+    {0xfbc6u, 1u, 3u, 1u}, {0xfbc7u, 1u, 3u, 1u},
+    {0xfbc8u, 2u, 3u, 0u}, {0xfbcau, 2u, 3u, 0u},
+    {0xfbccu, 2u, 2u, 0u}, {0xfbceu, 1u, 3u, 1u},
+    {0xfbcfu, 1u, 4u, 1u}, {0xfbd0u, 2u, 3u, 0u},
+    {0xfbd2u, 3u, 3u, 0u}
+};
+static const FixedSpanOpcode capsule_reload_word_0[] = {
+    {0xfbd5u, 3u, 5u, 2u}, {0xfbd8u, 3u, 7u, 2u},
+    {0xfbdbu, 1u, 2u, 0u}, {0xfbdcu, 1u, 2u, 0u},
+    {0xfbddu, 3u, 3u, 0u}, {0xfbe0u, 2u, 3u, 0u}
+};
+static const FixedSpanOpcode capsule_reload_word_1[] = {
+    {0xfbd5u, 3u, 5u, 2u}, {0xfbd8u, 3u, 7u, 2u},
+    {0xfbdbu, 1u, 2u, 0u}, {0xfbdcu, 1u, 2u, 0u},
+    {0xfbddu, 3u, 3u, 0u}, {0xfbe0u, 2u, 2u, 0u}
+};
+static const FixedSpanOpcode capsule_reload_return[] = {
+    {0xfbe2u, 1u, 4u, 1u}, {0xfbe3u, 1u, 4u, 1u}
+};
+
+typedef struct CapsuleInventoryPlan {
+    const FixedSpanOpcode *begin;
+    const FixedSpanOpcode *word[3];
+    const FixedSpanOpcode *finish;
+    unsigned crossing_word;
+} CapsuleInventoryPlan;
+
+static const CapsuleInventoryPlan capsule_inventory_plans[] = {
+    {capsule_backup_begin, {capsule_backup_word_0, capsule_backup_word_1,
+        capsule_backup_word_2}, capsule_backup_return, 58u},
+    {capsule_reload_begin, {capsule_reload_word_0, capsule_reload_word_0,
+        capsule_reload_word_1}, capsule_reload_return, 96u}
 };
 
 static void AdvanceCapsuleBackup(CapsuleBackupClock *clock) {
@@ -45,13 +89,12 @@ static void AdvanceCapsuleBackup(CapsuleBackupClock *clock) {
         }
         clock->span.index = 0u;
         if (clock->phase == CAPSULE_BACKUP_WORD) {
-            clock->word_timing[0].cycles =
-                (uint8_t)(5u + (0x8du + 2u * clock->word > 0xffu));
-            clock->word_timing[5].cycles = clock->word == 95u ? 2u : 3u;
-            clock->span.timing = clock->word_timing;
+            const unsigned path = clock->word == 95u ? 2u :
+                clock->word >= clock->plan->crossing_word ? 1u : 0u;
+            clock->span.timing = clock->plan->word[path];
             clock->span.count = 6u;
         } else {
-            clock->span.timing = capsule_backup_restore;
+            clock->span.timing = clock->plan->finish;
             clock->span.count = 2u;
         }
     }
@@ -69,32 +112,23 @@ static void CapsuleBackupWrite(void *context, uint32_t address, uint8_t value) {
     FixedSpanWrite(&clock->span, address, value);
 }
 
-static uint64_t CapsuleBackupBound(const FixedSpanOpcode *timing,
-                                    unsigned count, unsigned fetch_speed) {
-    uint64_t master = 0u;
-    for (unsigned index = 0u; index < count; ++index) {
-        const FixedSpanOpcode *opcode = timing + index;
-        master += opcode->fetched * fetch_speed + opcode->data_bytes * 8u +
-            (opcode->cycles - opcode->fetched - opcode->data_bytes) * 6u;
-    }
-    return master;
-}
-
-static bool PrepareCapsuleBackup(CapsuleBackupClock *clock, CpuState *cpu) {
-    if (cpu->m_flag != 1u || cpu->x_flag || cpu->host_return_valid != 2u ||
+static bool PrepareCapsuleBackup(CapsuleBackupClock *clock, CpuState *cpu,
+                                   bool restore) {
+    const uint32_t entry = restore ? 0x82fbc6u : 0x82fba7u;
+    if ((restore && !Lufia2DecompFrameReturnCpuReady()) ||
+        cpu->m_flag != 1u || cpu->x_flag || cpu->host_return_valid != 2u ||
         cpu->S < 0x1f03u || cpu->coprocessor_master_cycles != cpu->master_cycles ||
-        !ActorBridgeTimedStepSupportedWindow(cpu, 0x82fba7u, 0x1ff7u, false, 1363u, 64u) ||
+        !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1ff7u, false, 1363u, 64u) ||
         !g_snes->cart || g_snes->cart->type != CART_LOROM ||
         !g_snes->cart->rom || g_snes->cart->romSize < 0x280000u ||
-        g_snes->vPos >= 262u || !Lufia2DecompFrameRangeQuiet(0x82fba7u, 0x82fbc6u))
+        g_snes->vPos >= 262u ||
+        !Lufia2DecompFrameRangeQuiet(entry, restore ? 0x82fbe5u : 0x82fbc6u))
         return false;
-    const unsigned speed = cpu_region_speed(0x82fba7u);
-    const uint64_t work = CapsuleBackupBound(capsule_backup_begin, 9u, speed) +
-        96u * CapsuleBackupBound(capsule_backup_word, 6u, speed) +
-        CapsuleBackupBound(capsule_backup_restore, 2u, speed) + 64u;
+    /* Maximum original span, including return allowance. */
+    const uint64_t work = 1265u * (uint64_t)cpu_region_speed(entry) + 6712u;
     const uint64_t bound = work + 40u * (work / 1324u + 1u);
     if (cpu->master_cycles > UINT64_MAX - bound ||
-        !ActorBridgeTimedStepSupportedWindow(cpu, 0x82fba7u, 0x1ff7u, false, 1363u, bound))
+        !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1ff7u, false, 1363u, bound))
         return false;
     if (!MenuWramSpanHdmaSafe())
         return false;
@@ -108,27 +142,34 @@ static bool PrepareCapsuleBackup(CapsuleBackupClock *clock, CpuState *cpu) {
     *clock = (CapsuleBackupClock){0};
     clock->span.cpu = cpu;
     clock->span.bank = 0x820000u;
-    clock->span.timing = capsule_backup_begin;
+    clock->plan = &capsule_inventory_plans[restore ? 1u : 0u];
+    clock->span.timing = clock->plan->begin;
     clock->span.count = 9u;
-    for (unsigned index = 0u; index < 6u; ++index)
-        clock->word_timing[index] = capsule_backup_word[index];
     return true;
 }
 
-static RecompReturn ActorBridgeCapsuleBackup(CpuState *cpu) {
+static RecompReturn ActorBridgeCapsuleBackup(CpuState *cpu, bool restore) {
+    const uint32_t entry = restore ? 0x82fbc6u : 0x82fba7u;
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     CapsuleBackupClock clock;
-    if (!PrepareCapsuleBackup(&clock, cpu))
-        return ActorBridgeFallback(cpu, &frame, 0x82fba7u);
+    if (!PrepareCapsuleBackup(&clock, cpu, restore))
+        return ActorBridgeFallback(cpu, &frame, entry);
     const Lufia2Memory memory = {CapsuleBackupRead, CapsuleBackupWrite,
         &clock, NULL, NULL};
     Lufia2CpuState state;
     ActorBridgeLoad(cpu, &state);
-    state.resume_pc = 0x82fba7u;
-    const Lufia2ExecutionResult result = Lufia2MenuBackupInventory(&memory, &state);
+    state.resume_pc = entry;
+    Lufia2ExecutionResult result;
+#if defined(LUFIA2_MENU_INVENTORY_RESTORE_API)
+    if (restore)
+        result = Lufia2MenuRestoreInventory(&memory, &state);
+    else
+#endif
+        result = Lufia2MenuBackupInventory(&memory, &state);
     ActorBridgeStore(cpu, &state);
     AdvanceCapsuleBackup(&clock);
     assert(clock.phase == CAPSULE_BACKUP_DONE && !clock.span.remaining &&
-        result.flow == LUFIA2_EXECUTION_RETURNED && result.pc == 0x82fbc5u);
+        result.flow == LUFIA2_EXECUTION_RETURNED &&
+        result.pc == (restore ? 0x82fbe4u : 0x82fbc5u));
     return ReturnTimedMenuCall(cpu, &frame, result.pc);
 }
