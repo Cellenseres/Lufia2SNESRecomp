@@ -76,6 +76,12 @@ function(lufia2_add_nmi_continuations target core_root)
             if(_frame_returns)
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleRippleSteps.cmake")
                 lufia2_battle_ripple_steps_available(_ripple_steps)
+                lufia2_battle_ripple_word_steps_available(_ripple_word_steps)
+                if(_ripple_word_steps)
+                    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                        APPEND PROPERTY COMPILE_DEFINITIONS
+                            "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_RIPPLE_WORD_STEPS=1>")
+                endif()
                 if(_ripple_steps)
                     set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
                         APPEND PROPERTY COMPILE_DEFINITIONS
@@ -816,11 +822,14 @@ function(lufia2_add_nmi_continuations target core_root)
                 endif()
                 if(_nmi_restore_width)
                     string(REPLACE "${_hook_call}"
-                        "                    {\n                        const int interrupt_owner = s_native_hook_interrupt;\n                        s_native_hook_interrupt = Lufia2DecompNmiHookHasOwner(\n                            pc_before, stop_on_rti, auto_quiescent, step_cap - steps);\n${_hook_call}\n                        s_native_hook_interrupt = interrupt_owner;\n                    }"
+                        "                    {\n                        const int interrupt_owner = s_native_hook_interrupt;\n                        s_native_hook_interrupt = Lufia2DecompNmiHookHasOwner(\n                            pc_before, stop_on_rti, auto_quiescent |\n                            ((trace || dtrace || wlog_state_sync) ? LUFIA2_NMI_OWNER_OBSERVED : 0),\n                            step_cap - steps);\n${_hook_call}\n                        s_native_hook_interrupt = interrupt_owner;\n                    }"
                         _text "${_text}")
-                    string(PREPEND _text "#include <stdint.h>\nstatic int s_native_hook_interrupt;\nstatic int Lufia2DecompNmiHookHasOwner(uint32_t, int, int, long);\n")
+                    string(PREPEND _text "#include <stdint.h>\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/nmi_owner.h\"\nstatic int s_native_hook_interrupt;\nstatic bool Lufia2DecompNmiHookHasOwner(uint32_t, int, int, long);\n")
                     string(APPEND _timing_suffix
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/nmi_owner.inc\"\n")
+                endif()
+                if(_ripple_word_steps)
+                    string(PREPEND _text "#define LUFIA2_HAVE_NATIVE_RIPPLE_WORD_STEPS 1\n")
                 endif()
                 if(_ripple_steps)
                     string(PREPEND _text "#define LUFIA2_HAVE_NATIVE_RIPPLE_STEPS 1\n")

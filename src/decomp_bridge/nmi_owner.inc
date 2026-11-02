@@ -2,9 +2,9 @@
 #include "host_events.h"
 #include <stdint.h>
 
-static int Lufia2DecompNmiHookHasOwner(uint32_t pc, int stop_on_rti,
-                                      int auto_quiescent, long opcodes_left) {
-    if (!stop_on_rti || auto_quiescent)
+static bool Lufia2DecompNmiHookHasOwner(uint32_t pc, int stop_on_rti,
+                                      int admission_flags, long opcodes_left) {
+    if (!stop_on_rti || (admission_flags & LUFIA2_NMI_OWNER_QUIESCENT))
         return 0;
     switch (pc & 0x7fffffu) {
 #if defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
@@ -35,6 +35,13 @@ static int Lufia2DecompNmiHookHasOwner(uint32_t pc, int stop_on_rti,
         return opcodes_left >= LUFIA2_NMI_RIPPLE_BYTE_OPCODES;
     case 0x05a760u:
         return opcodes_left >= LUFIA2_NMI_RIPPLE_FINISH_OPCODES;
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_RIPPLE_WORD_STEPS)
+    case 0x05aa61u:
+        return !(admission_flags & LUFIA2_NMI_OWNER_OBSERVED) &&
+            opcodes_left >= LUFIA2_NMI_RIPPLE_WORD_OPCODES &&
+            !s_interp_bus_timing_active && !g_interp_bridge_pc_hook &&
+            !s_interp_pctrace;
 #endif
     case 0x05a736u:
         return opcodes_left >= LUFIA2_NMI_RIPPLE_ROW_OPCODES;

@@ -912,3 +912,32 @@ are identical. A single fixed-affinity uninstrumented core/audio pair measures
 sample is not statistical speedup acceptance or a frontend/console FPS claim.
 Unrelated standalone suites and full regression were deferred.
 Private evidence: runtime-frontier/battle-nmi-admission/ACCEPTANCE.json.
+
+
+## Owned ripple word rows - 2026-11-02
+
+The optional85:AA61 hook shares the existing ripple word algorithm. Admission
+preserves NMI ownership,caller stack,DB/DP,widths,refresh,device/HDMA edges and
+observer/interior-hook guards. Normal calls retain the existing owned budget.
+The common NMI owner remains a four-argument leaf;packed observation flags
+avoid a fifth stack argument. Native observers are still refused by the
+unchanged word readiness quiet-range check. Certified wait/APU batches remain.
+
+The shared checkpoint covers8192 semantic rows,2048 full-parent states,
+42504 ordinary and22176 NMI timed states,47 guards and201335808 owner/composed
+guard cases. Actual generated callers,linked code,legacy headers and gates
+pass. Unchanged semantic/timing-body proofs were reused;no full suite repeated.
+
+Two matched1200-frame synthetic encounter fixtures compare CPU/WRAM,hardware
+snapshots,HDMA byte order and fresh PCM. The word case executes20242 native
+rows and reduces430234 decoded instructions to283737;667405 PCM match.
+The old battle control keeps386157 decoded instructions and670463 PCM.
+Wait/APU counts match. These fixtures are not whole-game coverage.
+
+After removing shared stack overhead,two order-balanced uninstrumented pairs
+per input measure5.5251613->5.0961861 and5.3883316->5.1979264 seconds for the
+word fixture. Controls measure7.5870777->7.3683267 and7.3248524->7.1689015.
+All end states/PCM match. Earlier variants showed substantial host drift;
+these small samples establish no statistical/global speedup or frontend FPS.
+The control also improves;the whole difference cannot be assigned to rows.
+Private evidence:runtime-frontier/word-ripple-row/ACCEPTANCE.json.
