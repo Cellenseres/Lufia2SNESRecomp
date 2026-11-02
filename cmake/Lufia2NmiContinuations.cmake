@@ -586,6 +586,33 @@ function(lufia2_add_nmi_continuations target core_root)
                                 list(APPEND _definitions LUFIA2_HAVE_NATIVE_FRAME_SAVE_STEPS=1)
                             endif()
                         endif()
+                        set(_dissolve_header "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/battle.h")
+                        set(_dissolve_source "${LUFIA2_DECOMP_RESOLVED_ROOT}/src/battle/battle_transition_setup.c")
+                        if(_frame_polls AND EXISTS "${_dissolve_header}" AND EXISTS "${_dissolve_source}")
+                            file(READ "${_dissolve_header}" _dissolve_api)
+                            file(READ "${_dissolve_source}" _dissolve_implementation)
+                            string(REGEX MATCH
+                                "\\[\\[function\\]\\][^[]*name[ \t]*=[ \t]*\"Lufia2BattleRunDissolveEffect\"[^[]*"
+                                _dissolve_contract "${_metadata}")
+                            string(REGEX MATCH
+                                "\\[\\[function\\]\\][^[]*name[ \t]*=[ \t]*\"Lufia2BattleRunDissolveTransition\"[^[]*"
+                                _dissolve_transition_contract "${_metadata}")
+                            if(_dissolve_api MATCHES "LUFIA2_BATTLE_DISSOLVE_PIXEL_API[ \t]+1" AND
+                               _dissolve_api MATCHES "Lufia2BattleRunDissolveEffectWithBudget[(]" AND
+                               _dissolve_api MATCHES "Lufia2BattleContinueDissolveMask[(]" AND
+                               _dissolve_api MATCHES "Lufia2BattleRunDissolveTransitionWithBudget[(]" AND
+                               _dissolve_implementation MATCHES "Lufia2BattleContinueDissolveMask[(][^;{]*[{]" AND
+                               _dissolve_contract MATCHES "address[ \t]*=[ \t]*\"85:E7C5\"" AND
+                               _dissolve_contract MATCHES "entry_mx[ \t]*=[ \t]*\"M1X0\"" AND
+                               _dissolve_contract MATCHES "exit_mx[ \t]*=[ \t]*\"M1X0\"" AND
+                               _dissolve_contract MATCHES "status[ \t]*=[ \t]*\"verified\"" AND
+                               _dissolve_transition_contract MATCHES "address[ \t]*=[ \t]*\"85:E8E8\"" AND
+                               _dissolve_transition_contract MATCHES "entry_mx[ \t]*=[ \t]*\"M1X0\"" AND
+                               _dissolve_transition_contract MATCHES "exit_mx[ \t]*=[ \t]*\"M1X0\"" AND
+                               _dissolve_transition_contract MATCHES "status[ \t]*=[ \t]*\"verified\"")
+                                list(APPEND _definitions LUFIA2_HAVE_NATIVE_DISSOLVE_SETUP=1)
+                            endif()
+                        endif()
                         set(_rectangle_header "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/menu_rectangle.h")
                         if(_frame_polls AND EXISTS "${_rectangle_header}")
                             file(READ "${_rectangle_header}" _rectangle_api)

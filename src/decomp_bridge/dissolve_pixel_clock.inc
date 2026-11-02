@@ -67,9 +67,8 @@ static void AdvanceDissolvePixel(DissolvePixelClock *clock) {
     }
 }
 
-static uint8_t ReadDissolveCrossedPage(DissolvePixelClock *clock,
+static uint8_t ReadDissolveCrossedPage(FixedSpanClock *span,
     uint32_t address) {
-    FixedSpanClock *span = &clock->span;
     const FixedSpanOpcode *timing = span->timing;
     const unsigned index = span->index;
     const unsigned progress_mask = span->progress_mask;
@@ -94,7 +93,7 @@ static uint8_t DissolvePixelRead(void *context, uint32_t address) {
     const bool indexed = pc == 0xe86eu || pc == 0xe887u ||
         pc == 0xe8cbu || pc == 0xe8dfu;
     const uint8_t value = indexed && remaining == 1u && clock->indexed_page_crossed
-        ? ReadDissolveCrossedPage(clock, address)
+        ? ReadDissolveCrossedPage(&clock->span, address)
         : FixedSpanRead(&clock->span, address);
     if (indexed && remaining == 3u)
         clock->indexed_page_crossed = clock->state->y + value > 0xffu;

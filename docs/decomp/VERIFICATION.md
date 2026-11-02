@@ -1,3 +1,28 @@
+# Dissolve controller checkpoint - 2026-11-02
+
+The original85:E7C5 and85:E8E8 routines add209 previously missing ROM bytes;
+the transition tail shares the existing C implementation. The consumer uses
+three guarded mask-phase hooks and immutable timing records. Native execution
+hands off atE806 after folding andE91F before the first transition child.
+The saved PHY word, actualM0 child context and original malformed return remain.
+The complete shared transition tail is not timed natively through this entry.
+
+The shared checkpoint covers256mask prefixes,4096phase cases,2048preparation
+prefixes/8refusals,and4full paired runs with14301 actual original child calls.
+28transition unwind sites,32modeled parent contracts/16parent unwinds pass.
+16384 timed inputs yield9360 admissions/7024 declines;80 admission guards pass.
+Four whole-mask runs match28422 original opcodes,with20459..20497 running in C
+and7925..7963 still interpreted. CPU/fullWRAM,ordered fetch/data,open bus,
+per-opcode guest/master clocks and exact last-write indices match. The shared
+pixel clock also passes16512 affected timed cases and39 refusals.
+
+StrictMSVC/Clang,actual previous-header/feature-off compiler gates,seven CMake
+gates andreserved WindowsRelease pass. Generated/linked entry callers andall
+three C service references are present.1024wait batching,NMIbool4 andtheactual
+APU idle caller remain. Shared wait/fixed-clock sources retain prior hashes.
+No full regression,ordinary live caller,production host-time gain,PCM orFPS
+acceptance is claimed. Tests remain private;the original waits andMMIO remain.
+
 # Poker stake window checkpoint - 2026-11-02
 
 The new84:BEE0 binding uses the existing poker timing owner and real pushed

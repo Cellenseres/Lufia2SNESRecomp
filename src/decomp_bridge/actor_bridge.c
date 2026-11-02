@@ -3,6 +3,9 @@
 #include <stdint.h>
 
 #include "cpu_state.h"
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_DISSOLVE_SETUP)
+static void ActorBridgeDissolveMask(CpuState *cpu, uint32_t pc);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_CURSOR_INPUT)
 static void ActorBridgeCursorInputPhase(CpuState *cpu, uint32_t entry);
 #endif
@@ -4014,6 +4017,11 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
          ++i)
         interp_bridge_set_pre_opcode_hook(frame_save_entries[i].address,
                                           ActorBridgeFrameSaveStep);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_DISSOLVE_SETUP)
+    interp_bridge_set_pre_opcode_hook(0x85e7d0u, ActorBridgeDissolveMask);
+    interp_bridge_set_pre_opcode_hook(0x85e7d8u, ActorBridgeDissolveMask);
+    interp_bridge_set_pre_opcode_hook(0x85e7f2u, ActorBridgeDissolveMask);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_MENU_RECTANGLE_STEPS)
     for (unsigned i = 0;
@@ -20639,6 +20647,28 @@ RecompReturn Lufia2DecompBridge_81B308(CpuState *cpu) {
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_DISSOLVE_PIXEL_API)
 #include "dissolve_pixel_clock.inc"
 #endif
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_DISSOLVE_SETUP)
+#include "dissolve_mask_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_85E7C5(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_DISSOLVE_SETUP)
+    return ActorBridgeDissolveSetup(cpu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x85e7c5u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_85E8E8(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_DISSOLVE_SETUP)
+    return ActorBridgeDissolveTransition(cpu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x85e8e8u);
+#endif
+}
 
 RecompReturn Lufia2DecompBridge_85E85F(CpuState *cpu) {
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_DISSOLVE_PIXEL_API)
