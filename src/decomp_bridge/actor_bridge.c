@@ -20559,3 +20559,16 @@ RecompReturn Lufia2DecompBridge_819FAB(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x819fabu);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_TARGET_RECORD_RESET_API)
+#include "target_record_clear_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_81C586(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_TARGET_RECORD_RESET_API)
+    return ActorBridgeClearTargetRecords(cpu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x81c586u);
+#endif
+}
