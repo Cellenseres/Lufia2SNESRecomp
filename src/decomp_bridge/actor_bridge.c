@@ -1775,12 +1775,26 @@ RecompReturn Lufia2DecompBridge_85E5C2(CpuState *cpu) {
                                   3u, BATTLE_BRIDGE_ANY_WIDTH, 0, BATTLE_BRIDGE_ANY_BANK, 0);
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_GRAY_BUFFER_API)
+static bool TryTimedGrayPalette(CpuState *cpu, unsigned output, RecompReturn *returned);
+#endif
+
 RecompReturn Lufia2DecompBridge_81B336(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_GRAY_BUFFER_API)
+    RecompReturn returned;
+    if (TryTimedGrayPalette(cpu, 1u, &returned))
+        return returned;
+#endif
     return ActorBridgeBattleEntry(cpu, 0x81b336u, Lufia2BattleGrayPaletteToBuffer, 0,
                                   3u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
 }
 
 RecompReturn Lufia2DecompBridge_81B367(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_GRAY_BUFFER_API)
+    RecompReturn returned;
+    if (TryTimedGrayPalette(cpu, 2u, &returned))
+        return returned;
+#endif
     return ActorBridgeBattleEntry(cpu, 0x81b367u, Lufia2BattleGraySourcePalette, 0,
                                   3u, BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_ANY_BANK, 0);
 }
@@ -20602,4 +20616,18 @@ RecompReturn Lufia2DecompBridge_82FBC6(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     return ActorBridgeFallback(cpu, &frame, 0x82fbc6u);
 #endif
+}
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_GRAY_BUFFER_API)
+#include "gray_palette_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_81B308(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_BATTLE_GRAY_BUFFER_API)
+    RecompReturn returned;
+    if (TryTimedGrayPalette(cpu, 0u, &returned))
+        return returned;
+#endif
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x81b308u);
 }
