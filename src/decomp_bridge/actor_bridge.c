@@ -18758,6 +18758,15 @@ RecompReturn Lufia2DecompBridge_84BC78(CpuState *cpu) {
 #endif
 }
 
+RecompReturn Lufia2DecompBridge_84BEE0(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_POKER_STAKE) && defined(LUFIA2_HAVE_NATIVE_POKER_WINDOW)
+    return ActorBridgePokerStake(cpu, 0x84bee0u, Lufia2PokerPushStakeWindow);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x84bee0u);
+#endif
+}
+
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_ROUND_SELECTION)
 #include "round_selection_clock.inc"

@@ -447,6 +447,10 @@ static const FixedSpanOpcode poker_stake_c025[] = {
     {0xc025u, 2u, 3u, 0u},
 };
 
+static const FixedSpanOpcode poker_stake_bee0[] = {
+    {0xbee0u, 3u, 6u, 2u},
+};
+
 static const PokerStakePhase poker_stake_phases[] = {
     {0xbc78u, 0xbc80u, 0x0000u, 0u, sizeof poker_stake_bc78 / sizeof poker_stake_bc78[0], poker_stake_bc78},
     {0xbc82u, 0x0000u, 0x0000u, 0u, sizeof poker_stake_bc82 / sizeof poker_stake_bc82[0], poker_stake_bc82},
@@ -483,6 +487,8 @@ static const PokerStakePhase poker_stake_phases[] = {
     {0xbd70u, 0x0000u, 0x0000u, 0u, sizeof poker_stake_bd70 / sizeof poker_stake_bd70[0], poker_stake_bd70},
     {0xbd73u, 0x0000u, 0x0000u, 0u, sizeof poker_stake_bd73 / sizeof poker_stake_bd73[0], poker_stake_bd73},
     {0xbd80u, 0x0000u, 0xbd82u, 1u, sizeof poker_stake_bd80 / sizeof poker_stake_bd80[0], poker_stake_bd80},
+    {0xbee0u, 0x0000u, 0x0000u, 0u, sizeof poker_stake_bee0 / sizeof poker_stake_bee0[0], poker_stake_bee0},
+    {0xbee3u, 0x0000u, 0xbee3u, 0u, 0u, NULL},
     {0xbf0bu, 0xbf23u, 0x0000u, 0u, sizeof poker_stake_bf0b / sizeof poker_stake_bf0b[0], poker_stake_bf0b},
     {0xbf1bu, 0xbf23u, 0x0000u, 0u, sizeof poker_stake_bf1b / sizeof poker_stake_bf1b[0], poker_stake_bf1b},
     {0xbf25u, 0xbf2bu, 0x0000u, 0u, sizeof poker_stake_bf25 / sizeof poker_stake_bf25[0], poker_stake_bf25},
@@ -521,9 +527,18 @@ typedef struct PokerStakeProjection {
 } PokerStakeProjection;
 
 static const PokerStakePhase *FindPokerStakePhase(uint16_t pc) {
-    for (unsigned i = 0u; i < sizeof poker_stake_phases / sizeof poker_stake_phases[0]; ++i)
-        if (poker_stake_phases[i].pc == pc)
-            return poker_stake_phases + i;
+    unsigned first = 0u;
+    unsigned end = sizeof poker_stake_phases / sizeof poker_stake_phases[0];
+    while (first < end) {
+        const unsigned middle = first + (end - first) / 2u;
+        const PokerStakePhase *phase = poker_stake_phases + middle;
+        if (phase->pc == pc)
+            return phase;
+        if (phase->pc < pc)
+            first = middle + 1u;
+        else
+            end = middle;
+    }
     return NULL;
 }
 

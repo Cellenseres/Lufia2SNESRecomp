@@ -1,3 +1,18 @@
+# Poker stake window checkpoint - 2026-11-02
+
+The new84:BEE0 binding uses the existing poker timing owner and real pushed
+window-child frame. Its optional gate preserves older three-entry poker APIs.
+The shared checkpoint covers16384 normal original-ROM/timed ABI cases and720
+child-context cases across40 call sites. CPU,WRAM,ordered instruction/data bus,
+open bus,guest/master clocks and return frames match. The standalone256 cases
+execute the actual84:A2B3 child,with seven refusal and one unwind checks.
+
+The sorted phase lookup now uses binary search. Compiled comparison against
+the former linear lookup covers every16-bit PC;at most seven probes remain.
+This establishes lookup equivalence and reduced comparisons,not measured game
+speed or FPS. Current/reference/legacy/draft API gates and Windows Release
+integration pass. No whole-game regression or new gameplay-speed claim.
+
 # Bounded menu rectangle columns - 2026-11-02
 
 The existing82:83D2 hook can process several original columns within the
