@@ -20572,3 +20572,25 @@ RecompReturn Lufia2DecompBridge_81C586(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x81c586u);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_STAGED_GOLD_API)
+#include "staged_gold_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_81F577(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_STAGED_GOLD_API)
+    return ActorBridgeStagedGold(cpu, true);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x81f577u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_81F59B(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_STAGED_GOLD_API)
+    return ActorBridgeStagedGold(cpu, false);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x81f59bu);
+#endif
+}
