@@ -1,3 +1,42 @@
+# Menu leaf helper checkpoint — 2026-11-03
+
+New original `$80:8AF7..8B08` and `$82:F4D7..F4F3` bodies are verified and
+consumer-bound. The pointer helper preserves long-source/short-dereference
+addressing, live DB/DP, decimal arithmetic, aliases and flags. The selector
+retains negative-result reset and exact-equality reset, including invalid and
+read-only values. No modulo normalization or invented UI meaning is introduced.
+
+Strict MSVC/Clang C11 each pass 10,240 semantic cases and six no-access guards;
+their clocked consumer each passes 8,192 cases and 110 refusals. CPU/full WRAM,
+ordered fetch/data with opcode timestamps, open bus, clocks and RTS frames are
+compared with the original interpreter. Both paired and unpaired returns,
+known/unknown expected targets, mismatched targets, ROM speeds and all selector
+branches are covered. The consumer admits only certified quiet WRAM/VBlank
+contexts; mirrors and unsafe states retain the original program bank/path.
+
+Fourteen metadata/API gates, five producer-composition gates, 4,096 nested
+context/identity/blocking/return-PC cases with each compiler, frame-off/old-API
+compiler gates and the reserved Windows Release build pass. The actual producer
+captures expected return PC from its existing caller expression only for these
+two entries, then restores it before normal or unwind handling. The original
+callee frame is still read and consumed by the real timed RTS.
+
+Thirty-five generated/linked same-bank WRAM JSR caller pairs match CPU/fullWRAM,
+serialized hardware, guest/master clocks and refresh. Admitted thirteen or
+seven-to-ten original opcodes become two caller instructions. True bank00/02
+mirror and hook/device/context refusals retain the original route. Matched
+600-menu/600-field/1,200-boot replays preserve hardware/PCM/native idle.
+
+Initial native timings were slower despite fewer interpreted opcodes and were
+rejected. The corrected consumer uses the actual caller's expected return for
+normal paired RTS; unknown or changed targets retain the existing unwind.
+Three matched 5,000-call samples with profiling disabled preserve complete final
+state: pointer median 38.706 to 28.864 ms; selector 33.015 to 26.407 ms. No
+ordinary hit rate or whole-game speedup is claimed. Resource CLI sources,
+ResourceFormat dependency and tool CMake are unchanged; CLI behavior was not
+re-tested. No full decomp-verify was repeated. Private evidence:
+`runtime-frontier/menu-leaf-helpers/ACCEPTANCE.json`.
+
 # Caller-width text checkpoint — 2026-11-02
 
 The missing `$80:8866..8877` entry now shares the existing semantic string VM

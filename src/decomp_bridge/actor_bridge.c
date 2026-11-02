@@ -20765,3 +20765,25 @@ RecompReturn Lufia2DecompBridge_808866(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x808866u);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES)
+#include "menu_leaf_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_808AF7(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES)
+    return ActorBridgeTimedMenuLeaf(cpu, true);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x808af7u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_82F4D7(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES)
+    return ActorBridgeTimedMenuLeaf(cpu, false);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x82f4d7u);
+#endif
+}

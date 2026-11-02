@@ -1,3 +1,28 @@
+# Small menu leaf integration — 2026-11-03
+
+The new `$80:8AF7` and `$82:F4D7` bodies demonstrate why native selection and
+fewer interpreted opcodes alone are insufficient. Initial matched 5,000-call
+costs regressed from 42.917 to 49.418 ms and 36.188 to 45.672 ms. Those results
+were rejected. The avoidable work was a rewritten-return dispatch for an
+ordinary paired RTS.
+
+The generated caller now exposes its true expected return PC through a scoped
+scalar for these two targets. It retains the existing caller expression,
+including inline-argument lookup; that extra binary lookup is restricted to
+these targets. Other targets do not acquire a new lookup or return policy.
+The consumer compares the actual timed RTS target with that expected PC.
+Matching balanced returns use the normal host return; unknown or different
+frames keep the existing unwind. Reading stack bytes alone would not establish
+the host caller's expected target, so that shortcut is not used.
+
+Current three-sample medians are 38.706 to 28.864 ms and 33.015 to 26.407 ms,
+with complete state/clocks equal. Thirty-five linked original pairs and matched
+600-menu/600-field/1,200-boot hardware/PCM/native-idle replays pass. Admission
+reserves the original clocks/refresh and rejects aliases, MMIO, hooks, device
+edges and unsafe frames. No opcode hook or whole-table scan is added; source admission avoids
+buffer copies. Certified wait batches and the generated APU idle seam remain enabled.
+These scoped gains do not prove ordinary frequency or general FPS improvement.
+
 # Caller-width menu text — 2026-11-02
 
 The new original `$80:8866` alternate entry shares the semantic string VM.
