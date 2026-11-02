@@ -877,6 +877,22 @@ function(lufia2_add_nmi_continuations target core_root)
                     "#include <stdint.h>\n#include \"decomp_bridge/frame_returns.h\"\nstatic int s_frame_return_auto_quiescent;\nstatic int s_frame_return_batch_allowed;\nstatic unsigned s_frame_return_poll_opcode_budget;\nstatic int s_frame_return_interrupt_blocked = 1;\nstatic void Lufia2DecompFrameReturnContinue(long *, int, uint64_t *, uint64_t *);\n")
                 string(APPEND _timing_suffix
                     "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/frame_return_cycles.inc\"\n")
+                set(_paired_begin "                s_lle_next_unwind_is_deadline = 0;")
+                set(_paired_end "                s_interp_bounce_owner_depth = _saved_bounce_owner;")
+                foreach(_marker IN ITEMS "${_paired_begin}" "${_paired_end}")
+                    string(FIND "${_text}" "${_marker}" _paired_offset)
+                    if(_paired_offset EQUAL -1)
+                        message(FATAL_ERROR "Paired readiness requires the reviewed AOT bounce")
+                    endif()
+                endforeach()
+                string(REPLACE "${_paired_begin}"
+                    "                const bool paired_tracked = FramePairedCallTracks(target);\n                FramePairedCallContext paired_previous;\n                if (paired_tracked) {\n                    paired_previous = s_frame_paired_call;\n                    s_frame_paired_call = (FramePairedCallContext){cpu, target & 0x7fffffu,\n                        in.waiting || in.stopped || in.nmiWanted || in.irqWanted};\n                }\n${_paired_begin}"
+                    _text "${_text}")
+                string(REPLACE "${_paired_end}"
+                    "                if (paired_tracked)\n                    s_frame_paired_call = paired_previous;\n${_paired_end}"
+                    _text "${_text}")
+                string(PREPEND _text
+                    "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/paired_call_context.inc\"\n")
                 get_property(_beam_hold_query GLOBAL PROPERTY SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY)
                 if(_beam_hold_query)
                     string(PREPEND _text "#define SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY 1\n")

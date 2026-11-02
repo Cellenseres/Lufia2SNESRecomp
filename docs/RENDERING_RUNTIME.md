@@ -1076,3 +1076,41 @@ retain original execution. The standalone routines preserve their declared
 ROM contracts. No current gameplay frequency, before/after whole-frame cost
 or FPS result is established by these synthetic checks. Full regression is
 deferred in favor of the affected shared union and incremental Release build.
+
+## Paired-call timing for fixed battle messages — 2026-11-02
+
+The existing `$85:94E7` copier transfers 37 bytes through the original WRAM
+port. Its old consumer bridge omitted the callee's guest clocks: a real
+`$81:AD96` caller executed eleven caller cycles instead of the original
+680 caller-plus-callee cycles. The replacement accounts for all 205 callee
+opcodes (669 cycles), preserves every original data/MMIO access and RTL,
+and uses the existing semantic C without duplicating its algorithm.
+
+The ordinary paired AOT route did not populate the hook-only readiness
+flag. A separate read-only context now records the current CPU, target and
+original waiting/stopped/NMI/IRQ state. It is tracked only for this copier
+or nested calls within an active record, and restored before propagation.
+Other native bindings retain their existing readiness and batching rules.
+This context is not permission to skip timing, observer or hardware checks.
+
+Native copying currently requires a ROM source without index wrap, a paired
+three-byte frame and a quiet vblank interval. The 6,144-master-clock reserve
+exceeds the conservative 669*8 + five 40-clock refresh charges = 5,552 bound.
+Unsupported and feature-off contexts use the original interpreter. No extra opcode
+hooks, shortened waits, deleted MMIO or altered sound handshakes are used.
+The certified 1,024-opcode wait budget and native APU-idle caller remain.
+
+Strict MSVC/Clang checks cover 16,384 timed inputs per compiler and 46
+refusals. Another 4,096 cases cover context masks, identities, nesting and
+restoration. Real generated and linked callers reduce interpreted opcodes
+from 207 to two while preserving CPU/WRAM/hardware/refresh state. Foreign
+hooks and insufficient deadlines retain all 207 original opcodes. Feature-off,
+older-library-header and four CMake activation gates pass.
+
+Matched counter-off replays preserve CPU/WRAM/hardware/PCM/APU idle across
+600 menu, 600 field and 1,200 boot frames. Neutrality-checked counters find
+zero copier calls in these scenes. This is not an ordinary battle hit-rate
+or game-wide speedup claim. Single paired CPU/APU times are noisy; no FPS
+acceptance is inferred. The new `$81:AD96/$81:AEEA` semantic entries still
+need their own timed parent integration. This prerequisite adds no new
+decompiled algorithm or canonical native binding.

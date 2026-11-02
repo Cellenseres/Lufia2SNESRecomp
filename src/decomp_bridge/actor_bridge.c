@@ -40,6 +40,7 @@ static void ActorBridgeColumnSpan(CpuState *cpu, uint32_t pc);
 #include "../lufia2_sprite_visibility.h"
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
 #include "snes/dma.h"
+static RecompReturn ActorBridgeTimedMessageCopy(CpuState *cpu);
 #include "common_cpu_infra.h"
 #include "decomp_bridge/frame_returns.h"
 #include "decomp_bridge/frame_return_timing.h"
@@ -9268,11 +9269,12 @@ RecompReturn Lufia2DecompBridge_859337(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_8594E7(CpuState *cpu) {
-    if (cpu->PB != 0x85u || cpu->S > 0x1ffcu) {
-        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-        return ActorBridgeFallback(cpu, &frame, 0x8594e7u);
-    }
-    return ActorBridgeWholeAnyWidth(cpu, 0x8594e7u, Lufia2BattleCopyMessageName, 3u);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    return ActorBridgeTimedMessageCopy(cpu);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x8594e7u);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_80F734(CpuState *cpu) {
@@ -20711,3 +20713,7 @@ RecompReturn Lufia2DecompBridge_80C1C3(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, 0x80c1c3u);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#include "message_copy_clock.inc"
+#endif
