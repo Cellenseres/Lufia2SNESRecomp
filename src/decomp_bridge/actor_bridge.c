@@ -20631,3 +20631,16 @@ RecompReturn Lufia2DecompBridge_81B308(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     return ActorBridgeFallback(cpu, &frame, 0x81b308u);
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_TEXT_FREE_ACTOR_API)
+#include "text_free_slot_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_80C1C3(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_TEXT_FREE_ACTOR_API)
+    return ActorBridgeTextFreeSlot(cpu);
+#else
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x80c1c3u);
+#endif
+}
