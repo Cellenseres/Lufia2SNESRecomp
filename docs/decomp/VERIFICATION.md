@@ -1,3 +1,32 @@
+# Bounded effect record-pointer phase - 2026-11-02
+
+The existing full script/actor advance operations share their original pointer
+calculation with a bounded six-opcode service. If a complete update cannot fit,
+the consumer may stop before DEC at81:8AB4/8B25. The original counter access
+and branch then remain with the interpreter. New admission requires the same
+CPU/device contract, actual ROM/refresh timing and a quiet internal hook range.
+There are no new hook sites; generated callers retain their14/8-opcode limits.
+Older semantic libraries retain the previous complete-advance fallback.
+
+Shared checks pass21056 original-ROM/timed states,1504 decimal states,
+262144 cases spanning all16-bit pointer values with both decimal modes,
+2728000 admission windows and182 guards. Legacy checks pass6768 timed states,
+752 decimal states and140 guards. Wrong-landing and omitted-observer controls
+are rejected. StrictMSVC/Clang, current/legacy/draft API gates, WindowsRelease
+and the actual linked cursor API pass. The new helper reuses the exact original
+pointer operations; full-step tests cover their composition with the counter.
+Unrelated full regression and other platform builds were deferred.
+
+In1200 matched production frames, all CPU/WRAM/device/HDMA records, five full
+hardware snapshots and670463 fresh PCM samples match. Additional native
+prefixes:1720 script and3678 actor. All12271 previous full native advances
+remain; header uses are unchanged. Raw418545->386157, with only the twelve
+pointer-operation PCs decreasing. Wait9423216attempts/1944batches and
+APU1838713calls/20758459skipped cycles match. One fixed-affinity uninstrumented
+pair measured10.3765434->8.519091seconds with identical final state and PCM.
+A single pair is not statistical speedup,whole-game coverage or60FPS evidence.
+Private receipt:.agent/decomp/runtime-frontier/effect-slot-cursor/ACCEPTANCE.json.
+
 # Exact effect-slot advance admission - 2026-11-02
 
 The existing original advance operations at81:8AAA and81:8B1B now have an
