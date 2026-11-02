@@ -104,6 +104,8 @@ static RecompReturn ReturnTimedLongCall(CpuState *cpu,
         cpu_region_speed(source) + 3u * 8u + 2u * 6u, progress);
     const uint32_t target = (uint32_t)bank << 16 | (uint16_t)((high << 8 | low) + 1u);
     cpu->PB = bank;
+    if (!frame)
+        return interp_tier_dispatch_rewritten_return(cpu, target, source);
     return ActorBridgeResolveReturn(cpu, frame, 3u, source, stack, target);
 }
 

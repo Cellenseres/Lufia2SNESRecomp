@@ -1,3 +1,21 @@
+# Resource formatter integration — 2026-11-02
+
+The newly reconstructed `$85:C5B5` continuation uses immutable timing phases,
+selected from actual source/counter reads, with the original inherited register
+frame and nonlocal RTL return. Its conservative admission scans at most 73 input
+bytes without copies; it requires plain non-aliasing WRAM, safe stack, quiet
+VBlank, sufficient device/deadline room, and indexed hook/observer checks.
+There are no new opcode hooks, per-opcode host dispatches or whole-table scans.
+The existing paired caller carries its readiness and APU progress-flush context.
+
+Fourteen linked production pairs preserve CPU/WRAM/hardware/clocks. Three matched
+1,000-call samples preserve complete final state: median 108.713 ms interpreted,
+42.373 ms native. The unsafe branches retain fallback. Existing copier/context
+gates and 600-menu/600-field/1,200-boot hardware/PCM replays also pass. The actual
+SPC idle seam and certified 1,024-opcode wait batches remain enabled.
+These results establish a scoped integration and synthetic cost improvement;
+ordinary formatter frequency and whole-game FPS remain unmeasured.
+
 # Inactive HDMA native-wait admission - 2026-10-28
 
 ## Partial effect-slot timer admission - 2026-10-28

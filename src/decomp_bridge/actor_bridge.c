@@ -20718,6 +20718,19 @@ RecompReturn Lufia2DecompBridge_80C1C3(CpuState *cpu) {
 #include "message_copy_clock.inc"
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MESSAGE_FORMAT)
+#include "message_format_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_85C5B5(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MESSAGE_FORMAT)
+    return ActorBridgeTimedMessageFormat(cpu);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x85c5b5u);
+#endif
+}
+
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIXED_MESSAGE_WAITS)
 #include "fixed_message_wait_clock.inc"
 #endif

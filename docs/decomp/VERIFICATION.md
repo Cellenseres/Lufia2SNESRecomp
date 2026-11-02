@@ -1,3 +1,37 @@
+# Resource formatter checkpoint — 2026-11-02
+
+New original `$85:C5B5..C60D` semantic C is verified and consumer-bound.
+The inherited eight-byte save frame is part of its contract, not a normal JSL
+callee frame. The consumer accounts every original fetch/data/CPU/master cycle
+and returns through the existing rewritten-return unwind after popping the
+actual RTL frame. A normal return resolver would restore the wrong stack.
+No opcode hooks or certified wait-batch admission are changed.
+
+Semantic MSVC/Clang each pass 1,027 formatter cases and three no-access guards;
+1,940 affected expander states cover 970 resource IDs and eight parser branches.
+Clocked MSVC/Clang each pass 4,096 cases and 47 refusals. Coverage includes saved
+status widths, decimal/nonzero DP, control arguments containing zero, all source
+endpoints, counter wrap, original infinite-padding/source boundaries, ordered
+fetch/data timestamps, open bus and nonlocal return. The affected existing
+copier passes 16,384 timing cases and 46 guards; paired context passes 4,096.
+Nine CMake contract variants and frame-off/older-API compiler gates pass.
+
+Fourteen actual generated/linked pairs match complete CPU/WRAM/hardware and
+clocks/refresh. Admitted text cases reduce interpreted opcodes from 303–918 to
+two; unsafe inputs and foreign hooks retain the original fallback. Matched
+600-menu/600-field/1,200-boot replays preserve CPU/WRAM/hardware/PCM/native idle.
+Their candidate explicitly links the committed menu implementation; the separate
+uncommitted width-entry experiment is excluded. Reserved Windows Release builds
+and current generated caller inspection pass. No full regression was rerun.
+
+Three 1,000-call samples, with detailed profiling disabled, match complete final
+state and have median 108.713 ms interpreted versus 42.373 ms native. The initial
+private benchmark omitted the frame audio-clock prologue and was rejected for
+APU mismatch; reproducing the actual RtlRunFrame prologue fixes the fixture.
+No production audio behavior was changed. This is a synthetic routine benchmark,
+not proof of an ordinary caller hit rate or general FPS improvement.
+Private evidence: `runtime-frontier/text-alternatives/FORMAT_ACCEPTANCE.json`.
+
 # Fixed-message parent consumer checkpoint — 2026-11-02
 
 Verified original entries `$81:AD96` and `$81:AEEA` now have consumer bindings.
