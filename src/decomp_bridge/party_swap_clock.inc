@@ -77,14 +77,22 @@ static void PreparePartySwapClock(PartySwapClock *clock, CpuState *cpu) {
     clock->span.count = PARTY_SWAP_OPCODE_COUNT;
 }
 
+static uint8_t ReadTimedReturnByte(CpuState *cpu, uint32_t address,
+                                  bool *progress) {
+    bool changed = false;
+    const uint8_t value = Lufia2DecompFrameReturnReadByte(cpu, address, &changed);
+    *progress |= changed;
+    return value;
+}
+
 static RecompReturn ReturnTimedMenuCall(CpuState *cpu, const ActorBridgeFrame *frame, uint32_t source) {
     const uint16_t stack = cpu->S;
     bool progress = false;
-    (void)Lufia2DecompFrameReturnReadByte(cpu, source, &progress);
+    (void)ReadTimedReturnByte(cpu, source, &progress);
     cpu->S = (uint16_t)(cpu->S + 1u);
-    const uint16_t low = Lufia2DecompFrameReturnReadByte(cpu, cpu->S, &progress);
+    const uint16_t low = ReadTimedReturnByte(cpu, cpu->S, &progress);
     cpu->S = (uint16_t)(cpu->S + 1u);
-    const uint16_t high = Lufia2DecompFrameReturnReadByte(cpu, cpu->S, &progress);
+    const uint16_t high = ReadTimedReturnByte(cpu, cpu->S, &progress);
     Lufia2DecompFrameReturnAccountOpcode(cpu, 6u,
         cpu_region_speed(source) + 2u * 8u + 3u * 6u, progress);
     const uint32_t target = ((uint32_t)cpu->PB << 16) |
@@ -96,10 +104,10 @@ static RecompReturn ReturnTimedLongCall(CpuState *cpu,
     const ActorBridgeFrame *frame, uint32_t source) {
     const uint16_t stack = cpu->S;
     bool progress = false;
-    (void)Lufia2DecompFrameReturnReadByte(cpu, source, &progress);
-    const uint16_t low = Lufia2DecompFrameReturnReadByte(cpu, ++cpu->S, &progress);
-    const uint16_t high = Lufia2DecompFrameReturnReadByte(cpu, ++cpu->S, &progress);
-    const uint8_t bank = Lufia2DecompFrameReturnReadByte(cpu, ++cpu->S, &progress);
+    (void)ReadTimedReturnByte(cpu, source, &progress);
+    const uint16_t low = ReadTimedReturnByte(cpu, ++cpu->S, &progress);
+    const uint16_t high = ReadTimedReturnByte(cpu, ++cpu->S, &progress);
+    const uint8_t bank = ReadTimedReturnByte(cpu, ++cpu->S, &progress);
     Lufia2DecompFrameReturnAccountOpcode(cpu, 6u,
         cpu_region_speed(source) + 3u * 8u + 2u * 6u, progress);
     const uint32_t target = (uint32_t)bank << 16 | (uint16_t)((high << 8 | low) + 1u);
