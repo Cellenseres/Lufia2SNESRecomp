@@ -1370,3 +1370,28 @@ with the uninstrumented production interpreter measured CPU/APU medians of
 404.462 and 400.440 ms per 900 frames. These scoped samples are not an FPS
 or whole-game performance result. Detailed provenance is private at
 `.agent/decomp/runtime-frontier/battle-frontier/ACCEPTANCE.json`.
+
+## Effect-slot hook ownership - 2026-11-03
+
+The existing four effect-slot phases now certify every executed header and
+advance span against the indexed pre-opcode hook registry. Only their four
+exact native callback keys are owned. Foreign callbacks and observers retain
+original execution; independently safe header/cursor prefixes remain usable.
+The old full path could bypass an interior callback. A matched 900-frame battle
+replay now preserves all 53,956 foreign calls; the old consumer retained 8,593.
+CPU, WRAM, hardware, clocks, PCM and native APU idle state match literal stepping.
+
+Admission derives the header/advance cost from actual ROM speed, timer state
+and counter branch. Refresh reserve is computed once, before indexed ownership
+lookup. The duplicate advance retry and refresh preflight were removed. This
+changes consumer admission only: no standalone semantics, API, binding or new
+algorithm. Strict MSVC and Clang each pass 11,280 ROM cases, 1,128 decimal cases,
+96 hook cases and 12,439,680 independently derived timing windows, plus refusal
+guards. The isolated Windows Release and prefix-disabled compilation pass.
+
+In the same battle fixture, raw interpreted opcodes fall from 233,447 to
+229,077. Three alternating uninstrumented CPU/APU pairs measured
+438.078/403.961, 395.924/404.049 and 410.719/399.722 ms per 900 frames.
+These mixed, noisy costs establish no reliable general speedup or FPS claim.
+No full regression or public CLI export was rerun for this local consumer fix.
+Private receipt: `.agent/decomp/runtime-frontier/effect-slot-admission/ACCEPTANCE.json`.
