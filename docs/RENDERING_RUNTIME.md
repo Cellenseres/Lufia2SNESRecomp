@@ -1,3 +1,29 @@
+The shared frame comparison passes180menu/180field/600boot frames with
+identical CPU/fullWRAM/hardware/PCM/nativeAPUidle work. Boot host costs varied
+across three matched600-frame runs:221.789->230.819ms,280.848->257.354ms and
+221.324->216.724ms CPU/APU time. Two repetitions resolve an initial timing
+uncertainty; they are not additional unique coverage or a whole-game speed claim.
+
+# Post-return leaf integration — 2026-11-03
+
+The original `$82:F46C`, `$82:F6BC` and `$85:EB5F` bodies now have verified
+consumer bindings. Immutable timing phases preserve fetched/data bus order,
+page-cross penalties, current interpreter store clocks and real RTS/RTL frames.
+Native admission remains limited to synchronized quiet WRAM/VBlank spans;
+unsafe banks, DP, hooks, devices and deadlines keep original execution.
+Scratch comparison admits only stable DP0 WRAM, where its actual semantic body
+naturally takes the original first-match path. Other paths remain in the ROM.
+
+Forty-three matched real production pairs preserve CPU/full WRAM/hardware and
+clocks. Raw instructions13/11/8 become2. Three samples of5,000 calls per entry,
+with detailed profiling disabled, improve medians63.335->45.762ms,
+63.727->51.283ms and46.989->39.093ms. No ordinary-call-frequency or FPS claim.
+The scoped expected-return context adds these three targets, including RTL,
+without a new opcode hook, whole-table search, context copy or APU/wait bypass.
+The existing two-byte quiet-span admission remains equivalent and its affected
+ROM/clock cases are rerun together. The extended maximum is59 guest cycles;
+59*8+40 refresh master clocks fits the unchanged512-clock reservation.
+
 # Fixed cursor preset integration — 2026-11-03
 
 The missing `$82:A00F` preset is reconstructed in the standalone decomp and

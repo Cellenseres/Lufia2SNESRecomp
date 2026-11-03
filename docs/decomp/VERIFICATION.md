@@ -1,3 +1,45 @@
+The shared frame comparison passes180menu/180field/600boot frames with
+identical CPU/fullWRAM/hardware/PCM/nativeAPUidle work. Boot host costs varied
+across three matched600-frame runs:221.789->230.819ms,280.848->257.354ms and
+221.324->216.724ms CPU/APU time. Two repetitions resolve an initial timing
+uncertainty; they are not additional unique coverage or a whole-game speed claim.
+
+# Original post-return leaf batch — 2026-11-03
+
+Three previously missing original bodies are reconstructed:
+- `$82:F46C..F480`: save the cursor slot, column and row before subtracting the
+  five-slot cursor base; preserve X wrapping and live data-bank addressing.
+- `$82:F6BC..F6D3`: clear seven base-stat words at record offsets `$37..43`,
+  reusing the existing exact record-clear operation with an M0X0 contract.
+- `$85:EB5F..EB90`: store and compare the direct-page scratch byte, followed by
+  the original repeated immediate comparisons. X changes, but the comparisons
+  remain unindexed. The apparent unfinished logic is deliberately preserved.
+
+Strict MSVC/Clang C11 each pass 12,288 original-ROM differential cases and nine
+no-access guards. Every scratch-byte return path is covered, including delayed
+matches, both sentinel outcomes and full misses through read-only/WRAM-port
+states. CPU/full WRAM, ordered data and port-address state match the interpreter.
+
+Consumer MSVC/Clang each pass 12,288 timed cases and 155 refusals, including
+paired/unpaired RTS and RTL, unknown/mismatched returns and cleared return
+frames. Backup timing retains separate page-cross costs. The interpreter's
+indexed-word-store clocks are retained; the 59-cycle bound fits the existing
+512-master-clock quiet-span reservation. No original waits or MMIO are removed.
+
+Forty-three actual generated/linked caller pairs preserve complete CPU/WRAM,
+hardware and clocks. Accepted paths reduce raw interpreted opcodes13/11/8 to2.
+Three 5,000-call samples per entry, with detail profiling off, improve medians
+63.335->45.762ms,63.727->51.283ms and46.989->39.093ms respectively. Ordinary
+original caller frequency remains unproven; these are scoped caller costs.
+
+The shared checkpoint additionally passes 8,192 existing timed-leaf cases and
+110 refusals per compiler; 4,096 paired-context cases per compiler; 29 new and
+14 existing CMake availability contracts; five producer-composition gates;
+older-API/frame-off compiler gates; and the reserved Windows Release build.
+The actual producer and linked feature definitions are inspected. No opcode
+hooks, wait budgets or APU seams change. Full decomp-verify and CLI are deferred;
+unchanged earlier evidence is not reported as a new full regression.
+
 # Fixed cursor-pair preset — 2026-11-03
 
 `Lufia2MenuCreateFixedCursorPair` reconstructs the previously missing twenty-byte
