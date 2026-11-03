@@ -74,3 +74,9 @@ function(lufia2_tile_spell_available output)
         "81:F3E4|Lufia2SpellRecordByteA|item_records|item|item|M1X0")
     set(${output} ${_available} PARENT_SCOPE)
 endfunction()
+
+function(lufia2_raster_edge_available output)
+    lufia2_menu_contracts_available(_available
+        "83:FEC4|Lufia2RasterizeEdge|field_raster_edge|field|raster_edge|M1X0")
+    set(${output} ${_available} PARENT_SCOPE)
+endfunction()
