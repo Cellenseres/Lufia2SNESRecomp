@@ -1321,3 +1321,26 @@ window opcodes until producer feature propagation was corrected. The accepted
 checkpoint checks actual generated/linked callers, unknown and mutating hooks,
 21 availability cases and missing producer anchors. Guard-only CMake changes
 reuse a completed build only after identical generated source is established.
+
+### Sound-poll admission audit — 2026-11-03
+
+Sound poll runs now certify all registered hooks across the read/branch span.
+Foreign callbacks and observers retain individual opcode dispatch. Certification
+uses the existing page index and runs only after hardware admission succeeds.
+The wrapper no longer evaluates the same initial hardware predicate twice.
+
+Visible-line sound admission retains its HDMA fence whenever any channel is
+active or initialization is pending. With neither, the normal scanline fence
+applies; beam clocks, refresh, IRQ deadlines and APU handshakes still execute.
+Counter-wait certification and its opcode budget remain unchanged.
+
+Both compilers passed 30,720 original-interpreter timing/state cases, 49,152
+admission combinations and 120 hook cases. Deliberately bypassing hook or HDMA
+checks failed. A linked 600-frame replay preserved 221,621 foreign-hook calls,
+CPU, WRAM, hardware state, PCM and native APU idle work. Release and optional
+feature modes compiled. No standalone routine or new binding was added.
+
+Matched uninstrumented timing samples varied; they do not establish a rendered
+speedup or an FPS result. Headless boot measurements cover a different path.
+Private source hashes, cost samples and proof scope are recorded in
+`.agent/decomp/runtime-frontier/sound-admission-audit/ACCEPTANCE.json`.

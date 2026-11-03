@@ -2826,6 +2826,20 @@ void Lufia2DecompInstallNmiHooks(void) {
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_UPLOAD_STEPS) || \
+    defined(LUFIA2_HAVE_NATIVE_SOUND_POLL_RUNS) || \
+    defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS)
+static bool ActorBridgeHdmaMayTransfer(void) {
+    const Dma *dma = g_snes ? g_snes->dma : NULL;
+    if (!dma || dma->hdmaPendingInit)
+        return true;
+    for (unsigned channel = 0u; channel < 8u; ++channel)
+        if (dma->channel[channel].hdmaActive)
+            return true;
+    return false;
+}
+#endif
+
 static bool ActorBridgeTimedStepSupportedWindow(const CpuState *cpu, uint32_t entry,
                                                 unsigned stack_limit,
                                                 bool wide_accumulator,
@@ -3345,9 +3359,10 @@ static bool ActorBridgeSoundWindowSupported(const CpuState *cpu, uint32_t entry,
     if (refresh_phase >= SOUND_TRANSFER_SCANLINE_CLOCKS ||
         (refresh_clock && refresh_clock != cpu->master_cycles))
         return false;
-    const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
-                               ? SOUND_TRANSFER_HDMA_POSITION
-                               : SOUND_TRANSFER_SCANLINE_CLOCKS;
+    const bool beam_hdma = !g_snes->hdmaBeamOff && g_snes->vPos < 225u &&
+                           ActorBridgeHdmaMayTransfer();
+    const unsigned fence = beam_hdma ? SOUND_TRANSFER_HDMA_POSITION
+                                    : SOUND_TRANSFER_SCANLINE_CLOCKS;
     if (budget >= fence)
         return false;
     return ActorBridgeTimedStepSupportedWindow(cpu, entry, stack_limit, true,
@@ -3453,7 +3468,8 @@ static bool ActorBridgePollRunSupported(const CpuState *cpu, uint32_t entry) {
     if (!g_snes || !g_snes->apu ||
         !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, true, 1240u, 128u))
         return false;
-    if (!g_snes->hdmaBeamOff && g_snes->vPos < 225u && g_snes->hPos >= 896u)
+    if (!g_snes->hdmaBeamOff && g_snes->vPos < 225u && g_snes->hPos >= 896u &&
+        ActorBridgeHdmaMayTransfer())
         return false;
     return true;
 }
@@ -3490,10 +3506,12 @@ static void ActorBridgePollRunCheckpoint(void *context, Lufia2CpuState *state,
 typedef Lufia2ExecutionResult (*ActorPollIteration)(const Lufia2Memory *,
                                                     Lufia2CpuState *, uint32_t);
 
-static void ActorBridgePollRun(CpuState *cpu, uint32_t entry,
-                               ActorPollIteration iteration, unsigned fetched, bool opcode_fetch) {
-    if (!ActorBridgePollRunSupported(cpu, entry))
-        return;
+static bool ActorBridgePollRun(CpuState *cpu, uint32_t entry,
+                               ActorPollIteration iteration, unsigned fetched, bool opcode_fetch,
+                               bool (*owned)(uint32_t, InterpPreOpcodeHook)) {
+    if (!ActorBridgePollRunSupported(cpu, entry) ||
+        (owned && !Lufia2DecompFrameRangeAllows(entry, entry + fetched + 2u, owned)))
+        return false;
     ActorPollRun run = {0};
     run.entry = entry;
     run.opcode_fetch = opcode_fetch;
@@ -3521,11 +3539,32 @@ static void ActorBridgePollRun(CpuState *cpu, uint32_t entry,
     } while (next == entry && run.bus.count < 16u &&
              ActorBridgePollRunSupported(cpu, entry));
     if (!run.bus.count)
-        return;
+        return false;
     Lufia2DecompFrameReturnComplete(run.bus.count, run.bus.progress_mask);
     interp_bridge_pre_opcode_redirect(next);
+    return true;
 }
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_POLL_RUNS)
+static void ActorBridgeSoundPollRun(CpuState *cpu, uint32_t entry);
+
+static bool ActorBridgeSoundPollHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_HANDSHAKE_STEPS)
+    if (hook == ActorBridgeSoundBranch)
+        return Lufia2SoundPollBranchTarget(pc, 0u, 0u) != pc;
+#endif
+    if (hook != ActorBridgeSoundPollRun)
+        return false;
+    switch (pc) {
+    case 0x80994bu: case 0x809997u: case 0x8098f7u: case 0x80980du:
+    case 0x809868u: case 0x809a0fu: case 0x809a17u: case 0x809a26u:
+    case 0x809a2cu: case 0x809399u: case 0x8093a1u: case 0x809c18u:
+    case 0x809c30u: case 0x809c40u: case 0x809c69u:
+        return true;
+    default:
+        return false;
+    }
+}
+
 static void ActorBridgeSoundPollStep(CpuState *cpu, uint32_t entry, unsigned fetched) {
     unsigned index = 0u;
     while (index < sizeof sound_poll_entries / sizeof sound_poll_entries[0] &&
@@ -3564,10 +3603,10 @@ static void ActorBridgeSoundPollRun(CpuState *cpu, uint32_t entry) {
     const bool absolute = entry == 0x8098f7u || entry == 0x809c18u ||
                           entry == 0x809c30u || entry == 0x809c40u ||
                           entry == 0x809c69u;
-    if (ActorBridgePollRunSupported(cpu, entry))
-        ActorBridgePollRun(cpu, entry, Lufia2SoundPollIteration, absolute ? 3u : 4u, true);
-    else
-        ActorBridgeSoundPollStep(cpu, entry, absolute ? 3u : 4u);
+    const unsigned fetched = absolute ? 3u : 4u;
+    if (!ActorBridgePollRun(cpu, entry, Lufia2SoundPollIteration, fetched, true,
+                            ActorBridgeSoundPollHookOwned))
+        ActorBridgeSoundPollStep(cpu, entry, fetched);
 }
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_TRANSFER_OPCODES)
@@ -3890,7 +3929,7 @@ static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
     if (cpu->m_flag && !cpu->D && g_snes->hdmaBeamOff &&
         Lufia2DecompFramePollIsCounterPair(entry) && Lufia2DecompFramePollBatchSupported(entry) &&
         ActorBridgePollRunSupported(cpu, entry)) {
-        ActorBridgePollRun(cpu, entry, ActorBridgeFramePollIteration, 2u, true);
+        ActorBridgePollRun(cpu, entry, ActorBridgeFramePollIteration, 2u, true, NULL);
         return;
     }
     const bool read_counter = !branch;
