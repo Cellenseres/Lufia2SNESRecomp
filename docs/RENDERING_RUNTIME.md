@@ -1344,3 +1344,29 @@ Matched uninstrumented timing samples varied; they do not establish a rendered
 speedup or an FPS result. Headless boot measurements cover a different path.
 Private source hashes, cost samples and proof scope are recorded in
 `.agent/decomp/runtime-frontier/sound-admission-audit/ACCEPTANCE.json`.
+
+### Measured swirl admission checkpoint — 2026-11-03
+
+A local original-field-command battle replay identified late-scanline refusals
+in the existing Mode7 transition. The register-only advance now reserves its
+20 opcode bytes, 48 internal clocks and 40 refresh clocks, with the original
+half-table and final-row branch costs. MMIO preparation and storage retain
+their previous budgets. No routine, adapter API or binding was added.
+
+Partial spans reject interior hooks. The preferred complete row certifies its
+existing three callback positions, so those hooks still permit full batching;
+foreign callbacks and observers retain their original route. Both compilers
+passed 24,576 ROM cases and rejoins, 32 complete 224-row table compositions,
+120 context refusals, 108 temporal checks and 15 hook cases. The previous hook
+policy and fixed-budget negative controls failed the new checks. Windows
+Release and the full-row-only feature configuration compiled.
+
+Matched 900-frame production replays preserved CPU, WRAM, hardware, PCM and
+native APU idle work. A foreign-hook comparison retained all 7,168 callbacks.
+Passive admission counts kept the complete row at 4,461 native calls; the
+partial advance increased from 1,283 to 1,608 and individual interpreter
+opcodes fell from 237,023 to 233,447. Three alternating rendered comparisons
+with the uninstrumented production interpreter measured CPU/APU medians of
+404.462 and 400.440 ms per 900 frames. These scoped samples are not an FPS
+or whole-game performance result. Detailed provenance is private at
+`.agent/decomp/runtime-frontier/battle-frontier/ACCEPTANCE.json`.

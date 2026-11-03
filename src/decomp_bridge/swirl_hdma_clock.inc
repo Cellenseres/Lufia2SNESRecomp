@@ -1,3 +1,21 @@
+static void ActorBridgeSwirlHdmaRow(CpuState *cpu, uint32_t entry);
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_SWIRL_PARTS)
+static void ActorBridgeSwirlPartClock(CpuState *cpu, uint32_t entry);
+static void ActorBridgeSwirlHdmaDispatch(CpuState *cpu, uint32_t entry);
+#endif
+
+static bool SwirlHdmaHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    if (hook == ActorBridgeSwirlHdmaRow)
+        return pc == 0x848cddu;
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_SWIRL_PARTS)
+    if (hook == ActorBridgeSwirlHdmaDispatch)
+        return pc == 0x848cddu;
+    if (hook == ActorBridgeSwirlPartClock)
+        return pc == 0x848cddu || pc == 0x848ce7u || pc == 0x848cf3u;
+#endif
+    return false;
+}
+
 enum { SWIRL_HDMA_ROW_BUDGET = 514u };
 
 static bool SwirlHdmaClockSupported(const CpuState *cpu, uint32_t entry) {
@@ -19,7 +37,8 @@ static bool SwirlHdmaClockSupported(const CpuState *cpu, uint32_t entry) {
         return false;
     uint64_t phase, clock;
     snes_refresh_state_get(&phase, &clock);
-    return phase < 1364u && (!clock || clock == cpu->master_cycles);
+    return phase < 1364u && (!clock || clock == cpu->master_cycles) &&
+        Lufia2DecompFrameRangeAllows(entry, 0x848d08u, SwirlHdmaHookOwned);
 }
 
 static void ActorBridgeSwirlHdmaRow(CpuState *cpu, uint32_t entry) {

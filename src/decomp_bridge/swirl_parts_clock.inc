@@ -1,7 +1,17 @@
 #include "lufia2/battle_swirl_steps.h"
 
-static unsigned SwirlPartBudget(uint32_t entry) {
-    return entry == 0x848cddu ? 144u : entry == 0x848ce7u ? 208u : 272u;
+static unsigned SwirlPartBudget(const CpuState *cpu, uint32_t entry) {
+    if (entry == 0x848cddu)
+        return 144u;
+    if (entry == 0x848ce7u)
+        return 208u;
+    const unsigned fetch = cpu_region_speed(entry);
+    unsigned budget = 20u * fetch + 88u;
+    if (cpu->Y == 0xdeu)
+        budget += fetch;
+    if (cpu->Y == 0x1bfu)
+        budget -= 6u;
+    return budget;
 }
 
 static bool SwirlPartClockSupported(const CpuState *cpu, uint32_t entry) {
@@ -16,13 +26,17 @@ static bool SwirlPartClockSupported(const CpuState *cpu, uint32_t entry) {
          cpu->host_return_valid != 3u) ||
         !Lufia2DecompFrameReturnCpuReady() || !g_snes || g_snes->vPos >= 262u ||
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
-        cpu->master_cycles > UINT64_MAX - SwirlPartBudget(entry))
+        cpu->master_cycles > UINT64_MAX - SwirlPartBudget(cpu, entry))
         return false;
-    const unsigned budget = SwirlPartBudget(entry);
+    const unsigned budget = SwirlPartBudget(cpu, entry);
     const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
         ? 1024u : 1364u;
     if (!ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu,
             !prepare, fence - budget - 1u, budget))
+        return false;
+    const uint32_t end = prepare ? 0x848ce7u
+        : entry == 0x848ce7u ? 0x848cf3u : 0x848d08u;
+    if (!Lufia2DecompFrameRangeQuiet(entry + 1u, end))
         return false;
     uint64_t phase, clock;
     snes_refresh_state_get(&phase, &clock);
