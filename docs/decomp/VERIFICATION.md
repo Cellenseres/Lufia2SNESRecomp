@@ -1,3 +1,12 @@
+## Effect-slot counter continuation checkpoint
+
+The `81:8AB4/8B25` counter phase passes 6,428 cases per MSVC/Clang, two
+altered-ROM controls, API-off compilation and actual production-object replays.
+Battle/Strong state, device/APU clocks, PCM and picture match; existing slot
+batches and foreign/global observers are preserved. No canonical entries added.
+Private receipt: `.agent/decomp/runtime-frontier/effect-completion-current/ACCEPTANCE.json`.
+Unaffected full regression and other-platform builds were deferred.
+
 # Shared name-entry checkpoint — 2026-11-03
 
 The complete duplicate name-entry loop is removed from the save-menu module.

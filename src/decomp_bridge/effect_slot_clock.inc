@@ -7,7 +7,11 @@ static void ActorBridgeEffectSlotStep(CpuState *cpu, uint32_t entry);
 static bool EffectSlotHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
     return hook == ActorBridgeEffectSlotStep &&
         (pc == 0x818a7eu || pc == 0x818ac1u ||
-         pc == 0x818aaau || pc == 0x818b1bu);
+         pc == 0x818aaau || pc == 0x818b1bu
+#if defined(LUFIA2_BATTLE_EFFECT_SLOT_COUNTER_API)
+         || pc == 0x818ab4u || pc == 0x818b25u
+#endif
+        );
 }
 
 static unsigned EffectSlotHeaderBudget(const CpuState *cpu, unsigned fetch) {
@@ -28,12 +32,8 @@ static unsigned EffectSlotClockBudget(const CpuState *cpu, uint32_t entry,
     return budget;
 }
 
-static bool EffectSlotClockContextSupported(const CpuState *cpu, uint32_t entry,
-                                     bool actors, bool advance) {
-    const uint32_t expected = actors
-        ? (advance ? 0x818b1bu : 0x818ac1u)
-        : (advance ? 0x818aaau : 0x818a7eu);
-    if (entry != expected || cpu->m_flag != 1u || cpu->x_flag ||
+static bool EffectSlotClockStateSupported(const CpuState *cpu) {
+    if (cpu->m_flag != 1u || cpu->x_flag ||
         cpu->DB != 0x7eu || cpu->D || cpu->_flag_D || !cpu->ram ||
         (cpu->host_return_valid != 0u && cpu->host_return_valid != 2u &&
          cpu->host_return_valid != 3u) ||
@@ -41,13 +41,25 @@ static bool EffectSlotClockContextSupported(const CpuState *cpu, uint32_t entry,
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
         !g_snes || g_snes->ram != cpu->ram)
         return false;
+    return true;
+}
+
+static bool EffectSlotGridSupported(unsigned y, bool actors) {
     const unsigned base = actors ? 0x54b7u : 0x4f8fu;
     const unsigned stride = actors ? 0x2du : 0x2cu;
     const unsigned slots = actors ? 64u : 30u;
-    if (cpu->Y < base || (cpu->Y - base) % stride ||
-        (cpu->Y - base) / stride >= slots)
+    if (y < base || (y - base) % stride || (y - base) / stride >= slots)
         return false;
     return true;
+}
+
+static bool EffectSlotClockContextSupported(const CpuState *cpu, uint32_t entry,
+                                     bool actors, bool advance) {
+    const uint32_t expected = actors
+        ? (advance ? 0x818b1bu : 0x818ac1u)
+        : (advance ? 0x818aaau : 0x818a7eu);
+    return entry == expected && EffectSlotClockStateSupported(cpu) &&
+        EffectSlotGridSupported(cpu->Y, actors);
 }
 
 static bool EffectSlotClockWindowSupported(const CpuState *cpu,
@@ -118,7 +130,54 @@ static unsigned EffectSlotAdvanceTiming(
     return count;
 }
 
+#if defined(LUFIA2_BATTLE_EFFECT_SLOT_COUNTER_API)
+static void EffectSlotCounterStep(CpuState *cpu, uint32_t entry) {
+    const bool actors = entry == 0x818b25u;
+    const unsigned stride = actors ? 0x2du : 0x2cu;
+    if (!EffectSlotClockStateSupported(cpu) || cpu->Y < stride ||
+        !EffectSlotGridSupported(cpu->Y - stride, actors))
+        return;
+    const bool repeats = cpu->ram[EFFECT_SLOT_COUNTER_ADDRESS] != 1u;
+    const unsigned budget = 5u * cpu_region_speed(entry) + (repeats ? 28u : 22u);
+    if (!EffectSlotClockWindowSupported(cpu, entry, budget) ||
+        !Lufia2DecompFrameRangeAllows(entry, entry + 5u, EffectSlotHookOwned) ||
+        Lufia2DecompFrameSpanBudget(entry, entry + 5u, ActorBridgeEffectSlotStep) < 2u)
+        return;
+    static const FixedSpanOpcode timing[2][2][2] = {
+        {{{0x8ab4u, 3u, 6u, 2u}, {0x8ab7u, 2u, 2u, 0u}},
+         {{0x8ab4u, 3u, 6u, 2u}, {0x8ab7u, 2u, 3u, 0u}}},
+        {{{0x8b25u, 3u, 6u, 2u}, {0x8b28u, 2u, 2u, 0u}},
+         {{0x8b25u, 3u, 6u, 2u}, {0x8b28u, 2u, 3u, 0u}}}
+    };
+    FixedSpanClock clock = {0};
+    clock.cpu = cpu;
+    clock.bank = 0x810000u;
+    clock.timing = timing[actors][repeats];
+    clock.count = 2u;
+    const Lufia2Memory memory = {FixedSpanRead, FixedSpanWrite, &clock, NULL, NULL};
+    Lufia2CpuState state = {0};
+    state.program_bank = 0x81u;
+    state.data_bank = cpu->DB;
+    state.accumulator_is_8_bit = 1u;
+    const Lufia2ExecutionResult result =
+        Lufia2BattleEffectSlotCounterStep(&memory, &state, entry);
+    BeginFixedSpanOpcode(&clock);
+    assert(clock.index == clock.count && !clock.remaining);
+    cpu->_flag_N = state.negative;
+    cpu->_flag_Z = state.zero;
+    cpu_mirrors_to_p(cpu);
+    Lufia2DecompFrameReturnComplete(clock.count, clock.progress_mask);
+    interp_bridge_pre_opcode_redirect(result.pc);
+}
+#endif
+
 static void ActorBridgeEffectSlotStep(CpuState *cpu, uint32_t entry) {
+#if defined(LUFIA2_BATTLE_EFFECT_SLOT_COUNTER_API)
+    if (entry == 0x818ab4u || entry == 0x818b25u) {
+        EffectSlotCounterStep(cpu, entry);
+        return;
+    }
+#endif
     const bool actors = entry == 0x818ac1u || entry == 0x818b1bu;
     const bool advance = entry == 0x818aaau || entry == 0x818b1bu;
     bool header_only = false;

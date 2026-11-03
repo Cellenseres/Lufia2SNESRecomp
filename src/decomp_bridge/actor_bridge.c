@@ -4049,6 +4049,10 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     interp_bridge_set_pre_opcode_hook(0x818ac1u, ActorBridgeEffectSlotStep);
     interp_bridge_set_pre_opcode_hook(0x818aaau, ActorBridgeEffectSlotStep);
     interp_bridge_set_pre_opcode_hook(0x818b1bu, ActorBridgeEffectSlotStep);
+#if defined(LUFIA2_BATTLE_EFFECT_SLOT_COUNTER_API)
+    interp_bridge_set_pre_opcode_hook(0x818ab4u, ActorBridgeEffectSlotStep);
+    interp_bridge_set_pre_opcode_hook(0x818b25u, ActorBridgeEffectSlotStep);
+#endif
 #if defined(LUFIA2_BATTLE_EFFECT_SLOT_BEGIN_API)
     interp_bridge_set_pre_opcode_hook(0x818a8cu, ActorBridgeEffectBeginSlot);
     interp_bridge_set_pre_opcode_hook(0x818acfu, ActorBridgeEffectBeginSlot);

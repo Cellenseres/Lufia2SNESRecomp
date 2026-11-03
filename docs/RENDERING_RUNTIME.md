@@ -1,3 +1,19 @@
+## Effect-slot counter admission
+
+The existing effect-slot callback now also admits the original two-op countdown
+at `81:8AB4/8B25` when the preceding cursor phase crossed a device boundary.
+Read-only timing rows, narrow NZ transfer and the indexed registry avoid another
+dispatcher or whole-state copy. Existing full slot batches remain eligible;
+unknown hooks, observers and insufficient clock windows retain original stepping.
+
+Actual production objects remove 8,492 battle and 6,900 Strong opcodes, preserving
+full guest/device state, APU clocks, PCM and picture. Foreign/global witnesses
+remain identical. Three alternating uninstrumented battle pairs measured
+reference 1325/1328/1278 ms and candidate 1205/1218/1200 ms for 3,491 guest frames
+plus PCM draining. Drawing/setup are excluded. These local samples establish
+neither a general speedup nor hardware FPS. No new canonical function is counted.
+Private proof: `runtime-frontier/effect-completion-current/ACCEPTANCE.json`.
+
 # Effect slot-start integration — 2026-11-03
 
 The effect engine reuses its existing semantic slot-start body at `81:8A8C`
