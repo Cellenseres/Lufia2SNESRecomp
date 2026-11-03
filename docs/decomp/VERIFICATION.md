@@ -1,3 +1,24 @@
+# Ordered semantic word reads — 2026-11-03
+
+The party and battle sources replace six unsequenced two-byte read expressions
+with existing ordered memory helpers. No ABI, metadata, source selection, hook,
+wait batching, timing or APU contract changes. Stack and long-address wrapping
+and high-first mask writes are retained.
+
+Shared checkpoint: MSVC and Clang each pass 11,264 comparisons against original
+ROM instructions at eleven sites, including 5,632 reactive-bus cases. Exact
+production fragments are extracted for these narrow instruction contracts;
+this is not a fresh full-parent battle-script proof. An intentionally reversed
+read-order control fails. Another 2,048 comparisons exercise the complete
+character-initialization parent, including its existing derived-stat child.
+CPU, full WRAM and ordered bus effects are checked within those scopes.
+Stack ADC inputs respect the existing binary-mode contract. Agent Windows
+Release passes with the actual changed semantic sources linked. Unaffected
+full regression and platform/performance runs are deferred. No speedup is
+claimed and no tests are included in public commits.
+
+Private receipt: `ordered-word-reads/ACCEPTANCE.json`.
+
 # Effect slot-start consumer checkpoint — 2026-11-03
 
 The `81:895E` effect caller and its slot-start continuation share one semantic
