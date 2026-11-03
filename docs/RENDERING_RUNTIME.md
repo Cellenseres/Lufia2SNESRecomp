@@ -522,6 +522,21 @@ remains mandatory. Semantic verification and runtime performance are separate
 properties: a verified C function can still be expensive when its bridge is
 entered once per guest opcode, or can remain unused in its real caller context.
 
+### Observed name-entry admission boundary
+
+A 2,820-frame new-game replay reaches one native save-menu call, but no native
+`82:EBF2` binding attempt or shared name-entry body call. The interpreter still
+reaches that address in DB83. Merely allowing DB83 in a private guard experiment
+does not change admission, state, PCM or the raw execution profile. Keep that
+experiment out of production; reaching an address through interpreter flow is
+not proof that the generated native entry is offered there.
+
+Sharing the existing name-entry body removes 3,718 COFF code-section bytes from
+the two affected production modules. It neither admits another context nor
+establishes faster execution. Any future continuation must independently prove
+the actual caller, return ownership, clock/bus behavior and preserved wait/APU
+batching. Do not add a hook solely to manufacture a cold native hit.
+
 ### Measured regression: Build70 to Build71
 
 The controlled comparison used the same inputs, sound, custom DSP firmware,

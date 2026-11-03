@@ -1,3 +1,38 @@
+# Shared name-entry checkpoint — 2026-11-03
+
+The complete duplicate name-entry loop is removed from the save-menu module.
+Its two callers reuse the canonical semantic body through a private declaration.
+The public entry keeps its guard; inlined callers retain their existing live
+child context. Guest call sites, stack frames and return/unwind PCs are retained.
+No metadata, public ABI, binding, hook or clock implementation changes.
+
+Shared batch: MSVC and Clang each pass 4,112 canonical-entry cases and 4,143
+save-caller cases against the original ROM, including 63 forced child unwinds.
+CPU, full WRAM/SRAM and ordered data/MMIO accesses are compared. Another 12
+public guards per compiler reject invalid child/decimal/width inputs without
+bus access. A changed child decimal flag detects incorrect re-entry through
+the public guard; that deliberately broken variant fails. An altered-ROM
+operand is also rejected. Source comparison proves the canonical body remains
+verbatim. Agent Windows Release passes with the actual library linked.
+
+Reference and candidate cold-start replays cover 2,820 frames through empty
+save selection, naming and the first conversation. Complete serialized state,
+extended APU clocks, PCM hash/sample count, native APU idle count, raw opcode
+profile and picture agree after normalizing only a live-validated host pointer.
+They execute 44,849 raw opcodes and produce 1,535,255 stereo samples.
+
+Passive counters find one native save-menu call and zero canonical/shared
+name-entry calls in that replay. The interpreter reaches `82:EBF2` in DB83,
+but no native binding attempt occurs there. A private DB83 guard experiment
+does not change this; it is excluded from production. This checkpoint proves
+reuse and compatibility, not newly admitted execution. The two production
+modules contain 3,718 fewer COFF code-section bytes. Three alternating timing
+pairs are noisy and establish no speedup or frame-rate result. Full unrelated
+regression and other platforms are deferred. No tests or fixtures are committed.
+
+Private receipts: `name-entry-sharing/BODY_REUSE.json`, `RUNTIME.json`,
+`MEASURED.json`, `CODE_SIZE.json` and `ACCEPTANCE.json`.
+
 # Ordered semantic word reads — 2026-11-03
 
 The party and battle sources replace six unsequenced two-byte read expressions
