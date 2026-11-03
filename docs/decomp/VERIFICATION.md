@@ -1,3 +1,28 @@
+# Battle status integration — 2026-11-03
+
+One combined consumer checkpoint binds the verified `$81:D081` body and times
+its existing window/status/math dependencies. Standalone C and metadata are
+unchanged. MSVC and Clang each pass 22,528 original-ROM timing/CPU/WRAM/bus
+states, 594 no-access refusal guards and 48 RTS/RTL progress-mask cases.
+
+Thirty-four fresh actual generated/linked caller pairs pass full CPU, WRAM,
+hardware and clocks, including all four staged-command slots and two mutating
+hooks. The staged command reduces interpreted opcodes from 1,176 to 2; status
+redraw from 881 to 2; window drawing from 266 to 2. Refused calls retain their
+original route and hooks. An actual caller test caught missing producer feature
+propagation; subsequent context tests caught lost return-read progress and
+stale caller progress epochs. Both failures are fixed rather than tolerated.
+
+Profiling-off medians across three 5,000-call samples: window501.750->198.663ms,
+status1457.868->512.890ms, staged command1943.976->695.016ms. Samples preserve
+full state/clocks; they do not establish organic frequency or whole-game speed.
+Matching180 menu/180 field/600 boot frames retain CPU/WRAM/hardware, nonempty
+PCM and native idle counts. Windows Release, two optional compiler modes,
+21 availability cases and six producer gates pass. Guard-only producer changes
+regenerate byte-identical source under the actual platform properties, so the
+completed integration build remains applicable. No full regression or new
+public CLI build is claimed. Tests and detailed receipts remain private.
+
 The shared frame comparison passes180menu/180field/600boot frames with
 identical CPU/fullWRAM/hardware/PCM/nativeAPUidle work. Boot host costs varied
 across three matched600-frame runs:221.789->230.819ms,280.848->257.354ms and

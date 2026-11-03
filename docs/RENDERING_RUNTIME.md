@@ -1239,3 +1239,28 @@ AOT calls do not save or copy these contexts. Certified wait/APU batches remain.
 Eight production pairs and shared menu/field/boot replays pass with bit-identical
 serialized hardware and PCM. Matched hot-path timing and organic battle use are
 separate evidence; this checkpoint claims neither a battle hit rate nor 60 FPS.
+
+
+## Progress ownership at timed native returns
+
+The staged-command integration exposed two consumer errors despite matching
+CPU, WRAM and guest clocks. RTS/RTL timing reused a read-progress output for
+each fetched/stack byte; a later quiet read erased an earlier changed-read
+notification. Accumulate progress across the complete original instruction.
+
+A timed child also consumes its progress checkpoints while executing. When
+an interpreted caller resumes, update its saved write/dynamic epochs for the
+certified battle-call class. Otherwise it processes the child's old progress
+again at a later instruction. These two errors changed APU flush grouping and
+the serialized fractional catch-up value in six mixed fallback/native cases.
+Accumulating return progress and transferring checkpoint ownership restores
+bit-identical hardware state; no floating tolerance or APU work suppression is
+used. The instruction clocks, guest bus accesses and relative APU phase remain.
+
+The generated interpreter must receive the same feature definition and call
+classification as the native body, including return-PC capture. A direct unit
+call cannot prove this: the first actual caller retained all266 original
+window opcodes until producer feature propagation was corrected. The accepted
+checkpoint checks actual generated/linked callers, unknown and mutating hooks,
+21 availability cases and missing producer anchors. Guard-only CMake changes
+reuse a completed build only after identical generated source is established.

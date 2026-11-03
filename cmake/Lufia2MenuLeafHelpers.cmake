@@ -86,3 +86,19 @@ function(lufia2_battle_clear_available output)
         "81:E7A6|Lufia2BattleClearRect|battle_frame_rows|battle|battle|M1X0")
     set(${output} ${_available} PARENT_SCOPE)
 endfunction()
+
+function(lufia2_battle_status_available output)
+    lufia2_menu_contracts_available(_available
+        "80:834C|Lufia2Multiply16By8|multiply_16_by_8|system|system|M1X0"
+        "80:8378|Lufia2Divide16|math|system|system|M1X0"
+        "81:E808|Lufia2DecimalDigits3|math|system|system|M1X0"
+        "81:E542|Lufia2BattleFrameRow|battle_frame_rows|battle|battle|M0X0"
+        "81:E570|Lufia2BattleFrameEnds|battle_frame_rows|battle|battle|M0X0"
+        "81:E503|Lufia2BattleWindow|battle_frame_rows|battle|battle|M1X0"
+        "81:E2AF|Lufia2BattleStatusGauge|battle_gauges|battle|battle|M1X0"
+        "81:E2C8|Lufia2BattleStatusDigits|battle_gauges|battle|battle|M1X0"
+        "81:E308|Lufia2BattleFillStatusGauge|battle_gauges|battle|battle|M1X0"
+        "81:E1B5|Lufia2BattleDrawPartyStatusDetail|battle_party_status_detail|battle|battle|M1X0"
+        "81:D081|Lufia2BattleRefreshStagedCommand|battle_party_commands|battle|battle|M1X0")
+    set(${output} ${_available} PARENT_SCOPE)
+endfunction()
