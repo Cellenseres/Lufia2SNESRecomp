@@ -1,3 +1,27 @@
+# Shared original menu rectangle body - 2026-11-03
+
+The screen builders now share ClearMenuTileRectangle with the existing
+82:83B5/83EB contracts. Two older private copies are removed. Their original
+JSR/RTS frames remain at every caller. The private body preserves DB/DP and
+decimal row arithmetic, including high-first word DEC writes. Public entry
+admission remains unchanged. No new ROM algorithm, function or binding is added.
+
+Shared checkpoint: MSVC and Clang each pass8,192 original-ROM cases across
+82:9F77 and82:A2EB JSR/RTS callers plus82:83B5 and82:83EB. CPU/fullWRAM and
+ordered data/stack/MMIO agree; both unchanged screen-body controls fail bus
+ordering. Screen call cases cover D0/D1,DP0/300; public cases retain their
+existing D0/DP0 contract. DB0/7E/7F/80 and row/column variations are covered.
+
+Matched production-options600boot/960menu/480field frames retain CPU/WRAM,
+hardware/PCM/native APU idle. Passive body counters show8native single-layer
+clears per menu arm,zero clears in the other windows. Global fallback counts
+are not measured with profiling off. One matched menu run records CPU/APU
+272.0504->261.6196ms; this noisy single pair does not establish a speedup or
+attribute the difference to8clears. No FPS/performance acceptance is claimed.
+Windows Release passes in build/windows-decomp-agent. Full decomp-verify,
+fresh public CLI export and other-platform checks are deferred. Private proof:
+runtime-frontier/menu-clear-sharing. Tests are not committed.
+
 # World sprite-chain fidelity - 2026-11-03
 
 The existing world sprite family now preserves decimal ADC/SBC and high-first
