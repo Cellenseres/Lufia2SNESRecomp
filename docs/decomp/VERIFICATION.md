@@ -1,3 +1,21 @@
+# Existing decimal-mode paths - 2026-11-03
+
+The seed/refill, record checksum/unpack and equipment-member/price routines
+retain their original decimal-mode behavior. The seed recurrence uses original
+ADC/SBC digit correction and the binary CMP threshold; the binary path remains
+unchanged. This completes existing semantic paths, not six new ROM functions.
+
+One shared MSVC/Clang checkpoint covers9792 original-ROM states per compiler:
+MSVC9760 plus32 new checksum edges, Clang the full union. CPU/fullWRAM/ordered
+data/stack match. A binary-seed mutant fails an independent D1 reference.
+Current production-feature actor code passes384 native ABI calls and384 retained
+direct D1 exclusions; entry metadata-peek reads are checked separately from
+semantic data accesses. The standalone extension does not widen consumer timing
+or width admission. WindowsRelease and matched600boot/960menu frame intervals
+retain CPU/WRAM/hardware/PCM/native APU idle. Full regression and public export
+were deferred, not reported passing. Private receipt:
+.agent/decomp/runtime-frontier/decimal-semantic-paths/ACCEPTANCE.json.
+
 # Filled battle windows — 2026-11-03
 
 The missing original `$81:E38F..E3AD` draws the `$87B7` window with fill tile

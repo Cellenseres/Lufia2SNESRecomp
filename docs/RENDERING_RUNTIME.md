@@ -1495,3 +1495,18 @@ substantially slower and host variance is large. This establishes fewer
 interpreted operations, not stable whole-game speedup or FPS. No full regression
 or public export repeated. Proofs remain private under
 .agent/decomp/runtime-frontier/input-command-widths/ACCEPTANCE.json.
+
+
+## Standalone decimal paths, existing consumer admission - 2026-11-03
+
+Six existing semantic routines complete D1 behavior without new bindings,
+wrappers, hooks, timing models or host guards. The binary seed path remains
+ordinary C. Direct D1 consumer admission stays excluded: source correctness
+alone does not certify its decimal opcode clocks or caller ownership.
+Current production-feature ABI checks confirm384 native D0 calls and384
+unchanged D1 refusals. Return metadata peeks are separately checked.
+Matched600boot/960menu frame pairs with old/new semantic bodies retain
+CPU/WRAM/hardware/PCM/native APU idle. Scoped CPU/APU costs are recorded
+in the private decimal-semantic-paths acceptance receipt; no speedup or FPS
+claim. Standalone proofs cover9792 states each with MSVC/Clang and include
+a failing binary-seed mutant. No full regression or public export repeated.
