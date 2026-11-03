@@ -1,7 +1,18 @@
 #include "lufia2/battle_effect_slot_steps.h"
 
+static void ActorBridgeEffectDispatchPrepare(CpuState *cpu, uint32_t entry);
+
+static bool EffectDispatchHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return hook == ActorBridgeEffectDispatchPrepare &&
+        (pc == 0x818a95u || pc == 0x818b08u);
+}
+
 static unsigned EffectDispatchPrepareBudget(uint32_t entry) {
-    return entry == 0x818b08u ? 278u : 288u;
+    const bool actor = entry == 0x818b08u;
+    const unsigned rom_bytes = actor ? 14u : 16u;
+    const unsigned wram_and_internal = actor ? 126u : 120u;
+    /* Code and stream share FastROM timing. */
+    return rom_bytes * cpu_region_speed(entry) + wram_and_internal + 40u;
 }
 
 static bool EffectDispatchPrepareClockSupported(const CpuState *cpu,
@@ -15,10 +26,11 @@ static bool EffectDispatchPrepareClockSupported(const CpuState *cpu,
         cpu->ram[0xc5u] != 0x95u || !(cpu->ram[0xc4u] & 0x80u) ||
         !Lufia2DecompFrameReturnCpuReady() ||
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
-        cpu->master_cycles > UINT64_MAX - EffectDispatchPrepareBudget(entry) ||
         !g_snes)
         return false;
     const unsigned budget = EffectDispatchPrepareBudget(entry);
+    if (cpu->master_cycles > UINT64_MAX - budget)
+        return false;
     const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
         ? 1024u : 1364u;
     if (!ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, false,
@@ -26,7 +38,9 @@ static bool EffectDispatchPrepareClockSupported(const CpuState *cpu,
         return false;
     uint64_t phase, clock;
     snes_refresh_state_get(&phase, &clock);
-    return phase < 1364u && clock == cpu->master_cycles;
+    return phase < 1364u && clock == cpu->master_cycles &&
+        Lufia2DecompFrameRangeAllows(entry,
+            entry + (entry == 0x818b08u ? 13u : 15u), EffectDispatchHookOwned);
 }
 
 static void ActorBridgeEffectDispatchPrepare(CpuState *cpu, uint32_t entry) {

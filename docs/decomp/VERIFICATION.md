@@ -1,3 +1,34 @@
+# Effect-dispatch timing and hook checkpoint — 2026-11-03
+
+Only consumer admission changes. The existing semantic preparation bodies,
+metadata, bindings and registered hook locations remain unchanged.
+
+MSVC and Clang each pass 9,368 original-ROM span cases and their actual
+indirect-JSR child-entry rejoins, plus 48 direct semantic cases. CPU, full WRAM,
+ordered opcode/data/stack accesses, open bus, per-opcode cycles, master clocks,
+refresh and return ownership match. Coverage includes both preparation paths,
+all 256 command bytes, three data banks, three return modes, both ROM speeds,
+stream page/bank edges and the newly admitted hardware-window boundaries.
+Each compiler also passes 12 semantic guards, 72 consumer refusals, 2,640
+window decisions and 288 modeled foreign/global/owned-hook decisions.
+
+Five actual generated/runtime replays cover normal baseline/candidate and
+foreign-hook original-control/baseline/candidate. The candidate admits 89 more
+nine-opcode spans and removes 801 interpreted opcodes in the action segment.
+The original control and fixed source deliver all 3,269 foreign callbacks;
+the old source misses 2,565. Complete serialized state and the separate APU
+clock match, as do PCM and native APU idle counters. Comparison normalizes only
+the final rollback residue's eight-byte host RAM pointer: its offset comes
+from the actual serializer layout and its value is checked against live RAM.
+No guest field is excluded.
+
+The agent Windows Release build passes. Three alternating uninstrumented cost
+pairs retain state/audio equality; their variance does not establish a stable
+speedup. The full decomp suite, unrelated CLI/resource tests and other platform
+builds are deferred because standalone semantics and build interfaces did not
+change. Tests and captured states remain private under
+`.agent/decomp/runtime-frontier/effect-dispatch-banks/`.
+
 # Menu OAM-piece fidelity - 2026-11-03
 
 The existing86:8C1F piece builder now retains decimal ADC/SBC and high-first

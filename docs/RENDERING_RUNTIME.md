@@ -1,3 +1,26 @@
+# Effect-dispatch admission and observers — 2026-11-03
+
+The existing `$81:8A95` and `$81:8B08` preparation spans now reserve their
+actual FastROM cost, including the unchanged refresh allowance. SlowROM bounds
+remain 288/278 master clocks; FastROM bounds are 256/250. Both code and the
+admitted bank-$95 stream use the same ROM access speed.
+
+Admission also checks the existing indexed hook ranges. Only the exact owned
+entry callbacks may be crossed; foreign hooks and global observers retain
+original execution. No new opcode hook, binding or semantic API is installed.
+
+A normal-input 3,491-frame replay raises admitted preparations from 2,565 to
+2,654 out of 3,269 attempts. Its final 984-frame action segment interprets
+254,049 rather than 254,850 opcodes. Guest state, clocks, PCM and native APU
+idle accounting match. With foreign middle-of-span hooks, all 3,269 callbacks
+match the original-instruction control; the old source skipped 2,565.
+
+Three alternating production-interpreter cost pairs measured frame simulation
+and PCM drain/hash, excluding drawing and setup: reference 1495.028/1201.301/
+1428.700 ms, candidate 1295.315/1198.049/1273.294 ms. Variance prevents an
+attributed speedup or FPS claim. Standalone decomp semantics remain unchanged.
+Private evidence: `.agent/decomp/runtime-frontier/effect-dispatch-banks/`.
+
 # Filled battle windows — 2026-11-03
 
 The missing original `$81:E38F..E3AD` draws the `$87B7` window with fill tile
