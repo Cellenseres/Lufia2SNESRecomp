@@ -1411,3 +1411,38 @@ width change was removed. With canonical admission retained, matched 480-frame
 F0 and F4 replays preserve all of those states. Additional live widths require
 clocked loop boundaries rather than a whole-routine admission override.
 Private receipt: `.agent/decomp/runtime-frontier/special-menu-widths/ACCEPTANCE.json`.
+
+## Clocked menu-clear continuations - 2026-11-03
+
+The clear-tilemap and hide-sprite bodies now share their existing C helpers
+with eight original continuation phases. Timed interpreter hooks consume one
+admitted phase, retaining original RTS handling. Their existing canonical
+whole-call wrappers keep the previous width restriction. No whole-call
+ANY_WIDTH override, new ROM algorithm or binding is introduced.
+
+Admission checks exact indexed hook ownership across each executed byte range,
+including operands. Unknown hooks and observers retain original execution.
+Static timing tables include the runtime's indexed 16-bit write charge, with
+no per-iteration table copies. Refresh, beam/device limits, DMA/IRQ/NMI and
+APU/deadline coherence are checked before execution. The feature gate requires
+both verified whole-routine contracts and the new phase API/source; reference
+and unsupported configurations keep the existing path.
+
+Each strict MSVC/Clang clock proof passes 3,072 positive states, 282 guards and
+6,912 independent original-ROM-cost windows. The source-composition proof also
+checks 300,288 intermediate CPU/data boundaries per compiler. The incorrect
+indexed-write timing control fails. The exact target definition, compiled
+callback/semantic reference and feature-off compilation were inspected; all
+25 availability mutations pass.
+
+Matched 480-frame runs for all eight casino selectors preserve CPU, full WRAM,
+hardware, PCM and native APU idle state. In F0/F4, foreign callbacks remain
+1,152/2,304 respectively. Passive actual-decision counts show 977/1,954 native
+phases and raw interpreter opcodes 52,665->45,551 / 18,429->4,200. Each raw-opcode
+reduction equals the new phases' retired opcode count in these fixtures.
+
+Three alternating uninstrumented pairs per selector give median scoped CPU/APU
+costs 180.601->176.533 ms (F0) and 116.706->113.912 ms (F4), per 480 frames.
+F0 paired results vary. These measurements establish no whole-game or FPS claim.
+No full decomp regression or public CLI export was repeated for this checkpoint.
+Private receipt: `.agent/decomp/runtime-frontier/menu-clear-phases/ACCEPTANCE.json`.
