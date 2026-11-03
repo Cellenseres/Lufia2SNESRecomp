@@ -67,3 +67,10 @@ function(lufia2_post_return_leaves_available output)
         "85:EB5F|Lufia2BattleCheckScratchByte|battle_exit|battle|battle|M1X0")
     set(${output} ${_available} PARENT_SCOPE)
 endfunction()
+
+function(lufia2_tile_spell_available output)
+    lufia2_menu_contracts_available(_available
+        "83:9D57|Lufia2CaveReplaceLowerTileIndex|cave_grid|cave|ancient_cave|M0X0"
+        "81:F3E4|Lufia2SpellRecordByteA|item_records|item|item|M1X0")
+    set(${output} ${_available} PARENT_SCOPE)
+endfunction()

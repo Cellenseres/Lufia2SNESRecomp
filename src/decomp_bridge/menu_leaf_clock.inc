@@ -90,24 +90,30 @@ static bool MenuPointerOffsetSourceSupported(const CpuState *cpu) {
     return pointer >= 0x2000u && pointer <= 0xfffeu;
 }
 
-static bool QuietLeafClockSupported(const CpuState *cpu, uint32_t entry,
-    uint32_t end, uint8_t frame_size, bool wide_accumulator) {
+static bool QuietSpanClockSupported(const CpuState *cpu, uint32_t entry,
+    uint32_t end, uint8_t frame_size, bool wide_accumulator, unsigned room) {
     if (cpu->x_flag || (cpu->DB != 0x7eu && cpu->DB != 0x7fu) ||
         (cpu->host_return_valid && cpu->host_return_valid != frame_size) ||
         (!Lufia2DecompFrameReturnCpuReady() &&
          !Lufia2DecompFramePairedCallReady(cpu, entry)) ||
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
-        cpu->master_cycles > UINT64_MAX - MENU_LEAF_CLOCK_ROOM ||
+        cpu->master_cycles > UINT64_MAX - room ||
         !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu - frame_size,
             wide_accumulator,
-            1363u, MENU_LEAF_CLOCK_ROOM) ||
+            1363u, room) ||
         g_snes->vPos < 225u || g_snes->vPos >= 262u ||
-        (262u - g_snes->vPos) * 1364u - g_snes->hPos < MENU_LEAF_CLOCK_ROOM ||
+        (262u - g_snes->vPos) * 1364u - g_snes->hPos < room ||
         !Lufia2DecompFrameRangeQuiet(entry, end))
         return false;
     uint64_t phase, charged;
     snes_refresh_state_get(&phase, &charged);
     return phase < 1364u && (!charged || charged == cpu->master_cycles);
+}
+
+static bool QuietLeafClockSupported(const CpuState *cpu, uint32_t entry,
+    uint32_t end, uint8_t frame_size, bool wide_accumulator) {
+    return QuietSpanClockSupported(cpu, entry, end, frame_size, wide_accumulator,
+        MENU_LEAF_CLOCK_ROOM);
 }
 
 static bool MenuLeafClockSupported(const CpuState *cpu, uint32_t entry,

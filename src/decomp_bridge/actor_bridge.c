@@ -20831,3 +20831,27 @@ RecompReturn Lufia2DecompBridge_85EB5F(CpuState *cpu) {
         cpu->PB == 0x05u ? 0x05eb5fu : 0x85eb5fu);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_TILE_SPELL)
+#include "tile_spell_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_839D57(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_TILE_SPELL)
+    return ActorBridgeTimedTileSpell(cpu, false);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame,
+        cpu->PB == 0x03u ? 0x039d57u : 0x839d57u);
+#endif
+}
+
+RecompReturn Lufia2DecompBridge_81F3E4(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_TILE_SPELL)
+    return ActorBridgeTimedTileSpell(cpu, true);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame,
+        cpu->PB == 0x01u ? 0x01f3e4u : 0x81f3e4u);
+#endif
+}
