@@ -79,6 +79,10 @@ static RecompReturn ActorBridgeMemberDispatch(CpuState *cpu,
 
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS)
+#if defined(LUFIA2_HAVE_NATIVE_FILLED_WINDOWS)
+static RecompReturn ActorBridgeTimedBattleFill(CpuState *cpu);
+static RecompReturn ActorBridgeTimedFilledWindow(CpuState *cpu, unsigned kind);
+#endif
 static RecompReturn ActorBridgeTimedBattleWindow(CpuState *cpu, unsigned kind);
 static RecompReturn ActorBridgeTimedBattleDigits(CpuState *cpu);
 static RecompReturn ActorBridgeTimedBattleMultiply(CpuState *cpu);
@@ -765,7 +769,11 @@ RecompReturn Lufia2DecompBridge_FCE2(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_E7D2(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS) && defined(LUFIA2_HAVE_NATIVE_FILLED_WINDOWS)
+    return ActorBridgeTimedBattleFill(cpu);
+#else
     return ActorBridgeWholeM1X16(cpu, 0x81e7d2u, Lufia2BattleFillRect, 2);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_E808(CpuState *cpu) {
@@ -817,11 +825,19 @@ RecompReturn Lufia2DecompBridge_BE54(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_E3AE(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS) && defined(LUFIA2_HAVE_NATIVE_FILLED_WINDOWS)
+    return ActorBridgeTimedFilledWindow(cpu, 1u);
+#else
     return ActorBridgeWholeM1X16(cpu, 0x81e3aeu, Lufia2BattleWindowE3AE, 3);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_E3CD(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS) && defined(LUFIA2_HAVE_NATIVE_FILLED_WINDOWS)
+    return ActorBridgeTimedFilledWindow(cpu, 2u);
+#else
     return ActorBridgeWholeM1X16(cpu, 0x81e3cdu, Lufia2BattleWindowE3CD, 3);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_BAE8(CpuState *cpu) {
@@ -20964,5 +20980,19 @@ RecompReturn Lufia2DecompBridge_85C07C(CpuState *cpu) {
 #else
     const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
     return ActorBridgeFallback(cpu, &frame, cpu->PB == 5u ? 0x05c07cu : 0x85c07cu);
+#endif
+}
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS) && defined(LUFIA2_HAVE_NATIVE_FILLED_WINDOWS)
+#include "battle_fill_clock.inc"
+#include "battle_filled_window_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_81E38F(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS) && defined(LUFIA2_HAVE_NATIVE_FILLED_WINDOWS)
+    return ActorBridgeTimedFilledWindow(cpu, 0u);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, cpu->PB == 1u ? 0x01e38fu : 0x81e38fu);
 #endif
 }

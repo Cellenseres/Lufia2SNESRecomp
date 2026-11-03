@@ -108,3 +108,12 @@ function(lufia2_second_battler_stat_available output)
         "85:C07C|Lufia2BattleReadSecondBattlerStat|battle_script|battle|battle|M1X0")
     set(${output} ${_available} PARENT_SCOPE)
 endfunction()
+
+function(lufia2_filled_windows_available output)
+    lufia2_menu_contracts_available(_available
+        "81:E38F|Lufia2BattleDrawBlankWindow|battle_frame_rows|battle|battle|M1X0"
+        "81:E3AE|Lufia2BattleWindowE3AE|battle_frame_rows|battle|battle|M1X0"
+        "81:E3CD|Lufia2BattleWindowE3CD|battle_frame_rows|battle|battle|M1X0"
+        "81:E7D2|Lufia2BattleFillRect|battle_frame_rows|battle|battle|M1X0")
+    set(${output} ${_available} PARENT_SCOPE)
+endfunction()

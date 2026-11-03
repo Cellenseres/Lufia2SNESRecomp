@@ -1,3 +1,35 @@
+# Filled battle windows — 2026-11-03
+
+The missing original `$81:E38F..E3AD` draws the `$87B7` window with fill tile
+`$2150`. It shares `FilledWindow` with `$E3AE/$E3CD`, retaining each original
+child frame. This adds one original variant rather than another algorithm.
+
+The same batch fixes five window ADC operations that formerly used binary
+addition when the decimal flag was set. Original decimal behavior now uses the
+existing CPU arithmetic helper; no waits, bus accesses or original quirks change.
+Strict MSVC/Clang each pass 6,144 semantic cases across the three variants,
+including live DP and both decimal states. Each also passes 8,192 timing cases
+(1,637 admitted, 6,555 declined) and 144 refusal guards. CPU, full WRAM, ordered
+fetch/data accesses, per-opcode clocks and return frames match the ROM.
+
+The consumer times the existing rectangle filler and composes the three window
+variants from shared child clock models. Forty-four current generated/linked
+caller pairs preserve full CPU, WRAM, hardware and clocks, including mutating
+parent/child hooks. Unknown hooks retain their original execution; independently
+safe children can still run natively. Accepted calls reduce interpreted opcodes
+157->2 for filling and 388->2 for a filled window. No new opcode hooks, table
+scans, guest-time shortcuts or APU bypasses are introduced.
+
+Three 3,000-call samples per entry, with detail profiling off, reduce median
+filler cost168.568->57.526ms and window costs429.163->150.187ms,
+436.832->152.897ms and428.962->153.456ms. These are constructed caller costs;
+ordinary frequency of the newly discovered variant remains unproven.
+Matching180 menu/180 field/600 boot frames preserve CPU/WRAM/hardware,
+nonempty PCM and native idle work. Windows Release,14 availability gates,
+six producer gates and two optional compilation modes pass. Optional compilation
+is reused on unchanged actor/header inputs after the semantic-only ADC fix.
+No full regression or fresh public CLI export is claimed. All proofs stay local.
+
 # Second-battler stat reader — 2026-11-03
 
 The previously missing original `$85:C07C..C098` reader follows the second

@@ -15,6 +15,11 @@ static bool FramePairedBattleCall(uint32_t entry) {
     if (entry == 0x05c07cu)
         return true;
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_FILLED_WINDOWS)
+    if (entry == 0x01e38fu || entry == 0x01e3aeu || entry == 0x01e3cdu ||
+        entry == 0x01e7d2u)
+        return true;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS)
     return entry == 0x00834cu || entry == 0x008378u || entry == 0x01e808u ||
         entry == 0x01e542u || entry == 0x01e570u || entry == 0x01e503u ||
