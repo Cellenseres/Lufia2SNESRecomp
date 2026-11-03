@@ -1,3 +1,29 @@
+# Shared title-object mathematics - 2026-11-03
+
+The legacy JSL multiplier now delegates to the existing canonical
+Lufia2MenuMultiply body. Its original JSL/RTL frame and all sixteen observable
+rotate/add rounds remain; no host multiplication replaces the ROM loop.
+This removes the older binary-only copy rather than adding another adapter.
+
+Sine and cosine retain the original quadrant comparisons, decimal subtraction
+and subsequent binary negation, including invalid BCD digits and out-of-range
+angles. The binary path remains ordinary byte arithmetic. Title-object
+projection and particle stepping use the existing exact arithmetic helpers.
+No new ROM function, binding, public API, clock model or host guard is added.
+
+One shared MSVC/Clang checkpoint passes 21,504 original-ROM cases per compiler:
+4,096 each for the two trig entries and three original JSL call-site contracts,
+plus 1,024 title-object parent cases. CPU, full WRAM, stack, ordered data and MMIO
+match. Four former-source controls fail. The production ABI passes 384 native
+calls and 384 retained D1 refusals. Source D1 support does not broaden runtime
+admission. Windows Release and paired 600 boot, 960 menu and 480 battle frames
+pass; CPU, WRAM, hardware, PCM and APU idle remain identical. The title parent
+executes 107 native calls in each boot arm. Three normal-pipeline CPU/APU timing
+pairs do not establish a stable speedup. A presentation-skipping measurement
+was rejected because it changed hardware and APU-idle work. Full regression
+and fresh public export were deferred for this shared semantic checkpoint.
+Private evidence: runtime-frontier/title-object-math/ACCEPTANCE.json.
+
 # Original title arithmetic and bus order - 2026-11-03
 
 The existing intro NMI, title layers and particle OAM routines now preserve
