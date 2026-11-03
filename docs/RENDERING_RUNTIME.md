@@ -1465,3 +1465,33 @@ Single CPU/APU samples are recorded in the private acceptance receipt; six
 fewer opcodes do not justify attributing the observed timing variance to this
 change. No whole-game performance or FPS claim; no full regression repeated.
 Receipt: .agent/decomp/runtime-frontier/special-fade-widths/ACCEPTANCE.json.
+
+
+## Menu input entry widths and hooks - 2026-11-03
+
+The existing 84:9F1A input consumer admits the widths normalized by its original
+PHP/SEP/REP/PLP header. Its verified semantic body and timing table are unchanged;
+no function, binding, adapter API or hook is added. The other three table-round
+roots remain wide-only. Input admission now checks the existing indexed range
+API, preserving foreign hooks and observers across the complete original body.
+
+The shared private MSVC checkpoint covers 4096 original-ROM/timed states across
+all four widths, 352 current admission cases and nine sibling-width refusals.
+Current isolated Windows Release and actual linked callers pass. Matched F0/F1
+480-frame replays retain CPU/WRAM/hardware/PCM/native APU idle. F0 native/fallback
+calls and raw opcodes are unchanged. F1 adds 274 native M1 calls: raw input
+opcodes fall 21291 -> 78; every other raw PC count remains identical (7845).
+One boundary-limited M1 call still declines normally.
+
+An independent original-interpreter control confirms all 318 interior hook
+callbacks. The old consumer skipped 43 through its M0 batch. A rejected draft
+incorrectly used FrameReturnCpuReady, whose blocked default only has meaning
+inside pre-opcode-hook scope. It is absent from the final ordinary-call guard.
+Applicable hardware, interrupt, deadline and refresh checks remain intact.
+
+Three alternating matched F1 CPU/APU samples are recorded in the private
+receipt. Their median falls 234.0997 -> 208.7560 ms/480 frames, but one pair is
+substantially slower and host variance is large. This establishes fewer
+interpreted operations, not stable whole-game speedup or FPS. No full regression
+or public export repeated. Proofs remain private under
+.agent/decomp/runtime-frontier/input-command-widths/ACCEPTANCE.json.

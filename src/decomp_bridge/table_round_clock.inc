@@ -1061,7 +1061,10 @@ static bool PrepareTableRoundClock(TableRoundClock *clock, uint32_t pc) {
         clock->call.frame.hrv != 2u || cpu->host_return_valid < 2u || cpu->host_return_valid > 3u || cpu->S < 0x1f20u || cpu->S > 0x1ff7u ||
         (cpu->DB != 0x7eu && cpu->DB != 0x7fu)) return false;
     const bool entry = pc == table_round_entries[clock->root];
-    if ((entry && cpu->host_return_valid != 2u) || cpu->x_flag || cpu->m_flag) return false;
+    if ((entry && cpu->host_return_valid != 2u) ||
+        (clock->root != 0u && (cpu->x_flag || cpu->m_flag))) return false;
+    if (clock->root == 0u &&
+        !Lufia2DecompFrameRangeQuiet(0x849f1au, 0x84a000u)) return false;
     bool planned;
     switch (clock->root) {
     case 0u: planned = PlanRoundCommand(clock, (uint16_t)pc); break;
