@@ -20953,3 +20953,16 @@ RecompReturn Lufia2DecompBridge_81D081(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, cpu->PB == 1u ? 0x01d081u : 0x81d081u);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_SECOND_BATTLER_STAT)
+#include "battle_stat_reader_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_85C07C(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_SECOND_BATTLER_STAT)
+    return ActorBridgeTimedSecondBattlerStat(cpu);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, cpu->PB == 5u ? 0x05c07cu : 0x85c07cu);
+#endif
+}

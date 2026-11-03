@@ -10,8 +10,12 @@ static FramePairedCallContext s_frame_paired_call;
 static uint32_t s_frame_paired_return_pc = UINT32_MAX;
 
 static bool FramePairedBattleCall(uint32_t entry) {
-#if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS)
     entry &= 0x7fffffu;
+#if defined(LUFIA2_HAVE_NATIVE_SECOND_BATTLER_STAT)
+    if (entry == 0x05c07cu)
+        return true;
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS)
     return entry == 0x00834cu || entry == 0x008378u || entry == 0x01e808u ||
         entry == 0x01e542u || entry == 0x01e570u || entry == 0x01e503u ||
         entry == 0x01e2afu || entry == 0x01e2c8u || entry == 0x01e308u ||

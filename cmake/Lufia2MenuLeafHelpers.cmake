@@ -102,3 +102,9 @@ function(lufia2_battle_status_available output)
         "81:D081|Lufia2BattleRefreshStagedCommand|battle_party_commands|battle|battle|M1X0")
     set(${output} ${_available} PARENT_SCOPE)
 endfunction()
+
+function(lufia2_second_battler_stat_available output)
+    lufia2_menu_contracts_available(_available
+        "85:C07C|Lufia2BattleReadSecondBattlerStat|battle_script|battle|battle|M1X0")
+    set(${output} ${_available} PARENT_SCOPE)
+endfunction()
