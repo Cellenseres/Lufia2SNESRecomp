@@ -1,3 +1,28 @@
+# Menu OAM-piece fidelity - 2026-11-03
+
+The existing86:8C1F piece builder now retains decimal ADC/SBC and high-first
+word INC/DEC writes. Named scratch fields describe its packed OAM word and
+remaining bit rotations. Signed offsets, original pieces/slot order, return
+frames and loop counts remain. No new algorithm,function,API,binding or hook;
+86:8C04 is a private JSR/RTS proof site,not another standalone function.
+
+MSVC/Clang each pass4,096 original-ROM cases across that call site and the
+complete86:8BF5 OAM builder: CPU/fullWRAM/ordered data/stack/MMIO. Tests use
+48 original slot arrays,1-3-piece records,partial/all-active sets,packed high
+bits,DB0/7E/7F/80,DP0/700 and D0/D1. Three old-source controls fail. Production
+ABI passes128native D0 calls and128retained D1 refusals; metadata peek reads
+are checked separately. Consumer guards,hook ownership and timing are unchanged.
+
+Matched600boot/960menu/480field frames preserve CPU/WRAM/hardware/PCM/native
+APU idle and passive native body counts. Menu:828 OAM builds/2,789piece calls
+per arm; boot18/216;field0/0. Disabled global counters do not prove zero
+fallbacks. Three alternating uninstrumented production-options menu pairs
+retain the same digests; median CPU/APU268.859->265.6637ms,draw3261.7107->
+3287.0887ms. This small/noisy difference is not a stable speedup/FPS claim.
+Cost runs finished before the integration build began. Windows Release PASS
+in build/windows-decomp-agent. Full regression/public CLI export/other-platform
+checks are deferred. Private proof:runtime-frontier/menu-oam-fidelity.
+
 # Shared original menu rectangle body - 2026-11-03
 
 The screen builders now share ClearMenuTileRectangle with the existing
