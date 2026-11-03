@@ -3550,6 +3550,21 @@ static bool ActorBridgePollRun(CpuState *cpu, uint32_t entry,
     interp_bridge_pre_opcode_redirect(next);
     return true;
 }
+#if defined(LUFIA2_FIELD_TRANSITION_POLL_API)
+static void ActorBridgeTransitionPoll(CpuState *cpu, uint32_t entry);
+
+static bool ActorBridgeTransitionPollOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return hook == ActorBridgeTransitionPoll &&
+        (pc == 0x8385afu || pc == 0x8eb2bdu || pc == 0x8eb2e6u);
+}
+
+static void ActorBridgeTransitionPoll(CpuState *cpu, uint32_t entry) {
+    if (!cpu->m_flag || cpu->DB != 0x83u)
+        return;
+    ActorBridgePollRun(cpu, entry, Lufia2FieldTransitionPollIteration,
+                       3u, true, ActorBridgeTransitionPollOwned);
+}
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_POLL_RUNS)
 static void ActorBridgeSoundPollRun(CpuState *cpu, uint32_t entry);
 
@@ -4152,6 +4167,13 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
          i < sizeof menu_rectangle_opcodes / sizeof menu_rectangle_opcodes[0]; ++i)
         interp_bridge_set_pre_opcode_hook(0x820000u | menu_rectangle_opcodes[i].timing.pc,
                                           ActorBridgeMenuRectangleStep);
+#endif
+#if defined(LUFIA2_FIELD_TRANSITION_POLL_API) && \
+    (defined(LUFIA2_HAVE_NATIVE_SOUND_POLL_RUNS) || \
+     defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS))
+    interp_bridge_set_pre_opcode_hook(0x8385afu, ActorBridgeTransitionPoll);
+    interp_bridge_set_pre_opcode_hook(0x8eb2bdu, ActorBridgeTransitionPoll);
+    interp_bridge_set_pre_opcode_hook(0x8eb2e6u, ActorBridgeTransitionPoll);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS)
     for (unsigned i = 0u; i < sizeof frame_poll_entries / sizeof frame_poll_entries[0];

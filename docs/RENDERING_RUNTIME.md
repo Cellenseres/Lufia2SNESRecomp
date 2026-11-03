@@ -1586,3 +1586,35 @@ CPU/WRAM/hardware/PCM/native APU idle. Scoped CPU/APU costs are recorded
 in the private decimal-semantic-paths acceptance receipt; no speedup or FPS
 claim. Standalone proofs cover9792 states each with MSVC/Clang and include
 a failing binary-seed mutant. No full regression or public export repeated.
+
+
+## Timed display-transition polls - 2026-11-04
+
+Three original LDA-absolute/branch loops (`83:85AF`, `8E:B2BD`, `8E:B2E6`)
+reuse the existing bounded timed poll runner. The only new hook sites are their
+three disjoint loop entries. No new timing engine, idle skipping, global table
+scan, canonical binding or gameplay algorithm is introduced. Original byte
+reads, flags, branches, guest clocks, refresh, device deadlines and APU work
+remain. Range ownership rejects foreign interior hooks and global observers;
+existing certified counter waits keep their hooks and batching.
+
+The shared checkpoint passes 99,081 ROM/guard cases per MSVC and Clang, three
+independent opcode mutation controls, actual old-header consumer compilation
+and unmangled C++ public linkage. Actual generated/linked producer objects and
+passive native-counter arms agree in matched 540-frame transition and 1,580-frame
+cave replays. Full guest/device state, extended APU clocks, nonempty PCM,
+native APU idle steps and final pixels match. Only a live-checked host RAM
+pointer is normalized. The transition uses 57,463 plus 56,428 native iterations;
+raw opcodes fall 250,398 to 22,616, with every other raw context unchanged.
+The third loop has zero observed admission in these scenes; its original-ROM
+semantic coverage is separate from runtime adoption.
+
+Actual foreign-branch and global-hook controls retain all 125,129 and 250,258
+witnesses, respectively, and admit zero native iterations. Three alternating
+matched CPU/APU/PCM samples for 540 frames measure 241.0303/253.8792/250.7930 ms
+before and 155.6850/163.1315/168.0961 ms after. Setup, drawing and detailed
+profiling are excluded. This small Windows sample establishes scoped native
+adoption and lower measured cost, not whole-game speedup or console FPS.
+Full regression, other-platform builds and public CLI export are deferred;
+build definitions, source selection and canonical metadata are unchanged.
+Private receipt: `.agent/decomp/runtime-frontier/display-transition-polls-current/ACCEPTANCE.json`.
