@@ -80,3 +80,9 @@ function(lufia2_raster_edge_available output)
         "83:FEC4|Lufia2RasterizeEdge|field_raster_edge|field|raster_edge|M1X0")
     set(${output} ${_available} PARENT_SCOPE)
 endfunction()
+
+function(lufia2_battle_clear_available output)
+    lufia2_menu_contracts_available(_available
+        "81:E7A6|Lufia2BattleClearRect|battle_frame_rows|battle|battle|M1X0")
+    set(${output} ${_available} PARENT_SCOPE)
+endfunction()

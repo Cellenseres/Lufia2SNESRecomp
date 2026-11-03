@@ -20869,3 +20869,16 @@ RecompReturn Lufia2DecompBridge_83FEC4(CpuState *cpu) {
         cpu->PB == 3u ? 0x03fec4u : 0x83fec4u);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_BATTLE_CLEAR)
+#include "battle_clear_clock.inc"
+#endif
+
+RecompReturn Lufia2DecompBridge_81E7A6(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_BATTLE_CLEAR)
+    return ActorBridgeTimedBattleClear(cpu);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, cpu->PB == 1u ? 0x01e7a6u : 0x81e7a6u);
+#endif
+}
