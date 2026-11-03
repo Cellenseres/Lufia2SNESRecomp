@@ -1395,3 +1395,19 @@ In the same battle fixture, raw interpreted opcodes fall from 233,447 to
 These mixed, noisy costs establish no reliable general speedup or FPS claim.
 No full regression or public CLI export was rerun for this local consumer fix.
 Private receipt: `.agent/decomp/runtime-frontier/effect-slot-admission/ACCEPTANCE.json`.
+
+## Width-expanded menu semantics - 2026-11-03
+
+The existing clear-tilemap and hide-sprite C bodies at 84:A4DD/A4FD now preserve
+all four original entry widths. Canonical entries stay M1X0; dynamic exits
+reflect PHP/PLP restoration. Each compiler passes 512 original-ROM cases and
+six untouched refusals. This is an expanded semantic contract, not a new
+algorithm or binding. Both existing bindings remain selected and verified.
+
+Do not widen their existing untimed consumer just because those cases pass.
+An actual matched 480-frame F0 casino comparison rejected that experiment:
+WRAM matched, but CPU/hardware/PCM/native APU idle state diverged. The consumer
+width change was removed. With canonical admission retained, matched 480-frame
+F0 and F4 replays preserve all of those states. Additional live widths require
+clocked loop boundaries rather than a whole-routine admission override.
+Private receipt: `.agent/decomp/runtime-frontier/special-menu-widths/ACCEPTANCE.json`.
