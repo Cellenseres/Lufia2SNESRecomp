@@ -1,3 +1,27 @@
+# World sprite-chain fidelity - 2026-11-03
+
+The existing world sprite family now preserves decimal ADC/SBC and high-first
+word DEC writes. Its polar calculation reads the original indirect quadrant
+table before pushing the child return frame. An unknown target hands off with
+the original nested frames intact. No new ROM function, algorithm, public API,
+binding, hook or clock model; the two private call-site proofs are not entries.
+
+Shared checkpoint: MSVC and Clang each pass 6,144 original-ROM cases across
+86:A43B (scale JSR),86:E960 (polar JSR),86:E8CE (sprite chain), comparing CPU,
+full WRAM and ordered data/stack/MMIO. Four additional cases per compiler
+substitute table-read results and verify the exact unknown-target boundary;
+they are callback-contract checks, not unmodified-ROM coverage. Three old-source
+controls fail. The existing production ABI passes128native calls and128retained
+decimal exclusions; return metadata reads are checked separately. Private proof:
+runtime-frontier/world-sprite-math. Host admission remains unchanged.
+
+Production-options paired replays retain CPU/WRAM/hardware/PCM/native APU idle
+for1,800boot/480menu/480field frames per arm. Passive monitoring observes no
+sprite-chain calls in those replay windows; organic frequency remains unproven.
+The restored two ROM reads are required bus work, not a performance optimization.
+Windows Release passes in the agent build. No speed/FPS claim, full regression,
+fresh public CLI export or other-platform pass is claimed for this revision.
+
 # Decimal digits and palette bus fidelity - 2026-11-03
 
 Correct two existing C contracts: $81:E808 now preserves decimal SBC;
