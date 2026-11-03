@@ -1,3 +1,42 @@
+# Effect slot-start consumer checkpoint — 2026-11-03
+
+The `81:895E` effect caller and its slot-start continuation share one semantic
+body. This integrates existing reconstructed logic; it adds no canonical
+function or algorithm coverage. Two optional hooks consume the complete 4-,
+6- or 23-opcode phase at `81:8A8C` and `81:8ACF`, without overlapping existing
+header, cursor or command-preparation spans.
+
+Admission requires the actual indexed hook registry, an adequate remaining
+opcode budget, exact DB/DP/M/X and slot context, stack ownership, synchronized
+clocks and room before refresh, IRQ, HDMA and device fences. Global or foreign
+observers retain the original path. FastROM/SlowROM bounds, including 40 refresh
+clocks, are 162/180 for scripts, 212/240 for stationary actors and 668/782 for
+moving actors.
+
+The hardware-product word read uses the existing paired word-bus service.
+An initial bytewise implementation duplicated the legacy hardware-touch credit;
+full rollback comparison caught it despite matching PCM. The accepted route
+preserves both bytes in order and the original single word-access credit.
+Neither ROM semantics nor shared timing/APU infrastructure was changed.
+
+Shared checkpoint: MSVC and Clang each pass 4,608 ROM/timed-ABI cases, 768 direct
+semantic cases, 21 public guards, 111 consumer refusals, 10,200 window decisions
+and 516 modeled hook decisions. Six altered-ROM controls are rejected. Actual
+battle and Strong replays preserve full guest/device state, extended APU clocks
+and PCM. Only one independently validated host RAM pointer is normalized.
+The 984-frame battle segment falls from 254,049 to 247,003 original opcodes;
+the 792-frame Strong segment falls from 155,999 to 152,337. All raw contexts
+outside these phases and existing preparation admissions stay identical.
+Foreign and global hook controls each preserve 1,359 visits at the two witness
+PCs. The actual Release actor object is additionally linked and replayed; its
+raw profiles and states match the instrumented candidate. Agent Windows Release
+passes. Unaffected full regression and other platforms are deferred; no passing
+full-suite result is claimed for this revision.
+
+Local proof: `runtime-frontier/effect-slot-begin/ACCEPTANCE.json`. Timing evidence
+is recorded separately and does not establish hardware frame rate. Tests,
+fixtures, probes and the ROM are excluded from public commits.
+
 # Effect-dispatch timing and hook checkpoint — 2026-11-03
 
 Only consumer admission changes. The existing semantic preparation bodies,

@@ -2898,6 +2898,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_SLOT_STEPS)
 #include "effect_slot_clock.inc"
+#if defined(LUFIA2_BATTLE_EFFECT_SLOT_BEGIN_API)
+#include "effect_slot_begin_clock.inc"
+#endif
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_MENU_CLEAR)
 #include "menu_clear_clock.inc"
@@ -4046,6 +4049,10 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     interp_bridge_set_pre_opcode_hook(0x818ac1u, ActorBridgeEffectSlotStep);
     interp_bridge_set_pre_opcode_hook(0x818aaau, ActorBridgeEffectSlotStep);
     interp_bridge_set_pre_opcode_hook(0x818b1bu, ActorBridgeEffectSlotStep);
+#if defined(LUFIA2_BATTLE_EFFECT_SLOT_BEGIN_API)
+    interp_bridge_set_pre_opcode_hook(0x818a8cu, ActorBridgeEffectBeginSlot);
+    interp_bridge_set_pre_opcode_hook(0x818acfu, ActorBridgeEffectBeginSlot);
+#endif
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_DISPATCH_STEPS)
     interp_bridge_set_pre_opcode_hook(0x818a95u, ActorBridgeEffectDispatchPrepare);

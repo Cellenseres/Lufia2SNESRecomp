@@ -1,3 +1,25 @@
+# Effect slot-start integration — 2026-11-03
+
+The effect engine reuses its existing semantic slot-start body at `81:8A8C`
+and `81:8ACF`. These bounded 4/6/23-opcode continuations preserve original MMIO,
+stack and per-op clocks. They add no canonical decomp function or algorithm.
+Indexed ownership, remaining batch budget and hardware/observer guards keep
+foreign hooks and certified waits intact. Existing preparation admissions and
+all measured raw contexts outside the new spans are unchanged.
+
+Hardware words must retain their paired consumer bus service. Reading the
+multiply result as two independent hardware bytes preserved PCM here but
+incorrectly doubled one legacy pacing credit. Full-state comparison detected
+this; the accepted path uses `Lufia2DecompFrameReturnReadWord` and preserves
+both original bus bytes. Do not normalize or ignore a pacing-counter mismatch.
+
+Original opcode counts decrease by 7,046 in the 984-frame battle segment and
+3,662 in the 792-frame Strong segment, with full guest/device/APU/PCM equality.
+Actual Release-object replay, foreign/global hook controls and the shared
+MSVC/Clang ROM/ABI checkpoint pass. This measures interpreter removal; it does
+not establish a causal wall-time speedup or hardware 60 FPS. Private receipt:
+`.agent/decomp/runtime-frontier/effect-slot-begin/ACCEPTANCE.json`.
+
 # Effect-dispatch admission and observers — 2026-11-03
 
 The existing `$81:8A95` and `$81:8B08` preparation spans now reserve their
