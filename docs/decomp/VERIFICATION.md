@@ -1,3 +1,26 @@
+# Original title arithmetic and bus order - 2026-11-03
+
+The existing intro NMI, title layers and particle OAM routines now preserve
+original decimal ADC/SBC behavior. Sixteen arithmetic operations use the shared
+exact helper. Five word INC/DEC sites retain the original high-byte-first write
+order, including the ordinary binary-mode path. No new algorithm, public API,
+entry, adapter or binding is added; existing verified contracts remain selected.
+
+One shared MSVC/Clang checkpoint passes 3072 original-ROM cases per compiler:
+1024 per routine, including the ten known intro states, normalized intro entry
+widths, shifted DP for layers/particles, both data banks and both decimal states.
+CPU, full WRAM, stack, ordered data and MMIO match. Four old-source controls fail:
+three decimal cases and one binary RMW-order case. Current production ABI passes
+384 native calls and 384 unchanged decimal exclusions. Standalone decimal support
+does not broaden host timing or decimal admission.
+
+The isolated Windows Release build passes. Matched 600 boot/intro and 960 menu
+frames preserve CPU/WRAM/hardware/PCM/native APU idle and actual native-call counts.
+Boot executes the three bodies 374/185/107 times in each arm. Timing samples are
+not a stable performance or FPS claim. Full regression and public CLI export
+were deferred for this local source correction. Private consumer evidence:
+.agent/decomp/runtime-frontier/title-arithmetic/ACCEPTANCE.json.
+
 # Existing decimal-mode paths - 2026-11-03
 
 The seed/refill, record checksum/unpack and equipment-member/price routines
