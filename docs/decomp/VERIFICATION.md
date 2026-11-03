@@ -1,3 +1,22 @@
+# Decimal digits and palette bus fidelity - 2026-11-03
+
+Correct two existing C contracts: $81:E808 now preserves decimal SBC;
+$86:8996 decrements its word timer in original high-byte-first write order.
+The original mixed DB/DP digit accesses, loops and return boundaries remain.
+No new function, algorithm, API, binding, clock model or admission is claimed.
+
+Shared checkpoint: MSVC and Clang each pass 4,096 original-ROM cases,
+comparing CPU, full WRAM and ordered data/stack/MMIO accesses. Cases include
+binary/decimal arithmetic, invalid BCD digits, boundary X values, DB7E/7F,
+DP0/300, palette timer wrap and all palette phase bytes. Both unchanged-source
+negative controls fail. Private proof: runtime-frontier/digits-palette.
+
+Agent Windows Release build passes. Matched production-options replays retain
+CPU/WRAM/hardware/PCM/native APU idle over 600 boot and 960 menu frames per arm.
+These replays do not establish organic execution frequency of both routines.
+Host timing/admission is unchanged; no speedup or FPS claim. Full regression,
+other platforms and fresh public CLI export are deferred, not reported passing.
+
 # Shared title-object mathematics - 2026-11-03
 
 The legacy JSL multiplier now delegates to the existing canonical
