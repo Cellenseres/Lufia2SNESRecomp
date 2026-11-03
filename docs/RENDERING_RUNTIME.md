@@ -1446,3 +1446,22 @@ costs 180.601->176.533 ms (F0) and 116.706->113.912 ms (F4), per 480 frames.
 F0 paired results vary. These measurements establish no whole-game or FPS claim.
 No full decomp regression or public CLI export was repeated for this checkpoint.
 Private receipt: `.agent/decomp/runtime-frontier/menu-clear-phases/ACCEPTANCE.json`.
+
+
+## Special-menu fade entry widths - 2026-11-03
+
+The existing fade consumer now admits original M0X0 headers at 84:A5B5/A5CA.
+Original PHP/SEP/PLP, frame waits and M1X0 child/continuation guards remain.
+No new hook, adapter, binding, lookup or timing model is added. The canonical
+entry metadata stays M1X0; restored exit width is correctly dynamic.
+
+The shared private MSVC ROM/ABI checkpoint covers both entry widths, child
+unwinds/context changes, saved-status continuations and admission guards.
+Current isolated Windows Release and matched generated/linked callers pass.
+Two 480-frame selector F0/F4 replays retain CPU/WRAM/hardware/PCM/native APU
+idle. Each moves one M0 fade header from fallback to native: raw opcode counts
+45551 -> 45545 and 4200 -> 4194. Existing waits/resumptions remain admitted.
+Single CPU/APU samples are recorded in the private acceptance receipt; six
+fewer opcodes do not justify attributing the observed timing variance to this
+change. No whole-game performance or FPS claim; no full regression repeated.
+Receipt: .agent/decomp/runtime-frontier/special-fade-widths/ACCEPTANCE.json.

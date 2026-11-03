@@ -1,5 +1,6 @@
-static bool SpecialFadeRegistersSupported(const CpuState *cpu) {
-    return cpu->ram && cpu->PB == 0x84u && !cpu->emulation && cpu->m_flag == 1u &&
+static bool SpecialFadeRegistersSupported(const CpuState *cpu, bool entering) {
+    return cpu->ram && cpu->PB == 0x84u && !cpu->emulation && cpu->m_flag <= 1u &&
+        (entering || cpu->m_flag == 1u) &&
         !cpu->x_flag && !cpu->D && !cpu->_flag_D &&
         (cpu->DB == 0x7eu || cpu->DB < 0x40u ||
          (cpu->DB >= 0x80u && cpu->DB < 0xc0u)) &&
@@ -42,9 +43,9 @@ static bool PrepareSpecialFadeClock(CardScoreClock *clock, uint32_t pc) {
     clock->returning = false;
     clock->next = pc;
     const CpuState *cpu = clock->call.cpu;
-    if (!SpecialFadeRegistersSupported(cpu))
-        return false;
     const bool entering = pc == 0x84a5b5u || pc == 0x84a5cau;
+    if (!SpecialFadeRegistersSupported(cpu, entering))
+        return false;
     if (entering) {
         const uint16_t entry = (uint16_t)pc;
         CardScoreOpcode(clock, entry, 1u, 3u, 1u);
