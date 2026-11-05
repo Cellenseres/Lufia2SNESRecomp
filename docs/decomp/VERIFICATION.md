@@ -1,3 +1,16 @@
+## Unrooted record math checkpoint
+
+Five leaves and two callback-backed original parent regions pass a combined
+352256 CPU/full-WRAM/ordered-bus cases per MSVC/Clang,57 no-access guards and
+seven altered-ROM controls. NOP checkpoints and child-entry stack/state are
+compared separately. The synchronous multiplier model is not a device-timing
+proof; controlled returning services do not reconstruct unknown children.
+After two control-fixture corrections,90112 affected cases/compiler were
+rerun; unchanged leaf proofs were reused. Strict Windows/GCC/Clang libraries,
+actual archive exports,C++ header and metadata pass. CLI binaries are unchanged.
+No canonical metadata,binding or runtime performance claim is added. Private
+receipt: .agent/decomp/runtime-frontier/unrooted-record-math-current/ACCEPTANCE.json.
+
 ## Unrooted record direction checkpoint
 
 Four original bank85 variants share one reconstructed direction algorithm.
