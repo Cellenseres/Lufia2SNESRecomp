@@ -1,3 +1,16 @@
+## Diagnostic save-menu prefix checkpoint
+
+PerMSVC/Clang:1800ROM-parent cases across831F/8322 andoriginal/nativechild
+compositions,896controlledprefix boundarycases,8no-accessguards,2altered-ROM
+controls PASS. CPU/fullWRAM/syntheticSRAM/orderedbus/MMIO/childinputs agree.
+Clear/graphics/display/saveflags areactual;button/frame/save services controlled.
+BothXwidths,1024-passboundaries,loadedtails andoriginaldoubleclear retained.
+StrictWindows/GCC/Clanglibraries,C++header,archiveexport,metadata pass;CLI
+binariesunchanged andpriorbehaviorproof reused. No originalincomingcaller,
+canonicalpromotion,binding,productionadmission orperformanceclaim. Fullunrelated
+regression/gamebuild deferred:no consumerchange. Testsprivate:
+.agent/decomp/runtime-frontier/unrooted-diagnostics-prefix-current/.
+
 ## Header-actor and work-area prefix checkpoint
 
 Shared perMSVC/Clang:1024original-ROM C446/C442 cases,192childunwind cases,
