@@ -1,3 +1,15 @@
+## Unrooted slot-offset checkpoint
+
+Original80:D835 to the D848 RTS boundary passes135,168 CPU/full-WRAM/ordered-bus
+cases per MSVC/Clang,six no-access guards and two altered-ROM controls each.
+Both index widths,carry propagation and scratch accesses are preserved. The
+original incoming caller remains unproved;no canonical metadata or runtime
+binding is added. Strict Windows/GCC/Clang libraries,C++ header,actual archive
+export and metadata checks pass. CLI binaries remain byte-identical;prior CLI
+behavior checks are reused. Full unrelated regression,game builds and runtime
+admission/performance checks are deferred:no consumer code changed.
+Private tests: .agent/decomp/runtime-frontier/unrooted-slot-offset-current/.
+
 ## Unrooted battle condition branch checkpoint
 
 Original85:B56E to85:B45E passes77,824 CPU/full-WRAM/ordered-bus comparisons
