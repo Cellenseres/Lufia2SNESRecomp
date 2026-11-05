@@ -1,3 +1,16 @@
+## Unrooted selection controller checkpoint
+
+The original selection/action/wait body passes40517 CPU/full-WRAM/ordered-bus
+cases per MSVC/Clang,43 guards and four altered-ROM controls. Every original
+child site has frame,unwind and incompatible-return coverage. Counter wrap,
+release,4096-read exhaustion and a resumed wait compare original checkpoints.
+Unknown child services are explicitly separated from original child semantics;
+no runtime admission,timing or canonical metadata promotion is claimed.
+Strict Windows/GCC/Clang libraries,actual exports,C++ header and metadata pass.
+CLI binaries are unchanged;prior CLI checks reused. Full unrelated regression
+is deferred. Private receipt:
+.agent/decomp/runtime-frontier/unrooted-selection-current/ACCEPTANCE.json.
+
 ## Unrooted record math checkpoint
 
 Five leaves and two callback-backed original parent regions pass a combined
