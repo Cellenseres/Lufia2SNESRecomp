@@ -1,3 +1,15 @@
+## Code-origin data-reader investigation
+
+No semantic or runtime source changed. A review of 22 prefixes maps 16 hits to
+existing C and four to data associations; two remain untyped. Windows native
+sprite routines read 8E:E02F from frame 8E:E028 for two nominal animations.
+This is data-reader exploration, not new interp816, timing or admission proof.
+Five existing sections are catalogued without new APIs, metadata or bindings.
+Original 85:C3AF -> 85:C332 and enemy_first = false remain literal.
+Unchanged source/CFG/metadata inputs are hash-checked; no full test, CLI
+or platform build repeated. Private evidence:
+.agent/decomp/runtime-frontier/interior-origin-review-current/REVIEW.json.
+
 ## Unrooted selection controller checkpoint
 
 The original selection/action/wait body passes40517 CPU/full-WRAM/ordered-bus
