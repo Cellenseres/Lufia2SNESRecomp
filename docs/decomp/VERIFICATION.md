@@ -1,3 +1,28 @@
+## Legacy battle submenu entry count
+
+`Lufia2BattleDrawLegacyEntryCount` reconstructs `81:D1E0` through `81:D21B`.
+Except for submenu kind two, it divides the byte entry count by ten through
+bank-zero hardware registers. It writes two attributes and two digit tiles,
+leaving a zero tens digit blank. It then pulls the saved data bank and switches
+to a 16-bit accumulator. Existing title rendering does not execute this block;
+its original branch skips it. The incoming caller remains unproved.
+
+The scoped API accepts PB81, M1 and either valid index width. It preserves DB
+addressing for tile writes, direct-page addressing for inputs, decimal ADC
+behavior, accumulator high byte and the original stack pull. MSVC and Clang
+each pass 77,824 original-ROM comparisons, four no-access guards and two
+altered-ROM controls. CPU, complete WRAM, ordered data/MMIO accesses and
+divider state agree. Tests cover every byte kind/count pair, independent
+count/decimal edge combinations, index widths, bank crossings, hardware
+aliases and stack wrap. Tests remain private in the consumer repository.
+
+This is semantic evidence, not cycle or production admission proof. The bus
+fixture computes division immediately; the two original NOPs at D200/D201
+and actual divider latency remain obligations for any future timed consumer.
+No runtime binding or canonical metadata is added. Strict incremental library,
+header, export and metadata checks share the checkpoint; resource CLI binaries
+remain unchanged. Unrelated full regression and game builds are deferred.
+
 ## Conditional legacy battle result flag
 
 `Lufia2BattleSetLegacyResultFlag` reconstructs `85:BEA6` through the jump to
