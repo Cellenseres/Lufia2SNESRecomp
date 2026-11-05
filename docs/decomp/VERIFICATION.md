@@ -1,3 +1,14 @@
+## Alternate battle frame checkpoint
+
+Original81:E40A and existing81:E405 share one frame body. Each MSVC/Clang
+passes2,248 original-ROM CPU/full-WRAM/ordered-bus cases,8 no-access guards
+and2 altered-ROM controls. Includes zero/extreme dimensions;no child stubs.
+Strict Windows/GCC/Clang libraries,C++header,actual archive exports and
+metadata pass. CLI binaries remain byte-identical;prior CLI behavior proof
+reused. No original caller,binding or performance claim. Full unrelated suite
+and game builds deferred:no consumer change. Tests remain private:
+.agent/decomp/runtime-frontier/unrooted-frame-current/.
+
 ## Unrooted slot-offset checkpoint
 
 Original80:D835 to the D848 RTS boundary passes135,168 CPU/full-WRAM/ordered-bus
