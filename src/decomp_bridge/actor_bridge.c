@@ -3656,8 +3656,8 @@ static void ActorBridgeSoundTransferOpcode(CpuState *cpu, uint32_t entry) {
             ActorBridgeSoundUpload(cpu, entry);
         return;
     }
-    if (!g_snes || !g_snes->hdmaBeamOff ||
-        cpu->coprocessor_master_cycles != cpu->master_cycles)
+    if (!g_snes || cpu->coprocessor_master_cycles != cpu->master_cycles ||
+        (!g_snes->hdmaBeamOff && g_interp_bridge_pc_hook))
         return;
     const unsigned cycles = opcode->cycles + opcode->branch +
                             (opcode->indexed && cpu->Y >= 0x100u);

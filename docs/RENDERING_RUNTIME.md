@@ -1722,3 +1722,28 @@ and reused; no semantic entry, API or binding is added. Unrelated full suites
 are deferred. Raw-profile hrv0 is a hardcoded sentinel, not a sampled caller
 flag; passive production-hook observation measured host-return-valid 1.
 Private receipt: `.agent/decomp/runtime-frontier/late-transition-window-current/ACCEPTANCE.json`.
+
+
+### Sound transfer single-opcode admission
+
+The single-opcode caller retains APU clock coherence and uses the existing
+hardware window predicate when HDMA beam tracking is enabled. That predicate
+still fences active or pending visible-line HDMA, IRQ/NMI, DMA, refresh,
+stack bounds and the frame deadline. The separate relaxed scanline route
+continues to require the beam-off flag. Global observers retain the previous
+route in the newly admitted contexts. No original sound opcode or handshake
+semantics change.
+
+The scoped checkpoint compares all 58 sound-transfer opcode boundaries with
+both MSVC and Clang: 9,948 admitted states, 4,900 refusals and 1,450 no-access
+guards per compiler. Original-ROM CPU, WRAM, ordered accesses and opcode clocks
+agree. Actual SDK hook replays preserve 733 foreign-hook and 1,212 global
+observer calls. The 1,800-frame cold replay preserves complete saved state,
+extended APU clocks, picture, native APU idle count and 972,311 PCM samples;
+raw interpreter calls decrease from 42,641 to 33,629. Native single-opcode
+execution rises from zero to 9,012 steps in that same replay.
+
+Three serial alternating 600-frame comparisons with profiling disabled have
+candidate/reference runtime ratios 0.947, 1.036 and 0.995. This is not a reliable
+speedup or whole-game FPS result. Unchanged standalone semantics and unrelated
+regressions reuse earlier evidence; no full regression or owner build was run.
