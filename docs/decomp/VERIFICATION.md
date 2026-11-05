@@ -1,3 +1,15 @@
+## Unrooted battle condition branch checkpoint
+
+Original85:B56E to85:B45E passes77,824 CPU/full-WRAM/ordered-bus comparisons
+per MSVC/Clang,nine no-access guards and three altered-ROM controls each.
+The scoped entry shares existing operand readers; no original incoming caller
+or nominal opcode is established, so canonical metadata and consumer binding
+remain absent. Strict Windows/GCC/Clang libraries,C++ header,actual archive
+export,metadata and refreshed catalogue pass. CLI binaries are unchanged;
+prior CLI behavior checks are reused. Full unrelated regression,game builds
+and runtime admission/performance checks are deferred: no consumer code changed.
+Tests stay private at .agent/decomp/runtime-frontier/unrooted-condition-current/.
+
 ## Code-origin data-reader investigation
 
 No semantic or runtime source changed. A review of 22 prefixes maps 16 hits to
