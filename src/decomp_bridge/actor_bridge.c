@@ -3886,6 +3886,10 @@ static void ActorBridgeMenuRectangleStep(CpuState *cpu, uint32_t entry) {
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS)
+#if defined(LUFIA2_HAVE_NATIVE_BOOT_NMI_WAIT)
+#include "boot_nmi_wait_clock.inc"
+#endif
+
 typedef struct ActorFramePollEntry {
     uint32_t address;
     bool branch;
@@ -4232,6 +4236,13 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
          i < sizeof sound_upload_opcodes / sizeof sound_upload_opcodes[0]; ++i)
         interp_bridge_set_pre_opcode_hook(0x800000u | sound_upload_opcodes[i].pc,
                                           ActorBridgeSoundTransferOpcode);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS) && defined(LUFIA2_HAVE_NATIVE_BOOT_NMI_WAIT)
+    if (Lufia2DecompFrameRangeAllows(0x808084u, 0x808088u,
+                                    Lufia2DecompBootNmiWaitHookOwned)) {
+        interp_bridge_set_pre_opcode_hook(0x808084u, ActorBridgeBootNmiWait);
+        interp_bridge_set_pre_opcode_hook(0x808086u, ActorBridgeBootNmiWait);
+    }
 #endif
 }
 #endif

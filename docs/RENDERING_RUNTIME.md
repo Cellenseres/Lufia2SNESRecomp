@@ -1747,3 +1747,44 @@ Three serial alternating 600-frame comparisons with profiling disabled have
 candidate/reference runtime ratios 0.947, 1.036 and 0.995. This is not a reliable
 speedup or whole-game FPS result. Unchanged standalone semantics and unrelated
 regressions reuse earlier evidence; no full regression or owner build was run.
+
+
+### Boot NMI wait and certified logo batches
+
+The internal `80:8084/8086` phase uses the original standalone boot NMI-bank
+read and branch through a scoped continuation. Native admission retains
+M1X1/DP0, coherent APU clocks, stack, IRQ/NMI, DMA/HDMA, refresh, deadline and
+observer checks. Multi-operation retirement also requires the actual owned-span
+budget to admit at least 16 opcodes. The existing counter-poll classification
+and APU idle seams are unchanged.
+
+The logo wait kernel runs before opcode callbacks. Its two hook slots accept
+only the exact certified callback identity and PC. Compatibility is maintained
+when the SDK registry adds, replaces or clears hooks; rejected full-table
+insertions do not alter it. The hot wait reads two cached blocker flags.
+Installation also preserves pre-existing foreign callbacks and global observers.
+Foreign callbacks retain their original route. This prevents the native hooks
+from blocking the already certified wait batches or adding repeated ownership
+calls to the hot path.
+
+The shared checkpoint passes 16,384 original-ROM step states and 1,273 guards
+per MSVC/Clang, plus the affected full boot matrix. Timed integration passes
+1,024 cases, 56 guards, four ownership cases and 18 instruction budgets per
+compiler. Actual SDK registry checks cover 16 mutations and five identities,
+including mirror keys, clear-all, replacement, restoration and table capacity.
+API-off composition passes; disabled logo-wait generation adds no cache dependency.
+
+In the paired 1,800-frame cold replay, 780 native calls retire 917 instructions;
+raw interpreter calls decrease from 33,629 to 32,712. Complete saved state
+(after one validated host pointer is normalized),
+extended clocks, picture, 972,311 PCM samples/hash, 165,698 native APU idle
+steps, counter metrics and 3,074,869 logo wait pairs agree. Separate foreign
+and global observer replays preserve 1,492,459 and 593 callback invocations.
+
+Three separate-image 600-frame timing pairs have median candidate/reference
+ratio 1.0068. A registration-only reference toggle in one linked image gives
+five alternating ratios from 0.8996 to 1.0335, median 1.0133, with identical
+saved state, clocks, PCM and wait counts. These measurements distinguish
+integration cost from image layout; they do not establish a reliable speedup
+or whole-game FPS result. No original wait, sound handshake or guest work is
+removed. Unrelated full regression and other platform integration were deferred.

@@ -36,6 +36,9 @@ function(lufia2_prepare_logo_wait sources_var)
                     getenv("SNESRECOMP_INTERP_RATE_LOG") != NULL ||
                     getenv("SNESRECOMP_WLOG_STATE") != NULL;
             bool hooked = false;
+#if defined(LUFIA2_HAVE_NATIVE_BOOT_NMI_WAIT)
+            hooked = s_lufia2_logo_wait_hooked[0] || s_lufia2_logo_wait_hooked[1];
+#else
             /* Registry keys are normalized to 23 bits. Only page $00:80
              * can contain either opcode; follow its maintained slot chain
              * instead of scanning every registered continuation each pair. */
@@ -47,6 +50,7 @@ function(lufia2_prepare_logo_wait sources_var)
                     break;
                 }
             }
+#endif
             const Cart *cart = g_snes->cart;
             if (!observers && !hooked && cart->rom && cart->romSize >= 0x88u &&
                 cart->rom[0x84] == 0xa5 && cart->rom[0x85] == 0x6a &&
@@ -100,10 +104,45 @@ function(lufia2_prepare_logo_wait sources_var)
         if(NOT _delta EQUAL _length)
             message(FATAL_ERROR "Logo wait anchor must match exactly once")
         endif()
+        set(_ownership "")
         if(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD AND LUFIA2_ENABLE_LOGO_WAIT_FASTFORWARD)
+            set(_ownership "#if defined(LUFIA2_HAVE_NATIVE_BOOT_NMI_WAIT)\n#include \"src/decomp_bridge/boot_nmi_wait.h\"\nstatic unsigned s_lufia2_logo_wait_hooked[2];\n#endif\n")
             string(REPLACE "${_anchor}" "${_batch}${_anchor}" _text "${_text}")
+            set(_hook_update [=[
+#if defined(LUFIA2_HAVE_NATIVE_BOOT_NMI_WAIT)
+            if (key == 0x008084u || key == 0x008086u)
+                s_lufia2_logo_wait_hooked[(key - 0x008084u) >> 1] =
+                    !Lufia2DecompBootNmiWaitHookOwned(0x800000u | key, hook);
+#endif
+]=])
+            foreach(_hook_anchor IN ITEMS
+                    "            s_pre_opcode_hooks[i].hook = hook;"
+                    "        s_pre_opcode_hooks[s_pre_opcode_hook_count].hook = hook;")
+                string(REPLACE "${_hook_anchor}" "" _without_hook "${_text}")
+                string(LENGTH "${_text}" _hook_before)
+                string(LENGTH "${_without_hook}" _hook_after)
+                string(LENGTH "${_hook_anchor}" _hook_length)
+                math(EXPR _hook_delta "${_hook_before} - ${_hook_after}")
+                if(NOT _hook_delta EQUAL _hook_length)
+                    message(FATAL_ERROR "Logo wait hook update must match once")
+                endif()
+                string(REPLACE "${_hook_anchor}" "${_hook_anchor}\n${_hook_update}"
+                    _text "${_text}")
+            endforeach()
+            set(_hook_reset "        s_pre_opcode_hook_count = 0;")
+            string(REPLACE "${_hook_reset}" "" _without_reset "${_text}")
+            string(LENGTH "${_text}" _reset_before)
+            string(LENGTH "${_without_reset}" _reset_after)
+            string(LENGTH "${_hook_reset}" _reset_length)
+            math(EXPR _reset_delta "${_reset_before} - ${_reset_after}")
+            if(NOT _reset_delta EQUAL _reset_length)
+                message(FATAL_ERROR "Logo wait hook reset must match once")
+            endif()
+            string(REPLACE "${_hook_reset}"
+                "${_hook_reset}\n#if defined(LUFIA2_HAVE_NATIVE_BOOT_NMI_WAIT)\n        s_lufia2_logo_wait_hooked[0] = s_lufia2_logo_wait_hooked[1] = 0u;\n#endif"
+                _text "${_text}")
         endif()
-        set(_counter "#include \"src/lufia2_logo_wait.h\"\nstatic uint64_t s_lufia2_logo_wait_pairs;\nuint64_t lufia2_logo_wait_pairs_count(void) { return s_lufia2_logo_wait_pairs; }\n")
+        set(_counter "#include \"src/lufia2_logo_wait.h\"\n${_ownership}static uint64_t s_lufia2_logo_wait_pairs;\nuint64_t lufia2_logo_wait_pairs_count(void) { return s_lufia2_logo_wait_pairs; }\n")
         file(WRITE "${_file}" "${_counter}${_text}")
         math(EXPR _matches "${_matches} + 1")
     endforeach()

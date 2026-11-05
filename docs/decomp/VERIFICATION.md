@@ -1,3 +1,15 @@
+## Boot NMI wait continuation checkpoint
+
+The original `80:8084/8086` scoped step and shared full boot read pass the
+combined MSVC/Clang ROM and timing checkpoint. Actual generated SDK callers,
+registered callback identities and cache invalidation are checked separately.
+The initial hook-only composition was rejected because it blocked certified
+logo batching; the accepted composition retains every measured logo pair,
+foreign/global callback, device/APU clock and PCM sample. Native instructions,
+fallback counts and matched timing are recorded separately. No new canonical
+function count is claimed. Private receipt:
+`.agent/decomp/runtime-frontier/boot-nmi-wait-current/ACCEPTANCE.json`.
+
 ## Effect-slot counter continuation checkpoint
 
 The `81:8AB4/8B25` counter phase passes 6,428 cases per MSVC/Clang, two
