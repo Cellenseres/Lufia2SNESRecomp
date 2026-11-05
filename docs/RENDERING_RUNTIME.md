@@ -1618,3 +1618,29 @@ adoption and lower measured cost, not whole-game speedup or console FPS.
 Full regression, other-platform builds and public CLI export are deferred;
 build definitions, source selection and canonical metadata are unchanged.
 Private receipt: `.agent/decomp/runtime-frontier/display-transition-polls-current/ACCEPTANCE.json`.
+
+
+## Shared actor contact geometry - 2026-11-05
+
+Legacy field-trigger scanning and the complete actor-contact routine share one
+private original overlap body at `83:B8DF`. No public ABI, native binding, hook,
+timing engine, source list or admission predicate changes. Both call paths keep
+their original flags, ordered reads, scratch writes and guest call/return frames.
+
+The shared checkpoint reuses unchanged MSVC/Clang proofs of 65,536 ROM-fragment
+states each, including a 32,768-state legacy binary-equivalence subset. A changed
+original load opcode fails. The resumed isolated Windows dependency build and
+actual producer relink pass. Matched 3,298-frame field and 1,580-frame cave arms
+retain full guest/device state, extended APU clock, PCM, native idle, raw opcode
+contexts and picture. Passive counters match the real producer and report
+12,710 complete-contact calls in the cave; field/legacy calls are zero there.
+No native-admission claim is made for an unexercised path.
+
+COFF code in the two affected modules decreases by 1,600 bytes. Initial unpinned
+samples were slower; controlled same-core wall times vary in both directions
+(507.3723/479.1349/489.1375 ms before; 493.8704/492.0267/480.9239 ms after).
+Thread CPU values are quantized; this small sample establishes neither a stable
+speedup nor a repeatable slowdown, and gives no console FPS or whole-game claim.
+No full regression, other-platform rebuild or CLI export was repeated for this
+source-only sharing. Private receipt:
+`.agent/decomp/runtime-frontier/actor-contact-sharing-current/ACCEPTANCE.json`.
