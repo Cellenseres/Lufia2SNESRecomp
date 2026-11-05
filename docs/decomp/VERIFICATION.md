@@ -1,3 +1,14 @@
+## Conditional actor-state fragment checkpoint
+
+Original83:DB3A toD60D/D5C3 passes135168 CPU/fullWRAM/ordered-bus cases per
+MSVC/Clang,4no-access guards and2altered-ROM controls. Bothindexwidths,all
+mode/state bytepairs and4096bank/DP/index edge samples are checked. No children.
+Strict Windows/GCC/Clang libraries,C++header,actual archiveexport andmetadata
+pass;unchanged CLI behavior proof reused after byte-identical binary checks.
+Incomingcaller/opcode unproved:no canonicalmetadata,runtimebinding orspeedclaim.
+Full unrelatedregression/gamebuild deferred:no consumerintegration change.
+Tests remainprivate:.agent/decomp/runtime-frontier/unrooted-window-branch-current/.
+
 ## Popup and background-clear fragment checkpoint
 
 One shared batch perMSVC/Clang passes8704 original-ROM popup cases across
