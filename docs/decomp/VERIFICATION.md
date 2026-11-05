@@ -1,3 +1,17 @@
+## Header-actor and work-area prefix checkpoint
+
+Shared perMSVC/Clang:1024original-ROM C446/C442 cases,192childunwind cases,
+4096original-ROM96A2/969C cases,12no-access guards and4altered-ROM controls.
+CPU/fullWRAM/ordered data match. Headerchildren executeoriginalROM without
+stubs;6144recursive returns andalltop-level childinputs checked. Copy matrix
+coversallDBs,bothM widths andallcarry/overflow pairs,includingword overlap.
+StrictWindows/GCC/Clanglibraries,C++headers,archiveexports,metadata pass.
+CLI binaries unchanged;priorCLIbehavior reused. Incomingcallersunproved:no
+canonicalmetadata,runtimebinding,productionadmission orperformanceclaim.
+Fullunrelatedregression/gamebuild deferred:no consumerchange. Testsprivate:
+.agent/decomp/runtime-frontier/unrooted-header-prefix-current/ and
+unrooted-workarea-prefix-current/.
+
 ## Conditional actor-state fragment checkpoint
 
 Original83:DB3A toD60D/D5C3 passes135168 CPU/fullWRAM/ordered-bus cases per
