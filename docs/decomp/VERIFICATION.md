@@ -1,3 +1,25 @@
+## Legacy battle condition assignment
+
+`Lufia2BattleSetLegacyCondition` reconstructs `85:BB3A` through `85:B45E`.
+It switches to a 16-bit accumulator and writes condition value two to `7F:F42E`.
+The original block lies between the summon handler and action-13 handler,
+but is not an entry in the nominal `00..5C` opcode table. Its incoming caller
+and opcode remain unproved; no canonical metadata or runtime binding is added.
+
+MSVC and Clang each pass 32,768 original-ROM CPU/full-WRAM/ordered-write cases,
+three no-access guards and two altered-ROM controls. The matrix crosses both
+M/X widths, sixteen C/N/Z/V combinations, all DB values and both decimal modes.
+DP, stack, A, I and previous condition vary. REP20 normalizes M; X and the other
+unaffected state remain intact. Strict Windows/GCC/Clang libraries, C++ header,
+archive export and metadata checks pass. Resource CLI binaries are identical.
+
+Existing source equals its previous revision after removing only the added
+function and prototype. All other 564 canonical source hashes and 17 CFG input
+hashes match, so the prior CFG inventory and unchanged-function proofs are
+reused. Source metrics and the VM-source hash are refreshed incrementally.
+No fresh whole-parent, runtime admission or performance claim follows. Full
+unrelated regression and game builds are deferred; tests remain private.
+
 ## Legacy object slot-value branch
 
 `Lufia2ObjectStoreLegacySlotValue` reconstructs `83:F192` through the branch
