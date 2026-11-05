@@ -1644,3 +1644,36 @@ speedup nor a repeatable slowdown, and gives no console FPS or whole-game claim.
 No full regression, other-platform rebuild or CLI export was repeated for this
 source-only sharing. Private receipt:
 `.agent/decomp/runtime-frontier/actor-contact-sharing-current/ACCEPTANCE.json`.
+
+
+## Late display-poll admission - 2026-11-05
+
+Only the three existing display-transition polls may start through hPos 1264;
+sound and counter polls retain 1240. New positions require the actual global
+CPU, vPos below 262 and a current refresh clock with phase below 1364. The
+original M1 absolute load and same-page branch cost at most 54 master clocks;
+the actual refresh implementation adds at most 40. The resulting 1358 endpoint
+precedes the shortest 1360-clock scanline. The 128-clock deadline reserve,
+IRQ/NMI, DMA, HDMA, beam, APU and exact indexed hook checks remain mandatory.
+
+MSVC and Clang each pass 1,158 actual admission cases, 103 registry cases and
+5,456 actual refresh cases. Removing refresh freshness fails the negative
+control. Matched 204/540-frame production replays retire 4,406/4,400 fewer raw
+opcodes, with 2,203/2,200 extra native iterations. Full state, extended APU
+clock, PCM, picture and native idle agree; 1,580/3,298-frame controls are
+unchanged. Foreign and global observers remain exercised with identical opcode
+profiles. Passive native-counter arms also match their unobserved arms.
+
+Three alternating same-core pairs measure 204-frame wall times of
+88.50/85.64/87.25 ms before versus 83.75/83.74/91.14 ms after, and 540-frame
+times of 183.96/172.35/181.51 ms versus 170.14/171.13/180.80 ms. Thread CPU
+timing is coarse; the short scene varies both ways. These scoped CPU/APU/PCM
+measurements do not establish a general speedup or whole-game FPS. Drawing
+and setup are excluded.
+
+The isolated agent Release and optional-API-off compilation pass. Original
+transition semantics and their 99,081-case MSVC/Clang ROM proof are unchanged
+and reused; no semantic entry, API or binding is added. Unrelated full suites
+are deferred. Raw-profile hrv0 is a hardcoded sentinel, not a sampled caller
+flag; passive production-hook observation measured host-return-valid 1.
+Private receipt: `.agent/decomp/runtime-frontier/late-transition-window-current/ACCEPTANCE.json`.

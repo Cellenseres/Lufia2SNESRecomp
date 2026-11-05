@@ -3470,10 +3470,19 @@ typedef struct ActorPollRun {
     bool opcode_fetch;
 } ActorPollRun;
 
-static bool ActorBridgePollRunSupported(const CpuState *cpu, uint32_t entry) {
+static bool ActorBridgePollRunSupported(const CpuState *cpu, uint32_t entry,
+                                        unsigned last_position) {
     if (!g_snes || !g_snes->apu ||
-        !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, true, 1240u, 128u))
+        !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, true,
+                                             last_position, 128u))
         return false;
+    if (last_position > 1240u && g_snes->hPos > 1240u) {
+        uint64_t phase, charged;
+        snes_refresh_state_get(&phase, &charged);
+        if (cpu != &g_cpu || g_snes->vPos >= 262u ||
+            phase >= 1364u || charged != cpu->master_cycles)
+            return false;
+    }
     if (!g_snes->hdmaBeamOff && g_snes->vPos < 225u && g_snes->hPos >= 896u &&
         ActorBridgeHdmaMayTransfer())
         return false;
@@ -3514,8 +3523,9 @@ typedef Lufia2ExecutionResult (*ActorPollIteration)(const Lufia2Memory *,
 
 static bool ActorBridgePollRun(CpuState *cpu, uint32_t entry,
                                ActorPollIteration iteration, unsigned fetched, bool opcode_fetch,
-                               bool (*owned)(uint32_t, InterpPreOpcodeHook)) {
-    if (!ActorBridgePollRunSupported(cpu, entry) ||
+                               bool (*owned)(uint32_t, InterpPreOpcodeHook),
+                               unsigned last_position) {
+    if (!ActorBridgePollRunSupported(cpu, entry, last_position) ||
         (owned && !Lufia2DecompFrameRangeAllows(entry, entry + fetched + 2u, owned)))
         return false;
     ActorPollRun run = {0};
@@ -3543,7 +3553,7 @@ static bool ActorBridgePollRun(CpuState *cpu, uint32_t entry,
         /* The branch checkpoint already published these exact registers;
          * the semantic branch/return and its clock retirement do not edit them. */
     } while (next == entry && run.bus.count < 16u &&
-             ActorBridgePollRunSupported(cpu, entry));
+             ActorBridgePollRunSupported(cpu, entry, last_position));
     if (!run.bus.count)
         return false;
     Lufia2DecompFrameReturnComplete(run.bus.count, run.bus.progress_mask);
@@ -3561,8 +3571,9 @@ static bool ActorBridgeTransitionPollOwned(uint32_t pc, InterpPreOpcodeHook hook
 static void ActorBridgeTransitionPoll(CpuState *cpu, uint32_t entry) {
     if (!cpu->m_flag || cpu->DB != 0x83u)
         return;
+    /* Reserve one refresh before the shortest scanline ends. */
     ActorBridgePollRun(cpu, entry, Lufia2FieldTransitionPollIteration,
-                       3u, true, ActorBridgeTransitionPollOwned);
+                       3u, true, ActorBridgeTransitionPollOwned, 1264u);
 }
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_POLL_RUNS)
@@ -3626,7 +3637,7 @@ static void ActorBridgeSoundPollRun(CpuState *cpu, uint32_t entry) {
                           entry == 0x809c69u;
     const unsigned fetched = absolute ? 3u : 4u;
     if (!ActorBridgePollRun(cpu, entry, Lufia2SoundPollIteration, fetched, true,
-                            ActorBridgeSoundPollHookOwned))
+                            ActorBridgeSoundPollHookOwned, 1240u))
         ActorBridgeSoundPollStep(cpu, entry, fetched);
 }
 #endif
@@ -3902,7 +3913,7 @@ static const ActorFramePollEntry frame_poll_entries[] = {
 };
 
 static bool ActorBridgeFramePollSupported(const CpuState *cpu, uint32_t entry) {
-    if (ActorBridgePollRunSupported(cpu, entry))
+    if (ActorBridgePollRunSupported(cpu, entry, 1240u))
         return true;
     if (!g_snes || !g_snes->hdmaBeamOff ||
         cpu->coprocessor_master_cycles != cpu->master_cycles)
@@ -3949,8 +3960,8 @@ static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
     const bool branch = frame_poll_entries[index].branch;
     if (cpu->m_flag && !cpu->D && g_snes->hdmaBeamOff &&
         Lufia2DecompFramePollIsCounterPair(entry) && Lufia2DecompFramePollBatchSupported(entry) &&
-        ActorBridgePollRunSupported(cpu, entry)) {
-        ActorBridgePollRun(cpu, entry, ActorBridgeFramePollIteration, 2u, true, NULL);
+        ActorBridgePollRunSupported(cpu, entry, 1240u)) {
+        ActorBridgePollRun(cpu, entry, ActorBridgeFramePollIteration, 2u, true, NULL, 1240u);
         return;
     }
     const bool read_counter = !branch;
