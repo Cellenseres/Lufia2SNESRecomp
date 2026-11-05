@@ -1,3 +1,16 @@
+## Popup and background-clear fragment checkpoint
+
+One shared batch perMSVC/Clang passes8704 original-ROM popup cases across
+81:C477/C467 and16384 cases for86:C5F4,with12no-access guards and4altered-ROM
+controls. CPU/fullWRAM/ordered data accesses match;popup children are not
+stubbed. All DB values,M/X widths and CNZV combinations cover the clear leaf.
+Strict Windows/GCC/Clang libraries,C++header,archive exports and metadata pass.
+Unchanged CLI behavior proof is reused after byte-identical CLI checks.
+No original incoming callers,canonical promotions,bindings or performance claim.
+Full unrelated regression/game builds deferred:no consumer integration change.
+Private evidence:.agent/decomp/runtime-frontier/unrooted-popup-current/ and
+unrooted-background-current/;tests stay local.
+
 ## Alternate battle frame checkpoint
 
 Original81:E40A and existing81:E405 share one frame body. Each MSVC/Clang
