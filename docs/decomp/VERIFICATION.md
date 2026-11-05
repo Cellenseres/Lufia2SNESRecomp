@@ -1,3 +1,14 @@
+## Unrooted record direction checkpoint
+
+Four original bank85 variants share one reconstructed direction algorithm.
+The scoped original-ROM batch passes386048 CPU/full-WRAM/ordered-bus cases
+per MSVC/Clang,36 no-access guards and two altered-ROM controls. Strict
+Windows/GCC/Clang libraries, archive exports, C++ header and metadata pass.
+CLI binaries are unchanged; prior CLI checks are reused. No original caller
+or runtime admission is established, so no binding is added. Full unrelated
+regression is deferred; private evidence: runtime-frontier/unrooted-transfers-current
+under .agent/decomp. See standalone UNREFERENCED_FRAGMENTS.md for the contract.
+
 ## Boot NMI wait continuation checkpoint
 
 The original `80:8084/8086` scoped step and shared full boot read pass the
