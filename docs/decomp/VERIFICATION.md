@@ -1,3 +1,26 @@
+## Conditional legacy battle result flag
+
+`Lufia2BattleSetLegacyResultFlag` reconstructs `85:BEA6` through the jump to
+`85:B45E`. It tests bit zero of `7F:F45A`; when clear, it ORs `0020` into
+`7F:F4D0`. The existing `85:BE7D` and `85:BE96` handlers share the same
+parameterized C helper, retaining their original masks `0002` and `0004`.
+Immediate BIT changes only Z. The skipped store, accumulator and other flags
+remain faithful to the original branch.
+
+The scoped entry accepts PB85 and valid M/X widths. REP20 normalizes M;
+DB, DP, decimal mode and stack do not restrict these long-address operations.
+MSVC and Clang each compare 196,608 original-ROM cases: every 16-bit condition
+for all three fragments, varying widths, banks, status, DP, stack and existing
+result flags. CPU, complete WRAM and ordered data accesses agree. The old
+handlers are checked at their shared-helper boundaries, not as complete script
+sessions. Three no-access guards and two altered-ROM controls pass each.
+
+The incoming caller and script opcode remain unproved. This is a scoped
+original fragment sharing an existing algorithm, without canonical metadata,
+a runtime binding, gameplay reachability or performance claims. Tests stay
+private. Incremental compiler, header, metadata and catalogue evidence belongs
+to the common checkpoint; unrelated full regression and game builds are deferred.
+
 ## Diagnostic save-menu prefix checkpoint
 
 PerMSVC/Clang:1800ROM-parent cases across831F/8322 andoriginal/nativechild
