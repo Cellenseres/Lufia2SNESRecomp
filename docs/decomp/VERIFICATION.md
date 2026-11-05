@@ -1,3 +1,26 @@
+## Legacy object slot-value branch
+
+`Lufia2ObjectStoreLegacySlotValue` reconstructs `83:F192` through the branch
+to `83:E10F`. It loads the slot index from DP A7, reads a DB-relative script
+value at Y, writes the existing `7F:D9CC` slot field, and increments Y. The
+field meaning and original incoming opcode remain unproved, so naming stays
+neutral. Both M/X widths are supported; a word store still advances Y by one.
+The original high accumulator, index wrapping, flags, DB and DP are retained.
+
+MSVC and Clang each pass 65,536 original-ROM CPU/full-WRAM/ordered-data cases,
+three no-access guards and two altered-ROM controls. The seed grid crosses
+four M/X modes, 256 DB values, eight source cursors and eight slot indexes;
+8-bit indexes normalize the seeded cursor. Bank crossings, aliasing and varied
+DP/stack/status are included. Strict Windows/GCC/Clang libraries, C++ header,
+archive export and metadata checks pass. Resource CLI binaries are unchanged.
+
+No canonical metadata, opcode association or runtime binding is invented.
+Production admission and performance are not claimed. Canonical source/CFG
+inventory is reused after checking all 565 source hashes and 17 input hashes;
+this standalone fragment is separately hashed and tested. Unchanged legacy
+bodies retain their earlier proofs. Full unrelated regression and game builds
+are deferred. Tests and probes stay private in the consumer repository.
+
 ## Legacy battle submenu entry count
 
 `Lufia2BattleDrawLegacyEntryCount` reconstructs `81:D1E0` through `81:D21B`.
