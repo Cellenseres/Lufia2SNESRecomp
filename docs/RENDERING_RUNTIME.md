@@ -1,3 +1,48 @@
+## World-session branch continuation - 2026-11-05
+
+Ordinary branches into `86:925C` do not offer a call binding. The checked
+interpreter boundary now resumes the existing semantic world-session loop
+without a fabricated guest call frame. The standalone session and continuation
+share one game body; this adds no algorithm or canonical entry. The consumer
+supplies separate fetch/internal/data clocks and preserves original child calls.
+
+Admission requires the actual global CPU, original saved stack, DB/DP/widths,
+binary mode, synchronized beam/refresh, device/deadline room and a quiet indexed
+parent span. Pending interrupts, host interrupt context, nested interpreter
+owners, explicit stop PCs, tracing and global/foreign observers retain their
+original route. Child boundaries recheck admission. Active owner handoffs,
+deadlines, consumable SKIP1 returns and actual nonlocal town exits retain their
+stack, landing and APU ownership. Unknown hooks are never cleared or ignored.
+
+The longest parent prefix is 288 SlowROM master clocks: a non-centered row takes
+the longer branch, including the repeated-frame BRA. At most 40 refresh clocks
+raise it to 328. The existing sound-window policy reserves 384 and uses the real
+1024 HDMA fence. Visible active/pending HDMA permits hPos at most 639; the separate
+800 cap also stays before the shortest scanline boundary. Original HDMA, waits,
+MMIO and sound work remain enabled.
+
+The shared checkpoint includes 4,109 ROM/guard cases per compiler, 5,546 actual
+admission/refresh cases, independent branch/freshness/landing controls and six
+CMake availability plus four composition checks. Agent Release and API-off actor
+compilation pass. The generated target contains one interpreter owner with one
+world seam; actual linked production actor/interpreter objects preserve full
+state, extended APU clocks, PCM, picture and native APU idle counts across 800
+paired frames. Additional 720 observer and 360 controlled SKIP1 frames retain the
+same contracts. Child RTS model cases do not substitute for these runtime proofs.
+
+Instrumented admission witnesses report 211/135/29 native continuations in the
+360/332/108-frame world, entry and exit replays. Actual production profiles
+retire fewer original opcodes; unchanged foreign/global controls refuse the seam.
+Six alternating 4,320-frame same-core cost pairs remove opcode instrumentation,
+keep DSP synthesis/draining and omit sample hashing in both arms. Their final
+median candidate/reference ratio is 0.995; individual ratios span 0.982 to 1.053.
+An earlier exploratory sample looked faster. The final spread establishes no
+reliable speedup or whole-renderer/FPS acceptance. Performance remains unproven.
+Full unrelated semantic regression and other-platform builds are deferred.
+
+Private receipt: runtime-frontier/world-continuation-current/ACCEPTANCE.json.
+
+
 ## Effect-slot counter admission
 
 The existing effect-slot callback now also admits the original two-op countdown

@@ -21092,3 +21092,7 @@ RecompReturn Lufia2DecompBridge_81E38F(CpuState *cpu) {
     return ActorBridgeFallback(cpu, &frame, cpu->PB == 1u ? 0x01e38fu : 0x81e38fu);
 #endif
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_LOOP)
+#include "world_frame_clock.inc"
+#endif
