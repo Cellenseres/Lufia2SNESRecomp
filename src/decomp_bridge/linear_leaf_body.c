@@ -1,5 +1,8 @@
 #include "cpu_state.h"
 #include "cpu_trace.h"
+#include "common_cpu_infra.h"
+#include "snes/interp_bridge.h"
+#include "snes/snes.h"
 #include "lufia2/actor.h"
 #include "lufia2/world_map.h"
 #include "patches/native_patches.h"
@@ -199,3 +202,95 @@ int Lufia2WorldBlockPointerAotBody(CpuState *cpu) {
     cpu->P = (uint8_t)((entry_status & ~0x82u) | bus.load_status);
     return 1;
 }
+
+#if defined(LUFIA2_WORLD_ARRIVAL_BOUNDARY_API) && LUFIA2_WORLD_ARRIVAL_BOUNDARY_API
+typedef struct ArrivalBus {
+    CpuState *host;
+    uint32_t previous_block;
+    uint8_t status;
+} ArrivalBus;
+
+static void ArrivalSync(ArrivalBus *bus, const Lufia2CpuState *state) {
+    bus->host->A = state->accumulator;
+    bus->host->_flag_C = state->carry;
+    bus->host->_flag_N = state->negative;
+    bus->host->_flag_Z = state->zero;
+    bus->host->P = bus->status;
+}
+
+static uint8_t ArrivalRead(void *context, uint32_t address) {
+    ArrivalBus *bus = context;
+    const uint8_t value = cpu_read8(bus->host,
+        (uint8_t)(address >> 16), (uint16_t)address);
+    if (address == 0x8609e0u || address == 0x8609e1u ||
+        address == 0x58u || address == 0x5au)
+        bus->status = (uint8_t)((bus->status & ~0x82u) |
+            (value ? 0u : 2u) | (value & 0x80u));
+    return value;
+}
+
+static void ArrivalWrite(void *context, uint32_t address, uint8_t value) {
+    ArrivalBus *bus = context;
+    cpu_write8(bus->host, (uint8_t)(address >> 16), (uint16_t)address, value);
+}
+
+static uint8_t ArrivalBoundary(void *context, Lufia2CpuState *state, uint32_t pc) {
+    ArrivalBus *bus = context;
+    CpuState *cpu = bus->host;
+    ArrivalSync(bus, state);
+    if (pc == 0x869ad9u && bus->previous_block) {
+        ++cpu->cycles;
+        cpu->master_cycles += g_memsel ? 6u : 8u;
+    }
+    cpu_trace_block(cpu, pc);
+    WatchdogCheck();
+    if (interp_bridge_lle_master_deadline_reached(cpu))
+        return 0;
+    unsigned cycles;
+    switch (pc) {
+    case 0x869ab1u: cycles = 11u; break;
+    case 0x869abbu: cycles = 2u; break;
+    case 0x869ab8u:
+    case 0x869abdu: cycles = 6u; break;
+    case 0x869ac2u:
+    case 0x869ac9u: cycles = 9u; break;
+    case 0x869ad0u: cycles = 17u; break;
+    case 0x869ad9u: cycles = 8u; break;
+    default: return 0;
+    }
+    cpu->coprocessor_master_cycles = cpu->master_cycles;
+    cpu->cycles += cycles;
+    cpu->master_cycles += cycles * (g_memsel ? 6u : 8u);
+    bus->previous_block = pc;
+    return 1;
+}
+
+static uint32_t WorldArrivalAotBody(CpuState *cpu, uint32_t entry) {
+    if (cpu != &g_cpu || cpu->emulation || cpu->_flag_D || !cpu->m_flag ||
+        cpu->x_flag || cpu->PB != 0x86u || cpu->DB != 0x86u || cpu->D ||
+        cpu->S < 0x1f20u || cpu->S > 0x1ffcu || !g_snes ||
+        !cpu->ram || cpu->ram != g_snes->ram || LeafTracingEnabled())
+        return 0;
+    ArrivalBus bus = {cpu, 0u, cpu->P};
+    const Lufia2Memory memory = {ArrivalRead, ArrivalWrite, &bus, NULL, NULL};
+    Lufia2CpuState state = LeafLoad(cpu);
+    const Lufia2ExecutionResult result = Lufia2WorldMapCheckArrivalWithBoundaries(
+        &memory, &state, entry, ArrivalBoundary, &bus);
+    if (result.flow == LUFIA2_EXECUTION_RETURNED) {
+        if (result.pc == 0x869ad8u)
+            bus.status = (uint8_t)((bus.status & ~0x83u) | 0x81u);
+        else
+            bus.status &= (uint8_t)~1u;
+    }
+    ArrivalSync(&bus, &state);
+    return result.pc;
+}
+
+uint32_t Lufia2WorldMovingArrivalAotBody(CpuState *cpu) {
+    return WorldArrivalAotBody(cpu, 0x869ab1u);
+}
+
+uint32_t Lufia2WorldStoppedArrivalAotBody(CpuState *cpu) {
+    return WorldArrivalAotBody(cpu, 0x869ab8u);
+}
+#endif

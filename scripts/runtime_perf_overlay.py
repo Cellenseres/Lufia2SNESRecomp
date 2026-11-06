@@ -30,6 +30,8 @@ def transform(text, kind, bindings=None):
         'Lufia2WorldIndexAotBody': 0x86e709,
         'Lufia2WorldDisableDisplayAotBody': 0x86973e,
         'Lufia2WorldBlockPointerAotBody': 0x86ae05,
+        'Lufia2WorldMovingArrivalAotBody': 0x869ab1,
+        'Lufia2WorldStoppedArrivalAotBody': 0x869ab8,
     }
     groups = {
         'linear_leaf': {name: ('LUFIA2_PERF_DECOMP', False)
@@ -158,6 +160,9 @@ def transform(text, kind, bindings=None):
                 extra = '\n    if ((unsigned)s_driver.wait < 8u) Lufia2PerfCount(LUFIA2_PERF_SPC_WAIT_BASE + (unsigned)s_driver.wait);'
             if kind == 'bridge' and name.startswith('Lufia2DecompBridge_'):
                 extra = '\n    if (result != RECOMP_RETURN_NORMAL) Lufia2PerfCount(LUFIA2_PERF_HANDOFF);'
+            if kind == 'linear_leaf' and name in (
+                    'Lufia2WorldMovingArrivalAotBody', 'Lufia2WorldStoppedArrivalAotBody'):
+                extra = '\n    if (result && result != 0x869ad8u && result != 0x869adau) Lufia2PerfCount(LUFIA2_PERF_HANDOFF);'
             probe = '\n    Lufia2DecompFramePollProbe(cpu, entry);' if kind == 'bridge' and name == 'ActorBridgeFramePollStep' else ''
             wrapper = f'''{signature} {{
     if (!lufia2_perf_enabled) {{ {passthrough} }}{probe}

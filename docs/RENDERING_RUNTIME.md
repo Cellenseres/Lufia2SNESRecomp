@@ -673,7 +673,54 @@ the controls use correct AOT clocks, not the former zero-clock bridge.
 The standalone library is byte-identical; its semantic verification is reused,
 without another full decomp suite. No new algorithm or canonical binding is
 counted. Evidence: `world-leaf-integration-current/ACCEPTANCE.json` under
-`.agent/decomp/runtime-frontier`. Branching arrival check `86:9AB8` remains open.
+`.agent/decomp/runtime-frontier`. Branching arrival was still open at this historical checkpoint; see below.
+
+### Branching world-arrival helpers: exact native boundaries
+
+The generated moving/stopped arrival entries (`86:9AB1`, `86:9AB8`, M1/X16)
+now use the existing shared semantic C body through optional original block
+boundaries. The consumer preserves each block's Watchdog refresh, deadline,
+coprocessor snapshot and cycle charge, including taken branches. A partial
+execution unwinds at the exact pending ROM PC through the original owner;
+normal returns retain the original paired/tail return epilogues. No additional
+hooks or opcode dispatcher crossings are introduced. Complete original AOT
+bodies remain compiled for declined contexts. Existing four linear helpers
+continue to compose into the same generated banks.
+
+Admission requires the production CPU/RAM, native mode, decimal clear, M1/X16,
+PB/DB=86, D=0, the known stack range and inactive tracing/diagnostic policy.
+Unsupported contexts retain the original route. Raw P can remain deferred after
+DEC/CMP in emitted AOT; the consumer preserves that representation independently
+of the correct flag mirrors. Standalone semantics remain original-ROM faithful.
+
+The shared checkpoint passes 102,400 ROM differential cases, 384 no-access
+guards, two rejected mutation controls, 472 actual generated-entry ABI pairs
+and eight real optional-profiler pairs. Deadline cases execute the production
+Watchdog and master-deadline predicate. Read-only accessors observe the pending
+unwind PC/owner before the outer interpreter publishes its resume cursor.
+Moving-entry ABI cases use a redirected production caller seam, not natural
+moving gameplay. Incoherent compiled modes prove rejection, not ROM fidelity.
+
+Normal boot1200/battle5399 replays match final CPU/WRAM/hardware/image state,
+PCM, APU clocks, native idle totals and bus credits. All 558 naturally observed
+stopped-arrival calls complete in C; moving-arrival intake is zero in these
+fixtures. Existing actor/index/display/block-pointer counts stay 46/800/883/623
+in battle. Raw interpreter/fallback counters are disabled in these controls;
+zero counters therefore do not demonstrate zero interpretation.
+
+Two alternating production-object cost pairs per scene, profiling off, give
+median CPU/APU ms/frame AOT/native boot 0.4285/0.4006 and battle 0.6722/0.6374.
+Individual pairs disagree; these noisy short measurements establish no stable
+speedup or FPS claim. Boot does not reach the new arrival entries. Controls
+use correct original AOT clocks, not the former zero-clock bridge.
+
+Default Release and CLI pass, as do strict standalone MSVC/GCC/Clang builds,
+C++ callback linkage and resource decoding. Trace/reverse checks compile only
+the changed helper, not complete debug frontends. No full decomp regression was
+repeated. No canonical binding or algorithm count changes. Private evidence:
+`arrival-boundary-integration-current/ACCEPTANCE.json` under
+`.agent/decomp/runtime-frontier`. Direct semantic-inline parents and remaining
+hot fallback paths require their own timing/utilization evidence.
 
 ### Remaining reached paths: measured scope
 
@@ -682,8 +729,8 @@ replace one world helper at a time. Their first observed entries have identical
 CPU/WRAM inputs and matching data outputs. The current bridges charge zero CPU
 cycles; AOT charges 17 for `86:973E`, 46 for `86:AE05` and 15 for `86:9AB8`.
 These first-call observations preceded the two linear-helper fixes above.
-The branching arrival check still requires path-specific timing; a generic
-constant is not an acceptable repair or a complete path proof. Evidence: `hot-world-usage-current/INVESTIGATION.json`.
+At that audit, branching arrival still required path-specific timing. The
+subsequent boundary checkpoint above resolves the two emitted entry routes. Evidence: `hot-world-usage-current/INVESTIGATION.json`.
 
 Explicit bridge fallback counts also include partially native execution. In the
 matched battle diagnostic, target-name clearing admits 19,207 native spans;
