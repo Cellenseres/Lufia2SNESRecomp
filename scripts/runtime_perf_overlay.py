@@ -25,7 +25,13 @@ def definitions(text):
 
 
 def transform(text, kind, bindings=None):
+    linear_leaves = {
+        'Lufia2ActorResetAotBody': 0x83a6df,
+        'Lufia2WorldIndexAotBody': 0x86e709,
+    }
     groups = {
+        'linear_leaf': {name: ('LUFIA2_PERF_DECOMP', False)
+                        for name in linear_leaves},
         'apu': {name: ('LUFIA2_PERF_APU', False) for name in (
             'apu_runToGuestCycle', 'apu_runUntilPortQueueEmpty',
             'apu_waitForTransferReady', 'apu_finishHleTransfer')},
@@ -105,7 +111,7 @@ def transform(text, kind, bindings=None):
     for match, end in definitions(text):
         name = match['name']
         counter = counters.get(name) if kind in ('audio', 'bridge') else None
-        pc = 0
+        pc = linear_leaves.get(name, 0) if kind == 'linear_leaf' else 0
         if kind == 'bridge' and name.startswith('Lufia2DecompBridge_'):
             pc = (bindings or {}).get(name)
             if pc is None:
