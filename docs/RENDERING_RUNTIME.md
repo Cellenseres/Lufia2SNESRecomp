@@ -722,6 +722,36 @@ repeated. No canonical binding or algorithm count changes. Private evidence:
 `.agent/decomp/runtime-frontier`. Direct semantic-inline parents and remaining
 hot fallback paths require their own timing/utilization evidence.
 
+### Current native-use diagnostic after arrival integration
+
+A fresh counter-versus-production-object control at `1f78caa` matches CPU,
+WRAM, hardware, final image, PCM/sample count, all APU clock words, native idle
+and bus credits in menu600, field600, boot1200 and battle5399. Actual core fetch
+and 2,033 explicit bridge counters install no PC hooks or observers.
+
+| Fixture | Raw opcode fetches | Explicit bridge fallbacks |
+| --- | ---: | ---: |
+| Menu, 600 frames | 3,058 | 3 |
+| Field, 600 frames | 0 | 1 |
+| Boot, 1,200 frames | 2,378 | 22 |
+| Battle, 5,399 frames | 830,142 | 7,389 |
+
+These are fixture counts, not a whole-game native percentage. Aliases and some
+timed continuations are not explicit bridge counters. A fallback can continue
+through a native partial span; `85:ECDB` accounts for 5,829 battle fallbacks
+without proving 5,829 wholly interpreted calls. Counter overhead excludes a
+causal runtime or FPS claim. Counts from earlier clock revisions are historical,
+not an identical scheduling baseline for attributing this change.
+
+The 213 battle division fallback entries are M0/X16, DB7E; the existing timed
+wrapper requires M1. The 272 multiplication fallback entries are M1/X16,
+DB81/85; their detailed quiet-window rejection needs targeted predicate
+observation. These routines already have semantic C. Preserve original entry
+widths, hardware fences, observer ownership and APU synchronization when
+investigating admission. Private evidence:
+`native-usage-after-arrival-current/ANALYSIS.json` under
+`.agent/decomp/runtime-frontier`.
+
 ### Remaining reached paths: measured scope
 
 At the following checkpoint, three independently regenerated AOT controls
