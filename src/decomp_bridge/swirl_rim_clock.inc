@@ -2,6 +2,12 @@
 
 enum { SWIRL_RIM_CLOCK_BUDGET = 532u };
 
+static void ActorBridgeSwirlRimStep(CpuState *cpu, uint32_t entry);
+
+static bool SwirlRimHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return pc == 0x848c91u && hook == ActorBridgeSwirlRimStep;
+}
+
 static bool SwirlRimClockSupported(const CpuState *cpu, uint32_t entry) {
     if (entry != 0x848c91u || cpu->m_flag != 1u || cpu->x_flag ||
         cpu->DB != 0x7eu || cpu->D || cpu->_flag_D ||
@@ -20,7 +26,8 @@ static bool SwirlRimClockSupported(const CpuState *cpu, uint32_t entry) {
     uint64_t refresh_phase, refresh_clock;
     snes_refresh_state_get(&refresh_phase, &refresh_clock);
     return refresh_phase < 1364u &&
-        (!refresh_clock || refresh_clock == cpu->master_cycles);
+        (!refresh_clock || refresh_clock == cpu->master_cycles) &&
+        Lufia2DecompFrameRangeAllows(entry, 0x848cbfu, SwirlRimHookOwned);
 }
 
 static void ActorBridgeSwirlRimStep(CpuState *cpu, uint32_t entry) {

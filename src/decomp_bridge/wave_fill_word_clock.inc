@@ -2,6 +2,12 @@
 
 enum { WAVE_FILL_WORD_BUDGET = 448u, WAVE_FILL_WORD_OPCODES = 15u };
 
+static void ActorBridgeWaveFillWord(CpuState *cpu, uint32_t entry);
+
+static bool WaveFillWordHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return pc == 0x85aef5u && hook == ActorBridgeWaveFillWord;
+}
+
 static bool WaveFillWordClockSupported(const CpuState *cpu, uint32_t entry) {
     if (entry != 0x85aef5u || cpu->PB != 0x85u || cpu->DB != 0x85u ||
         cpu->D || cpu->emulation || cpu->_flag_D || cpu->m_flag != 1u ||
@@ -17,7 +23,8 @@ static bool WaveFillWordClockSupported(const CpuState *cpu, uint32_t entry) {
         return false;
     uint64_t phase, refresh_clock;
     snes_refresh_state_get(&phase, &refresh_clock);
-    if (phase >= 1364u || refresh_clock != cpu->master_cycles)
+    if (phase >= 1364u || refresh_clock != cpu->master_cycles ||
+        !Lufia2DecompFrameRangeAllows(entry, 0x85af15u, WaveFillWordHookOwned))
         return false;
     if (!g_snes->inNmi) {
         const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u

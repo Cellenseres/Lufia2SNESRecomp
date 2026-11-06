@@ -660,6 +660,36 @@ full semantic/all-platform/CLI regression was not repeated. Swirl-rim and wave-
 fill observer sites had zero hits and remain unaccepted follow-up work.
 Private receipt: `.agent/decomp/runtime-frontier/fixed-span-ownership-current/ACCEPTANCE.json`.
 
+### Swirl and wave-fill observer coverage
+
+The original 664-frame tutorial replay reaches the swirl-rim hook at `84:8C91`.
+A separate 60-frame synthetic battle state reaches wave fill: only RAM timer
+bytes `1B17=1,1B18=1,1B19=4` are seeded after rollback load. The original NMI
+dispatcher reads selector four at `85:9E05`; its stored `AEEA` and original RTS
+enter `85:AEEB`. There is no direct host jump or overridden owner predicate.
+This is a valid synthetic timer contract, not a new gameplay capture.
+
+Without range ownership, foreign callbacks at `84:8C95` occur only 403 of
+1,024 times; at `85:AEF7`, only two of 176. Both existing timed guards now
+accept only their exact own entry callback in the executed interval. Corrected
+observer runs retain every original call and matching CPU/WRAM/hardware/PCM/
+sample/image hashes, exact APU clock words and native-idle counts. Sixteen
+registry checks run in actual callback contexts: swirl outside NMI and wave
+inside NMI. Wrong callback identities, the same callback at a different PC,
+inner/global observers and overlong ranges are rejected; terminal PCs stay
+outside each span.
+
+Without observers, native admissions remain 621 swirl rows and 174 wave words;
+raw fetches remain 111,300 and 10,851 in these respective fixtures. Existing
+clock/decomp semantics are unchanged. Production-source link, affected-API-off
+and NMI-support-off compilations pass. Three alternating cost pairs per scene,
+profiling disabled, measure CPU/APU medians 0.4635 -> 0.4609 ms/frame (tutorial)
+and 0.4793 -> 0.4624 ms/frame (synthetic timer). Unchanged drawing also varies;
+these short headless Windows measurements do not establish a speedup, whole-
+game performance or hardware/FPS acceptance. Full semantic/CLI/all-platform
+regression was not repeated for these admission-only changes. Private receipt:
+`.agent/decomp/runtime-frontier/effect-span-ownership-current/ACCEPTANCE.json`.
+
 ### Observed name-entry admission boundary
 
 A 2,820-frame new-game replay reaches one native save-menu call, but no native
