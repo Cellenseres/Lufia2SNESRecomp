@@ -636,6 +636,24 @@ Semantic and binding counts are unchanged: these are two existing algorithms.
 Private evidence: `linear-leaf-integration-current/ACCEPTANCE.json` under
 `.agent/decomp/runtime-frontier`.
 
+### Remaining reached paths: measured scope
+
+At the following checkpoint, three independently regenerated AOT controls
+replace one world helper at a time. Their first observed entries have identical
+CPU/WRAM inputs and matching data outputs. The current bridges charge zero CPU
+cycles; AOT charges 17 for `86:973E`, 46 for `86:AE05` and 15 for `86:9AB8`.
+These are further integration findings, not shipped fixes or complete path proofs.
+The branching arrival check requires path-specific timing; a generic constant
+is not an acceptable repair. Evidence: `hot-world-usage-current/INVESTIGATION.json`.
+
+Explicit bridge fallback counts also include partially native execution. In the
+matched battle diagnostic, target-name clearing admits 19,207 native spans;
+9,430 other invocations reject at a later budget/refresh check. The effect-slot
+shared state gate passes 208,021 times; this is not a completed-span counter.
+The diagnostic retains predicate order and matches endpoint CPU/WRAM/hardware,
+PCM, image, APU clocks and bus credits. It establishes neither speedup nor that
+remaining safety guards should be widened. Evidence: `hot-world-usage-current/GATES.json`.
+
 ### Battle upload queue admission
 
 The existing `85:ECDB`/`85:ECDE` timed queue hooks now check the production
