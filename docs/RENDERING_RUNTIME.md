@@ -825,6 +825,31 @@ regressions were not repeated. No new algorithm or binding is counted.
 Private evidence: `decompress-ownership-current/ACCEPTANCE.json` under
 `.agent/decomp/runtime-frontier`.
 
+### Remaining battle-window admission frontier
+
+A read-only first-rejection diagnostic over the matched 5,399-frame battle
+fixture records 99 whole-window entry attempts (5 accepted, 19 rejected for
+return ownership, 72 outside VBlank, 3 with insufficient remaining VBlank),
+188 row attempts (5 accepted, 181 outside VBlank, 2 with insufficient remaining
+VBlank), and 383 end-piece attempts (23 accepted, 360 outside VBlank).
+These are wrapper admission counts; inlined child work is not counted again.
+The diagnostic preserves short-circuit predicate order and installs no new
+hooks. CPU/WRAM/hardware/image, PCM, APU clocks, idle and bus credits match the
+current production-object control; its raw counters are disabled. The counter
+arm records 829,058 actual interpreter fetches. No timing improvement follows
+from this diagnostic.
+
+The end-piece timing plan contains 15 original opcodes totaling 65 CPU cycles,
+including RTS, while its existing admission reserves 128 cycles before the
+master-clock/refresh allowance. This is a source inventory, not a certified
+new reservation or permission to cross scanline/HDMA/interrupt boundaries.
+The next experiment must prove an end-piece bound against actual bus speeds,
+refresh, beam fences, callback ownership and the linked return path. Row and
+whole-window timing are separate contracts. No admission or algorithm changed
+at this diagnostic checkpoint. Private evidence:
+`battle-window-admission-current/REVIEW.json` under
+`.agent/decomp/runtime-frontier`.
+
 ### Remaining reached paths: measured scope
 
 At the following checkpoint, three independently regenerated AOT controls
