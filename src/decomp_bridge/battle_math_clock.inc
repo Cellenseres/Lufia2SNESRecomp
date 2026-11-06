@@ -158,8 +158,8 @@ static RecompReturn ActorBridgeTimedBattleDivide(CpuState *cpu) {
     ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
     const unsigned master = BATTLE_DIVIDE_CYCLE_LIMIT * 8u;
     const unsigned room = master + 40u * (master / 1324u + 2u);
-    if (cpu->D || cpu->_flag_D || cpu->m_flag != 1u ||
-        !BattleQuietClockSupported(cpu, entry, 0x808450u, 3u, false, room))
+    if (cpu->D || cpu->_flag_D ||
+        !BattleQuietClockSupported(cpu, entry, 0x808450u, 3u, true, room))
         return ActorBridgeFallback(cpu, &frame, cpu->PB == 0u ? 0x008378u : entry);
     if (frame.hrv)
         frame.host_return_pc24 = Lufia2DecompFramePairedReturnPc(cpu, entry);

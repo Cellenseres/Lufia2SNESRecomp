@@ -752,6 +752,42 @@ investigating admission. Private evidence:
 `native-usage-after-arrival-current/ANALYSIS.json` under
 `.agent/decomp/runtime-frontier`.
 
+### Native division: incoming accumulator width
+
+`80:8378` saves P before REP establishes its working widths and restores P
+before returning. Its existing semantic C supports both incoming accumulator
+widths; the consumer now admits M0 as well as M1 through the same timed body.
+The change removes only the M1 restriction and allows the wide entry in the
+existing window predicate. X16, D=0, binary arithmetic, original hook ownership,
+return frames, guest clocks, beam/deadline reserves and APU behavior stay gated.
+The actual quiet range is 216 bytes, below the production 256-byte limit.
+
+24,576 original-ROM cases compare CPU, full WRAM and ordered accesses across
+M0/M1, X0/X1, flags and operand extremes including a zero divisor. The consumer
+still requires X16. In the matched battle fixture only 12 of 213 M0 division
+calls pass all remaining predicates; 198 remain outside VBlank and three lack
+end-of-VBlank room. A separate admission diagnostic passes 168 assertions
+against actual production predicates, including global-observer rejection.
+Entry/middle hook registration was not separately replayed here; the original
+range predicate and registration ownership logic are unchanged.
+
+The 5,399-frame candidate and admission-control replays match final CPU/WRAM,
+hardware/image, PCM, APU clocks, native idle and bus credits. Raw fetches fall
+830,142 -> 829,058; explicit fallbacks fall 7,389 -> 7,377. Twelve M0 divisions
+complete natively. These are fixture counts, not whole-game coverage or speed.
+
+Two alternating production-object cost pairs with profiling disabled match
+endpoints. CPU/APU ms/frame reference/candidate is 0.4556/0.5929 in the first
+pair and 0.5608/0.5476 in the second (medians 0.5082/0.5702). The mixed/noisy
+result establishes neither a stable speedup nor a performance PASS or FPS
+claim. The static fallback count and semantic/native correctness are distinct.
+
+Default Release and actual generated M0 caller/link selection pass. Standalone
+sources/archive are unchanged; their other compiler gates and full decomp suite
+were not repeated. No canonical algorithm or binding is added. Private evidence:
+`divide-width-integration-current/ACCEPTANCE.json` under
+`.agent/decomp/runtime-frontier`.
+
 ### Remaining reached paths: measured scope
 
 At the following checkpoint, three independently regenerated AOT controls
