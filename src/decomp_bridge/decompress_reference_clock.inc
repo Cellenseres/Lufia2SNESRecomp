@@ -6,6 +6,33 @@ typedef enum DecompressReferencePhase {
     DECOMPRESS_COPY_SETUP
 } DecompressReferencePhase;
 
+static void ActorBridgeDecompressReferenceClock(CpuState *cpu, uint32_t entry);
+
+static bool ReferenceHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return hook == ActorBridgeDecompressReferenceClock &&
+        (pc == 0x808f44u || pc == 0x808fe8u ||
+         pc == 0x808f6fu || pc == 0x809013u ||
+         pc == 0x808f5cu || pc == 0x809000u);
+}
+
+static bool ReferenceHooksAllow(const CpuState *cpu,
+    DecompressReferencePhase phase) {
+    const uint32_t mirror = cpu->DB == 0x7fu ? 0xa4u : 0u;
+    const uint32_t first = phase == DECOMPRESS_REFERENCE_HEADER ? 0x808f44u :
+        phase == DECOMPRESS_LONG_REFERENCE ? 0x808f6fu : 0x808f5cu;
+    const uint32_t end = phase == DECOMPRESS_REFERENCE_HEADER ? 0x808f5cu :
+        phase == DECOMPRESS_LONG_REFERENCE ? 0x808f93u : 0x808f66u;
+    if (!Lufia2DecompFrameRangeAllows(first + mirror, end + mirror,
+            ReferenceHookOwned))
+        return false;
+    if (phase == DECOMPRESS_COPY_SETUP || cpu->Y != 0xffffu)
+        return true;
+    const uint32_t rollover =
+        phase == DECOMPRESS_REFERENCE_HEADER ? 0x808f32u : 0x808f39u;
+    return Lufia2DecompFrameRangeAllows(rollover + mirror,
+        rollover + mirror + 7u, ReferenceHookOwned);
+}
+
 typedef struct DecompressReferenceClock {
     FixedSpanClock span;
     FixedSpanOpcode timing[32];
@@ -165,7 +192,7 @@ static bool ReferenceClockSupported(const CpuState *cpu, uint32_t entry,
     const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
         ? 1024u : 1364u;
     return ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1ffbu, true,
-        fence - budget - 1u, budget);
+        fence - budget - 1u, budget) && ReferenceHooksAllow(cpu, *phase);
 }
 
 static void ActorBridgeDecompressReferenceClock(CpuState *cpu, uint32_t entry) {

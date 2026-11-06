@@ -690,6 +690,38 @@ game performance or hardware/FPS acceptance. Full semantic/CLI/all-platform
 regression was not repeated for these admission-only changes. Private receipt:
 `.agent/decomp/runtime-frontier/effect-span-ownership-current/ACCEPTANCE.json`.
 
+### Startup and decompressor-reference observers
+
+A 1,200-frame original-path boot control exposes one skipped callback in the
+boot prefix and one in the initial sound-transfer prefix. A 600-frame menu
+control exposes another 108 skipped callbacks across reached reference-header,
+long-reference and copy-setup phases. The reference conservatively rejects
+only these native prefixes and removes only the six reference prehooks; actual
+production predicates remain in the current/candidate arms.
+
+Boot and sound/object prefixes now check their executed descriptor intervals.
+The shared hook helper keeps noncontiguous branch regions separate; it does
+not cover skipped addresses or change existing fixed-span clock services.
+Reference phases check their exact own hook identities, selected bank mirror
+and conditional rollover region. Subsequent flag/copy hooks remain outside
+these intervals. Normal interpreter counts remain 2,330 for boot and 3,058
+for menu, with unchanged explicit fallbacks and native-idle counts. All 110
+missing callbacks are restored; CPU/WRAM/hardware/PCM/sample/image hashes and
+exact APU clock words match original-path controls.
+
+Sixty-six actual-registry checks cover reached boot/sound/DB7E phases plus
+explicit synthetic object, DB7F and rollover contracts. The object prefix was
+not reached by these replays; its sound-derived CPU clone proves admission,
+not newly observed gameplay. Branch-gap/end positives preserve downstream
+phases and waits. Default production-source link and boot-off, continuation-
+off and affected-APIs-off compiles pass. Three alternating production-source
+cost pairs per scene, profiling disabled: CPU/APU medians 0.3040 -> 0.3054 ms
+for boot and 0.2773 -> 0.2809 ms for menu. Drawing also varies. These are
+scoped correctness observations, not speedup, whole-game or hardware/FPS
+acceptance. Standalone semantics and the original clock source are byte-
+identical; full semantic/CLI/all-platform regression was not repeated.
+Private receipt: `.agent/decomp/runtime-frontier/startup-span-ownership-current/ACCEPTANCE.json`.
+
 ### Observed name-entry admission boundary
 
 A 2,820-frame new-game replay reaches one native save-menu call, but no native

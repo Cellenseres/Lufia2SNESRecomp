@@ -1,3 +1,5 @@
+#include "fixed_span_hooks.inc"
+
 typedef struct BootControllerClock {
     FixedSpanClock span;
     FixedSpanOpcode timing[8];
@@ -116,7 +118,8 @@ static bool PrepareBootController(BootControllerClock *clock, uint32_t pc) {
         return false;
     uint64_t phase, current;
     snes_refresh_state_get(&phase, &current);
-    return phase < 1364u && (!current || current == cpu->master_cycles);
+    return phase < 1364u && (!current || current == cpu->master_cycles) &&
+        FixedSpanHooksQuiet(clock->span.bank, clock->timing, count);
 }
 
 static uint8_t BootControllerChild(void *context, Lufia2CpuState *state,

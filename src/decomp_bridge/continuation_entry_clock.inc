@@ -1,3 +1,5 @@
+#include "fixed_span_hooks.inc"
+
 static const FixedSpanOpcode sound_entry_opcodes[] = {
     {0x9c0fu, 1u, 3u, 1u}, {0x9c10u, 2u, 3u, 0u},
     {0x9c12u, 3u, 3u, 0u}, {0x9c15u, 3u, 3u, 0u}
@@ -46,6 +48,8 @@ static RecompReturn ActorBridgeContinuationEntry(CpuState *cpu, uint32_t entry,
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     if (entry == 0x83e10fu ? !ObjectContinuationSupported(cpu)
                           : !ContinuationEntrySupported(cpu, entry))
+        return ActorBridgeFallback(cpu, &frame, entry);
+    if (!FixedSpanHooksQuiet(entry & 0xff0000u, opcodes, count))
         return ActorBridgeFallback(cpu, &frame, entry);
     FixedSpanClock clock = {0};
     clock.cpu = cpu;
