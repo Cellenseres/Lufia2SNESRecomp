@@ -604,8 +604,8 @@ The direct-page penalty remains at the operand read after PHX. Word operands
 and stores retain the platform's original word-access MMIO credit instead of
 counting two byte transactions. Long stores preserve cross-bank carry.
 
-CMake applies this composition only with the ROM and both verified, selected
-entries. Source properties and configuration-specific definitions are carried
+CMake applies this composition only with the ROM and all required selected
+entries verified. Source properties and configuration-specific definitions are carried
 to the generated copies; the fetched SDK and standalone library remain intact.
 Reference-only and ROM-unavailable configurations retain their existing route.
 No hooks, waits or APU handshakes are removed or added. Interpreter pre-opcode
@@ -636,15 +636,54 @@ Semantic and binding counts are unchanged: these are two existing algorithms.
 Private evidence: `linear-leaf-integration-current/ACCEPTANCE.json` under
 `.agent/decomp/runtime-frontier`.
 
+### World linear helpers: original envelopes
+
+The same composition now covers `86:973E` (display disable, M1) and `86:AE05`
+(block-pointer arithmetic, M0), retaining their 17/46-cycle original AOT
+entry/return envelopes and complete compiled cold paths. The generation step
+composes several leaves in one bank without overwriting earlier replacements.
+Default native admission requires D=0; display writes additionally require
+DB=86 and X16. Other contexts retain their original AOT operations.
+
+The block-pointer callback preserves every original word transaction. Its
+consumer also retains the emitter's deferred raw-P representation after the
+last LDA while preserving the correct separate arithmetic flag mirrors.
+This is an ABI adaptation; the standalone semantic function is unchanged.
+The shared actor word writer was extracted without changing its algorithm.
+No hook ownership, wait batching, APU handshake or guest delay was removed.
+
+The shared checkpoint covers 184 paired generated-entry CPU/ABI contexts plus
+10 invalid-mode/diagnostic-policy comparisons and four optional-profiler pairs.
+It compares raw P and individual flag mirrors, deadlines, inherited returns,
+WRAM, hardware and word bus credits. Invalid compiled modes prove rejection,
+not valid gameplay. Default Windows Release/CLI and trace/reverse helper
+compilation pass; the latter is not a complete debug frontend build.
+The reference/no-ROM early guard remains unchanged.
+
+Boot (1,200 frames) and battle (5,399 frames) match the AOT controls in final
+CPU/WRAM/hardware/image state, PCM, APU clock words, native idle totals and bus
+credits. All 883 display calls and 623 block-pointer calls observed in battle
+admit the C body. The existing 46 actor resets and 800 object-index calls also
+remain native. The boot fixture does not call the two new leaf compositions.
+
+Two alternating production-object cost pairs with profiling off give median
+CPU/APU ms/frame AOT/native of 0.3143/0.3083 for boot and 0.3822/0.3634 for
+battle. These short comparisons establish no general speedup or FPS result;
+the controls use correct AOT clocks, not the former zero-clock bridge.
+The standalone library is byte-identical; its semantic verification is reused,
+without another full decomp suite. No new algorithm or canonical binding is
+counted. Evidence: `world-leaf-integration-current/ACCEPTANCE.json` under
+`.agent/decomp/runtime-frontier`. Branching arrival check `86:9AB8` remains open.
+
 ### Remaining reached paths: measured scope
 
 At the following checkpoint, three independently regenerated AOT controls
 replace one world helper at a time. Their first observed entries have identical
 CPU/WRAM inputs and matching data outputs. The current bridges charge zero CPU
 cycles; AOT charges 17 for `86:973E`, 46 for `86:AE05` and 15 for `86:9AB8`.
-These are further integration findings, not shipped fixes or complete path proofs.
-The branching arrival check requires path-specific timing; a generic constant
-is not an acceptable repair. Evidence: `hot-world-usage-current/INVESTIGATION.json`.
+These first-call observations preceded the two linear-helper fixes above.
+The branching arrival check still requires path-specific timing; a generic
+constant is not an acceptable repair or a complete path proof. Evidence: `hot-world-usage-current/INVESTIGATION.json`.
 
 Explicit bridge fallback counts also include partially native execution. In the
 matched battle diagnostic, target-name clearing admits 19,207 native spans;

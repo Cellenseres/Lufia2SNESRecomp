@@ -1,4 +1,4 @@
-"""Retain original AOT envelopes around two verified semantic leaf bodies."""
+"""Retain original AOT envelopes around verified semantic leaf bodies."""
 import argparse
 import hashlib
 from pathlib import Path
@@ -7,12 +7,14 @@ import sys
 
 ROM_SHA256 = '7c34ecb16c10f551120ed7b86cfbc947042f479b52ee74bb3c40e92fdd192b3a'
 LEAVES = (
-    (0x83, 0xa6df, 0xa71c, 'Lufia2ActorResetAotBody', (94, 91)),
-    (0x86, 0xe709, 0xe71e, 'Lufia2WorldIndexAotBody', (34, 34)),
+    (0x83, 0xa6df, 0xa71c, 'Lufia2ActorResetAotBody', (94, 91), 1),
+    (0x86, 0xe709, 0xe71e, 'Lufia2WorldIndexAotBody', (34, 34), 1),
+    (0x86, 0x973e, 0x9748, 'Lufia2WorldDisableDisplayAotBody', (17, 17), 1),
+    (0x86, 0xae05, 0xae1e, 'Lufia2WorldBlockPointerAotBody', (46, 46), 0),
 )
 
 
-def semantic_body(original, helper, cycles, index_width):
+def semantic_body(original, helper, cycles, index_width, accumulator_width):
     charge = f'    cpu->master_cycles += {cycles} * (g_memsel ? 6 : 8);\n'
     returning = '    { uint16 _ret_s = cpu->S;'
     if original.count(charge) != 1 or original.count(returning) != 1:
@@ -23,7 +25,7 @@ def semantic_body(original, helper, cycles, index_width):
         raise ValueError('A leaf acquired another control-flow boundary')
     guarded = '\n'.join('  ' + line if line else line for line in operations.splitlines())
     return (prefix + charge + f'    extern int {helper}(CpuState *cpu);\n'
-            + f'    if (cpu->m_flag != 1u || cpu->x_flag != {index_width}u ||\n'
+            + f'    if (cpu->m_flag != {accumulator_width}u || cpu->x_flag != {index_width}u ||\n'
             + f'        !{helper}(cpu)) {{\n' + guarded + '\n    }\n'
             + returning + tail)
 
@@ -35,21 +37,26 @@ def prepare(rom_path, sdk, generated, output):
     sys.path.insert(0, str(sdk / 'recompiler'))
     from v2.emit_function import emit_function
     output.mkdir(parents=True, exist_ok=True)
-    for bank, start, end, helper, cycles in LEAVES:
-        source = (generated / f'bank{bank:02x}_v2.c').read_text(encoding='utf-8')
+    sources = {leaf[0]: (generated / f'bank{leaf[0]:02x}_v2.c').read_text(encoding='utf-8')
+               for leaf in LEAVES}
+    for bank, start, end, helper, cycles, accumulator_width in LEAVES:
+        source = sources[bank]
         bridge = f'Lufia2DecompBridge_{bank:02X}{start:04X}'
         for index_width in (0, 1):
-            name = f'bank_{bank:02X}_{start:04X}_M1X{index_width}'
+            name = f'bank_{bank:02X}_{start:04X}_M{accumulator_width}X{index_width}'
             pattern = r'RecompReturn ' + name + r'\(CpuState \*cpu\) \{[\s\S]*?\n\}'
             matches = list(re.finditer(pattern, source))
             if len(matches) != 1 or bridge not in matches[0][0]:
                 raise ValueError(f'Expected the selected decomp forwarding entry {name}')
-            original = emit_function(rom, bank, start, 1, index_width,
+            original = emit_function(rom, bank, start, accumulator_width, index_width,
                                      end=end, func_name=f'bank_{bank:02X}_{start:04X}')
-            wrapped = semantic_body(original, helper, cycles[index_width], index_width)
+            wrapped = semantic_body(original, helper, cycles[index_width], index_width,
+                                    accumulator_width)
             source, count = re.subn(pattern, lambda match: wrapped, source)
             if count != 1:
                 raise ValueError(f'Ambiguous generated leaf {name}')
+        sources[bank] = source
+    for bank, source in sources.items():
         target = output / f'bank{bank:02x}_v2.c'
         if not target.exists() or target.read_text(encoding='utf-8') != source:
             target.write_text(source, encoding='utf-8')

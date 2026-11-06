@@ -28,6 +28,8 @@ def transform(text, kind, bindings=None):
     linear_leaves = {
         'Lufia2ActorResetAotBody': 0x83a6df,
         'Lufia2WorldIndexAotBody': 0x86e709,
+        'Lufia2WorldDisableDisplayAotBody': 0x86973e,
+        'Lufia2WorldBlockPointerAotBody': 0x86ae05,
     }
     groups = {
         'linear_leaf': {name: ('LUFIA2_PERF_DECOMP', False)

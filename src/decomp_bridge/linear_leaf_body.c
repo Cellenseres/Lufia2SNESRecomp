@@ -16,6 +16,7 @@ typedef struct LeafBus {
     unsigned low_pending;
     uint32_t low_address;
     uint8_t low_byte;
+    uint8_t load_status;
 } LeafBus;
 
 static int LeafTracingEnabled(void) {
@@ -58,12 +59,8 @@ static void LeafWrite(void *context, uint32_t address, uint8_t value) {
     cpu_write8(bus->host, (uint8_t)(address >> 16), (uint16_t)address, value);
 }
 
-static void ActorResetWrite(void *context, uint32_t address, uint8_t value) {
+static void LeafWriteWord(void *context, uint32_t address, uint8_t value) {
     LeafBus *bus = context;
-    if (bus->state->accumulator_is_8_bit || address < 0x010000u) {
-        LeafWrite(context, address, value);
-        return;
-    }
     if (!bus->low_pending) {
         bus->low_pending = 1;
         bus->low_address = address;
@@ -80,6 +77,26 @@ static void ActorResetWrite(void *context, uint32_t address, uint8_t value) {
         LeafWrite(context, bus->low_address, bus->low_byte);
         LeafWrite(context, address, value);
     }
+}
+
+static void ActorResetWrite(void *context, uint32_t address, uint8_t value) {
+    const LeafBus *bus = context;
+    if (bus->state->accumulator_is_8_bit || address < 0x010000u)
+        LeafWrite(context, address, value);
+    else
+        LeafWriteWord(context, address, value);
+}
+
+static uint8_t BlockPointerRead(void *context, uint32_t address) {
+    LeafBus *bus = context;
+    if (!bus->high_pending)
+        bus->operand_width = 2u;
+    const uint8_t value = LeafRead(context, address);
+    if (address == 0x5au) {
+        const uint16_t word = (uint16_t)(value | ((uint16_t)bus->high_byte << 8));
+        bus->load_status = (uint8_t)((word ? 0u : 2u) | (word & 0x8000u ? 0x80u : 0u));
+    }
+    return value;
 }
 
 static Lufia2CpuState LeafLoad(const CpuState *cpu) {
@@ -151,5 +168,34 @@ int Lufia2WorldIndexAotBody(CpuState *cpu) {
     Lufia2CpuState state = LeafLoad(cpu);
     Lufia2WorldMapIndexObjectRecord(&memory, &state);
     LeafStore(cpu, &state);
+    return 1;
+}
+
+int Lufia2WorldDisableDisplayAotBody(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
+        cpu->PB != 0x86u || cpu->DB != 0x86u || cpu->D || LeafTracingEnabled())
+        return 0;
+    LeafBus bus = {0};
+    bus.host = cpu;
+    const Lufia2Memory memory = {LeafRead, LeafWrite, &bus, NULL, NULL};
+    Lufia2CpuState state = LeafLoad(cpu);
+    Lufia2WorldMapDisableDisplay(&memory, &state);
+    LeafStore(cpu, &state);
+    return 1;
+}
+
+int Lufia2WorldBlockPointerAotBody(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || cpu->m_flag || cpu->D ||
+        cpu->PB != 0x86u || LeafTracingEnabled())
+        return 0;
+    LeafBus bus = {0};
+    bus.host = cpu;
+    const Lufia2Memory memory = {BlockPointerRead, LeafWriteWord, &bus, NULL, NULL};
+    const uint8_t entry_status = cpu->P;
+    Lufia2CpuState state = LeafLoad(cpu);
+    Lufia2WorldMapBuildBlockPointer(&memory, &state);
+    LeafStore(cpu, &state);
+    /* AOT materializes P only at the preceding load. */
+    cpu->P = (uint8_t)((entry_status & ~0x82u) | bus.load_status);
     return 1;
 }
