@@ -2,6 +2,17 @@
 
 enum { BATTLE_TIMER_CALL_CLOCK_CAPACITY = 96u };
 
+static void ActorBridgeBattleTimerCall(CpuState *cpu, uint32_t entry);
+
+static bool BattleTimerCallHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TIMER_STEPS)
+    if (BattleTimerStepHookOwned(pc, hook))
+        return true;
+#endif
+    return hook == ActorBridgeBattleTimerCall &&
+        (pc == 0x858f1bu || pc == 0x858f3cu);
+}
+
 typedef struct BattleTimerCallClock {
     FixedSpanClock span;
     FixedSpanOpcode timing[BATTLE_TIMER_CALL_CLOCK_CAPACITY];
@@ -130,7 +141,9 @@ static bool BattleTimerCallWindowSupported(const BattleTimerCallClock *clock) {
         return false;
     const unsigned edge = g_snes->vPos < 225u ? 225u : 262u;
     return budget < (uint64_t)(edge - g_snes->vPos) * 1364u - g_snes->hPos &&
-        NmiSpanAvoidsHdma(g_snes, budget, true);
+        NmiSpanAvoidsHdma(g_snes, budget, true) &&
+        Lufia2DecompFrameRangeAllows(
+            0x858f1bu, 0x858f49u, BattleTimerCallHookOwned);
 #else
     (void)clock;
     return false;

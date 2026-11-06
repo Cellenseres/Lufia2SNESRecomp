@@ -2,6 +2,12 @@
 
 enum { BACKGROUND_WORD_BUDGET = 320u };
 
+static void ActorBridgeBackgroundDecodeWord(CpuState *cpu, uint32_t entry);
+
+static bool BackgroundWordHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return pc == 0x81ba59u && hook == ActorBridgeBackgroundDecodeWord;
+}
+
 static bool BackgroundWordClockSupported(const CpuState *cpu, uint32_t entry) {
     if (entry != 0x81ba59u || cpu->m_flag || cpu->x_flag ||
         cpu->DB != 0x7eu || cpu->D || cpu->_flag_D ||
@@ -19,7 +25,8 @@ static bool BackgroundWordClockSupported(const CpuState *cpu, uint32_t entry) {
         return false;
     uint64_t phase, clock;
     snes_refresh_state_get(&phase, &clock);
-    return phase < 1364u && (!clock || clock == cpu->master_cycles);
+    return phase < 1364u && (!clock || clock == cpu->master_cycles) &&
+        Lufia2DecompFrameRangeAllows(entry, 0x81ba67u, BackgroundWordHookOwned);
 }
 
 static void ActorBridgeBackgroundDecodeWord(CpuState *cpu, uint32_t entry) {

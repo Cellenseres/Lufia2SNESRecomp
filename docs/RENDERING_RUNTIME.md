@@ -619,6 +619,47 @@ semantic/CLI checks are reused within their recorded scope; full regression
 was deferred. Private receipt: `native-usage-audit-current/queue/ACCEPTANCE.json`
 under `.agent/decomp/runtime-frontier`.
 
+### Observer ownership in earlier fixed spans
+
+A second matched 5,399-frame replay exposes observer loss in the existing
+actor fine-position, background-word, battle-input and NMI-timer spans:
+
+| Observer site | Individual stepping | Previous native path | Corrected path |
+| --- | ---: | ---: | ---: |
+| `83:A748` | 6 | 2 | 6 |
+| `81:BA5A` | 1,023 | 237 | 1,023 |
+| `85:EC9D` | 4,388 | 1,726 | 4,388 |
+| `85:8F3F` | 9,848 | 4 | 9,848 |
+
+The guards now consult the actual indexed hook registry and accept only exact
+owned callback identities. The timer caller retains its certified header and
+advance callbacks. Input admission checks separate executed intervals: the
+pause wait at `85:ECB7/B9/BB` and the skipped resume entry remain outside the
+initial span. An initial envelope covering that gap blocked input batching;
+that version was rejected before acceptance. No existing wait is whitelisted
+merely because it lies between two executed regions.
+
+All 13,296 missing callbacks are restored. The normal replay retains exactly
+831,147 interpreter fetches, 7,409 explicit fallbacks and the same native-idle
+count. CPU/WRAM/hardware/PCM/sample/image hashes and exact APU clock words match.
+Another 600-frame field comparison matches but reaches none of these observer
+sites; it does not establish field-hotpath timing. Forty-four checks exercise
+real registry replacement, inner/global observers and outside-span hooks.
+The timer-step predicate additionally uses a parent-derived CPU clone; this
+is admission evidence, not an independently observed native timer-step call.
+
+The production-source actor links with the existing generated callers. Timer-
+step-off, NMI-support-off and affected-API-off compilations pass. Three matched
+alternating production-source pairs, profiling disabled, measure CPU/APU medians
+0.3544 versus 0.3581 ms/frame and drawing 3.1378 versus 3.1778 ms/frame. Paired
+CPU changes range from -18.48 to +5.70 percent; unchanged drawing also varies.
+These measurements do not establish a stable speedup or whole-game regression
+bound. This is a scoped observer-correctness fix, not performance/FPS acceptance.
+Standalone semantics, clock callbacks and generated dispatch are unchanged;
+full semantic/all-platform/CLI regression was not repeated. Swirl-rim and wave-
+fill observer sites had zero hits and remain unaccepted follow-up work.
+Private receipt: `.agent/decomp/runtime-frontier/fixed-span-ownership-current/ACCEPTANCE.json`.
+
 ### Observed name-entry admission boundary
 
 A 2,820-frame new-game replay reaches one native save-menu call, but no native

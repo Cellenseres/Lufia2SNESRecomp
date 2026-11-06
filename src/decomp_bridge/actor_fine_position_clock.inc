@@ -1,5 +1,11 @@
 enum { ACTOR_FINE_CLOCK_BUDGET = 600u };
 
+static void ActorBridgeActorFinePosition(CpuState *cpu, uint32_t entry);
+
+static bool ActorFineHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return pc == 0x83a746u && hook == ActorBridgeActorFinePosition;
+}
+
 typedef struct ActorFineClock {
     FixedSpanClock span;
     FixedSpanOpcode timing[22];
@@ -40,7 +46,8 @@ static bool ActorFineClockSupported(const CpuState *cpu, uint32_t entry) {
     uint64_t refresh_phase, refresh_clock;
     snes_refresh_state_get(&refresh_phase, &refresh_clock);
     return refresh_phase < 1364u &&
-        (!refresh_clock || refresh_clock == cpu->master_cycles);
+        (!refresh_clock || refresh_clock == cpu->master_cycles) &&
+        Lufia2DecompFrameRangeAllows(entry, 0x83a76cu, ActorFineHookOwned);
 }
 
 static void ActorBridgeActorFinePosition(CpuState *cpu, uint32_t entry) {

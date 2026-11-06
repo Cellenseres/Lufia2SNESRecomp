@@ -2,6 +2,13 @@
 
 enum { BATTLE_TIMER_HEADER_BUDGET = 288u, BATTLE_TIMER_ADVANCE_BUDGET = 160u };
 
+static void ActorBridgeBattleTimerStep(CpuState *cpu, uint32_t entry);
+
+static bool BattleTimerStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return hook == ActorBridgeBattleTimerStep &&
+        (pc == 0x858f1fu || pc == 0x858f3eu);
+}
+
 static bool BattleTimerClockSupported(const CpuState *cpu, uint32_t entry) {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_WIDTH)
     if ((entry != 0x858f1fu && entry != 0x858f3eu) ||
@@ -36,7 +43,11 @@ static bool BattleTimerClockSupported(const CpuState *cpu, uint32_t entry) {
     const unsigned next_line = g_snes->vPos < 225u ? 225u : 262u;
     const uint64_t before_edge =
         (uint64_t)(next_line - g_snes->vPos) * 1364u - g_snes->hPos;
-    return budget < before_edge && NmiSpanAvoidsHdma(g_snes, budget, true);
+    return budget < before_edge && NmiSpanAvoidsHdma(g_snes, budget, true) &&
+        (entry != 0x858f1fu || Lufia2DecompFrameRangeAllows(
+            0x858f1fu, 0x858f29u, BattleTimerStepHookOwned)) &&
+        Lufia2DecompFrameRangeAllows(
+            0x858f3eu, 0x858f47u, BattleTimerStepHookOwned);
 #else
     (void)cpu;
     (void)entry;
