@@ -18,6 +18,31 @@ typedef struct DecompressClock {
     bool flagged, advance, reference, flags_done;
 } DecompressClock;
 
+static void ActorBridgeDecompressClock(CpuState *cpu, uint32_t entry);
+
+static bool DecompressAdvanceHookOwned(uint32_t pc,
+    void (*hook)(CpuState *, uint32_t)) {
+    return (pc == 0x808f14u || pc == 0x808fb8u) &&
+        hook == ActorBridgeDecompressClock;
+}
+
+static bool DecompressHooksAllowed(const CpuState *cpu, uint32_t entry,
+    uint32_t first, uint32_t mirror) {
+    if (first == 0x808eefu)
+        return Lufia2DecompFrameRangeQuiet(entry + 1u, entry + 11u) &&
+            (cpu->Y != 0xffffu || Lufia2DecompFrameRangeQuiet(
+                0x808f24u + mirror, 0x808f2bu + mirror));
+    if (first == 0x808efau)
+        return Lufia2DecompFrameRangeQuiet(entry + 1u, 0x808f10u + mirror);
+    if (first == 0x808f66u)
+        return Lufia2DecompFrameRangeQuiet(entry + 1u, entry + 9u);
+    if (first == 0x808f40u)
+        return Lufia2DecompFrameRangeQuiet(entry + 1u, entry + 4u) &&
+            Lufia2DecompFrameRangeAllows(0x808f10u + mirror,
+                0x808f32u + mirror, DecompressAdvanceHookOwned);
+    return Lufia2DecompFrameRangeQuiet(entry + 1u, 0x808f32u + mirror);
+}
+
 static void DecompressClockAppend(DecompressClock *clock,
     uint16_t pc, uint8_t fetched, uint8_t cycles, uint8_t data_bytes) {
     assert(clock->count < 16u);
@@ -229,8 +254,7 @@ static bool DecompressClockSupported(const CpuState *cpu, uint32_t entry) {
     if (refresh_phase >= 1364u || refresh_clock != cpu->master_cycles ||
         !g_snes || g_snes->vPos >= 262u)
         return false;
-    if (advance && !Lufia2DecompFrameRangeQuiet(entry + 1u,
-            0x808f32u + mirror))
+    if (!DecompressHooksAllowed(cpu, entry, first, mirror))
         return false;
     const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u &&
         (!advance || g_snes->hPos <= 1024u)

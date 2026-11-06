@@ -788,6 +788,43 @@ were not repeated. No canonical algorithm or binding is added. Private evidence:
 `divide-width-integration-current/ACCEPTANCE.json` under
 `.agent/decomp/runtime-frontier`.
 
+### Decompressor phases: foreign hook ownership
+
+The control, symbol, flagged-literal and copy phase consumer could skip foreign
+inner or global observers. A reproduced menu case reaches 496 branch-hook
+visits in the original instruction control but only 140 in the former native
+handler, even though game endpoints match. Hook fidelity therefore needs its
+own evidence alongside CPU/audio/image comparisons.
+
+The phase admission now checks every covered original instruction range using
+the actual indexed hook registry. The flagged literal may inline only the exact
+advance callback at `80:8F14` or its `80:8FB8` destination-bank mirror. The two
+semantic APIs share `StreamContinueFlagged`; its original clock stages remain
+unchanged. Replaced callbacks and foreign/global observers retain original
+execution. No delays, MMIO/APU work, guest opcode or timing operation is removed.
+The largest checked range is 34 bytes, within the production 256-byte limit;
+no whole-table search or CPU-state copy is added to the production hot path.
+
+Eight paired 600-frame menu modes compare normal execution, five inner or
+replaced-entry hook sites, a global observer and an admission diagnostic.
+Observer counts now match the original instruction control: the reproduced
+branch has all 496 visits. CPU/WRAM/hardware/image, PCM, APU clocks, native idle
+and bus-credit endpoints also match. Fifty real registry assertions cover
+both destination-bank mirrors, rollover ranges, global observers and exact
+advance-callback replacement/restoration. The 7F mirror is predicate/registry
+coverage, not a separately observed 7F resource replay. Unrelated hooks and
+whole-game observer behavior are outside this proof.
+
+Without foreign hooks the fixture retains the same 3,058 raw opcode fetches.
+Two alternating production-object cost pairs, profiling disabled, give CPU/APU
+ms/frame reference/candidate of 0.4225/0.4353 and 0.4204/0.4063 (medians
+0.42145/0.42080). Endpoints match; mixed timings prove no stable speedup or FPS.
+Default Release and actual bridge compile/link selection pass. The standalone
+archive and all semantic/clock bodies are unchanged; full decomp/compiler
+regressions were not repeated. No new algorithm or binding is counted.
+Private evidence: `decompress-ownership-current/ACCEPTANCE.json` under
+`.agent/decomp/runtime-frontier`.
+
 ### Remaining reached paths: measured scope
 
 At the following checkpoint, three independently regenerated AOT controls
