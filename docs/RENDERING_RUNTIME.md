@@ -583,6 +583,42 @@ remains mandatory. Semantic verification and runtime performance are separate
 properties: a verified C function can still be expensive when its bridge is
 entered once per guest opcode, or can remain unused in its real caller context.
 
+### Battle upload queue admission
+
+The existing `85:ECDB`/`85:ECDE` timed queue hooks now check the production
+opcode-page hook registry. Only their exact callbacks at those two addresses
+belong to the span. Foreign, replaced and global observers retain individual
+execution; no hook is added or ignored to enable admission. A matched replay
+exposed 4,439 skipped foreign callbacks before this correction: the reference
+and corrected paths both deliver all 8,653 callbacks.
+
+The guard also accepts the observed DB7E context alongside DB97. Both address
+the same WRAM queue at `1A8F..1AEE`; logical bus accesses and regional timing
+remain unchanged. Existing CPU, deadline, DMA/HDMA, interrupt, refresh and APU
+synchronization restrictions remain. The span stops before the original full-
+queue BRK or free-row RTL. Standalone semantics and binding counts are unchanged.
+
+In a fixed 5,399-frame battle replay, DB7E admits 2,759 additional timed phases
+and DB97 retains 4,439. Actual interpreter fetches fall from 845,400 to 831,147;
+explicit bridge fallbacks remain 7,409, since a fallback may subsequently use
+a native partial path. These are execution counts, not native completion rates.
+Four observer configurations match CPU/WRAM/hardware/PCM/final-image hashes,
+sample counts, exact APU clock words and native idle counts. Another 25,132
+checks exercise real admission predicates and registered hook identities;
+4,352 original-ROM phase comparisons cover both banks and all queue rows,
+including 128 final-row BRK boundaries, CPU state and ordered data accesses.
+
+Four alternating production-source timing pairs use identical inputs and no
+profiling counters. Median guest CPU/APU time is 0.3674 versus 0.3656 ms/frame;
+paired changes range from -4.38 to +5.01 percent. This tiny median difference
+does not establish a reliable speedup. Drawing medians are 3.2653 versus
+3.2443 ms/frame; drawing is unchanged. This headless Windows probe excludes
+frontend/presentation and is not whole-game, hardware or 60-FPS acceptance.
+The queue API-off compile and actual-source production link pass. Unchanged
+semantic/CLI checks are reused within their recorded scope; full regression
+was deferred. Private receipt: `native-usage-audit-current/queue/ACCEPTANCE.json`
+under `.agent/decomp/runtime-frontier`.
+
 ### Observed name-entry admission boundary
 
 A 2,820-frame new-game replay reaches one native save-menu call, but no native

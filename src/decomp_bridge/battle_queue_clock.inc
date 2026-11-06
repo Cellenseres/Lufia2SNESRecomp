@@ -2,6 +2,13 @@
 
 enum { BATTLE_QUEUE_CLOCK_BUDGET = 250u };
 
+static void ActorBridgeBattleQueueStep(CpuState *cpu, uint32_t entry);
+
+static bool BattleQueueHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return hook == ActorBridgeBattleQueueStep &&
+        (pc == 0x85ecdbu || pc == 0x85ecdeu);
+}
+
 typedef struct BattleQueueClock {
     FixedSpanClock span;
     FixedSpanOpcode timing[11];
@@ -30,7 +37,8 @@ static uint8_t BattleQueueClockRead(void *context, uint32_t address) {
 
 static bool BattleQueueClockSupported(const CpuState *cpu, uint32_t entry) {
     if ((entry != 0x85ecdbu && entry != 0x85ecdeu) ||
-        cpu->m_flag || cpu->x_flag || cpu->DB != 0x97u || cpu->D || cpu->_flag_D ||
+        cpu->m_flag || cpu->x_flag ||
+        (cpu->DB != 0x97u && cpu->DB != 0x7eu) || cpu->D || cpu->_flag_D ||
         (entry == 0x85ecdeu && (cpu->Y > 0x5au || cpu->Y % 6u)) ||
         (cpu->host_return_valid != 0u && cpu->host_return_valid != 3u) ||
         cpu->S < 0x1f10u || !Lufia2DecompFrameReturnCpuReady() ||
@@ -45,7 +53,8 @@ static bool BattleQueueClockSupported(const CpuState *cpu, uint32_t entry) {
     uint64_t refresh_phase, refresh_clock;
     snes_refresh_state_get(&refresh_phase, &refresh_clock);
     return refresh_phase < 1364u &&
-        (!refresh_clock || refresh_clock == cpu->master_cycles);
+        (!refresh_clock || refresh_clock == cpu->master_cycles) &&
+        Lufia2DecompFrameRangeAllows(entry, 0x85eceeu, BattleQueueHookOwned);
 }
 
 static void ActorBridgeBattleQueueStep(CpuState *cpu, uint32_t entry) {
