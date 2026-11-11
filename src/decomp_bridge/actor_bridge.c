@@ -2763,7 +2763,17 @@ static Lufia2ExecutionResult ActorBridgeNmiSlice(const Lufia2Memory *memory,
     return Lufia2MainNmiResume(memory, cpu, pc, NULL, NULL);
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK)
+static bool RunNativeNmiRestore(CpuState *cpu);
+#endif
+
 static void ActorBridgeNmiResume(CpuState *cpu, uint32_t pc) {
+#if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK)
+    if (pc == 0x80869bu && !cpu->x_flag) {
+        (void)RunNativeNmiRestore(cpu);
+        return;
+    }
+#endif
     if (!ActorBridgeNmiResumeSupported(cpu, pc))
         return;
     const Lufia2NmiSchedule schedule = ActorBridgeNmiSchedule(cpu, pc);
@@ -2869,6 +2879,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
                                                wide_accumulator, 800u, 256u);
 }
 #include "fixed_span_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK)
+#include "nmi_restore_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_WIDTH)
 #include "nmi_hdma_window.inc"
 #endif

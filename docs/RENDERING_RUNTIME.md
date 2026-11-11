@@ -583,6 +583,56 @@ remains mandatory. Semantic verification and runtime performance are separate
 properties: a verified C function can still be expensive when its bridge is
 entered once per guest opcode, or can remain unused in its real caller context.
 
+### Native NMI frame restoration with 16-bit indexes
+
+The actual battle caller reaches `80:869B` in M0X0. The previous restore API
+and hook admitted only M0X1. The semantic restore API now accepts both index
+widths and retains the original overlapping counter updates, reset branch,
+register/status pulls and exact pre-RTI boundary. The display/clock API keeps
+its prior width contract. No algorithm, canonical binding or hook PC is added.
+
+The consumer uses the existing restore hook for M0X0 only. Its actual generated
+interrupt caller grants ownership only with sixteen remaining instructions,
+no pending interrupt/wait, quiescent mode or observer. Production range checks
+retain exact callback identity and indexed foreign-hook detection. The old
+M0X1 route is unchanged. Its older aggregate timing/observer policy is outside
+this checkpoint; the new per-opcode proof must not be generalized to that route.
+
+Static twelve/sixteen-opcode tables preserve original 57/68 CPU-cycle paths.
+They reserve at most 504/592 master clocks including 80 refresh clocks, strictly
+before the 1024/1364 HDMA/scanline fence. Active HDMA channels are permitted
+inside that fence; pending initialization and active DMA are rejected. IRQ,
+deadline, clock, stack, ROM and reset-combination checks remain conservative.
+The word read at `$4210` uses the production atomic MMIO-word primitive; the
+reset-enabled path keeps its original byte read. RTI and a requested reset
+execute on their original route. Guest waits and sound handshakes are retained.
+
+The shared checkpoint passes 262,144 original restore cases across both index
+widths and reset branches, 245,760 source-table cycle bounds, 4,096 unchanged
+display cases and 2,048 interpreted RTI rejoins. Actual production predicates
+pass 28,672 owner and 52 context/range/fence assertions, preserving old owner
+decisions. Foreign entry/inner pairs retain 5,399/4,390 complete register,
+clock, beam and APU-clock observations and equal profiles. A matched private
+WRAM reset-control override exercises 118 real atomic-word native restores
+against original interpretation over 1,200 frames; it is not a production patch.
+
+In the matched 5,399-frame battle, 2,457 of 4,390 M0X0 restore attempts execute
+natively. Raw fetches fall 775,646 -> 736,334 (39,312); explicit bridge fallbacks
+remain 7,166. All profile rows outside those sixteen NMI opcodes stay equal.
+CPU, full WRAM, hardware/image, rolling PCM/count, APU clocks, native wait totals
+and bus credits match the prior queue build and current production control.
+The observed maximum span is 488 master clocks. Remaining restores retain
+their fallback; this is not an exhaustive census of each rejection reason.
+
+Two alternating profiling-OFF pairs measure reference 0.4853/0.5107 and
+candidate 0.4701/0.4933 CPU/APU ms/frame (medians 0.4980/0.4817). This short
+battle measurement does not establish whole-game speedup or FPS acceptance.
+Windows production compile/link and strict GCC/Clang translation of the actual
+semantic and consumer files pass. Full regression and a fresh CLI build were
+deferred; neither is reported as passing on this changed library revision.
+Private evidence: `nmi-restore-clock-current/ACCEPTANCE.json` under
+`.agent/decomp/runtime-frontier`.
+
 ### Empty battle VRAM-queue rows
 
 The existing queue-search callback now uses a shorter bound when its known
