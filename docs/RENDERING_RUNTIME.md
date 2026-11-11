@@ -583,6 +583,47 @@ remains mandatory. Semantic verification and runtime performance are separate
 properties: a verified C function can still be expensive when its bridge is
 entered once per guest opcode, or can remain unused in its real caller context.
 
+### Bounded target-marker records
+
+The existing target selector now exposes its `81:D60E` marker-record loop as
+an internal native span. One to three records share the complete parent's
+original C helpers; a selected record stops before its original JSR. No wait,
+MMIO operation, child behavior or canonical binding is removed or added.
+
+The consumer admits only M1X0, PB81/DB7E, DP0 and the original twelve-record
+grid with its matching countdown. It uses real CPU, return, APU-clock,
+deadline, IRQ/DMA/HDMA, refresh and indexed-hook predicates. Static timing
+tables preserve both record branches, terminal branches and the pre-JSR exit;
+no per-span timing arrays are copied. The selected grid cannot cross the
+absolute-Y operand page. Each span reserves at most 29 CPU cycles per record
+at eight master cycles plus 80 refresh clocks, strictly before its 1024/1364
+beam fence. Foreign entry, inner or global observers keep their original route.
+
+The shared checkpoint passes 116,672 original-ROM/guard cases, including full
+marker parents, actual child return/unwind paths and unchanged name spans.
+9,888 cases independently check original cycles. The actual production
+predicates pass 90,528 assertions; eight capability conditions pass. Foreign
+entry and inner-hook pairs each retain 5,712 observations, matching profiles
+and guest/audio endpoints. Naturally admitted spans use the 1364 fence;
+1024 has predicate arithmetic coverage, not a separate enabled-HDMA replay.
+
+In the matched 5,399-frame battle, 2,208 spans replace 39,280 original fetches
+(816,108 -> 776,828). Explicit bridge fallbacks remain 7,166. Prior row spans
+remain 615 calls/1,957 cells; full whole-window/row/end-piece calls stay 5/5/234.
+CPU, WRAM, hardware, final image, rolling PCM and sample count, APU clock words,
+native APU idle totals and bus credits match the prior accepted row baseline
+and the new production-object control. Each span checks original cycles and
+its master-clock/beam bounds. The final generated actor object contains and
+actually executes the guarded callback.
+
+Two profiling-disabled, alternating battle cost pairs measure CPU/APU ms/frame:
+reference 0.4936/0.5446, candidate 0.5071/0.5159 (medians 0.5191/0.5115).
+The pairs move in opposite directions; this establishes no stable whole-game
+speedup or FPS result. Strict MSVC/GCC/Clang and C++ API checks pass. Unchanged
+resource-CLI code/dependencies reuse the prior 680-resource evidence; full
+regression was deferred. Private evidence: `target-marker-spans-current/ACCEPTANCE.json`
+under `.agent/decomp/runtime-frontier`.
+
 ### Bounded battle-frame row cells
 
 The existing `81:E553` row-fill loop now has a bounded native consumer route.

@@ -2875,6 +2875,10 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_STEPS)
 #include "battle_target_name_clock.inc"
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_MARKER_SPANS)
+static void ActorBridgeTargetMarkerRecords(CpuState *cpu, uint32_t entry);
+#include "battle_target_marker_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_INTERRUPT_ENTRIES)
 #include "interrupt_entry_clock.inc"
 #endif
@@ -4051,6 +4055,9 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_ROW_SPANS)
     interp_bridge_set_pre_opcode_hook(0x81e553u, ActorBridgeBattleFrameCells);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_MARKER_SPANS)
+    interp_bridge_set_pre_opcode_hook(0x81d60eu, ActorBridgeTargetMarkerRecords);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_STEPS)
     interp_bridge_set_pre_opcode_hook(0x81d58du, ActorBridgeBattleTargetName);
