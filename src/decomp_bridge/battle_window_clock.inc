@@ -183,6 +183,27 @@ static bool BattleWindowOutputSupported(unsigned start, unsigned end) {
            (end <= 0x0a3cu || start >= 0x0a3eu) && (end <= 0x1efcu || start >= 0x2000u);
 }
 
+static bool BattleWindowEndsBeamSupported(const CpuState *cpu, unsigned room) {
+    const uint32_t entry = 0x81e570u;
+    if (cpu->m_flag || cpu->x_flag ||
+        (cpu->host_return_valid && cpu->host_return_valid != 2u) ||
+        (!Lufia2DecompFrameReturnCpuReady() &&
+         !Lufia2DecompFramePairedCallReady(cpu, entry)) ||
+        cpu->coprocessor_master_cycles != cpu->master_cycles ||
+        cpu->master_cycles > UINT64_MAX - room ||
+        !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1ffdu, true,
+            1363u, room) || g_snes->vPos >= 225u ||
+        g_snes->dma->hdmaPendingInit ||
+        !Lufia2DecompFrameRangeQuiet(entry, 0x81e593u))
+        return false;
+    const unsigned fence = g_snes->hdmaBeamOff ? 1364u : 1024u;
+    if (room >= fence || g_snes->hPos >= fence - room)
+        return false;
+    uint64_t phase, charged;
+    snes_refresh_state_get(&phase, &charged);
+    return phase < 1364u && (!charged || charged == cpu->master_cycles);
+}
+
 static RecompReturn ActorBridgeTimedBattleWindow(CpuState *cpu, unsigned kind) {
     static const uint32_t entries[] = {0x81e503u, 0x81e542u, 0x81e570u};
     static const uint32_t returns[] = {0x81e541u, 0x81e56fu, 0x81e592u};
@@ -204,7 +225,9 @@ static RecompReturn ActorBridgeTimedBattleWindow(CpuState *cpu, unsigned kind) {
                    : start + (kind ? 0u : (rows + 1u) * 64u) + 2u * (fill_count + 2u);
     const unsigned source =
         kind ? cpu->X : cpu->ram[0x09f4u] | (unsigned)cpu->ram[0x09f5u] << 8;
-    const unsigned cycles = kind == 2u   ? 128u
+    const bool visible_ends = kind == 2u && g_snes && g_snes->vPos < 225u;
+    const unsigned cycles = visible_ends ? 65u
+                            : kind == 2u   ? 128u
                             : kind == 1u ? 128u + 24u * fill_count
                                          : 512u + 48u * fill_count + 96u * rows;
     const unsigned master = cycles * 8u;
@@ -215,7 +238,9 @@ static RecompReturn ActorBridgeTimedBattleWindow(CpuState *cpu, unsigned kind) {
                   : kind     ? 0xfffau
                              : 0xfff0u) ||
         !BattleWindowOutputSupported(start, end) ||
-        !BattleQuietClockSupported(cpu, entry, range_end, 2u, kind != 0u, room))
+        !(visible_ends ? BattleWindowEndsBeamSupported(cpu, room)
+                       : BattleQuietClockSupported(cpu, entry, range_end, 2u,
+                           kind != 0u, room)))
         return ActorBridgeFallback(cpu, &frame,
                                    cpu->PB == 1u ? entry & 0x7fffffu : entry);
     if (frame.hrv)

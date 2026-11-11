@@ -850,6 +850,49 @@ at this diagnostic checkpoint. Private evidence:
 `battle-window-admission-current/REVIEW.json` under
 `.agent/decomp/runtime-frontier`.
 
+### Visible-line battle-window end-pieces
+
+The existing `81:E570` end-piece can now use its unchanged timed C body during
+visible lines when its complete original sequence fits before the next beam
+fence. The plan has 15 opcodes and 65 CPU cycles including RTS. Legal source
+ROM, destination WRAM and stack transactions cost at most eight master clocks
+per cycle (496 master clocks for the explicit bus/internal plan). Admission
+reserves 600: 65*8 plus the existing conservative refresh allowance. Execution
+must end strictly before H=1024 when beam HDMA is enabled, or H=1364 otherwise.
+Pending HDMA initialization, DMA/IRQ/NMI state, deadline, return ownership,
+refresh state, output bounds and the actual indexed hook predicate remain
+checked. The range is 35 bytes. Row loops, whole windows and VBlank routing
+retain their existing paths and reservations.
+
+24,576 fresh original-ROM cases compare CPU, WRAM, ordered accesses and the
+59 body cycles before the six-cycle RTS. The matrix includes both WRAM banks,
+flags, source/output extremes and direct pages, including states rejected by
+the consumer. In the matched battle fixture 211 additional end-pieces complete
+natively; per-call traces record 65 CPU cycles, at most 600 master clocks and
+no fence or scanline crossing. These observed calls use the beam-HDMA-off
+1364 fence. The 1024 fence is covered by actual predicate arithmetic tests,
+not a separately observed natural HDMA-enabled scene. Hardware/FPS acceptance
+is not implied.
+
+4,431 production-predicate assertions cover mode, stack, return width,
+RAM/clock state, pending HDMA, IRQs, global observers and both fence edges.
+Paired foreign entry/middle hooks reach all 403 visits at each site, with
+identical profiles and guest endpoints. Normal and predicate-diagnostic
+5,399-frame replays preserve CPU/WRAM/hardware/final-image state, rolling PCM,
+APU clocks, native idle and bus credits. End-piece admissions rise 23 -> 234;
+whole/row admissions remain 5/5. Raw fetches fall 829,058 -> 825,893 and
+explicit fallbacks 7,377 -> 7,166 in this fixture.
+
+Two alternating production-object cost pairs with profiling off match
+endpoints. CPU/APU ms/frame reference/candidate is 0.56035/0.40818 and
+0.38527/0.39504 (medians 0.47281/0.40161). The mixed timings establish no
+stable speedup or FPS claim. Incremental Release and actual caller/compile/link
+selection pass. Standalone C/archive and original clock/bus operations are
+unchanged; the full decomp/compiler suite was not repeated. No new canonical
+algorithm or binding is counted. Private evidence:
+`window-ends-beam-current/ACCEPTANCE.json` under
+`.agent/decomp/runtime-frontier`.
+
 ### Remaining reached paths: measured scope
 
 At the following checkpoint, three independently regenerated AOT controls
