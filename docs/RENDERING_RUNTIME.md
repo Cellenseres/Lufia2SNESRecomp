@@ -583,6 +583,46 @@ remains mandatory. Semantic verification and runtime performance are separate
 properties: a verified C function can still be expensive when its bridge is
 entered once per guest opcode, or can remain unused in its real caller context.
 
+### Empty battle VRAM-queue rows
+
+The existing queue-search callback now uses a shorter bound when its known
+WRAM length word is zero and HDMA initialization is not pending. It checks
+only that word, with the original M0X0, DB97/7E, DP0, row, stack, deadline,
+refresh, clock and indexed-hook conditions. Empty rows use a static two/three
+opcode table instead of copying and zeroing eleven timing entries. The bound
+is five/eight fetched bytes at actual ROM speed, 22 data/internal master clocks,
+and 80 refresh clocks. Occupied or pending-init rows retain the original
+mutable timing and 250-clock reservation. RTL still executes on its original
+route. No standalone algorithm, canonical binding or hook is added.
+
+The shared checkpoint covers 6,528 original empty phases and their original
+RTL rejoins, full CPU/WRAM/ordered accesses, and 13,056 cycle/bus bounds from
+the actual source table. The unchanged standalone queue/BRK contracts retain
+their prior evidence. The current Windows application builds and links;
+GCC/Clang also translate the changed fragment against real SDK/API headers
+with strict warnings. This is not a new whole-platform or resource-CLI run.
+
+Actual production predicates pass 337,876 assertions, including old-admission
+preservation and the pending-HDMA legacy route. Foreign entry/inner observer
+pairs retain 5,829/8,653 complete register, clock, beam and APU-clock snapshots.
+An entry observer allows later non-overlapping continuation spans; its observed
+PC profile stays equal. An inner observer blocks all queue spans and the full
+profile stays equal. No observer is ignored to manufacture native admission.
+
+In the matched 5,399-frame battle, native queue spans rise from 7,202 to 7,679;
+5,324 use the static empty path. Raw fetches fall 776,828 -> 775,646 (1,182).
+Explicit bridge fallbacks stay 7,166; prior row, window and marker intake stays
+equal. Guest registers, WRAM, hardware/image, rolling PCM and count, APU clocks,
+native idle totals and bus credits match both prior baseline and new production
+control. All observed spans stay before the 1364 fence; 1024 has predicate
+arithmetic coverage only. No full-table scan or guest behavior is removed.
+
+Two alternating profiling-OFF cost pairs are mixed: reference 0.4826/0.5375,
+candidate 0.4950/0.4922 CPU/APU ms/frame (medians 0.5101/0.4936). No stable
+whole-game speedup or FPS acceptance is established. Full regression and
+unchanged standalone/resource-CLI runs were deferred. Private evidence:
+`queue-free-budget-current/ACCEPTANCE.json` under `.agent/decomp/runtime-frontier`.
+
 ### Bounded target-marker records
 
 The existing target selector now exposes its `81:D60E` marker-record loop as
