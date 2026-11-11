@@ -13,39 +13,13 @@ static bool NmiRestoreHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
 }
 
 static bool NmiRestoreSupported(const CpuState *cpu) {
-    if (!g_snes || !g_snes->inNmi || g_snes->inIrq || !g_snes->dma ||
-        !cpu->ram || cpu->ram != g_snes->ram || cpu->emulation ||
-        cpu->PB != 0x80u || cpu->DB != 0x80u || cpu->D || cpu->_flag_D ||
-        cpu->m_flag || cpu->x_flag || cpu->S < 0x1f00u || cpu->S > 0x1ff3u ||
-        (cpu->ram[0x520u] && cpu->ram[0x46u] == 0x30u && cpu->ram[0x47u] == 0x30u) ||
-        !Lufia2DecompNmiHasInterruptOwner() ||
-        !Lufia2DecompFrameReturnCpuReady() ||
-        cpu->coprocessor_master_cycles != cpu->master_cycles ||
-        g_snes->beamMasterLast != cpu->master_cycles ||
-        cpu->master_cycles > UINT64_MAX - NMI_RESTORE_CLOCK_BUDGET ||
-        g_snes->hIrqEnabled || g_snes->vIrqEnabled ||
-        g_snes->dma->dmaBusy || g_snes->dma->dmaTimer ||
-        g_snes->dma->hdmaPendingInit || !g_snes->cart ||
-        !g_snes->cart->rom || g_snes->cart->type != CART_LOROM ||
-        g_snes->cart->romSize < 0x86c0u - 0x8000u)
+    if (!g_snes || !cpu->ram || cpu->ram != g_snes->ram || cpu->m_flag ||
+        (cpu->ram[0x520u] && cpu->ram[0x46u] == 0x30u && cpu->ram[0x47u] == 0x30u))
         return false;
     const unsigned budget = cpu->ram[0x520u]
         ? NMI_RESTORE_CLOCK_BUDGET : NMI_RESTORE_NO_RESET_BUDGET;
-    const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
-        ? 1024u : 1364u;
-    if ((unsigned)g_snes->hPos + budget >= fence)
-        return false;
-    for (unsigned channel = 0u; channel < 8u; ++channel)
-        if (g_snes->dma->channel[channel].dmaActive)
-            return false;
-    const uint64_t deadline = Lufia2DecompFrameReturnDeadline();
-    if (deadline && (deadline <= cpu->master_cycles ||
-        deadline - cpu->master_cycles < budget))
-        return false;
-    uint64_t phase, current;
-    snes_refresh_state_get(&phase, &current);
-    return phase < 1364u && (!current || current == cpu->master_cycles) &&
-        Lufia2DecompFrameRangeAllows(0x80869bu, 0x8086bfu, NmiRestoreHookOwned);
+    return NmiClockWindow(cpu, 0x80869bu, 0x8086bfu, budget,
+        NMI_RESTORE_CLOCK_BUDGET, NmiRestoreHookOwned);
 }
 
 static uint8_t NmiRestoreRead(void *context, uint32_t address) {

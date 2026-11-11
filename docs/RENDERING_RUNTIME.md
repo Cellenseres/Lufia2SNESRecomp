@@ -583,6 +583,64 @@ remains mandatory. Semantic verification and runtime performance are separate
 properties: a verified C function can still be expensive when its bridge is
 entered once per guest opcode, or can remain unused in its real caller context.
 
+### Bounded NMI callback phases
+
+The existing secondary and scroll resumes at `80:8653`/`80:865A` now accept
+the actual M1X0 caller as well as their original M1X1 semantic contract.
+Both share the existing C phase worker and stop before an original JSR.
+Other entry modes retain their contracts. No canonical function, algorithm
+or hook PC is added. The consumer handles M1X0 only; legacy M1X1 aggregate
+timing and observer behavior remain separate from this checkpoint.
+
+Static two/four-opcode plans preserve LDA/BEQ cycles and both callback exits.
+Admission executes real interrupt ownership, remaining-budget, pending-event,
+observer, exact indexed-hook, clock, stack, ROM, deadline, IRQ/DMA/HDMA and
+1024/1364 fence predicates. The common read-only window preserves the existing
+restore admission, including its original overflow reserve. Immutable bank80
+opcode fetches update the original bus latches directly inside that admitted
+scope. WRAM reads and every guest instruction/device clock remain on their
+original path. Unknown hooks/observers retain interpretation. The actual
+private interpreter wrapper's two interrupt callers use stop-on-RTI with
+no yield or stop list; other stop/yield APIs cannot own this
+span. This is checked against the generated, compiled caller.
+
+The shared checkpoint covers 524,288 original-ROM callback cases and original
+cycle/bus bounds across both index widths, DB values, flags and stack limits.
+The matrix and static timing tables remain identical across the consumer-only
+fetch refinement. Production predicates pass 28,672 owner, 218 context/plan
+and 5,186 old/new restore-admission assertions. Joint entry/inner observers
+retain 10,796/8,780 full register, clock, beam and APU-clock snapshots and equal
+profiles. Three real present-callback variants match original interpretation
+before JSR, including bus latches; their WRAM overrides exist only in private
+fixtures. Windows actual compile/link and strict GCC/Clang semantic/consumer
+translation pass. No fresh full regression or CLI build is claimed.
+
+In the matched 5,399-frame replay, 3,879 secondary and 150 partial scroll spans
+replace 15,816 original fetches: 736,334 -> 720,518. Explicit bridge fallbacks
+stay 7,166. Only the four callback opcode rows differ. Existing 2,457 restore
+spans and their 39,312 replaced opcodes remain unchanged. CPU, full WRAM,
+hardware/image, rolling PCM/count, APU clock, native wait totals and bus credits
+match the prior restore build and current production control. The observed
+maximum callback span is 116 master clocks; natural admission uses the 1364
+fence. The 1024 fence has predicate/bound coverage, not a separate HDMA replay.
+
+The actual generated APU caller also retains identical work: 8,089,011 native
+idle calls, 5,140,317 native skipped spans covering 93,602,742 idle cycles,
+and 3,131,707 native program-cycle calls. No interpreter idle spans appear.
+This proves use of the idle interface, separately from equal guest timing.
+
+Initial cost pairs were slower and triggered isolation and fetch-path work.
+Isolation reversed direction and overlapped; no causal regression was proven.
+Final production pairs measure reference 0.5171/0.4894 and candidate
+0.5020/0.5049 CPU/APU ms/frame (medians 0.50323/0.50344). With both main threads
+on logical CPU0, wall medians are 0.42511/0.42825 and active-thread cycle
+medians 1,004,131/996,726 per frame; paired directions remain mixed.
+These are distinct integration and cost results, with no stable speedup,
+regression or whole-game/FPS performance acceptance claimed. The native
+version avoids a source-derived 31,632 general-ROM callback reads present
+in the initial native implementation. Private proof and initial measurements:
+`nmi-callback-clocks-current/ACCEPTANCE.json` under `.agent/decomp/runtime-frontier`.
+
 ### Native NMI frame restoration with 16-bit indexes
 
 The actual battle caller reaches `80:869B` in M0X0. The previous restore API
