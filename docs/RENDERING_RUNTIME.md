@@ -583,6 +583,47 @@ remains mandatory. Semantic verification and runtime performance are separate
 properties: a verified C function can still be expensive when its bridge is
 entered once per guest opcode, or can remain unused in its real caller context.
 
+### Bounded battle-frame row cells
+
+The existing `81:E553` row-fill loop now has a bounded native consumer route.
+Each span executes at most six original cells (30 opcodes), then resumes at
+`81:E553` or `81:E55D`. The portable body shares the complete row's original
+loop; its unbounded entry remains unbounded. No canonical binding or algorithm
+is added. The feature is enabled only with the public API, implementation and
+verified M0X0 parent contract present; the actual actor object registers it.
+
+Admission uses the production CPU, return, deadline, IRQ/DMA/HDMA, refresh and
+indexed hook predicates. It requires WRAM and rejects protected destinations,
+counter aliases and cross-bank output. It reserves the original 22 CPU cycles
+per continuing cell (21 for a terminating cell), bus clocks and refresh room
+strictly before the applicable 1024/1364-master-cycle fence. Existing static
+five-opcode timing tables are reused without per-span table copies.
+
+Whole-window and complete-row batches recognize only the exact registered
+cell callback. Foreign replacements, inner hooks and global observers retain
+their original routes. The existing quiet-clock wrapper still supplies NULL
+ownership, preserving the admission of other batches and certified waits.
+
+One shared checkpoint passes 105,760 original-ROM/guard cases and 25,215
+production-predicate assertions. In the 5,399-frame battle replay, 615 native
+spans execute 1,957 cells: 9,785 fewer original interpreter fetches
+(825,893 -> 816,108). Existing full native calls remain 5 whole windows,
+5 complete rows and 234 end-pieces; explicit bridge fallbacks remain 7,166.
+CPU, WRAM, hardware, final image, rolling PCM, sample count, APU clock words,
+native APU idle totals and bus credits match the production-object control.
+Every admitted span also checks cycles, master-clock bounds and beam fences.
+Naturally observed spans use the 1364 fence; the 1024 fence has predicate
+arithmetic coverage, not a separate enabled-HDMA gameplay replay.
+
+Two actual foreign-hook comparisons each preserve all 2,604 observations,
+full profiles and guest/audio endpoints. Strict standalone/compiler and C++
+checks pass. Resource CLI sources and dependencies are unchanged; the prior
+680-resource checks are reused, not claimed as fresh runs. Full regression
+was deferred under the shared-checkpoint cadence. Timing evidence is scoped
+to matched, profiling-disabled production-object battle runs; no stable
+whole-game speedup or FPS acceptance is claimed. Private evidence:
+`row-spans-current/ACCEPTANCE.json` under `.agent/decomp/runtime-frontier`.
+
 ### Complete native functions: original AOT envelopes
 
 The reached `83:A6DF` actor reset and `86:E709` world object-indexing entries

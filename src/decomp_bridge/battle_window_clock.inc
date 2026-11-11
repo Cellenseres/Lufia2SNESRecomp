@@ -1,5 +1,20 @@
 #include "battle_clock_common.inc"
 
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_ROW_SPANS)
+static void ActorBridgeBattleFrameCells(CpuState *cpu, uint32_t entry);
+#endif
+
+static bool BattleFrameRowHookOwned(uint32_t pc,
+    void (*hook)(CpuState *, uint32_t)) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_ROW_SPANS)
+    return pc == 0x81e553u && hook == ActorBridgeBattleFrameCells;
+#else
+    (void)pc;
+    (void)hook;
+    return false;
+#endif
+}
+
 static const FixedSpanOpcode battle_window_setup[] = {
     {0xe503u, 1u, 3u, 1u}, {0xe504u, 2u, 2u, 0u}, {0xe506u, 1u, 3u, 1u},
     {0xe507u, 1u, 4u, 1u}, {0xe508u, 3u, 4u, 1u}, {0xe50bu, 1u, 2u, 0u},
@@ -239,8 +254,8 @@ static RecompReturn ActorBridgeTimedBattleWindow(CpuState *cpu, unsigned kind) {
                              : 0xfff0u) ||
         !BattleWindowOutputSupported(start, end) ||
         !(visible_ends ? BattleWindowEndsBeamSupported(cpu, room)
-                       : BattleQuietClockSupported(cpu, entry, range_end, 2u,
-                           kind != 0u, room)))
+                       : BattleQuietClockAllows(cpu, entry, range_end, 2u,
+                           kind != 0u, room, BattleFrameRowHookOwned)))
         return ActorBridgeFallback(cpu, &frame,
                                    cpu->PB == 1u ? entry & 0x7fffffu : entry);
     if (frame.hrv)
@@ -268,3 +283,109 @@ static RecompReturn ActorBridgeTimedBattleWindow(CpuState *cpu, unsigned kind) {
     ActorBridgeStore(cpu, &state);
     return ReturnTimedMenuCall(cpu, &frame, result.pc);
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_ROW_SPANS)
+typedef struct BattleRowSpanClock {
+    FixedSpanClock span;
+    uint16_t counter;
+    unsigned cells_left, opcodes, progress_mask;
+} BattleRowSpanClock;
+
+static void SetBattleRowCellClock(BattleRowSpanClock *clock) {
+    CpuState *cpu = clock->span.cpu;
+    clock->span = (FixedSpanClock){0};
+    clock->span.cpu = cpu;
+    clock->span.bank = 0x810000u;
+    clock->span.timing = ((uint16_t)(clock->counter - 1u) & 0x8000u)
+        ? battle_window_cell_last : battle_window_cell_more;
+    clock->span.count = 5u;
+}
+
+static void PrepareBattleRowCell(BattleRowSpanClock *clock) {
+    BeginFixedSpanOpcode(&clock->span);
+    if (clock->span.index != clock->span.count)
+        return;
+    clock->progress_mask |= clock->span.progress_mask << clock->opcodes;
+    clock->opcodes += 5u;
+    --clock->counter;
+    if (--clock->cells_left)
+        SetBattleRowCellClock(clock);
+}
+
+static uint8_t BattleRowSpanRead(void *context, uint32_t address) {
+    BattleRowSpanClock *clock = context;
+    PrepareBattleRowCell(clock);
+    return FixedSpanRead(&clock->span, address);
+}
+
+static void BattleRowSpanWrite(void *context, uint32_t address, uint8_t value) {
+    BattleRowSpanClock *clock = context;
+    PrepareBattleRowCell(clock);
+    FixedSpanWrite(&clock->span, address, value);
+}
+
+static unsigned BattleRowSpanSize(const CpuState *cpu, uint32_t entry) {
+    if (entry != 0x81e553u || (cpu->DB != 0x7eu && cpu->DB != 0x7fu) ||
+        cpu->m_flag || cpu->x_flag ||
+        (cpu->host_return_valid && cpu->host_return_valid != 2u &&
+         cpu->host_return_valid != 3u) ||
+        !Lufia2DecompFrameReturnCpuReady() ||
+        cpu->coprocessor_master_cycles != cpu->master_cycles ||
+        !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, true,
+            1363u, 1u) || g_snes->vPos >= 262u ||
+        g_snes->dma->hdmaPendingInit ||
+        !Lufia2DecompFrameRangeAllows(entry, entry + 10u,
+            BattleFrameRowHookOwned))
+        return 0u;
+    uint64_t phase, charged;
+    snes_refresh_state_get(&phase, &charged);
+    if (phase >= 1364u || (charged && charged != cpu->master_cycles))
+        return 0u;
+    const unsigned bank = cpu->DB == 0x7fu ? 0x10000u : 0u;
+    const uint16_t counter = cpu->ram[bank + 0x0a3cu] |
+        (uint16_t)cpu->ram[bank + 0x0a3du] << 8;
+    unsigned cells = counter > 0x8000u ? 1u : (unsigned)counter + 1u;
+    if (cells > 6u)
+        cells = 6u;
+    const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
+        ? 1024u : 1364u;
+    const uint64_t deadline = Lufia2DecompFrameReturnDeadline();
+    while (cells) {
+        const unsigned master = 22u * cells * 8u;
+        const unsigned room = master + 40u * (master / 1324u + 2u);
+        if (g_snes->hPos < fence && room < fence - g_snes->hPos &&
+            cpu->master_cycles <= UINT64_MAX - room &&
+            deadline - cpu->master_cycles >= room &&
+            BattleWindowOutputSupported((unsigned)cpu->Y + 2u,
+                (unsigned)cpu->Y + 2u + 2u * cells))
+            return cells;
+        --cells;
+    }
+    return 0u;
+}
+
+static void ActorBridgeBattleFrameCells(CpuState *cpu, uint32_t entry) {
+    const unsigned cells = BattleRowSpanSize(cpu, entry);
+    if (!cells)
+        return;
+    const unsigned bank = cpu->DB == 0x7fu ? 0x10000u : 0u;
+    BattleRowSpanClock clock = {0};
+    clock.span.cpu = cpu;
+    clock.counter = cpu->ram[bank + 0x0a3cu] |
+        (uint16_t)cpu->ram[bank + 0x0a3du] << 8;
+    clock.cells_left = cells;
+    SetBattleRowCellClock(&clock);
+    const Lufia2Memory memory = {
+        BattleRowSpanRead, BattleRowSpanWrite, &clock, NULL, NULL};
+    Lufia2CpuState state;
+    ActorBridgeLoad(cpu, &state);
+    const Lufia2ExecutionResult result =
+        Lufia2BattleFillFrameRowSpan(&memory, &state, entry, cells);
+    while (clock.cells_left)
+        PrepareBattleRowCell(&clock);
+    assert(!clock.span.remaining && clock.opcodes == 5u * cells);
+    ActorBridgeStore(cpu, &state);
+    Lufia2DecompFrameReturnComplete(clock.opcodes, clock.progress_mask);
+    interp_bridge_pre_opcode_redirect(result.pc);
+}
+#endif

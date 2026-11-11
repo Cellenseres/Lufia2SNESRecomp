@@ -1,8 +1,9 @@
 #ifndef LUFIA2_BATTLE_CLOCK_COMMON
 #define LUFIA2_BATTLE_CLOCK_COMMON
 
-static bool BattleQuietClockSupported(const CpuState *cpu, uint32_t entry, uint32_t end,
-                                      unsigned frame_size, bool wide, unsigned room) {
+static bool BattleQuietClockAllows(const CpuState *cpu, uint32_t entry, uint32_t end,
+    unsigned frame_size, bool wide, unsigned room,
+    bool (*owned)(uint32_t, void (*)(CpuState *, uint32_t))) {
     if (cpu->x_flag ||
         (cpu->host_return_valid && cpu->host_return_valid != frame_size) ||
         (!Lufia2DecompFrameReturnCpuReady() &&
@@ -13,11 +14,16 @@ static bool BattleQuietClockSupported(const CpuState *cpu, uint32_t entry, uint3
                                              1363u, room) ||
         g_snes->vPos < 225u || g_snes->vPos >= 262u ||
         (262u - g_snes->vPos) * 1364u - g_snes->hPos < room ||
-        !Lufia2DecompFrameRangeQuiet(entry, end))
+        !Lufia2DecompFrameRangeAllows(entry, end, owned))
         return false;
     uint64_t phase, charged;
     snes_refresh_state_get(&phase, &charged);
     return phase < 1364u && (!charged || charged == cpu->master_cycles);
+}
+
+static bool BattleQuietClockSupported(const CpuState *cpu, uint32_t entry, uint32_t end,
+                                      unsigned frame_size, bool wide, unsigned room) {
+    return BattleQuietClockAllows(cpu, entry, end, frame_size, wide, room, NULL);
 }
 
 #endif

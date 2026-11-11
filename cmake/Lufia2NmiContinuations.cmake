@@ -405,6 +405,13 @@ function(lufia2_add_nmi_continuations target core_root)
                             "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_WAVE_FILL_STEPS=1>")
                 endif()
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleTargetNameSteps.cmake")
+                include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleRowSpans.cmake")
+                lufia2_battle_row_spans_available(_battle_row_spans)
+                if(_battle_row_spans AND _battle_status AND _menu_leaves)
+                    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                        APPEND PROPERTY COMPILE_DEFINITIONS
+                            "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_ROW_SPANS=1>")
+                endif()
                 lufia2_battle_target_name_steps_available(_battle_target_name_steps)
                 if(_battle_target_name_steps)
                     set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"

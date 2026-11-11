@@ -84,6 +84,9 @@ static RecompReturn ActorBridgeTimedBattleFill(CpuState *cpu);
 static RecompReturn ActorBridgeTimedFilledWindow(CpuState *cpu, unsigned kind);
 #endif
 static RecompReturn ActorBridgeTimedBattleWindow(CpuState *cpu, unsigned kind);
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_ROW_SPANS)
+static void ActorBridgeBattleFrameCells(CpuState *cpu, uint32_t entry);
+#endif
 static RecompReturn ActorBridgeTimedBattleDigits(CpuState *cpu);
 static RecompReturn ActorBridgeTimedBattleMultiply(CpuState *cpu);
 static RecompReturn ActorBridgeTimedBattleDivide(CpuState *cpu);
@@ -4045,6 +4048,9 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
 #if defined(LUFIA2_HAVE_NATIVE_RESET_ENTRY)
     interp_bridge_set_pre_opcode_hook(0x008000u, ActorBridgeResetEntry);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_ROW_SPANS)
+    interp_bridge_set_pre_opcode_hook(0x81e553u, ActorBridgeBattleFrameCells);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_STEPS)
     interp_bridge_set_pre_opcode_hook(0x81d58du, ActorBridgeBattleTargetName);
