@@ -2885,7 +2885,6 @@ int main(int argc, char **argv) {
             Lufia2MsuDriverFrame();
             L2CaptureGuestEnd();
             snes_osd_note_frame();
-            snes_rewind_note_frame();
 
             PrepareVideoFrame();
 
@@ -2902,6 +2901,7 @@ int main(int argc, char **argv) {
             ObserveHandoffRaster();
             Lufia2IntroWidescreenObserve(g_ppu);
             ComposeFrame(false);
+            snes_rewind_note_frame();
             Lufia2SavestateMenuNoteFrame(
                 (const uint32_t *)s_present_pixels,
                 s_frame_width, SNES_HEIGHT);
