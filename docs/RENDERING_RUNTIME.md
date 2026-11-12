@@ -583,6 +583,43 @@ remains mandatory. Semantic verification and runtime performance are separate
 properties: a verified C function can still be expensive when its bridge is
 entered once per guest opcode, or can remain unused in its real caller context.
 
+### Corrected byte-index NMI display timing
+
+The legacy M1X1 route at `80:8664` wrote INIDISP before accounting the first
+LDA. A natural witness reproduces a write four CPU/26 master clocks early
+and wrong final bus latches (`1A`/`800B50` versus original `22`/`808676`).
+Final WRAM and frame endpoints alone did not expose these differences.
+
+Both index widths now use the existing per-opcode display/clock implementation.
+The shared window checks the explicitly requested width; callback/restore
+callers still request word indexes and preserve their exact old guards.
+Rejected M1X1 spans execute the original interpreter instead of falling
+through to the unsafe aggregate. No standalone source, C algorithm, binding
+or hook PC is added. Original guest waits, MMIO, sound and clocks remain.
+
+The shared consumer checkpoint covers 186 context/plan/registered-hook and
+41,472 actual owner assertions, twenty M1X1 rare-path pairs across both ROM
+speeds/fences, and 5,399 entry plus 5,399 inner observer snapshots. The natural
+witness now matches original MMIO clocks, CPU/WRAM/hardware/beam/APU and bus
+latches exactly. The unchanged 263,168-case standalone ROM/cycle matrix is
+reused by matching source, header and fixture/executable hashes. Current
+Windows production compile/link and strict GCC/Clang consumer checks pass.
+No full regression or CLI rebuild is claimed for this root-only correction.
+
+Over 5,399 frames, M1X1 admits 803 of 1,009 visits and replaces 6,490 original
+opcodes (699,230 -> 692,740 with certified M1X0 enabled in both arms). The
+remaining 206 visits interpret original instructions. Relative to the old
+unsafe aggregate this adds 1,684 raw executions; they must not be hidden by
+relaxing timing or observer guards. M1X0 still admits 3,640 spans/29,462 opcodes;
+all other profile rows and callback/restore intake stay unchanged. Guest,
+image, PCM, APU clocks, native idle/program calls and bus credits match.
+
+Two alternating production pairs on logical CPU0 compare exact prior code
+against the correction: CPU/APU wall medians 0.442375/0.434788 ms per frame,
+active-cycle medians 1038196/1030097. Both pairs favor the correction, with
+limited samples; this is no stable whole-game/FPS claim. Private evidence:
+`nmi-display-byte-clock-current/ACCEPTANCE.json` in `.agent/decomp/runtime-frontier`.
+
 ### Bounded NMI display and play-clock phase
 
 The existing `Lufia2NmiDisplayAndClock` API at `80:8664` accepts M1X0 and

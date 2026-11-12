@@ -44,7 +44,7 @@ static bool NmiCallbacksSupported(const CpuState *cpu, uint32_t entry,
         !g_snes || !cpu->ram || cpu->ram != g_snes->ram)
         return false;
     *plan = NmiCallbacksPlan(cpu, entry);
-    return NmiClockWindow(cpu, entry, plan->next, plan->budget, 172u, NmiCallbackHookOwned);
+    return NmiClockWindow(cpu, false, entry, plan->next, plan->budget, 172u, NmiCallbackHookOwned);
 }
 
 static bool RunNativeNmiCallbacks(CpuState *cpu, uint32_t entry) {

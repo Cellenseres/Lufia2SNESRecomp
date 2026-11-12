@@ -2777,7 +2777,7 @@ static bool RunNativeNmiDisplay(CpuState *cpu);
 
 static void ActorBridgeNmiResume(CpuState *cpu, uint32_t pc) {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
-    if (pc == 0x808664u && !cpu->x_flag) {
+    if (pc == 0x808664u) {
         (void)RunNativeNmiDisplay(cpu);
         return;
     }

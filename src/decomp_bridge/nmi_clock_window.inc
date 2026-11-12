@@ -1,10 +1,10 @@
-static bool NmiClockWindow(const CpuState *cpu, uint32_t first, uint32_t end,
+static bool NmiClockWindow(const CpuState *cpu, bool byte_index, uint32_t first, uint32_t end,
     unsigned budget, unsigned reserve,
     bool (*owned)(uint32_t, InterpPreOpcodeHook)) {
     if (!g_snes || !g_snes->inNmi || g_snes->inIrq || !g_snes->dma ||
         !cpu->ram || cpu->ram != g_snes->ram || cpu->emulation ||
         cpu->PB != 0x80u || cpu->DB != 0x80u || cpu->D || cpu->_flag_D ||
-        cpu->m_flag > 1u || cpu->x_flag || cpu->S < 0x1f00u || cpu->S > 0x1ff3u ||
+        cpu->m_flag > 1u || cpu->x_flag != byte_index || cpu->S < 0x1f00u || cpu->S > 0x1ff3u ||
         !Lufia2DecompNmiHasInterruptOwner() || !Lufia2DecompFrameReturnCpuReady() ||
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
         g_snes->beamMasterLast != cpu->master_cycles ||

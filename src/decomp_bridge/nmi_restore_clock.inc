@@ -18,7 +18,7 @@ static bool NmiRestoreSupported(const CpuState *cpu) {
         return false;
     const unsigned budget = cpu->ram[0x520u]
         ? NMI_RESTORE_CLOCK_BUDGET : NMI_RESTORE_NO_RESET_BUDGET;
-    return NmiClockWindow(cpu, 0x80869bu, 0x8086bfu, budget,
+    return NmiClockWindow(cpu, false, 0x80869bu, 0x8086bfu, budget,
         NMI_RESTORE_CLOCK_BUDGET, NmiRestoreHookOwned);
 }
 
