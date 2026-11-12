@@ -37,6 +37,8 @@ static inline bool Lufia2DecompFramePollIsCounterPair(uint32_t entry) {
 
 
 void Lufia2DecompInstallFrameReturnHooks(void);
+bool Lufia2DecompCommandTileHookOwned(
+    uint32_t pc, void (*hook)(struct CpuState *, uint32_t));
 bool Lufia2DecompFramePollHookIsNative(
     void (*hook)(struct CpuState *, uint32_t));
 uint64_t Lufia2DecompFrameReturnDeadline(void);

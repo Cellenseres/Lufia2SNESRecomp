@@ -583,6 +583,47 @@ remains mandatory. Semantic verification and runtime performance are separate
 properties: a verified C function can still be expensive when its bridge is
 entered once per guest opcode, or can remain unused in its real caller context.
 
+### Battle command tile records
+
+The bounded `81:CB99` consumer reuses the standalone parent helper to prepare
+one three-byte command tile record. It stops at `81:CBAF`, before the original
+renderer JSR. Record selection stays on the original X=0/3/6 grid; no renderer,
+frame input, sound work or child return is bypassed. This adds one internal
+hook and no canonical function, duplicate algorithm or entry binding.
+
+The real caller retains host-return context three after a child handoff.
+Raw-opcode census rows hard-code their host-return field to zero and cannot
+establish this contract. An initial zero-only guard admitted nothing and was
+rejected. The accepted guard supports contexts zero/two/three, preserves the
+stack frame and checks actual CPU/RAM identity, widths, bank, page, clocks,
+DMA/HDMA, refresh and event/deadline room. Ten original opcodes require at
+most352 master clocks including refresh reserve. The generated caller checks
+the remaining ten-opcode budget only for the exact owned callback; foreign
+observers at that entry keep their original execution route.
+
+18,432 original-ROM cases,192 affected-parent comparisons and three no-access
+guards pass. Another86 checks execute actual production admission and indexed
+hook-registry replacement;56 checks evaluate the exact generated budget
+expression with real owned/foreign identities. Seven actual CMake capability
+cases cover the current API and rejected declarations, bodies and metadata.
+Windows production compile/link, strict GCC/Clang C11 and C++17-to-C linkage
+pass. No full regression or CLI rebuild is claimed for this focused batch.
+
+In the fixed5,399-frame battle input,3,088 of4,149 record attempts run natively
+and replace30,880 raw opcodes (735,718 to704,838). Explicit outer fallbacks
+remain7,778. CPU/full WRAM/hardware/image/PCM/sample count,exact APU clocks,
+native idle counts,bus credits and all eight actual APU invocation counters
+match the API-off original control. The three registered entry/inner/end
+observers retain all12,447 exact CPU/clock/beam/APU snapshots; foreign hooks
+disable the span. Existing waits and unrelated native paths remain active.
+
+Two alternating unprofiled production-source cost pairs use the real linked
+core,bridge,APU and actor. Median CPU/APU time is0.536272 versus0.536054 ms/frame;
+pair directions differ and thread-cycle evidence also varies. This establishes
+neither a reliable speedup nor whole-game/FPS acceptance. Separate semantic,
+native-use and cost evidence is retained in the private
+`command-tile-phase-current` checkpoint under `.agent/decomp/runtime-frontier`.
+
 ### Clocked NMI sprite, palette and pad uploads
 
 With native NMI timing enabled, `80:8703` uses the unchanged standalone

@@ -415,6 +415,13 @@ function(lufia2_add_nmi_continuations target core_root)
                             "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_ROW_SPANS=1>")
                 endif()
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleTargetMarkerSpans.cmake")
+                include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleCommandTiles.cmake")
+                lufia2_battle_command_tiles_available(_battle_command_tiles)
+                if(_battle_command_tiles)
+                    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                        APPEND PROPERTY COMPILE_DEFINITIONS
+                            "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_TILES=1>")
+                endif()
                 lufia2_battle_target_marker_spans_available(_battle_target_marker_spans)
                 if(_battle_target_marker_spans AND _battle_status AND _menu_leaves)
                     set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
@@ -1100,6 +1107,11 @@ function(lufia2_add_nmi_continuations target core_root)
                 if(_battle_background_steps)
                     string(REPLACE "${_hook_call}"
                         "                    if ((pc_before & 0x7fffffu) != 0x01ba59u ||\n                        step_cap - steps >= 7) {\n${_hook_call}\n                    }"
+                        _text "${_text}")
+                endif()
+                if(_battle_command_tiles)
+                    string(REPLACE "${_hook_call}"
+                        "                    if ((pc_before & 0x7fffffu) != 0x01cb99u ||\n                        !Lufia2DecompCommandTileHookOwned(pc_before, s_pre_opcode_hooks[hi].hook) ||\n                        step_cap - steps >= 10) {\n${_hook_call}\n                    }"
                         _text "${_text}")
                 endif()
                 if(_battle_transition_steps)

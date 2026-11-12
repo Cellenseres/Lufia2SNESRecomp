@@ -2899,6 +2899,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
                                                wide_accumulator, 800u, 256u);
 }
 #include "fixed_span_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_TILES)
+#include "command_tile_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK)
 #include "nmi_clock_window.inc"
 #include "nmi_restore_clock.inc"
@@ -4054,6 +4057,17 @@ static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
 #endif
 #endif
 
+bool Lufia2DecompCommandTileHookOwned(
+    uint32_t pc, void (*hook)(CpuState *, uint32_t)) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_TILES)
+    return CommandTileHookOwned(pc, hook);
+#else
+    (void)pc;
+    (void)hook;
+    return false;
+#endif
+}
+
 bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS)
     return hook == ActorBridgeFramePollStep;
@@ -4064,6 +4078,9 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_TILES)
+    interp_bridge_set_pre_opcode_hook(0x81cb99u, ActorBridgeCommandTile);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS)
     static const uint32_t member_phases[] = {
         0x829e67u, 0x829e74u, 0x829e7fu, 0x829e88u, 0x829e92u,
