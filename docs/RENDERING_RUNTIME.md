@@ -583,6 +583,43 @@ remains mandatory. Semantic verification and runtime performance are separate
 properties: a verified C function can still be expensive when its bridge is
 entered once per guest opcode, or can remain unused in its real caller context.
 
+### Highlighted command tile records
+
+The `81:CBB8` consumer uses the same standalone selection helper as the full
+command-menu parent and stops at `81:CBDD`, before the renderer JSR. Ordinary
+and highlighted records share one semantic field copy; no original ROM lookup,
+mode switch,word store,decimal subtraction,renderer or frame-input wait is
+removed. The existing ordinary phase retains its10-opcode/352-master reserve;
+the selected phase has17 original opcodes and a504-master reserve including
+refresh. The shared guard preserves CPU/RAM identity,bank,width,page,return
+context,event/deadline room,DMA/HDMA,refresh and actual indexed hook ownership.
+Both generated caller conditions restrict only their exact owned callbacks;
+foreign observers keep their original route even below a native opcode budget.
+
+The combined original-ROM/affected-parent matrix passes282,370 cases. Another
+202 checks exercise both real predicates and actual hook replacement,112
+checks evaluate both exact generated budget expressions,and seven actual
+CMake capability cases pass. Windows production compile/link,strict GCC/Clang
+C11 and C++17-to-C linkage pass. No full regression or CLI rerun is claimed.
+
+In the fixed5,399-frame input,the existing phase remains3,088 native calls
+and30,880 original opcodes. The new selected phase admits860/1,383 attempts,
+replacing14,620 additional raw opcodes (704,838 to690,218). Explicit outer
+fallbacks remain7,778. CPU/full WRAM/hardware/image/PCM/sample counts,exact APU
+clocks,native idle,bus credits and all eight actual APU invocation counters
+match. Six entry/inner/renderer-boundary observers retain all16,596 exact
+CPU/clock/beam/APU snapshots; unknown hooks disable the affected spans.
+
+Two alternating unprofiled production pairs isolate the selected capability:
+CPU/APU medians0.426742/0.423279 ms/frame,with opposite pair directions.
+A second comparison uses the retained whole pre-change production executable
+from rootf923585/child7055ab9 and includes the shared helper/guard changes:
+medians0.423880/0.422952 ms/frame,again with opposite pair directions and
+variable thread-cycle results. Neither comparison establishes a reliable
+speedup or whole-game/FPS acceptance. No extra build was needed for the whole
+pre-change control. Evidence is local under
+`.agent/decomp/runtime-frontier/selected-command-tile-current`.
+
 ### Battle command tile records
 
 The bounded `81:CB99` consumer reuses the standalone parent helper to prepare

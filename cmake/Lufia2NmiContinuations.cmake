@@ -417,10 +417,16 @@ function(lufia2_add_nmi_continuations target core_root)
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleTargetMarkerSpans.cmake")
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleCommandTiles.cmake")
                 lufia2_battle_command_tiles_available(_battle_command_tiles)
+                lufia2_selected_command_tile_available(_selected_command_tile)
                 if(_battle_command_tiles)
                     set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
                         APPEND PROPERTY COMPILE_DEFINITIONS
                             "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_TILES=1>")
+                    if(_selected_command_tile)
+                        set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                            APPEND PROPERTY COMPILE_DEFINITIONS
+                                "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_SELECTED_COMMAND_TILE=1>")
+                    endif()
                 endif()
                 lufia2_battle_target_marker_spans_available(_battle_target_marker_spans)
                 if(_battle_target_marker_spans AND _battle_status AND _menu_leaves)
@@ -1112,6 +1118,11 @@ function(lufia2_add_nmi_continuations target core_root)
                 if(_battle_command_tiles)
                     string(REPLACE "${_hook_call}"
                         "                    if ((pc_before & 0x7fffffu) != 0x01cb99u ||\n                        !Lufia2DecompCommandTileHookOwned(pc_before, s_pre_opcode_hooks[hi].hook) ||\n                        step_cap - steps >= 10) {\n${_hook_call}\n                    }"
+                        _text "${_text}")
+                endif()
+                if(_selected_command_tile)
+                    string(REPLACE "${_hook_call}"
+                        "                    if ((pc_before & 0x7fffffu) != 0x01cbb8u ||\n                        !Lufia2DecompCommandTileHookOwned(pc_before, s_pre_opcode_hooks[hi].hook) ||\n                        step_cap - steps >= 17) {\n${_hook_call}\n                    }"
                         _text "${_text}")
                 endif()
                 if(_battle_transition_steps)

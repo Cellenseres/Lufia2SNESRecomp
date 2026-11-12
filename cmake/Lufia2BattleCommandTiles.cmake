@@ -27,3 +27,18 @@ function(lufia2_battle_command_tiles_available output)
         set(${output} TRUE PARENT_SCOPE)
     endif()
 endfunction()
+
+function(lufia2_selected_command_tile_available output)
+    set(${output} FALSE PARENT_SCOPE)
+    lufia2_battle_command_tiles_available(_base)
+    if(NOT _base)
+        return()
+    endif()
+    file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/battle_command_tiles.h" _api)
+    file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/src/battle/battle_command.c" _implementation)
+    if(_api MATCHES "#define LUFIA2_BATTLE_SELECTED_COMMAND_TILE_API 1" AND
+       _api MATCHES "Lufia2BattlePrepareSelectedCommandTile[(]" AND
+       _implementation MATCHES "Lufia2BattlePrepareSelectedCommandTile[(][^;{]*[{]")
+        set(${output} TRUE PARENT_SCOPE)
+    endif()
+endfunction()

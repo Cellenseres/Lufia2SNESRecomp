@@ -4080,6 +4080,9 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_TILES)
     interp_bridge_set_pre_opcode_hook(0x81cb99u, ActorBridgeCommandTile);
+#if defined(LUFIA2_HAVE_NATIVE_SELECTED_COMMAND_TILE)
+    interp_bridge_set_pre_opcode_hook(0x81cbb8u, ActorBridgeSelectedCommandTile);
+#endif
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS)
     static const uint32_t member_phases[] = {
