@@ -186,3 +186,39 @@ Evidence is local under `native-census-current`. Future investigation should
 measure timing and bus contracts of the existing high-frequency native leaves
 before duplicating them or adding more short continuation hooks. Entry counts
 alone provide neither host cost nor original guest-clock fidelity.
+
+## Confirmed leaf timing gap
+
+Automatic entry/exit snapshots from the same replay now expose a consumer
+timing gap in `81:B705` and `81:BE58`. Seven captured calls match the original
+ROM's CPU registers, flags, stack and complete WRAM, but debit zero CPU and
+master cycles. Original callee costs, including RTS, are 158, 614, 1,191,
+1,462, 1,469 and 1,925 CPU cycles for the six OAM calls, and 153 for the tile
+call. The original JSR costs another six cycles; it does not pay the callee's
+variable cost. Generated forwarders, dispatch and interpreter return handling
+provide no compensating leaf charge on these measured paths.
+
+The actual tile call is the original JSR at `81:CBAF`, returning to `81:CBB2`.
+OAM samples come from `81:B5E3`, `81:B61C`, `81:B62F` and `81:B656`. This
+finding concerns these recorded paths, not every caller or the whole game.
+It does not establish the cause of a visible animation or movement symptom.
+
+A shared original-ROM checkpoint covers 1,024 OAM states and 12,289 tile
+states, comparing CPU/full WRAM and complete instruction, CPU-cycle and bus
+ledgers. Compact cost models match all 13,313 cases and all seven live
+snapshots. OAM cost depends on count and packed-attribute alignment; tile
+cost depends on dimensions and atlas wrapping, including original carry and
+16-bit overflow. Encoded zero dimensions execute 256 iterations. The models
+describe timing of existing C algorithms; they add no function coverage.
+
+This is **not yet a runtime fix or performance acceptance**. The next step is
+a coherent complete-leaf consumer with proven admission, refresh, hardware
+events, APU/audio, open-bus and generated-caller behavior. Unsupported contexts
+must retain the clocked original route. Comparing a corrected candidate only
+against the current zero-debit path would not prove clock fidelity. Standalone
+semantic source remains unchanged; no further short opcode hooks are added.
+
+Local evidence: `native-leaf-clocks-current/ACCEPTANCE.json`, live call-site
+records and original-ROM ledgers. The capture replay preserves the complete
+previous wrapper/raw census and guest/image/audio/APU endpoints. No full
+regression or unrelated build was repeated for this audit.
