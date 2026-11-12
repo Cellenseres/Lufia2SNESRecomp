@@ -307,3 +307,31 @@ The normal Windows agent executable also compiles and links successfully.
 
 Local evidence: `leaf-visible-window-current/ACCEPTANCE.json`. No standalone
 semantic body, canonical entry, dispatch binding or opcode hook was added.
+
+
+## Remaining battle-leaf refusals
+
+A follow-up rejection census preserves all 5,399 rendered frame traces and
+final hardware/audio/APU invocation counts of the accepted consumer. Of the
+4,705 remaining OAM bridge refusals, 4,197 have neither an active native frame
+context nor a ready paired-call context. Their host-frame width is valid;
+71 also lack sufficient clock room. Another 508 fail only the clock window.
+All 40 remaining tile refusals fail that window. No APU, geometry, source,
+observer or unexplained predicate failure appears in this workload.
+
+A separate matched CPU/APU diagnostic of the actual generated caller finds
+no registered paired owner in all 4,197 context refusals. CPU/full WRAM,
+hardware, PCM, APU clocks, all APU invocation counts, raw opcodes and native
+uptake match its equally configured control. Its 2,193,604 raw opcodes must
+not be compared with the rendered replay's 1,803,407: rendering configuration
+changes the execution distribution despite identical final guest endpoints.
+These are ownership contracts to investigate at the caller, not evidence
+that the interrupt guard can be removed. No runtime admission was broadened.
+
+Local evidence: `leaf-remaining-reasons-current/ACCEPTANCE.json` and
+`leaf-return-owner-current/ACCEPTANCE.json`.
+
+A native-parent callback census accounts for all 4,197 calls: 2,104 from
+`81:B61C`, 965 from `81:B5E3` and 1,128 from `81:B5F6` inside the existing
+`Lufia2BattleBuildSprites`. Its pushed-child transition needs a scoped
+original-clock and interrupt-ownership contract before further admission.
