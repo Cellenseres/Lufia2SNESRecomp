@@ -463,6 +463,8 @@ if(LUFIA2_ENABLE_NATIVE_SPC)
     include("${CMAKE_SOURCE_DIR}/lib/snesrecomp-platform/cmake/SnesRecompPlatformApuClock.cmake")
     snesrecomp_platform_overlay_apu_clock(
         SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
+    include("${CMAKE_SOURCE_DIR}/cmake/Lufia2ApuClockState.cmake")
+    lufia2_prepare_apu_clock_state(SNESRECOMP_RUNNER_SOURCES)
 endif()
 
 # The pinned interpreter clock calls clock_gettime() without including <time.h>,
@@ -607,6 +609,9 @@ include("${CMAKE_SOURCE_DIR}/cmake/Lufia2BuildIdentity.cmake")
 lufia2_add_build_identity(Lufia2Recomp)
 include("${CMAKE_SOURCE_DIR}/cmake/Lufia2ShrineGraphics.cmake")
 lufia2_target_shrine_graphics(Lufia2Recomp)
+if(LUFIA2_ENABLE_NATIVE_SPC)
+    target_compile_definitions(Lufia2Recomp PRIVATE LUFIA2_HAVE_APU_CLOCK_STATE=1)
+endif()
 
 if(LUFIA2_ENABLE_GAMEPLAY_CAPTURE)
     target_compile_definitions(Lufia2Recomp PRIVATE LUFIA2_ENABLE_GAMEPLAY_CAPTURE=1)

@@ -22,6 +22,9 @@
 #include "lufia2_spc_native.h"
 #endif
 #include "lufia2_log.h"
+#if defined(LUFIA2_HAVE_APU_CLOCK_STATE)
+#include "lufia2_apu_clock_state.h"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CONTINUATIONS)
 #include "decomp_bridge/nmi_resume.h"
 #endif
@@ -64,6 +67,108 @@ static uint32_t s_raster_memory_flags;
 static bool s_loaded_execution_valid;
 static bool s_loaded_msu_valid;
 
+/* The common PPU snapshot omits the port latches used by later MMIO. */
+typedef struct Lufia2PpuPortState {
+    uint32_t magic;
+    uint32_t version;
+    int32_t mode7_start_x, mode7_start_y;
+    uint16_t vram_pointer, vram_read_buffer;
+    uint16_t h_count, v_count;
+    uint8_t vram_increment_on_high, vram_remap_mode, vram_increment;
+    uint8_t cgram_pointer, cgram_second_write, cgram_buffer;
+    uint8_t scroll_previous, scroll_previous2, mode7_previous, mosaic_start_line;
+    uint8_t h_count_second, v_count_second, counters_latched;
+    uint8_t even_frame, frame_overscan, frame_interlace, time_over, range_over;
+    uint8_t reserved[6];
+} Lufia2PpuPortState;
+
+_Static_assert(sizeof(Lufia2PpuPortState) == 48u, "PPU port state layout changed");
+
+static Lufia2PpuPortState s_loaded_ppu_ports;
+static bool s_loaded_ppu_ports_present;
+
+enum { LUFIA2_PPU_PORT_MAGIC = 0x4c325050u, LUFIA2_PPU_PORT_VERSION = 1u };
+
+static void Lufia2SavePpuPorts(SaveLoadInfo *sli) {
+    const Ppu *ppu = g_ppu;
+    Lufia2PpuPortState state = {
+        .magic = LUFIA2_PPU_PORT_MAGIC,
+        .version = LUFIA2_PPU_PORT_VERSION,
+        .mode7_start_x = ppu->m7startX, .mode7_start_y = ppu->m7startY,
+        .vram_pointer = ppu->vramPointer, .vram_read_buffer = ppu->vramReadBuffer,
+        .h_count = ppu->hCount, .v_count = ppu->vCount,
+        .vram_increment_on_high = ppu->vramIncrementOnHigh,
+        .vram_remap_mode = ppu->vramRemapMode, .vram_increment = ppu->vramIncrement,
+        .cgram_pointer = ppu->cgramPointer, .cgram_second_write = ppu->cgramSecondWrite,
+        .cgram_buffer = ppu->cgramBuffer,
+        .scroll_previous = ppu->scrollPrev, .scroll_previous2 = ppu->scrollPrev2,
+        .mode7_previous = ppu->m7prev, .mosaic_start_line = ppu->mosaicStartLine,
+        .h_count_second = ppu->hCountSecond, .v_count_second = ppu->vCountSecond,
+        .counters_latched = ppu->countersLatched,
+        .even_frame = ppu->evenFrame, .frame_overscan = ppu->frameOverscan,
+        .frame_interlace = ppu->frameInterlace,
+        .time_over = ppu->timeOver, .range_over = ppu->rangeOver
+    };
+    sli->func(sli, &state, sizeof(state));
+}
+
+static bool Lufia2LoadPpuPorts(SaveLoadInfo *sli) {
+    uint32_t magic;
+    Lufia2PpuPortState state;
+    s_loaded_ppu_ports_present = false;
+    if (!sli->peek)
+        return false;
+    if (!sli->peek(sli, 0, &magic, sizeof(magic)) || magic != LUFIA2_PPU_PORT_MAGIC)
+        return true;
+    if (!sli->peek(sli, 0, &state, sizeof(state)) ||
+        state.version != LUFIA2_PPU_PORT_VERSION || state.vram_remap_mode > 3u ||
+        (state.vram_increment != 1u && state.vram_increment != 32u && state.vram_increment != 128u) ||
+        state.vram_increment_on_high > 1u || state.cgram_second_write > 1u ||
+        state.h_count_second > 1u || state.v_count_second > 1u || state.counters_latched > 1u ||
+        state.even_frame > 1u || state.frame_overscan > 1u || state.frame_interlace > 1u ||
+        state.time_over > 1u || state.range_over > 1u)
+        return false;
+    for (size_t i = 0; i < sizeof(state.reserved); ++i)
+        if (state.reserved[i])
+            return false;
+    sli->func(sli, &state, sizeof(state));
+    s_loaded_ppu_ports = state;
+    s_loaded_ppu_ports_present = true;
+    return true;
+}
+
+static void Lufia2ApplyPpuPorts(void) {
+    if (s_loaded_ppu_ports_present) {
+        const Lufia2PpuPortState *state = &s_loaded_ppu_ports;
+        Ppu *ppu = g_ppu;
+        ppu->m7startX = state->mode7_start_x;
+        ppu->m7startY = state->mode7_start_y;
+        ppu->vramPointer = state->vram_pointer;
+        ppu->vramReadBuffer = state->vram_read_buffer;
+        ppu->hCount = state->h_count;
+        ppu->vCount = state->v_count;
+        ppu->vramIncrementOnHigh = state->vram_increment_on_high;
+        ppu->vramRemapMode = state->vram_remap_mode;
+        ppu->vramIncrement = state->vram_increment;
+        ppu->cgramPointer = state->cgram_pointer;
+        ppu->cgramSecondWrite = state->cgram_second_write;
+        ppu->cgramBuffer = state->cgram_buffer;
+        ppu->scrollPrev = state->scroll_previous;
+        ppu->scrollPrev2 = state->scroll_previous2;
+        ppu->m7prev = state->mode7_previous;
+        ppu->mosaicStartLine = state->mosaic_start_line;
+        ppu->hCountSecond = state->h_count_second;
+        ppu->vCountSecond = state->v_count_second;
+        ppu->countersLatched = state->counters_latched;
+        ppu->evenFrame = state->even_frame;
+        ppu->frameOverscan = state->frame_overscan;
+        ppu->frameInterlace = state->frame_interlace;
+        ppu->timeOver = state->time_over;
+        ppu->rangeOver = state->range_over;
+    }
+    s_loaded_ppu_ports_present = false;
+}
+
 void Lufia2ResetRuntime(void) {
     s_started = false;
     s_resume_pc = LUFIA2_RESET_PC;
@@ -75,6 +180,7 @@ void Lufia2ResetRuntime(void) {
     s_raster_memory_flags = 0;
     s_loaded_execution_valid = false;
     s_loaded_msu_valid = false;
+    s_loaded_ppu_ports_present = false;
 }
 
 static void Lufia2BeginAudioClock(void) {
@@ -101,6 +207,10 @@ void Lufia2SaveExecutionState(SaveLoadInfo *sli) {
 #if defined(LUFIA2_ENABLE_NATIVE_SPC)
     Lufia2SpcNativeSaveState(sli, g_snes->apu);
 #endif
+#if defined(LUFIA2_HAVE_APU_CLOCK_STATE)
+    Lufia2ApuClockSaveState(sli);
+#endif
+    Lufia2SavePpuPorts(sli);
 }
 
 void Lufia2LoadExecutionState(SaveLoadInfo *sli, uint32_t version) {
@@ -110,6 +220,10 @@ void Lufia2LoadExecutionState(SaveLoadInfo *sli, uint32_t version) {
 #if defined(LUFIA2_ENABLE_NATIVE_SPC)
     Lufia2SpcNativeLoadState(sli, g_snes->apu);
 #endif
+#if defined(LUFIA2_HAVE_APU_CLOCK_STATE)
+    s_loaded_execution_valid = Lufia2ApuClockLoadState(sli) && s_loaded_execution_valid;
+#endif
+    s_loaded_execution_valid = Lufia2LoadPpuPorts(sli) && s_loaded_execution_valid;
 }
 
 void Lufia2ApplyExecutionState(uint32_t version) {
@@ -126,6 +240,10 @@ void Lufia2ApplyExecutionState(uint32_t version) {
 
     RtlApplyExecutionState();
     Lufia2MsuApplyLoadedState();
+#if defined(LUFIA2_HAVE_APU_CLOCK_STATE)
+    Lufia2ApuClockApplyLoadedState();
+#endif
+    Lufia2ApplyPpuPorts();
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CONTINUATIONS)
     Lufia2DecompInstallNmiHooks();
 #endif
