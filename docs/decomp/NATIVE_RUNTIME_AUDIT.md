@@ -104,3 +104,38 @@ Private evidence is under
 Diagnostic sources and executables remain local. Existing unchanged semantic
 proofs were reused; no new full regression, CLI build, performance benchmark
 or whole-game acceptance is claimed.
+
+## Rejected command-input consumer
+
+The next evaluation shared the existing parent's input tests with bounded
+continuations at `81:CBF1` and `81:CC07`. It preserved original sound children,
+redraw, flags, ordered reads and CPU modes. A combined checkpoint passed
+458,752 original-ROM cases, 14,336 parent comparisons and three guards.
+Production integration, 224 actual admission checks, 112 actual generated
+caller cases, eight capability cases and strict C/C++ compiler checks passed.
+
+The measured replay admitted 1,042 first-phase and 148 later-phase spans,
+removing 13,380 raw opcodes. Complete guest/audio/clock endpoints matched;
+all 5,532 observer snapshots and the outside-span raw census were unchanged.
+
+Performance did not meet the acceptance bar. Two alternating isolated
+feature pairs measured CPU/APU medians of 0.527896 versus 0.536213 ms/frame,
+about 1.58 percent higher with the candidate. Two alternating comparisons
+against the previous complete production binary measured 0.519166 versus
+0.555663 ms/frame. Both comparisons were slower in every pair. The full-before
+difference is not attributed exclusively to the new hooks: other shared
+build differences can contribute. The unchanged raw census rules out an
+observed loss of existing interpreter batching in this replay, but does not
+explain the additional host cost.
+
+The consumer is therefore **not adopted on main**. The semantic and consumer
+implementation remains on private `codex/command-input-evaluation-20261112`
+branches: child `8e0e78d`, superproject `b5c9763`. Neither was pushed. Main
+retains its previous production source and binding selection. The agent's
+evaluation binary is not a rebuilt main release.
+
+Private evidence is under `command-input-current`, with status
+`REJECTED_COMMAND_INPUT_COST`, exact tested source/object snapshots and source
+resolution. This experiment adds no canonical function or algorithm coverage.
+Future work should favor larger coherent native operations over more short
+per-opcode hook boundaries, and retain separate semantic and cost gates.
