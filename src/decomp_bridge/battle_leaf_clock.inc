@@ -119,6 +119,13 @@ static unsigned BattleLeafClockRoom(uint32_t entry, BattleLeafCost cost) {
     return (unsigned)(master + 40u * (master / 1324u + 2u));
 }
 
+static bool BattleLeafClockWindowSupported(const CpuState *cpu, uint32_t entry,
+                                          uint32_t end, unsigned room) {
+    if (!g_snes || (g_snes->vPos < 225u && !g_snes->hdmaBeamOff))
+        return false;
+    return BattleClockAllows(cpu, entry, end, 2u, false, room, false, NULL);
+}
+
 static bool BattleLeafClockSupported(const CpuState *cpu, uint32_t entry,
                                       BattleLeafCost *cost) {
     if (cpu != &g_cpu || !cpu->ram || cpu->m_flag != 1u || cpu->x_flag ||
@@ -151,12 +158,12 @@ static bool BattleLeafClockSupported(const CpuState *cpu, uint32_t entry,
         return false;
     }
     const uint32_t end = entry == 0x81b705u ? 0x81b7d9u : 0x81bebcu;
-    if (!BattleQuietClockSupported(cpu, entry, end, 2u, false,
+    if (!BattleLeafClockWindowSupported(cpu, entry, end,
                                    BattleLeafClockRoom(entry, *cost)))
         return false;
     if (columns) {
         *cost = BattleTileCost(columns, rows, BattleTileWraps(cpu->ram, columns, rows));
-        return BattleQuietClockSupported(cpu, entry, end, 2u, false,
+        return BattleLeafClockWindowSupported(cpu, entry, end,
                                          BattleLeafClockRoom(entry, *cost));
     }
     return true;

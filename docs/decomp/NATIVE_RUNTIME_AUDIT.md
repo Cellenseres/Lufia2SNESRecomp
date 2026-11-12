@@ -268,3 +268,42 @@ Private evidence is under `native-leaf-consumer-current/ACCEPTANCE.json`.
 Historical census sources retain their exact original bytes and hashes;
 their older measurements are not relabeled as tests of this consumer. Other
 entry bridges and inline semantic helpers still need their own timing audits.
+
+
+## Battle leaves before the next NMI
+
+A read-only rejection census identified the previous VBlank restriction as
+the main remaining barrier for these two leaves. The normal software-renderer
+path already disables beam-driven HDMA and walks those tables itself. The
+consumer now admits pure-WRAM leaf calls in that existing configuration during
+visible scanlines, provided the complete original cost and refresh reserve fit
+before scanline 225. VBlank calls must still finish before frame wrap. It never
+disables HDMA to gain admission. Active beam HDMA, unknown observers, interrupts,
+unsafe return contexts, legacy APU timing and late calls retain original execution.
+Other consumers keep their previous VBlank-only predicate.
+
+The shared checkpoint passes 158 actual hardware cases, 56 guard/observer cases
+and 25,200 old/new VBlank predicate comparisons. Maximum OAM counts and encoded
+zero tile dimensions are included. The unchanged original cost models reuse
+their 13,313 accepted ROM cases after an exact C-body comparison.
+
+Every one of 5,399 rendered frames matches the original control for CPU, complete
+WRAM, image, cumulative PCM and APU clocks. Final hardware, native waits and bus
+credits also match. Native OAM calls increase from 1,042 to 8,609 of 13,314;
+native tile calls increase from 1,008 to 7,302 of 7,342. The remaining calls use
+original fallback. Raw opcodes fall from 5,193,130 to 1,803,407, versus 5,666,439
+with both leaves interpreted. All 1,017,996 opcodes outside these leaves remain
+identical in the detailed counter census. Native APU cycles remain 97,043,965;
+249,730 more cycles use idle batches than in the original control, with 819,196
+fewer idle callbacks. These invocation counters are separate from state equality.
+
+Two alternating, unprofiled production-object cost pairs compare the retained
+VBlank-only executable with this consumer on identical inputs. CPU/APU means
+are 0.734265 versus 0.475761 and 0.874849 versus 0.472724 ms/frame. Host image
+submission is excluded only in these isolated measurements; rendered correctness
+is checked separately. The two-run median of means improves by 41.1% in this
+workload, with substantial reference variation. This is no whole-game FPS claim.
+The normal Windows agent executable also compiles and links successfully.
+
+Local evidence: `leaf-visible-window-current/ACCEPTANCE.json`. No standalone
+semantic body, canonical entry, dispatch binding or opcode hook was added.
