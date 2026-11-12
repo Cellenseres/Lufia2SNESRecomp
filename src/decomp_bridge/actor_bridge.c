@@ -2233,8 +2233,9 @@ RecompReturn Lufia2DecompBridge_919C(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_EC81(CpuState *cpu) {
-    return ActorBridgeBattleEntry(cpu, 0x85ec81u, 0, Lufia2BattleFrameInputUpkeep, 3u,
-                                  BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_WRAM_BANK, 0);
+    /* Keep the original caller clocks and paired child ownership. */
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x85ec81u);
 }
 
 RecompReturn Lufia2DecompBridge_B705(CpuState *cpu) {
