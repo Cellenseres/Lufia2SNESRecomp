@@ -211,14 +211,60 @@ cost depends on dimensions and atlas wrapping, including original carry and
 16-bit overflow. Encoded zero dimensions execute 256 iterations. The models
 describe timing of existing C algorithms; they add no function coverage.
 
-This is **not yet a runtime fix or performance acceptance**. The next step is
-a coherent complete-leaf consumer with proven admission, refresh, hardware
-events, APU/audio, open-bus and generated-caller behavior. Unsupported contexts
-must retain the clocked original route. Comparing a corrected candidate only
-against the current zero-debit path would not prove clock fidelity. Standalone
-semantic source remains unchanged; no further short opcode hooks are added.
+This investigation alone established neither a runtime fix nor performance
+acceptance. It required a coherent complete-leaf consumer with admission,
+refresh, hardware, APU/audio, open-bus and generated-caller proofs. Comparing
+against the zero-debit path would not establish original clock fidelity.
+The subsequent consumer checkpoint below supplies those scoped proofs.
 
 Local evidence: `native-leaf-clocks-current/ACCEPTANCE.json`, live call-site
 records and original-ROM ledgers. The capture replay preserves the complete
 previous wrapper/raw census and guest/image/audio/APU endpoints. No full
 regression or unrelated build was repeated for this audit.
+
+## Clocked native battle leaves
+
+The two entry bridges now use the unchanged standalone routines with complete
+original-call timing. Compact OAM and tile cost models replace per-opcode host
+handoffs; they preserve the original counters, packing alignment, atlas carry,
+bus speeds and RTS. The actual generated caller now establishes their paired
+return context. No opcode hook, canonical entry or game algorithm is added.
+
+Admission checks CPU/RAM identity, original widths/bank/page, source/output/
+stack separation, indexed hook ownership, quiet VBlank, deadlines, interrupts,
+DMA and refresh. The absolute APU timeline must actually be active. Cold or
+legacy relative APU contexts retain the original route: an early aggregate
+prototype changed floating catch-up rounding there and was rejected. Unknown
+in-range hooks, unsupported geometry and late windows also use the clocked
+original interpreter, rather than the previous untimed native bridge.
+
+The combined checkpoint passes 13,313 original cost-model cases and 98 actual
+production caller/hardware/guard/observer cases. These include empty and packed
+OAM returns, the OAM limit, tile carry, high destinations and encoded zero
+width. The normal Windows agent target compiles and links successfully.
+Standalone semantic source and its verified entry count are unchanged.
+
+In the rendered 5,399-frame replay, all 13,314 OAM and 7,342 tile attempts
+match the clocked-original control. The candidate admits 1,042 OAM and 1,008
+tile calls; the remaining calls retain original fallback. Raw opcodes decrease
+from 5,666,439 to 5,193,130. CPU, full WRAM, hardware, image, PCM, sample count,
+APU clocks, native idle and bus credits remain bit-exact.
+
+APU invocation counts legitimately differ: 31,589 cycles move from individual
+native cycles into native idle batches, with 100,164 fewer idle callbacks.
+Skipped plus individual native cycles remain exactly 97,043,965. No interpreted
+skip batches appear. These host-work counters are reported separately from
+the unchanged complete APU state and PCM.
+
+Two alternating cost pairs use uninstrumented production actor, caller,
+interpreter and APU objects, with host image submission excluded only from
+this isolated measurement. CPU/APU run means are 0.984738 versus 0.743277 and
+0.703049 versus 0.662567 ms/frame. Both pairs favor native execution, but the
+large host variation limits generalization. This establishes no whole-game
+FPS or universal speedup claim. Complete hardware matches between the equally
+isolated arms; rendered acceptance is the separate replay above.
+
+Private evidence is under `native-leaf-consumer-current/ACCEPTANCE.json`.
+Historical census sources retain their exact original bytes and hashes;
+their older measurements are not relabeled as tests of this consumer. Other
+entry bridges and inline semantic helpers still need their own timing audits.
