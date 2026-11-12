@@ -213,6 +213,7 @@ static bool s_high_refresh;
 /* Overrides the reported refresh; a remote session misreports it. */
 static unsigned s_present_rate_millihertz;
 static SnesRecompPresentTimeline s_present_timeline;
+static double s_guest_period_fraction;
 /* The last picture can be shown again without recomposing. */
 static bool s_frame_repeatable;
 static bool s_hd_mode7_perspective;
@@ -237,6 +238,22 @@ static const char kCleanHdPresetPath[] =
 
 static uint64_t s_perf_last_ms;
 static uint32_t s_perf_frames;
+
+static void ResetPresentationTimeline(void) {
+    snesrecomp_present_timeline_reset(&s_present_timeline, snesrecomp_now_us());
+    s_guest_period_fraction = 0.0;
+}
+
+static void CreditGuestFramePeriods(double periods) {
+    if (periods <= 1.0)
+        return;
+    /* The platform step already consumed one nominal guest period. */
+    const double extra_us = (periods - 1.0) * (1000000.0 / 60.0) +
+        s_guest_period_fraction;
+    const uint64_t whole_us = (uint64_t)extra_us;
+    s_present_timeline.next_guest_us += whole_us;
+    s_guest_period_fraction = extra_us - (double)whole_us;
+}
 
 static void PrintUsage(const char *exe) {
     fprintf(stderr,
@@ -1315,16 +1332,15 @@ static bool InitVideo(void) {
             "inactive.\n",
             g_config.shader);
     }
+    snesrecomp_present_timeline_init(&s_present_timeline, 60u, 1u);
+    ResetPresentationTimeline();
     if (s_high_refresh) {
         const unsigned reported =
             snesrecomp_presenter_display_millihertz(s_presenter);
         const unsigned display_mhz =
             s_present_rate_millihertz ? s_present_rate_millihertz : reported;
-        snesrecomp_present_timeline_init(&s_present_timeline, 60u, 1u);
         snesrecomp_present_timeline_set_display(
             &s_present_timeline, display_mhz);
-        snesrecomp_present_timeline_reset(
-            &s_present_timeline, snesrecomp_now_us());
         fprintf(stderr,
             "[video] presentation timeline: display=%u.%03u Hz%s, %s\n",
             display_mhz / 1000u, display_mhz % 1000u,
@@ -2253,9 +2269,7 @@ static void HandleHostCommand(int cmd, bool pressed) {
             fprintf(stderr, "[video] could not update VSync for turbo: %s\n",
                 snesrecomp_presenter_last_error(s_presenter));
         }
-        if (s_high_refresh)
-            snesrecomp_present_timeline_reset(
-                &s_present_timeline, snesrecomp_now_us());
+        ResetPresentationTimeline();
         return;
     }
 
@@ -2397,9 +2411,7 @@ static void InvalidateDerivedHostState(bool reset_rewind) {
         (void)SDL_ClearAudioStream(s_audio_stream);
     /* The picture being paced no longer exists. */
     s_frame_repeatable = false;
-    if (s_high_refresh)
-        snesrecomp_present_timeline_reset(
-            &s_present_timeline, snesrecomp_now_us());
+    ResetPresentationTimeline();
     Lufia2MapLoadStateChanged();
     Lufia2BattleUiReset();
     Lufia2MapWidescreenStateChanged();
@@ -2806,7 +2818,6 @@ int main(int argc, char **argv) {
 
     bool running = true;
     uint32_t frame_counter = 0;
-    uint64_t frame_deadline_ms = SDL_GetTicks();
 
     while (running && !g_fail) {
         running = HandleEvents();
@@ -2846,7 +2857,7 @@ int main(int argc, char **argv) {
 
         /* Turbo and a disabled limiter pace themselves. */
         const bool timeline_paced =
-            s_high_refresh && !s_turbo && !g_config.disable_frame_delay;
+            !s_turbo && !g_config.disable_frame_delay;
         SnesRecompPresentStep step;
         step.run_guest = true;
         step.present = true;
@@ -2865,6 +2876,8 @@ int main(int argc, char **argv) {
 
             L2CaptureFrameBegin(input);
             RtlRunFrame(input);
+            if (timeline_paced)
+                CreditGuestFramePeriods(RtlLastFramePeriods());
             Lufia2MsuDriverFrame();
             L2CaptureGuestEnd();
             snes_osd_note_frame();
@@ -2916,21 +2929,8 @@ int main(int argc, char **argv) {
         if (timeline_paced) {
             if (step.sleep_us)
                 SDL_DelayNS(step.sleep_us * 1000ull);
-        } else if (!s_turbo && !g_config.disable_frame_delay) {
-            static const uint8_t delays[3] = {17, 17, 16};
-            frame_deadline_ms += delays[frame_counter % 3];
-
-            const uint64_t now = SDL_GetTicks();
-            if (frame_deadline_ms > now) {
-                uint64_t wait = frame_deadline_ms - now;
-                if (wait > 100)
-                    wait = 100;
-                SDL_Delay((Uint32)wait);
-            } else if (now - frame_deadline_ms > 500) {
-                frame_deadline_ms = now;
-            }
         } else {
-            frame_deadline_ms = SDL_GetTicks();
+            ResetPresentationTimeline();
         }
     }
 
