@@ -95,6 +95,7 @@ static RecompReturn ActorBridgeTimedBattleGauge(CpuState *cpu, bool label);
 static RecompReturn ActorBridgeTimedStatusDetail(CpuState *cpu);
 static RecompReturn ActorBridgeTimedStagedCommand(CpuState *cpu);
 static RecompReturn ActorBridgeTimedBattleLeaf(CpuState *cpu, uint32_t entry);
+static RecompReturn ActorBridgeTimedBattleSprites(CpuState *cpu, bool parent);
 #endif
 
 static uint8_t ActorBridgeRead(void *context, uint32_t address) {
@@ -632,7 +633,12 @@ RecompReturn Lufia2DecompBridge_B54A(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_B5A3(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x81b5a3u, Lufia2BattleHideOam, 2);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS)
+    return ActorBridgeTimedBattleSprites(cpu, false);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x81b5a3u);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_B974(CpuState *cpu) {
@@ -2241,8 +2247,12 @@ RecompReturn Lufia2DecompBridge_B705(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_B5C4(CpuState *cpu) {
-    return ActorBridgeBattleEntry(cpu, 0x81b5c4u, 0, Lufia2BattleBuildSprites, 3u,
-                                  BATTLE_BRIDGE_M1X0, 0, BATTLE_BRIDGE_WRAM_BANK, 0);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS)
+    return ActorBridgeTimedBattleSprites(cpu, true);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, 0x81b5c4u);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_CCCE(CpuState *cpu) {
@@ -21160,6 +21170,7 @@ RecompReturn Lufia2DecompBridge_81E7A6(CpuState *cpu) {
 #include "battle_status_detail_clock.inc"
 #include "battle_staged_command_clock.inc"
 #include "battle_leaf_clock.inc"
+#include "battle_sprite_clock.inc"
 #endif
 
 RecompReturn Lufia2DecompBridge_81D081(CpuState *cpu) {

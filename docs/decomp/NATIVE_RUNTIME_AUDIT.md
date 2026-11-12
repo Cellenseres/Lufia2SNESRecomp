@@ -335,3 +335,62 @@ A native-parent callback census accounts for all 4,197 calls: 2,104 from
 `81:B61C`, 965 from `81:B5E3` and 1,128 from `81:B5F6` inside the existing
 `Lufia2BattleBuildSprites`. Its pushed-child transition needs a scoped
 original-clock and interrupt-ownership contract before further admission.
+
+
+## Complete sprite-builder and OAM-clear clocks
+
+The native parent previously executed an untimed prefix before yielding at an
+OAM child. Eight live snapshots reproduce the original CPU/full-WRAM transition,
+but charge zero cycles where the ROM requires 2,605–2,626. These are scheduler
+handoffs, not completed native parent calls. The complete OAM-clear child alone
+requires 2,550 cycles. This is a timing defect, independently of visual symptoms.
+
+The bridges now require complete original-call timing or use the clocked original
+route. A certified whole parent invokes the existing standalone builder and its
+existing semantic children directly. Bounded group/overlay cost models avoid
+per-opcode host dispatch and RAM copies. Original stack frames, byte-index wrap,
+zero-encoded overlay lengths and return quirks remain in the semantic library.
+No algorithm, canonical entry, dispatch binding or opcode hook was added.
+
+Admission preserves actual paired interrupt ownership, absolute APU timing,
+CPU/bank/page/stack contracts, pure-WRAM source bounds, refresh and the next
+NMI/frame deadline. The original 256-byte hook-range limit remains: parent,
+clear and child intervals are checked separately, including unused branch spans.
+Unknown observers retain original execution. Visible calls require existing
+renderer ownership of disabled beam HDMA; the consumer never disables HDMA.
+
+The batch passes 3,377 original-ROM CPU/full-WRAM/cost-model cases and 118 actual
+production-caller hardware/observer cases. The latter cover both ROM speeds,
+late windows, cold/relative APU, HDMA ownership, source aliases, count limits,
+mirrored banks and encoded-zero overlays at wrapped byte indices. A first geometry
+guard unnecessarily rejected unused overlay indices and was corrected before
+acceptance. The mathematical models and inline semantic child code stayed exact.
+The normal Windows agent actor and generated caller compile and link successfully.
+
+A new 5,399-frame rendered control uses original parent, clear, OAM and tile
+variants. Every frame's CPU, full WRAM, image, PCM and APU clock matches the
+candidate, as do final hardware, native waits and bus credits. Both arms produce
+3,032,552 PCM samples. The previous untimed-parent checkpoint is not a valid
+fidelity baseline; restoring original clocks changes its execution distribution.
+
+Measured native calls are 3,806 clear, 12,740 OAM and 7,300 tile. Whole-parent
+native uptake is zero in this battle replay: outer C callers still lack a
+registered paired interrupt owner. Those calls now execute the clocked original
+parent instead of its untimed C prefix. The whole-parent consumer passes real
+caller hardware fixtures, but live uptake remains open. Its 396,669 interpreted
+parent opcodes are unchanged between the new control and candidate.
+
+Raw opcodes drop from 9,262,870 to 1,649,749 against the original-clock control.
+All 698,634 opcodes outside these four routines have identical PC/mode/bank/page/
+stack counts. Native wait steps stay 86,165,466. APU skipped plus individual native
+cycles remain 97,041,649; 297,058 more cycles use native idle batches, with
+1,405,060 fewer idle callbacks and no interpreted skip batches.
+
+Two alternating unprofiled production-object CPU/APU pairs measure 1.035018 versus
+0.433087 and 1.181601 versus 0.473818 ms/frame. The two-run median of means falls
+59.1% in this workload. Image submission is excluded only in the isolated cost
+runs; rendered correctness is the separate comparison above. These figures compare
+identical original-clock workloads, not the earlier untimed parent, and establish
+no universal speedup or whole-game FPS claim. Tests and tools remain local.
+
+Local evidence: `battle-sprite-parent-clock-current/ACCEPTANCE.json`.
