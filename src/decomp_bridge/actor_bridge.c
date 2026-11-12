@@ -2908,6 +2908,7 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
 #include "nmi_callbacks_clock.inc"
+#include "nmi_upload_clock.inc"
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
 #include "nmi_display_clock.inc"
@@ -6459,6 +6460,11 @@ RecompReturn Lufia2DecompBridge_819169(CpuState *cpu) {
 
 RecompReturn Lufia2DecompBridge_808703(CpuState *cpu) {
     ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
+#if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
+    if (NmiUploadSupported(cpu))
+        return RunNativeNmiUpload(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x808703u);
+#else
     const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu, NULL, NULL};
     Lufia2CpuState state;
     Lufia2ExecutionResult result;
@@ -6472,6 +6478,7 @@ RecompReturn Lufia2DecompBridge_808703(CpuState *cpu) {
     result = Lufia2NmiSpritesPaletteAndPads(&memory, &state);
     ActorBridgeStore(cpu, &state);
     return ActorBridgeReturn(cpu, &frame, 2u, result.pc);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_828720(CpuState *cpu) {

@@ -1,4 +1,5 @@
 #include "decomp_bridge/frame_returns.h"
+#include <assert.h>
 #include <stddef.h>
 
 static unsigned s_frame_return_opcodes;
@@ -46,6 +47,15 @@ uint8_t Lufia2DecompFrameReturnReadByte(CpuState *cpu, uint32_t address,
     const uint64_t before = s_interp_dynamic_progress_epoch;
     const uint8_t value = bridge_bus_read(cpu, address);
     *progress = before != s_interp_dynamic_progress_epoch;
+    return value;
+}
+
+uint8_t Lufia2DecompNmiReadJoypadBusy(CpuState *cpu, bool *progress) {
+    assert(Lufia2DecompFramePairedCallReady(cpu, 0x808703u));
+    const int previous = g_interp_apu_driving;
+    g_interp_apu_driving = 1;
+    const uint8_t value = Lufia2DecompFrameReturnReadByte(cpu, 0x804212u, progress);
+    g_interp_apu_driving = previous;
     return value;
 }
 

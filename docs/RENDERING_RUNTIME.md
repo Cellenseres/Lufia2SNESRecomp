@@ -583,6 +583,51 @@ remains mandatory. Semantic verification and runtime performance are separate
 properties: a verified C function can still be expensive when its bridge is
 entered once per guest opcode, or can remain unused in its real caller context.
 
+### Clocked NMI sprite, palette and pad uploads
+
+With native NMI timing enabled, `80:8703` uses the unchanged standalone
+`Lufia2NmiSpritesPaletteAndPads` worker through domain clock phases. The old
+consumer charged DMA but omitted CPU instruction time and used legacy HVBJOY
+beam ticks. A natural original witness requires 191 CPU cycles and 5,734
+master clocks; the corrected consumer matches its complete boundary state.
+
+Static phase tables and one branch row account PHP/REP, request checks,
+OAM/palette uploads, dynamic controller polling, both repeat paths and PLP/RTS.
+Hardware word accesses retain their original bus credits. The narrowly owned
+HVBJOY read uses original interpreter device semantics; its mode is restored.
+DMA is charged once by the existing device layer. No game algorithm,
+standalone source, canonical binding or hook PC is added.
+
+The generated caller executes the upload ownership predicate: an unobserved,
+nonquiescent interrupt call with at least 512 opcodes remaining. Actual RAM,
+CPU width, synchronized clocks, DMA/IRQ/HDMA and frame limits are checked.
+Unknown hooks anywhere in the 164-byte body retain original execution.
+The source-derived bound is 316 opcodes and 17,024 master clocks, below the
+512/20,000 reserves. Unsupported contexts use the original interpreter.
+
+The shared checkpoint passes 2,336 original/device boundary comparisons,
+including independently observed nine pad-path combinations, both index widths
+and ROM speeds, timer edges and all request-byte values. Final admission checks
+cover 388 contexts/hooks, 228 actual owner cases and 5,399 unchanged natural
+admission outcomes. Seven fresh-process caller checks admit the baseline and
+reject all six cached observer modes. GCC/Clang strict C11 and owner
+feature-on/off checks pass;
+the actual Windows production build links. Full regression/CLI were deferred.
+
+Over 5,399 rendered battle frames, 4,775 uploads run natively and replace
+242,448 raw opcodes (978,166 -> 735,718). The remaining 624 uploads interpret.
+CPU, full WRAM, hardware, image, rolling PCM, APU clocks, certified idle work
+and bus credits match the original-upload reference. Joint entry/inner hooks
+retain 10,775 exact snapshots and profiles. All eight actual APU idle/program
+counters match, including 8,115,099 native-idle calls and zero nonnative skips.
+
+Two alternating production pairs on logical CPU0 use actual unprofiled core,
+bridge and actor objects. CPU/APU wall medians are 0.390330/0.377697 ms per
+frame; active-thread medians are 945835/916004 cycles. Both pairs favor the
+consumer. This is a limited matched-workload result, not a whole-game/FPS
+claim or a comparison against the old zero-clock consumer. Private evidence:
+`nmi-upload-clock-current` in `.agent/decomp/runtime-frontier`.
+
 ### Corrected NMI callback flag phases
 
 The old M1X1 aggregate at `80:864C` left Open Bus `86` and cart address
