@@ -8,29 +8,38 @@ typedef struct NmiCallbackPlan {
 } NmiCallbackPlan;
 
 static bool NmiCallbackHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
-    return hook == ActorBridgeNmiResume && (pc == 0x808653u || pc == 0x80865au);
+    return hook == ActorBridgeNmiResume &&
+        (pc == 0x80864cu || pc == 0x808653u || pc == 0x80865au);
 }
 
 static NmiCallbackPlan NmiCallbacksPlan(const CpuState *cpu, uint32_t entry) {
+    static const FixedSpanOpcode primary_present[] = {
+        {0x864cu, 2u, 3u, 1u}, {0x864eu, 2u, 2u, 0u}
+    };
     static const FixedSpanOpcode secondary_present[] = {
+        {0x864cu, 2u, 3u, 1u}, {0x864eu, 2u, 3u, 0u},
         {0x8653u, 2u, 3u, 1u}, {0x8655u, 2u, 2u, 0u}
     };
     static const FixedSpanOpcode scroll_present[] = {
+        {0x864cu, 2u, 3u, 1u}, {0x864eu, 2u, 3u, 0u},
         {0x8653u, 2u, 3u, 1u}, {0x8655u, 2u, 3u, 0u},
         {0x865au, 2u, 3u, 1u}, {0x865cu, 2u, 2u, 0u}
     };
     static const FixedSpanOpcode callbacks_absent[] = {
+        {0x864cu, 2u, 3u, 1u}, {0x864eu, 2u, 3u, 0u},
         {0x8653u, 2u, 3u, 1u}, {0x8655u, 2u, 3u, 0u},
         {0x865au, 2u, 3u, 1u}, {0x865cu, 2u, 3u, 0u}
     };
+    const unsigned offset = entry == 0x80864cu ? 0u : entry == 0x808653u ? 2u : 4u;
     NmiCallbackPlan plan;
-    if (entry == 0x808653u && cpu->ram[0x6fu]) {
-        plan = (NmiCallbackPlan){secondary_present, 2u, 0x808657u, 0u};
+    if (entry == 0x80864cu && cpu->ram[0x6au]) {
+        plan = (NmiCallbackPlan){primary_present, 2u, 0x808650u, 0u};
+    } else if (entry != 0x80865au && cpu->ram[0x6fu]) {
+        plan = (NmiCallbackPlan){secondary_present + offset, 4u - offset, 0x808657u, 0u};
     } else {
-        const unsigned offset = entry == 0x80865au ? 2u : 0u;
         const bool scroll = cpu->ram[0x71u] != 0u;
         plan = (NmiCallbackPlan){(scroll ? scroll_present : callbacks_absent) + offset,
-            4u - offset, scroll ? 0x80865eu : 0x808661u, 0u};
+            6u - offset, scroll ? 0x80865eu : 0x808661u, 0u};
     }
     const unsigned reads = plan.count / 2u;
     const unsigned taken = reads - (plan.next != 0x808661u);
@@ -40,11 +49,14 @@ static NmiCallbackPlan NmiCallbacksPlan(const CpuState *cpu, uint32_t entry) {
 
 static bool NmiCallbacksSupported(const CpuState *cpu, uint32_t entry,
     NmiCallbackPlan *plan) {
-    if ((entry != 0x808653u && entry != 0x80865au) || cpu->m_flag != 1u ||
+    if ((entry != 0x80864cu && entry != 0x808653u && entry != 0x80865au) ||
+        (entry == 0x80864cu && cpu->x_flag != 1u) || cpu->m_flag != 1u ||
         !g_snes || !cpu->ram || cpu->ram != g_snes->ram)
         return false;
     *plan = NmiCallbacksPlan(cpu, entry);
-    return NmiClockWindow(cpu, false, entry, plan->next, plan->budget, 172u, NmiCallbackHookOwned);
+    const unsigned reserve = entry == 0x80864cu ? 218u : 172u;
+    return NmiClockWindow(cpu, cpu->x_flag != 0u, entry, plan->next,
+        plan->budget, reserve, NmiCallbackHookOwned);
 }
 
 static bool RunNativeNmiCallbacks(CpuState *cpu, uint32_t entry) {

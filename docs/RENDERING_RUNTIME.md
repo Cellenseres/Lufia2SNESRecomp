@@ -583,6 +583,53 @@ remains mandatory. Semantic verification and runtime performance are separate
 properties: a verified C function can still be expensive when its bridge is
 entered once per guest opcode, or can remain unused in its real caller context.
 
+### Corrected NMI callback flag phases
+
+The old M1X1 aggregate at `80:864C` left Open Bus `86` and cart address
+`00006A` where original execution leaves `03`/`80864F` before JSR. A real
+interior BEQ observer was reached 5,399 times by the interpreter and zero
+times by that aggregate. Final guest/frame hashes had hidden both gaps.
+
+The existing callback clock now covers the primary M1X1 phase and both
+index widths at `80:8653`/`80:865A`. Four static plans preserve all original
+exits before JSR; no child behavior is invented. The primary six-opcode
+owner requires actual interrupt ownership and a 218-clock overflow reserve.
+Existing word-index four/two-opcode ownership and 172-clock reserves remain.
+Unknown hooks, clock debt and hardware boundaries retain interpretation.
+No standalone code, algorithm, canonical binding or hook PC is added.
+
+One shared checkpoint passes 131,072 additional primary original-ROM cases
+covering every DB/flag-byte value, eight flag combinations, status/stack edges,
+both ROM speeds, CPU/full WRAM/ordered bus and original cycles. The unchanged
+callback worker prefix and exact old timing suffixes retain the earlier
+524,288 secondary/scroll semantic cases; those were not rerun. Production
+checks cover 36,480 actual owners, 2,346 context/hook/fence assertions and
+11,664 old word-plan/admission comparisons. All nine byte-index variants
+actually run natively and match original pre-child snapshots, including bus
+latches. Joint entry/inner observers each retain 16,197 exact register/clock/
+beam/APU snapshots and profiles. Current Windows production and strict GCC/
+Clang consumer checks pass; full regression/CLI were deferred.
+
+The 5,399-frame original/corrected comparison replaces 3,548 byte-index
+opcodes (707,574 -> 704,026): primary 20 spans/44 opcodes, secondary 862/3,448,
+scroll 28/56. Existing word spans remain 3,879+150/15,816. Display and restore
+intake, all other profile rows, guest/image/PCM/APU/native-wait/bus endpoints
+match. Compared with the unsafe aggregate, 11,286 more raw instructions are
+intentional safety work. Actual APU intake matches the retained hash-matched
+caller/native-program counter baseline; only the current arm was rerun.
+
+All 5,399 primary owner checks succeed. Of 5,379 rejected primary visits,
+5,377 have coprocessor/master-clock mismatch and fail the refresh-state guard;
+435 lack beam room, with overlapping causes and zero unclassified cases.
+Do not widen ownership or ignore clock guards. Inspect the pending clock/
+refresh accounting at the return from graphics child `80:8703` separately.
+
+Two alternating production pairs on logical CPU0 compare exact old actor
+and owner/bridge with the correction. Wall medians are 0.377193/0.373711 ms
+CPU/APU per frame, active cycles 902591/899466. Individual pairs oppose:
+no stable speedup, regression or FPS acceptance. Private evidence:
+`nmi-callback-byte-clock-current/ACCEPTANCE.json` in `.agent/decomp/runtime-frontier`.
+
 ### Corrected byte-index NMI display timing
 
 The legacy M1X1 route at `80:8664` wrote INIDISP before accounting the first

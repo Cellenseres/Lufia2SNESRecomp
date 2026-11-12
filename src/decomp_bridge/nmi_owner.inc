@@ -19,10 +19,12 @@ static bool Lufia2DecompNmiHookHasOwner(uint32_t pc, int stop_on_rti,
             !g_interp_bridge_pc_hook && !s_interp_pctrace;
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
+    case 0x00864cu:
     case 0x008653u:
     case 0x00865au:
         return !(admission_flags & LUFIA2_NMI_OWNER_OBSERVED) &&
-            opcodes_left >= ((pc & 0x7fffffu) == 0x008653u
+            opcodes_left >= ((pc & 0x7fffffu) == 0x00864cu
+                ? LUFIA2_NMI_PRIMARY_CALLBACK_OPCODES : (pc & 0x7fffffu) == 0x008653u
                 ? LUFIA2_NMI_SECONDARY_OPCODES : LUFIA2_NMI_SCROLL_OPCODES) &&
             !s_frame_return_interrupt_blocked && !s_interp_bus_timing_active &&
             !g_interp_bridge_pc_hook && !s_interp_pctrace;

@@ -2783,7 +2783,7 @@ static void ActorBridgeNmiResume(CpuState *cpu, uint32_t pc) {
     }
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
-    if ((pc == 0x808653u || pc == 0x80865au) && !cpu->x_flag) {
+    if (pc == 0x80864cu || pc == 0x808653u || pc == 0x80865au) {
         (void)RunNativeNmiCallbacks(cpu, pc);
         return;
     }
