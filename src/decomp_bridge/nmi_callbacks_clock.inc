@@ -47,35 +47,6 @@ static bool NmiCallbacksSupported(const CpuState *cpu, uint32_t entry,
     return NmiClockWindow(cpu, entry, plan->next, plan->budget, 172u, NmiCallbackHookOwned);
 }
 
-static void NmiCallbacksBeginOpcode(FixedSpanClock *clock) {
-    while (!clock->remaining && clock->index < clock->count) {
-        const FixedSpanOpcode *timing = clock->timing + clock->index;
-        const uint32_t pc = clock->bank | timing->pc;
-        Cart *cart = g_snes->cart;
-        const uint32_t last = pc + timing->fetched - 1u;
-        /* Immutable ROM; the admitted window excludes observers. */
-        clock->cpu->open_bus = cart->rom[last & 0x7fffu];
-        cart->cpuBusAddress = last;
-        clock->fetch_master += timing->fetched * cpu_region_speed(pc);
-        clock->remaining = timing->data_bytes;
-        if (!clock->remaining)
-            FinishFixedSpanOpcode(clock);
-    }
-}
-
-static uint8_t NmiCallbacksRead(void *context, uint32_t address) {
-    FixedSpanClock *clock = context;
-    NmiCallbacksBeginOpcode(clock);
-    assert(clock->remaining);
-    bool progress = false;
-    const uint8_t value = Lufia2DecompFrameReturnReadByte(clock->cpu, address, &progress);
-    clock->data_master += cpu_region_speed(address);
-    clock->progress |= progress;
-    if (!--clock->remaining)
-        FinishFixedSpanOpcode(clock);
-    return value;
-}
-
 static bool RunNativeNmiCallbacks(CpuState *cpu, uint32_t entry) {
     NmiCallbackPlan plan;
     if (!NmiCallbacksSupported(cpu, entry, &plan))
@@ -85,11 +56,11 @@ static bool RunNativeNmiCallbacks(CpuState *cpu, uint32_t entry) {
     clock.bank = 0x800000u;
     clock.timing = plan.timing;
     clock.count = plan.count;
-    const Lufia2Memory memory = {NmiCallbacksRead, NULL, &clock, NULL, NULL};
+    const Lufia2Memory memory = {NmiClockRead, NULL, &clock, NULL, NULL};
     Lufia2CpuState state;
     ActorBridgeLoad(cpu, &state);
     const Lufia2ExecutionResult result = Lufia2MainNmiResume(&memory, &state, entry, NULL, NULL);
-    NmiCallbacksBeginOpcode(&clock);
+    NmiClockBeginOpcode(&clock);
     assert(result.flow == LUFIA2_EXECUTION_BOUNDARY && result.pc == plan.next);
     assert(clock.index == clock.count && !clock.remaining);
     ActorBridgeStore(cpu, &state);

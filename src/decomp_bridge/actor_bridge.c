@@ -2771,7 +2771,17 @@ static bool RunNativeNmiRestore(CpuState *cpu);
 static bool RunNativeNmiCallbacks(CpuState *cpu, uint32_t entry);
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+static bool RunNativeNmiDisplay(CpuState *cpu);
+#endif
+
 static void ActorBridgeNmiResume(CpuState *cpu, uint32_t pc) {
+#if defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+    if (pc == 0x808664u && !cpu->x_flag) {
+        (void)RunNativeNmiDisplay(cpu);
+        return;
+    }
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
     if ((pc == 0x808653u || pc == 0x80865au) && !cpu->x_flag) {
         (void)RunNativeNmiCallbacks(cpu, pc);
@@ -2893,8 +2903,14 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 #include "nmi_clock_window.inc"
 #include "nmi_restore_clock.inc"
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) || defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+#include "nmi_bus_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
 #include "nmi_callbacks_clock.inc"
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+#include "nmi_display_clock.inc"
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_WIDTH)
 #include "nmi_hdma_window.inc"

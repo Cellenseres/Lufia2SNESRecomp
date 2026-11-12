@@ -583,6 +583,50 @@ remains mandatory. Semantic verification and runtime performance are separate
 properties: a verified C function can still be expensive when its bridge is
 entered once per guest opcode, or can remain unused in its real caller context.
 
+### Bounded NMI display and play-clock phase
+
+The existing `Lufia2NmiDisplayAndClock` API at `80:8664` accepts M1X0 and
+M1X1. Its original C worker, brightness write and play-clock logic remain
+unchanged; other resume APIs retain their contracts. The new consumer route
+handles M1X0 and ends before the existing `80:8699` tick hook. No canonical
+function, binding or hook PC is added; legacy M1X1 aggregate behavior stays
+separate. `LUFIA2_NMI_DISPLAY_INDEX_WIDTHS` advertises the wider API.
+
+Five original timing paths cover pause, normal tick and seconds/minutes/hour
+rollover, including byte wrap. Only the selected prefix is copied into a
+bounded plan; there is no whole-table search. Admission uses actual interrupt
+ownership and 22-opcode capacity, exact indexed hook identities, observers,
+CPU/clock/stack/ROM checks, deadlines, IRQ/DMA/HDMA and strict raster fences.
+Existing immutable-ROM fetch/read logic is shared without semantic changes.
+WRAM writes, actual WriteReg, raster recording and every guest/device clock
+remain on the original bus path. INIDISP does not directly change hdmaBeamOff
+in the current backend; its precise write timing is nevertheless preserved.
+
+The shared checkpoint passes 263,168 original-ROM CPU/full-WRAM/ordered-MMIO
+and cycle cases, 41,472 actual owner and 185 context/plan/hook assertions.
+Twenty real clock-path witnesses cover both ROM speeds and raster fences,
+with private identical overrides and no natural HDMA-gameplay claim. Foreign
+entry/inner hooks retain 5,399/4,390 identical register/clock/beam/APU snapshots.
+32,146 before/after actual INIDISP WriteReg observations match clocks, beam,
+bus latches and APU state. Current generated/linked Windows production callers
+and strict GCC/Clang C11 translations pass. Full regression/CLI were deferred.
+
+The matched 5,399-frame replay admits 3,640 spans: 3,585 normal ticks,
+53 seconds and two minutes rollovers. They replace 29,462 interpreted opcodes
+(720,518 -> 691,056); explicit bridge fallbacks remain 7,166. All other raw
+profile rows and earlier callback/restore intake remain unchanged. CPU, full
+WRAM, hardware/image, rolling PCM/count, APU clocks, native wait work and bus
+credits match. Actual APU idle/program-cycle call counts also remain identical.
+Natural spans use the 1364 fence, at most 384 master clocks; rare witnesses
+separately cover the complete 632-clock bound and both fences.
+
+Two alternating production pairs on logical CPU0 have CPU/APU wall medians
+0.397465/0.394747 ms per frame, reference/candidate. Active-cycle medians are
+958135/951442 per frame. Individual pairs have opposing signs; performance
+remains inconclusive, not a stable gain, regression or FPS acceptance.
+Private evidence: `nmi-display-clock-current/ACCEPTANCE.json` in
+`.agent/decomp/runtime-frontier`. Historical results retain exact input bytes.
+
 ### Bounded NMI callback phases
 
 The existing secondary and scroll resumes at `80:8653`/`80:865A` now accept
