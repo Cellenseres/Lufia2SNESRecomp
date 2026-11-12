@@ -139,3 +139,50 @@ Private evidence is under `command-input-current`, with status
 resolution. This experiment adds no canonical function or algorithm coverage.
 Future work should favor larger coherent native operations over more short
 per-opcode hook boundaries, and retain separate semantic and cost gates.
+
+## Complete selected-wrapper census
+
+The main agent cache was rebuilt after rejecting the input experiment.
+Diagnostic instrumentation now maps wrapper names through the actual selected
+binding report, including four-digit names and the player-update source unit.
+All 2,305 selected wrapper definitions are covered; three unselected legacy
+definitions are excluded. This instrumentation is local, not a runtime change.
+
+In the same 5,399-frame replay it observes 472 distinct wrappers and 116,569
+entries. The former six-digit-only counter recorded 32,773 entries, missing
+83,796 entries through four-digit wrappers. Its original subset agrees exactly
+with the new census, including guest register and stack contexts.
+
+| Entry | Wrapper entries | Normal returns | Other returns | Same-entry fallback |
+| --- | ---: | ---: | ---: | ---: |
+| `81:B705`, append OAM sprites | 13,314 | 13,314 | 0 | 0 |
+| `81:BE58`, tile renderer | 7,342 | 7,342 | 0 | 0 |
+| `85:ECDB`, queue slot | 5,961 | 132 | 5,829 | 5,829 |
+| `80:8703`, NMI uploads | 5,399 | 4,775 | 624 | 624 |
+| `85:EC81`, frame input | 4,389 | 0 | 4,389 | 0 |
+| `83:BBF3`, player update | 104 | 104 | 0 | 0 |
+| `81:CB77`, command-menu parent | 6 | 0 | 6 | 0 |
+
+There are 95,055 normal and 21,514 other wrapper returns, with maximum
+wrapper nesting ten. Every one of the 7,778 explicit fallback events matches
+the active wrapper's canonical entry. The remaining 13,736 other returns are
+not additional guard fallbacks; they include cooperative child/frame handoffs.
+
+No raw opcode is observed while a measured wrapper's C frame remains active:
+interpreter work is resumed after those frames unwind. This explains why
+attributing interpreter work to the nearest active native wrapper produces
+zero in this replay. It does not prove that every logical parent executes
+entirely natively. A normal wrapper return, a native child call and a native
+internal hook are different observations. Inline semantic helpers and internal
+hooks are not additional entries in this wrapper census.
+
+The complete raw census remains exactly 690,218 opcodes and the explicit
+fallback census remains 7,778. CPU/full WRAM/hardware/image/PCM, sample count,
+APU clocks and all eight APU counters, idle steps and bus credits match the
+accepted replay. No new semantic body, binding or performance gain is claimed.
+Unobserved wrappers are not thereby unused or unimplemented elsewhere.
+
+Evidence is local under `native-census-current`. Future investigation should
+measure timing and bus contracts of the existing high-frequency native leaves
+before duplicating them or adding more short continuation hooks. Entry counts
+alone provide neither host cost nor original guest-clock fidelity.
