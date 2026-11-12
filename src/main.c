@@ -2782,6 +2782,10 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+#if defined(LUFIA2_HAVE_APU_CLOCK_STATE)
+    RtlEnableExtendedFrameTiming();
+#endif
+
     RtlEnsureSaveDir();
     RtlReadSram();
 
