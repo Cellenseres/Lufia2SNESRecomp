@@ -1,88 +1,17 @@
-enum { FIELD_STAIR_BODY_MAX_OPCODES = LUFIA2_FIELD_STAIR_OPCODE_BUDGET - 1u };
-
-typedef struct FieldStairPlan {
-    FixedSpanOpcode opcodes[FIELD_STAIR_BODY_MAX_OPCODES];
-    unsigned count;
-} FieldStairPlan;
-
-static bool AppendFieldStairOpcode(FieldStairPlan *plan, uint16_t pc,
-    uint8_t fetched, uint8_t cycles, uint8_t data) {
-    if (plan->count == FIELD_STAIR_BODY_MAX_OPCODES)
-        return false;
-    plan->opcodes[plan->count++] = (FixedSpanOpcode){pc, fetched, cycles, data};
-    return true;
-}
+_Static_assert(FIELD_RECTANGLE_BODY_MAX_OPCODES + 2u <= LUFIA2_FIELD_STAIR_OPCODE_BUDGET,
+    "shared rectangle plan must fit the stair caller budget");
 
 #define STAIR_OPCODE(pc, fetched, cycles, data) \
-    do { if (!AppendFieldStairOpcode(plan, pc, fetched, cycles, data)) return false; } while (0)
+    do { if (!AppendFieldRectangleOpcode(plan, pc, fetched, cycles, data)) return false; } while (0)
 
-static bool PlanFieldStairSearch(const uint8_t *ram, FieldStairPlan *plan,
-    unsigned header, unsigned stride, unsigned *rectangle, bool *hit) {
-    STAIR_OPCODE(0xb882u, 2u, 3u, 0u);
-    STAIR_OPCODE(0xb884u, 2u, 4u, 2u);
-    STAIR_OPCODE(0xb886u, 4u, 6u, 2u);
-    STAIR_OPCODE(0xb88au, 1u, 2u, 0u);
-    unsigned index = ram[0xf000u + header] | (unsigned)ram[0xf001u + header] << 8;
-    for (;;) {
-        /* Keep geometry separate from scratch, stack and control writes. */
-        if (index > 0x0ff0u)
-            return false;
-        const uint8_t *bounds = ram + 0xf000u + index;
-        const bool end = bounds[0] == 0xffu;
-        STAIR_OPCODE(0xb88bu, 2u, 3u, 0u);
-        STAIR_OPCODE(0xb88du, 4u, 5u, 1u);
-        STAIR_OPCODE(0xb891u, 2u, 2u, 0u);
-        STAIR_OPCODE(0xb893u, 1u, 2u, 0u);
-        STAIR_OPCODE(0xb894u, 2u, end ? 3u : 2u, 0u);
-        if (end) {
-            *hit = false;
-            break;
-        }
-        STAIR_OPCODE(0xb896u, 2u, 3u, 1u);
-        static const uint16_t compares[] = {0xb898u, 0xb89eu, 0xb8a6u, 0xb8acu};
-        static const uint16_t branches[] = {0xb89cu, 0xb8a2u, 0xb8aau, 0xb8b0u};
-        static const uint8_t edges[] = {1u, 3u, 2u, 4u};
-        bool inside = true;
-        for (unsigned edge = 0u; edge < 4u; ++edge) {
-            if (edge == 2u)
-                STAIR_OPCODE(0xb8a4u, 2u, 3u, 1u);
-            const unsigned probe = ram[edge < 2u ? 0x8fu : 0x91u];
-            const bool outside = edge & 1u ? probe >= bounds[edges[edge]] :
-                probe < bounds[edges[edge]];
-            STAIR_OPCODE(compares[edge], 4u, 5u, 1u);
-            STAIR_OPCODE(branches[edge], 2u, outside ? 3u : 2u, 0u);
-            if (outside) {
-                inside = false;
-                break;
-            }
-        }
-        if (inside) {
-            STAIR_OPCODE(0xb8b2u, 1u, 2u, 0u);
-            STAIR_OPCODE(0xb8b3u, 2u, 3u, 0u);
-            *hit = true;
-            break;
-        }
-        STAIR_OPCODE(0xb8b5u, 2u, 3u, 0u);
-        STAIR_OPCODE(0xb8b7u, 1u, 2u, 0u);
-        STAIR_OPCODE(0xb8b8u, 1u, 2u, 0u);
-        STAIR_OPCODE(0xb8b9u, 2u, 4u, 2u);
-        STAIR_OPCODE(0xb8bbu, 1u, 2u, 0u);
-        STAIR_OPCODE(0xb8bcu, 2u, 3u, 0u);
-        index += stride;
-    }
-    *rectangle = index;
-    STAIR_OPCODE(0xb8beu, 1u, 6u, 2u);
-    return true;
-}
-
-static bool PlanFieldStairClocks(const uint8_t *ram, FieldStairPlan *plan) {
+static bool PlanFieldStairClocks(const uint8_t *ram, FieldRectanglePlan *plan) {
     unsigned rectangle;
     bool hit;
     plan->count = 0u;
     STAIR_OPCODE(0xb66eu, 3u, 3u, 0u);
     STAIR_OPCODE(0xb671u, 3u, 3u, 0u);
     STAIR_OPCODE(0xb674u, 3u, 6u, 2u);
-    if (!PlanFieldStairSearch(ram, plan, 2u, 15u, &rectangle, &hit))
+    if (!PlanFieldRectangleSearch(ram, plan, 2u, 15u, &rectangle, &hit))
         return false;
     STAIR_OPCODE(0xb677u, 2u, hit ? 3u : 2u, 0u);
     if (hit) {
@@ -97,7 +26,7 @@ static bool PlanFieldStairClocks(const uint8_t *ram, FieldStairPlan *plan) {
         STAIR_OPCODE(0xb679u, 3u, 3u, 0u);
         STAIR_OPCODE(0xb67cu, 3u, 3u, 0u);
         STAIR_OPCODE(0xb67fu, 3u, 6u, 2u);
-        if (!PlanFieldStairSearch(ram, plan, 10u, 5u, &rectangle, &hit))
+        if (!PlanFieldRectangleSearch(ram, plan, 10u, 5u, &rectangle, &hit))
             return false;
         STAIR_OPCODE(0xb682u, 2u, hit ? 3u : 2u, 0u);
         if (!hit)
@@ -179,7 +108,7 @@ static bool PlanFieldStairClocks(const uint8_t *ram, FieldStairPlan *plan) {
 }
 #undef STAIR_OPCODE
 
-static unsigned FieldStairClockReserve(const FieldStairPlan *plan) {
+static unsigned FieldStairClockReserve(const FieldRectanglePlan *plan) {
     unsigned master = 42u;
     for (unsigned opcode = 0u; opcode < plan->count; ++opcode) {
         const FixedSpanOpcode *timing = plan->opcodes + opcode;
@@ -215,7 +144,7 @@ static bool FieldStairClockSupported(const CpuState *cpu, unsigned reserve) {
 }
 
 static RecompReturn ActorBridgeTimedFieldStairs(CpuState *cpu) {
-    FieldStairPlan plan;
+    FieldRectanglePlan plan;
     if (!FieldStairClockSupported(cpu, 0u) ||
         !PlanFieldStairClocks(cpu->ram, &plan) ||
         !FieldStairClockSupported(cpu, FieldStairClockReserve(&plan))) {

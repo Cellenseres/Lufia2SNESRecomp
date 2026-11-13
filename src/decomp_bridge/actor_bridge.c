@@ -1002,12 +1002,26 @@ RecompReturn Lufia2DecompBridge_B66E(CpuState *cpu) {
 #endif
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_RECTANGLE_CLOCK)
+static RecompReturn ActorBridgeTimedFieldRectangles(CpuState *cpu, uint32_t entry);
+#endif
+
 RecompReturn Lufia2DecompBridge_B711(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x83b711u, Lufia2FieldEventRects, 2);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_RECTANGLE_CLOCK)
+    return ActorBridgeTimedFieldRectangles(cpu, 0x83b711u);
+#else
+    const uint32_t entry = (uint32_t)cpu->PB << 16 | 0xb711u;
+    return interp_tier_dispatch_tail(cpu, entry, entry, cpu->S, cpu->host_return_valid);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_B747(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x83b747u, Lufia2FieldAreaRects, 2);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_RECTANGLE_CLOCK)
+    return ActorBridgeTimedFieldRectangles(cpu, 0x83b747u);
+#else
+    const uint32_t entry = (uint32_t)cpu->PB << 16 | 0xb747u;
+    return interp_tier_dispatch_tail(cpu, entry, entry, cpu->S, cpu->host_return_valid);
+#endif
 }
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
@@ -2991,7 +3005,7 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 }
 #include "fixed_span_clock.inc"
 #if defined(LUFIA2_HAVE_NATIVE_EVENT_SLOT_CLOCK) || defined(LUFIA2_HAVE_NATIVE_FIELD_IDLE_CLOCK) || \
-    defined(LUFIA2_HAVE_NATIVE_FIELD_STAIR_CLOCK)
+    defined(LUFIA2_HAVE_NATIVE_FIELD_STAIR_CLOCK) || defined(LUFIA2_HAVE_NATIVE_FIELD_RECTANGLE_CLOCK)
 #include "paired_span_clock.inc"
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_TILES)
@@ -7465,10 +7479,13 @@ RecompReturn Lufia2DecompBridge_83B851(CpuState *cpu) {
     return ActorBridgeFieldRecordSearch(cpu, 0x83b851u,
         Lufia2FieldFindPointRecord, 3u);
 }
-/* The standalone C search has no certified clock yet. */
 RecompReturn Lufia2DecompBridge_83B882(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_RECTANGLE_CLOCK)
+    return ActorBridgeTimedFieldRectangles(cpu, 0x83b882u);
+#else
     const uint32_t entry = (uint32_t)cpu->PB << 16 | 0xb882u;
     return interp_tier_dispatch_tail(cpu, entry, entry, cpu->S, cpu->host_return_valid);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_83F442(CpuState *cpu) {
@@ -18689,6 +18706,9 @@ RecompReturn Lufia2DecompBridge_82BCC4(CpuState *cpu) {
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_FIELD_IDLE_CLOCK)
 #include "field_idle_clock.inc"
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_STAIR_CLOCK) || defined(LUFIA2_HAVE_NATIVE_FIELD_RECTANGLE_CLOCK)
+#include "field_rectangle_clock.inc"
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_FIELD_STAIR_CLOCK)
 #include "field_stair_clock.inc"
