@@ -64,6 +64,8 @@ if(LUFIA2_ENABLE_BRIDGE_AUDIT AND (VITA OR NOT LUFIA2_ENABLE_NATIVE_WAIT))
 endif()
 
 option(LUFIA2_ENABLE_QUIESCENCE_INDEX "Exact candidate index for bridge state ring (experimental)" OFF)
+option(LUFIA2_ENABLE_PORTABLE_QUIESCENCE_INDEX
+    "Filter bridge-state candidates with the portable index" ON)
 # Optional scheduler reporting for development measurements.
 option(LUFIA2_ENABLE_PATCH_REPORTING
     "Report patch counters and scheduler time every 120 boundaries" OFF)
@@ -569,6 +571,31 @@ if(LUFIA2_ENABLE_NATIVE_WAIT OR LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD OR
     include("${CMAKE_SOURCE_DIR}/cmake/Lufia2NativePatches.cmake")
     lufia2_prepare_native_patch_sources(SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
     list(APPEND LUFIA2_HOST_SOURCES patches/native_patches.c)
+endif()
+
+# The development A/B build supplies its own index.
+if(LUFIA2_ENABLE_PORTABLE_QUIESCENCE_INDEX AND NOT LUFIA2_ENABLE_QUIESCENCE_INDEX)
+    foreach(_source IN LISTS SNESRECOMP_RUNNER_SOURCES)
+        get_filename_component(_name "${_source}" NAME)
+        if(_name STREQUAL "interp_bridge.c")
+            set(_unindexed_bridge "${_source}")
+        endif()
+    endforeach()
+    include("${CMAKE_SOURCE_DIR}/lib/snesrecomp-platform/cmake/SnesRecompPlatformQuiescence.cmake")
+    snesrecomp_platform_overlay_quiescence(SNESRECOMP_RUNNER_SOURCES)
+    foreach(_source IN LISTS SNESRECOMP_RUNNER_SOURCES)
+        get_filename_component(_name "${_source}" NAME)
+        if(_name STREQUAL "interp_bridge.c")
+            snesrecomp_platform_copy_source_contract("${_unindexed_bridge}" "${_source}")
+            foreach(_property COMPILE_DEFINITIONS_DEBUG COMPILE_DEFINITIONS_RELEASE
+                    COMPILE_DEFINITIONS_RELWITHDEBINFO COMPILE_DEFINITIONS_MINSIZEREL)
+                get_source_file_property(_value "${_unindexed_bridge}" "${_property}")
+                if(NOT _value STREQUAL "NOTFOUND")
+                    set_source_files_properties("${_source}" PROPERTIES "${_property}" "${_value}")
+                endif()
+            endforeach()
+        endif()
+    endforeach()
 endif()
 
 if(LUFIA2_ENABLE_DMA_HOST_FASTFORWARD)
