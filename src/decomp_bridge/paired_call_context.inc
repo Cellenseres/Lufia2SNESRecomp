@@ -15,7 +15,7 @@ static bool FramePairedNmiCallBlocked(uint32_t entry, bool interrupt_owner,
 #if defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
     if ((entry & 0x7fffffu) == 0x0087a7u)
         return !interrupt_owner || auto_quiescent || observed || opcodes_left < 128;
-    if ((entry & 0x7fffffu) == 0x0087fcu)
+    if ((entry & 0x7fffffu) == 0x0087fcu || (entry & 0x7fffffu) == 0x00882eu)
         return !interrupt_owner || auto_quiescent || observed || opcodes_left < 16;
     if ((entry & 0x7fffffu) == 0x0086c1u)
         return !interrupt_owner || auto_quiescent || observed || opcodes_left < 32;
@@ -63,7 +63,8 @@ static bool FramePairedCallTracks(uint32_t entry) {
     entry &= 0x7fffffu;
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
 #if defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
-    if (entry == 0x0086c1u || entry == 0x0087a7u || entry == 0x0087fcu)
+    if (entry == 0x0086c1u || entry == 0x0087a7u || entry == 0x0087fcu ||
+        entry == 0x00882eu)
         return true;
 #endif
     if (entry == 0x008703u)
