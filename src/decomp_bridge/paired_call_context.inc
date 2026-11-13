@@ -38,6 +38,7 @@ static bool FramePairedBattleCall(uint32_t entry) {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS)
     return entry == 0x05ccceu || entry == 0x05cce3u || entry == 0x05ccf8u ||
         entry == 0x05cd8cu || entry == 0x05cd9bu ||
+        entry == 0x05cdfau || entry == 0x05cdaau || entry == 0x05cdd0u ||
         entry == 0x01b5a3u || entry == 0x01b5c4u ||
         entry == 0x01b705u || entry == 0x01be58u ||
         entry == 0x00834cu || entry == 0x008378u || entry == 0x01e808u ||

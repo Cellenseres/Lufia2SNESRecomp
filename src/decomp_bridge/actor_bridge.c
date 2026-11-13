@@ -97,6 +97,7 @@ static RecompReturn ActorBridgeTimedStagedCommand(CpuState *cpu);
 static RecompReturn ActorBridgeTimedBattleLeaf(CpuState *cpu, uint32_t entry);
 static RecompReturn ActorBridgeTimedBattleSprites(CpuState *cpu, bool parent);
 static RecompReturn ActorBridgeTimedActionWork(CpuState *cpu, unsigned kind);
+static RecompReturn ActorBridgeTimedActionRecord(CpuState *cpu, unsigned kind);
 #endif
 
 static uint8_t ActorBridgeRead(void *context, uint32_t address) {
@@ -2303,21 +2304,30 @@ RecompReturn Lufia2DecompBridge_CD9B(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_CDFA(CpuState *cpu) {
-    return ActorBridgeBattleEntry(cpu, 0x85cdfau, Lufia2BattleActionRecordPointer, 0,
-                                  2u, BATTLE_BRIDGE_M1X0, 1, BATTLE_BRIDGE_WRAM_BANK,
-                                  1);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS)
+    return ActorBridgeTimedActionRecord(cpu, 0u);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, (uint32_t)cpu->PB << 16 | 0xcdfau);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_CDAA(CpuState *cpu) {
-    return ActorBridgeBattleEntry(cpu, 0x85cdaau, 0, Lufia2BattleLoadTurnRecord, 3u,
-                                  BATTLE_BRIDGE_ANY_WIDTH, 1, BATTLE_BRIDGE_ANY_BANK,
-                                  0);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS)
+    return ActorBridgeTimedActionRecord(cpu, 1u);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, (uint32_t)cpu->PB << 16 | 0xcdaau);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_CDD0(CpuState *cpu) {
-    return ActorBridgeBattleEntry(cpu, 0x85cdd0u, 0, Lufia2BattleLoadActionRecord, 3u,
-                                  BATTLE_BRIDGE_ANY_WIDTH, 1, BATTLE_BRIDGE_ANY_BANK,
-                                  0);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MENU_LEAVES) && defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS)
+    return ActorBridgeTimedActionRecord(cpu, 2u);
+#else
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+    return ActorBridgeFallback(cpu, &frame, (uint32_t)cpu->PB << 16 | 0xcdd0u);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_B1A3(CpuState *cpu) {
@@ -21191,6 +21201,7 @@ RecompReturn Lufia2DecompBridge_81E7A6(CpuState *cpu) {
 #include "battle_leaf_clock.inc"
 #include "battle_sprite_clock.inc"
 #include "battle_action_work_clock.inc"
+#include "battle_action_record_clock.inc"
 #endif
 
 RecompReturn Lufia2DecompBridge_81D081(CpuState *cpu) {
