@@ -56,9 +56,23 @@ typedef struct FieldTriggerClock {
     unsigned own_opcodes;
 } FieldTriggerClock;
 
-static bool FieldTriggerRangeQuiet(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_PHASES) || defined(LUFIA2_HAVE_NATIVE_FIELD_TRIGGER_FRONTS)
+static bool FieldTriggerWholeHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
 #if defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_PHASES)
-    return Lufia2DecompFrameRangeAllows(0x8381c6u, 0x8382a0u, FieldRegionHookOwned);
+    if (FieldRegionHookOwned(pc, hook))
+        return true;
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_TRIGGER_FRONTS)
+    if (FieldTriggerFrontHookOwned(pc, hook))
+        return true;
+#endif
+    return false;
+}
+#endif
+
+static bool FieldTriggerRangeQuiet(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_PHASES) || defined(LUFIA2_HAVE_NATIVE_FIELD_TRIGGER_FRONTS)
+    return Lufia2DecompFrameRangeAllows(0x8381c6u, 0x8382a0u, FieldTriggerWholeHookOwned);
 #else
     return Lufia2DecompFrameRangeQuiet(0x8381c6u, 0x8382a0u);
 #endif
