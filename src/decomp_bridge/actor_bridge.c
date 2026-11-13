@@ -9284,9 +9284,17 @@ RecompReturn Lufia2DecompBridge_80882E(CpuState *cpu) {
 #endif
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+static RecompReturn ActorBridgeTimedListedDma(CpuState *cpu);
+#endif
+
 RecompReturn Lufia2DecompBridge_80884F(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+    return ActorBridgeTimedListedDma(cpu);
+#else
     const uint32_t entry = (uint32_t)cpu->PB << 16 | 0x884fu;
     return interp_tier_dispatch_tail(cpu, entry, entry, cpu->S, cpu->host_return_valid);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_82FBE5(CpuState *cpu) {
@@ -18570,7 +18578,9 @@ RecompReturn Lufia2DecompBridge_82BCC4(CpuState *cpu) {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
 #include "screen_fade_clock.inc"
 #include "nmi_scroll_clock.inc"
+#include "nmi_dma_bus_clock.inc"
 #include "tilemap_dma_clock.inc"
+#include "listed_dma_clock.inc"
 #endif
 #endif
 RecompReturn Lufia2DecompBridge_82B6EF(CpuState *cpu) {

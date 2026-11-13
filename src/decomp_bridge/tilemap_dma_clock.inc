@@ -9,44 +9,6 @@ static const FixedSpanOpcode tilemap_dma_timing[] = {
     {0x8849u, 2u, 2u, 0u}, {0x884bu, 3u, 4u, 1u}
 };
 
-typedef struct TilemapDmaClock {
-    FixedSpanClock span;
-    uint16_t word;
-    uint32_t word_address;
-} TilemapDmaClock;
-
-static uint8_t TilemapDmaRead(void *context, uint32_t address) {
-    TilemapDmaClock *clock = context;
-    return NmiClockRead(&clock->span, address);
-}
-
-static void TilemapDmaWrite(void *context, uint32_t address, uint8_t value) {
-    TilemapDmaClock *clock = context;
-    FixedSpanClock *bus = &clock->span;
-    NmiClockBeginOpcode(bus);
-    assert(bus->remaining);
-    const FixedSpanOpcode *opcode = bus->timing + bus->index;
-    const bool hardware_word = opcode->data_bytes == 2u &&
-        (address & 0xffffu) >= 0x2100u && (address & 0xffffu) < 0x4380u;
-    bool progress = false;
-    /* Keep the interpreter's paired hardware write. */
-    if (hardware_word && bus->remaining == 2u) {
-        clock->word = value;
-        clock->word_address = address;
-    } else if (hardware_word) {
-        assert(address == clock->word_address + 1u);
-        const uint16_t word = (uint16_t)(clock->word | ((uint16_t)value << 8));
-        Lufia2DecompFrameReturnWriteWord(bus->cpu, clock->word_address,
-            address, word, &progress);
-    } else {
-        Lufia2DecompFrameReturnWriteByte(bus->cpu, address, value, &progress);
-    }
-    bus->data_master += cpu_region_speed(address);
-    bus->progress |= progress;
-    if (!--bus->remaining)
-        FinishFixedSpanOpcode(bus);
-}
-
 static bool TilemapDmaClockSupported(const CpuState *cpu) {
     if (!g_snes || !g_snes->inNmi || g_snes->inIrq || !g_snes->dma || !g_snes->apu ||
         cpu != &g_cpu || !cpu->ram || cpu->ram != g_snes->ram || cpu->emulation ||
@@ -87,12 +49,12 @@ static RecompReturn ActorBridgeTimedTilemapDma(CpuState *cpu) {
         return interp_tier_dispatch_tail(cpu, entry, entry, cpu->S, cpu->host_return_valid);
     }
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    TilemapDmaClock clock = {0};
+    NmiDmaClock clock = {0};
     clock.span.cpu = cpu;
     clock.span.bank = 0x800000u;
     clock.span.timing = tilemap_dma_timing;
     clock.span.count = sizeof tilemap_dma_timing / sizeof *tilemap_dma_timing;
-    const Lufia2Memory memory = {TilemapDmaRead, TilemapDmaWrite, &clock, NULL, NULL};
+    const Lufia2Memory memory = {NmiDmaRead, NmiDmaWrite, &clock, NULL, NULL};
     Lufia2CpuState state;
     ActorBridgeLoad(cpu, &state);
     const Lufia2ExecutionResult result = Lufia2UploadTilemapBlock(&memory, &state);
