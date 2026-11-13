@@ -12,12 +12,26 @@ typedef struct FramePairedCallContext {
 static FramePairedCallContext s_frame_paired_call;
 static uint32_t s_frame_paired_return_pc = UINT32_MAX;
 
+static unsigned FramePairedFieldBudget(uint32_t entry) {
+    entry &= 0x7fffffu;
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_TICK_CLOCK)
+    if (entry == 0x009c72u)
+        return LUFIA2_FIELD_CALL_OPCODE_BUDGET;
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CHILD_CLOCK)
+    if (entry == 0x048000u)
+        return LUFIA2_FIELD_EFFECT_OPCODES + 1u;
+    if (entry == 0x00c21au)
+        return LUFIA2_FIELD_TIMER_MAX_OPCODES + 1u;
+#endif
+    return 0u;
+}
+
 static bool FramePairedCallBlocked(uint32_t entry, bool interrupt_owner,
     bool auto_quiescent, bool observed, long opcodes_left) {
-#if defined(LUFIA2_HAVE_NATIVE_FIELD_TICK_CLOCK)
-    if ((entry & 0x7fffffu) == 0x009c72u)
-        return interrupt_owner || observed || opcodes_left < 32;
-#endif
+    const unsigned field_budget = FramePairedFieldBudget(entry);
+    if (field_budget)
+        return interrupt_owner || observed || opcodes_left < (long)field_budget;
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
 #if defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
     if ((entry & 0x7fffffu) == 0x0087a7u)
@@ -69,10 +83,8 @@ static bool FramePairedBattleCall(uint32_t entry) {
 
 static bool FramePairedCallTracks(uint32_t entry) {
     entry &= 0x7fffffu;
-#if defined(LUFIA2_HAVE_NATIVE_FIELD_TICK_CLOCK)
-    if (entry == 0x009c72u)
+    if (FramePairedFieldBudget(entry))
         return true;
-#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
 #if defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
     if (entry == 0x0086c1u || entry == 0x0087a7u || entry == 0x0087fcu ||
@@ -93,11 +105,9 @@ bool Lufia2DecompFramePairedCallReady(const struct CpuState *cpu, uint32_t entry
     if (!cpu || s_frame_paired_call.cpu != cpu ||
         s_frame_paired_call.entry != (entry & 0x7fffffu) || s_frame_paired_call.blocked)
         return false;
-#if defined(LUFIA2_HAVE_NATIVE_FIELD_TICK_CLOCK)
-    if ((entry & 0x7fffffu) == 0x009c72u)
+    if (FramePairedFieldBudget(entry))
         return s_frame_paired_call.steps && s_frame_paired_call.write_epoch &&
             s_frame_paired_call.dynamic_epoch;
-#endif
     return true;
 }
 

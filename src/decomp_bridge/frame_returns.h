@@ -6,6 +6,10 @@
 
 /* Host batching only; original opcode and device clocks remain exact. */
 #define LUFIA2_FRAME_POLL_MAX_OPCODES 1024u
+#define LUFIA2_FIELD_CALL_OPCODE_BUDGET 32u
+#define LUFIA2_FIELD_TICK_OPCODES 8u
+#define LUFIA2_FIELD_EFFECT_OPCODES 15u
+#define LUFIA2_FIELD_TIMER_MAX_OPCODES 7u
 
 struct CpuState;
 
@@ -54,6 +58,8 @@ bool Lufia2DecompFrameReturnCpuReady(void);
 bool Lufia2DecompFramePairedCallReady(const struct CpuState *cpu, uint32_t entry);
 void Lufia2DecompFramePairedAccountSpan(const struct CpuState *cpu, uint32_t entry,
     unsigned count, unsigned progress_mask);
+int Lufia2DecompFramePairedFieldChild(struct CpuState *cpu, uint32_t target,
+    uint32_t site, uint8_t frame_size, uint32_t *return_pc);
 uint8_t Lufia2DecompNmiReadJoypadBusy(struct CpuState *cpu, bool *progress);
 uint32_t Lufia2DecompFramePairedReturnPc(const struct CpuState *cpu, uint32_t entry);
 bool Lufia2DecompFrameRangeQuiet(uint32_t first, uint32_t end);

@@ -20,6 +20,12 @@ static const FixedSpanOpcode field_tick_idle_text[] = {
     {0x9cb5u, 2u, 2u, 0u}
 };
 
+_Static_assert(sizeof field_tick_effect_call / sizeof *field_tick_effect_call +
+    sizeof field_tick_timer_call / sizeof *field_tick_timer_call +
+    sizeof field_tick_idle_text / sizeof *field_tick_idle_text + 1u ==
+    LUFIA2_FIELD_TICK_OPCODES, "review field caller opcode budget");
+
+
 typedef struct FieldTickClock {
     FixedSpanClock span;
     ActorPushedCall call;

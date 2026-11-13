@@ -105,6 +105,34 @@ void Lufia2DecompFramePairedAccountSpan(const CpuState *cpu, uint32_t entry,
     }
 }
 
+int Lufia2DecompFramePairedFieldChild(CpuState *cpu, uint32_t target,
+    uint32_t site, uint8_t frame_size, uint32_t *return_pc) {
+    _Static_assert(LUFIA2_FIELD_TICK_OPCODES + LUFIA2_FIELD_EFFECT_OPCODES +
+        LUFIA2_FIELD_TIMER_MAX_OPCODES + 1u <= LUFIA2_FIELD_CALL_OPCODE_BUDGET,
+        "review composed field opcode budget");
+    const bool effects = site == 0x809c72u && target == 0x848000u && frame_size == 3u;
+    const bool timer = site == 0x809c76u && target == 0x80c21au && frame_size == 2u;
+    if ((!effects && !timer) || !Lufia2DecompFramePairedCallReady(cpu, 0x809c72u) ||
+        s_frame_paired_return_pc != 0x838077u)
+        return (int)cpu_dispatch_call_pc_pushed(cpu, target, site, frame_size, return_pc);
+    const FramePairedCallContext previous = s_frame_paired_call;
+    const uint32_t previous_return = s_frame_paired_return_pc;
+    const int previous_auto = s_frame_return_auto_quiescent;
+    /* The certified parent reserves the complete bounded call tree. */
+    const unsigned preceding_opcodes = effects ? 1u : LUFIA2_FIELD_EFFECT_OPCODES + 2u;
+    s_frame_paired_call.entry = target & 0x7fffffu;
+    s_frame_paired_call.blocked = FramePairedCallBlocked(target, false,
+        previous_auto, g_interp_bridge_pc_hook || Lufia2NativeObserversActive(),
+        (long)(LUFIA2_FIELD_CALL_OPCODE_BUDGET - preceding_opcodes));
+    s_frame_paired_return_pc = site + (uint32_t)frame_size + 1u;
+    const RecompReturn result = cpu_dispatch_call_pc_pushed(
+        cpu, target, site, frame_size, return_pc);
+    s_frame_paired_call = previous;
+    s_frame_paired_return_pc = previous_return;
+    s_frame_return_auto_quiescent = previous_auto;
+    return (int)result;
+}
+
 void Lufia2DecompFrameReturnComplete(unsigned count, unsigned progress_mask) {
     s_frame_return_opcodes = count;
     s_frame_return_progress_mask = progress_mask;
