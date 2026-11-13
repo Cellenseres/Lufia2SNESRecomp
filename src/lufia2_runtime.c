@@ -361,9 +361,7 @@ uint64_t Lufia2DecompFrameReturnDeadline(void) {
 }
 #endif
 
-static bool Lufia2RunToBoundary(uint32_t entry_pc) {
-    const uint64_t deadline =
-        g_cpu.master_cycles + LUFIA2_MASTER_CLOCKS_PER_FRAME;
+static bool Lufia2RunToBoundary(uint32_t entry_pc, uint64_t deadline) {
 
 #if defined(LUFIA2_ENABLE_NATIVE_WAIT) || defined(LUFIA2_ENABLE_FRAME_WAIT_FASTFORWARD) || \
     defined(LUFIA2_ENABLE_ACTOR_EARLY_RETURN)
@@ -420,6 +418,10 @@ static bool Lufia2RunInterrupt(uint32_t vector_pc) {
 }
 
 void Lufia2RunOneFrame(void) {
+    /* NMI execution consumes this iteration's CPU budget too. */
+    const uint64_t deadline =
+        g_cpu.master_cycles + LUFIA2_MASTER_CLOCKS_PER_FRAME;
+
     if (!s_started) {
         /* Start from the ROM reset vector through the LLE scheduler. */
         const uint64_t master_cycles = g_cpu.master_cycles;
@@ -445,7 +447,7 @@ void Lufia2RunOneFrame(void) {
                 "[lufia2] starting hybrid LLE/AOT boot at $%06X\n",
                 LUFIA2_RESET_PC);
 
-        (void)Lufia2RunToBoundary(LUFIA2_RESET_PC);
+        (void)Lufia2RunToBoundary(LUFIA2_RESET_PC, deadline);
         return;
     }
 
@@ -457,7 +459,7 @@ void Lufia2RunOneFrame(void) {
         if (s_nmi_video_observer) s_nmi_video_observer(g_ppu);
     }
 
-    (void)Lufia2RunToBoundary(s_resume_pc);
+    (void)Lufia2RunToBoundary(s_resume_pc, deadline);
 }
 
 #if defined(LUFIA2_NATIVE_PPU_TIMELINE)
