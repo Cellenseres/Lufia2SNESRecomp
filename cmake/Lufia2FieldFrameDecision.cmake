@@ -1,0 +1,16 @@
+include_guard(GLOBAL)
+
+function(lufia2_field_frame_decision_available output)
+    set(${output} FALSE PARENT_SCOPE)
+    set(_header "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/field.h")
+    set(_source "${LUFIA2_DECOMP_RESOLVED_ROOT}/src/field/field_session_setup.c")
+    if(NOT EXISTS "${_header}" OR NOT EXISTS "${_source}")
+        return()
+    endif()
+    file(READ "${_header}" _declarations)
+    file(READ "${_source}" _definitions)
+    if(_declarations MATCHES "Lufia2FieldPrepareFrame\\(" AND
+       _definitions MATCHES "Lufia2FieldPrepareFrame\\(")
+        set(${output} TRUE PARENT_SCOPE)
+    endif()
+endfunction()

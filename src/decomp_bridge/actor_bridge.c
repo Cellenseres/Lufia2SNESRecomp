@@ -4146,6 +4146,10 @@ static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
 #include "actor_slot_clock.inc"
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_FRAME_DECISION)
+#include "field_frame_clock.inc"
+#endif
+
 bool Lufia2DecompCommandTileHookOwned(
     uint32_t pc, void (*hook)(CpuState *, uint32_t)) {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_TILES)
@@ -4167,6 +4171,11 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_FRAME_DECISION)
+    if (Lufia2DecompFrameRangeAllows(0x838007u, 0x838008u, FieldFrameHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x838007u, ActorBridgePrepareFieldFrame);
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_PHASES)
     static const uint32_t actor_phases[] = {0x83bba5u, 0x83bbd1u};
     for (unsigned i = 0u; i < sizeof actor_phases / sizeof *actor_phases; ++i) {
@@ -15942,22 +15951,7 @@ RecompReturn Lufia2DecompBridge_86B397(CpuState *cpu) {
 
 RecompReturn Lufia2DecompBridge_838007(CpuState *cpu) {
     const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
-    if (cpu->emulation || cpu->_flag_D || cpu->PB != 0x83u || cpu->DB != 0x83u ||
-        !cpu->m_flag || cpu->D || cpu->S != 0x1fffu || cpu->host_return_valid != 0u)
-        return ActorBridgeFallback(cpu, &frame, 0x838007u);
-    const Lufia2Memory memory = {ActorBridgeRead, ActorBridgeWrite, cpu,
-                                 ActorBridgeExecutionCheckpoint, cpu};
-    ActorPushedCall call = {cpu, frame, RECOMP_RETURN_NORMAL};
-    Lufia2CpuState state;
-    ActorBridgeLoad(cpu, &state);
-    const Lufia2ExecutionResult result =
-        Lufia2FieldResumeFrame(&memory, &state, ActorBridgeSceneChild, &call);
-    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
-        return (RecompReturn)((int)call.unwound - 1);
-    ActorBridgeStore(cpu, &state);
-    cpu->PB = state.program_bank;
-    return interp_tier_dispatch_tail(cpu, result.pc, result.pc, frame.entry_s,
-                                     frame.hrv);
+    return ActorBridgeFallback(cpu, &frame, 0x838007u);
 }
 
 static RecompReturn ActorBridgeFieldAttributeEntry(CpuState *cpu, uint32_t entry,
