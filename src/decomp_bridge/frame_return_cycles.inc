@@ -110,20 +110,33 @@ int Lufia2DecompFramePairedFieldChild(CpuState *cpu, uint32_t target,
     _Static_assert(LUFIA2_FIELD_TICK_OPCODES + LUFIA2_FIELD_EFFECT_OPCODES +
         LUFIA2_FIELD_TIMER_MAX_OPCODES + 1u <= LUFIA2_FIELD_CALL_OPCODE_BUDGET,
         "review composed field opcode budget");
+    _Static_assert(LUFIA2_FIELD_TRIGGER_OWN_OPCODES + LUFIA2_EVENT_SLOT_OPCODE_BUDGET +
+        LUFIA2_FIELD_IDLE_OPCODE_BUDGET + 1u <= LUFIA2_FIELD_TRIGGER_OPCODE_BUDGET,
+        "review composed field trigger budget");
     const bool effects = site == 0x809c72u && target == 0x848000u && frame_size == 3u;
     const bool timer = site == 0x809c76u && target == 0x80c21au && frame_size == 2u;
-    if ((!effects && !timer) || !Lufia2DecompFramePairedCallReady(cpu, 0x809c72u) ||
-        s_frame_paired_return_pc != 0x838077u)
+    const bool event_timer = site == 0x8381cbu && target == 0x80cbaeu && frame_size == 3u;
+    const bool idle = site == 0x8381d8u && target == 0x8380cdu && frame_size == 2u;
+    const bool trigger = event_timer || idle;
+    const uint32_t parent = trigger ? 0x8381c6u : 0x809c72u;
+    const uint32_t caller_return = trigger ? 0x83808fu : 0x838077u;
+    if ((!effects && !timer && !trigger) ||
+        !Lufia2DecompFramePairedCallReady(cpu, parent) ||
+        s_frame_paired_return_pc != caller_return)
         return (int)cpu_dispatch_call_pc_pushed(cpu, target, site, frame_size, return_pc);
     const FramePairedCallContext previous = s_frame_paired_call;
     const uint32_t previous_return = s_frame_paired_return_pc;
     const int previous_auto = s_frame_return_auto_quiescent;
-    /* The certified parent reserves the complete bounded call tree. */
-    const unsigned preceding_opcodes = effects ? 1u : LUFIA2_FIELD_EFFECT_OPCODES + 2u;
+    /* Each certified parent reserves its complete bounded call tree. */
+    const unsigned preceding_opcodes = event_timer ? 4u : idle
+        ? 9u + LUFIA2_EVENT_SLOT_OPCODE_BUDGET
+        : effects ? 1u : LUFIA2_FIELD_EFFECT_OPCODES + 2u;
+    const unsigned parent_budget = trigger
+        ? LUFIA2_FIELD_TRIGGER_OPCODE_BUDGET : LUFIA2_FIELD_CALL_OPCODE_BUDGET;
     s_frame_paired_call.entry = target & 0x7fffffu;
     s_frame_paired_call.blocked = FramePairedCallBlocked(target, false,
         previous_auto, g_interp_bridge_pc_hook || Lufia2NativeObserversActive(),
-        (long)(LUFIA2_FIELD_CALL_OPCODE_BUDGET - preceding_opcodes));
+        (long)(parent_budget - preceding_opcodes));
     s_frame_paired_return_pc = site + (uint32_t)frame_size + 1u;
     const RecompReturn result = cpu_dispatch_call_pc_pushed(
         cpu, target, site, frame_size, return_pc);

@@ -1,7 +1,6 @@
 enum {
     EVENT_SLOT_CLOCK_RESERVE = 4096u,
-    EVENT_SLOT_BODY_MAX_OPCODES = 117u,
-    EVENT_SLOT_PROGRESS_SPAN = 32u
+    EVENT_SLOT_BODY_MAX_OPCODES = 117u
 };
 
 _Static_assert(EVENT_SLOT_BODY_MAX_OPCODES + 2u <= LUFIA2_EVENT_SLOT_OPCODE_BUDGET,
@@ -58,40 +57,6 @@ static unsigned PlanEventSlotClocks(const uint8_t timers[8], FixedSpanOpcode *pl
     return count;
 }
 
-typedef struct EventSlotClock {
-    FixedSpanClock span;
-    const FixedSpanOpcode *plan;
-    unsigned count;
-    unsigned offset;
-} EventSlotClock;
-
-static void PrepareEventSlotSpan(EventSlotClock *clock) {
-    for (;;) {
-        BeginFixedSpanOpcode(&clock->span);
-        if (clock->span.index < clock->span.count || !clock->span.count)
-            return;
-        Lufia2DecompFramePairedAccountSpan(clock->span.cpu, 0x80cbaeu,
-            clock->span.count, clock->span.progress_mask);
-        clock->offset += clock->span.count;
-        const unsigned remaining = clock->count - clock->offset;
-        clock->span = (FixedSpanClock){.cpu = clock->span.cpu, .bank = 0x800000u,
-            .timing = clock->plan + clock->offset,
-            .count = remaining < EVENT_SLOT_PROGRESS_SPAN ? remaining : EVENT_SLOT_PROGRESS_SPAN};
-    }
-}
-
-static uint8_t EventSlotRead(void *context, uint32_t address) {
-    EventSlotClock *clock = context;
-    PrepareEventSlotSpan(clock);
-    return FixedSpanRead(&clock->span, address);
-}
-
-static void EventSlotWrite(void *context, uint32_t address, uint8_t value) {
-    EventSlotClock *clock = context;
-    PrepareEventSlotSpan(clock);
-    FixedSpanWrite(&clock->span, address, value);
-}
-
 static bool EventSlotClockSupported(const CpuState *cpu) {
     if (cpu != &g_cpu || !cpu->ram || cpu->emulation || cpu->D || cpu->_flag_D ||
         cpu->PB != 0x80u || !ActorBridgeSystemBank(cpu->DB) ||
@@ -127,18 +92,18 @@ static RecompReturn ActorBridgeTimedEventSlots(CpuState *cpu) {
     const uint64_t start = cpu->master_cycles;
     const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid,
         Lufia2DecompFramePairedReturnPc(cpu, 0x80cbaeu)};
-    EventSlotClock clock = {.span = {.cpu = cpu, .bank = 0x800000u,
-        .timing = plan, .count = EVENT_SLOT_PROGRESS_SPAN}, .plan = plan, .count = count};
-    const Lufia2Memory memory = {EventSlotRead, EventSlotWrite, &clock, NULL, NULL};
+    PairedSpanClock clock = BeginPairedSpanClock(cpu, 0x80cbaeu, plan, count);
+    const Lufia2Memory memory = {PairedSpanRead, PairedSpanWrite, &clock, NULL, NULL};
     Lufia2CpuState state;
     ActorBridgeLoad(cpu, &state);
     const Lufia2ExecutionResult result = Lufia2FieldEventTimerTick(&memory, &state);
-    PrepareEventSlotSpan(&clock);
+    PreparePairedSpan(&clock);
     assert(result.flow == LUFIA2_EXECUTION_RETURNED && result.pc == 0x80cc25u);
     assert(clock.offset == count && !clock.span.remaining);
     ActorBridgeStore(cpu, &state);
-    const RecompReturn returned = ReturnTimedLongCall(cpu, &frame, 0x80cc25u);
-    Lufia2DecompFramePairedAccountSpan(cpu, 0x80cbaeu, 1u, 0u);
+    bool return_progress = false;
+    const RecompReturn returned = ReturnTimedLongCallWithProgress(cpu, &frame, 0x80cc25u, &return_progress);
+    Lufia2DecompFramePairedAccountSpan(cpu, 0x80cbaeu, 1u, return_progress);
     assert(cpu->master_cycles - start <= EVENT_SLOT_CLOCK_RESERVE);
     return returned;
 }

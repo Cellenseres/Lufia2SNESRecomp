@@ -132,8 +132,11 @@ static RecompReturn ActorBridgeTimedFieldTick(CpuState *cpu) {
     assert(result.flow == LUFIA2_EXECUTION_RETURNED && result.pc == 0x809cb7u);
     assert(clock.span.index == clock.span.count && !clock.span.remaining);
     ActorBridgeStore(cpu, &state);
-    const RecompReturn returned = ReturnTimedLongCall(cpu, &clock.call.frame, result.pc);
+    bool return_progress = false;
+    const RecompReturn returned = ReturnTimedLongCallWithProgress(
+        cpu, &clock.call.frame, result.pc, &return_progress);
     Lufia2DecompFramePairedAccountSpan(cpu, 0x809c72u,
-        clock.span.count + 1u, clock.span.progress_mask);
+        clock.span.count + 1u,
+        clock.span.progress_mask | (unsigned)return_progress << clock.span.count);
     return returned;
 }

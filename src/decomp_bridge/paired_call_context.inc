@@ -28,6 +28,14 @@ static unsigned FramePairedFieldBudget(uint32_t entry) {
     if (entry == 0x00cbaeu)
         return LUFIA2_EVENT_SLOT_OPCODE_BUDGET;
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_IDLE_CLOCK)
+    if (entry == 0x0380cdu)
+        return LUFIA2_FIELD_IDLE_OPCODE_BUDGET;
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_TRIGGER_CLOCK)
+    if (entry == 0x0381c6u)
+        return LUFIA2_FIELD_TRIGGER_OPCODE_BUDGET;
+#endif
     return 0u;
 }
 

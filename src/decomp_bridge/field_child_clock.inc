@@ -77,10 +77,12 @@ static RecompReturn RunTimedFieldChild(CpuState *cpu, uint32_t entry,
     assert(result.flow == LUFIA2_EXECUTION_RETURNED && result.pc == return_source);
     assert(clock.index == clock.count && !clock.remaining);
     ActorBridgeStore(cpu, &state);
+    bool return_progress = false;
     const RecompReturn returned = frame_size == 3u
-        ? ReturnTimedLongCall(cpu, &frame, return_source)
-        : ReturnTimedMenuCall(cpu, &frame, return_source);
-    Lufia2DecompFramePairedAccountSpan(cpu, entry, count + 1u, clock.progress_mask);
+        ? ReturnTimedLongCallWithProgress(cpu, &frame, return_source, &return_progress)
+        : ReturnTimedMenuCallWithProgress(cpu, &frame, return_source, &return_progress);
+    Lufia2DecompFramePairedAccountSpan(cpu, entry, count + 1u,
+        clock.progress_mask | (unsigned)return_progress << count);
     assert(cpu->master_cycles - start <= FIELD_CHILD_CLOCK_RESERVE);
     return returned;
 }

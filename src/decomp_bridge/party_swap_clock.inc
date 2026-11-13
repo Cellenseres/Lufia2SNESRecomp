@@ -85,7 +85,8 @@ static uint8_t ReadTimedReturnByte(CpuState *cpu, uint32_t address,
     return value;
 }
 
-static RecompReturn ReturnTimedMenuCall(CpuState *cpu, const ActorBridgeFrame *frame, uint32_t source) {
+static RecompReturn ReturnTimedMenuCallWithProgress(CpuState *cpu,
+    const ActorBridgeFrame *frame, uint32_t source, bool *return_progress) {
     const uint16_t stack = cpu->S;
     bool progress = false;
     (void)ReadTimedReturnByte(cpu, source, &progress);
@@ -95,13 +96,20 @@ static RecompReturn ReturnTimedMenuCall(CpuState *cpu, const ActorBridgeFrame *f
     const uint16_t high = ReadTimedReturnByte(cpu, cpu->S, &progress);
     Lufia2DecompFrameReturnAccountOpcode(cpu, 6u,
         cpu_region_speed(source) + 2u * 8u + 3u * 6u, progress);
+    if (return_progress)
+        *return_progress = progress;
     const uint32_t target = ((uint32_t)cpu->PB << 16) |
         (uint16_t)((high << 8 | low) + 1u);
     return ActorBridgeResolveReturn(cpu, frame, 2u, source, stack, target);
 }
 
-static RecompReturn ReturnTimedLongCall(CpuState *cpu,
+static RecompReturn ReturnTimedMenuCall(CpuState *cpu,
     const ActorBridgeFrame *frame, uint32_t source) {
+    return ReturnTimedMenuCallWithProgress(cpu, frame, source, NULL);
+}
+
+static RecompReturn ReturnTimedLongCallWithProgress(CpuState *cpu,
+    const ActorBridgeFrame *frame, uint32_t source, bool *return_progress) {
     const uint16_t stack = cpu->S;
     bool progress = false;
     (void)ReadTimedReturnByte(cpu, source, &progress);
@@ -110,11 +118,18 @@ static RecompReturn ReturnTimedLongCall(CpuState *cpu,
     const uint8_t bank = ReadTimedReturnByte(cpu, ++cpu->S, &progress);
     Lufia2DecompFrameReturnAccountOpcode(cpu, 6u,
         cpu_region_speed(source) + 3u * 8u + 2u * 6u, progress);
+    if (return_progress)
+        *return_progress = progress;
     const uint32_t target = (uint32_t)bank << 16 | (uint16_t)((high << 8 | low) + 1u);
     cpu->PB = bank;
     if (!frame)
         return interp_tier_dispatch_rewritten_return(cpu, target, source);
     return ActorBridgeResolveReturn(cpu, frame, 3u, source, stack, target);
+}
+
+static RecompReturn ReturnTimedLongCall(CpuState *cpu,
+    const ActorBridgeFrame *frame, uint32_t source) {
+    return ReturnTimedLongCallWithProgress(cpu, frame, source, NULL);
 }
 
 static RecompReturn RunPartySwap(CpuState *cpu, const ActorBridgeFrame *frame) {

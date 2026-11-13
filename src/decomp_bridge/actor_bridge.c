@@ -141,6 +141,9 @@ static int ActorBridgeSupported(
 
 static RecompReturn ActorBridgeFallback(
     CpuState *cpu, const ActorBridgeFrame *frame, uint32_t entry_pc24) {
+    const uint8_t bank = (uint8_t)(entry_pc24 >> 16);
+    if ((bank & 0x7fu) < 0x40u && cpu->PB == (uint8_t)(bank ^ 0x80u))
+        entry_pc24 = (uint32_t)cpu->PB << 16 | (entry_pc24 & 0xffffu);
     return interp_tier_dispatch_tail(
         cpu, entry_pc24, entry_pc24, frame->entry_s, frame->hrv);
 }
@@ -484,8 +487,17 @@ RecompReturn Lufia2DecompBridge_BD77(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x8ebd77u, Lufia2FieldScrollUpdate, 3);
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_IDLE_CLOCK)
+static RecompReturn ActorBridgeTimedFieldIdle(CpuState *cpu);
+#endif
+
 RecompReturn Lufia2DecompBridge_80CD(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x8380cdu, Lufia2FieldIdleTest, 2);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_IDLE_CLOCK)
+    return ActorBridgeTimedFieldIdle(cpu);
+#else
+    const uint32_t entry = (uint32_t)cpu->PB << 16 | 0x80cdu;
+    return interp_tier_dispatch_tail(cpu, entry, entry, cpu->S, cpu->host_return_valid);
+#endif
 }
 
 static RecompReturn ActorBridgeAnimationSlots(CpuState *cpu);
@@ -1297,8 +1309,10 @@ static uint8_t ActorBridgePushedChild(
         call->unwound = (RecompReturn)((int)result + 1);
         return 0;
     }
-#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_CHILD_CLOCK)
-    if (site == 0x809c72u || site == 0x809c76u)
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && \
+    (defined(LUFIA2_HAVE_NATIVE_FIELD_CHILD_CLOCK) || defined(LUFIA2_HAVE_NATIVE_FIELD_TRIGGER_CLOCK))
+    if (site == 0x809c72u || site == 0x809c76u ||
+        site == 0x8381cbu || site == 0x8381d8u)
         result = (RecompReturn)Lufia2DecompFramePairedFieldChild(
             call->cpu, target, site, frame_size, &return_pc24);
     else
@@ -2963,6 +2977,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
                                                wide_accumulator, 800u, 256u);
 }
 #include "fixed_span_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_EVENT_SLOT_CLOCK) || defined(LUFIA2_HAVE_NATIVE_FIELD_IDLE_CLOCK)
+#include "paired_span_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_TILES)
 #include "command_tile_clock.inc"
 #endif
@@ -15023,10 +15040,17 @@ RecompReturn Lufia2DecompBridge_CBAE(CpuState *cpu) {
 #endif
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_TRIGGER_CLOCK)
+static RecompReturn ActorBridgeTimedFieldTrigger(CpuState *cpu);
+#endif
+
 RecompReturn Lufia2DecompBridge_81C6(CpuState *cpu) {
-    if (ActorBridgeFieldServicesAvailable(cpu, 0x8381c6u, 2u, 0x80cbaeu, 0u))
-        return ActorBridgeOwnedCalls(cpu, Lufia2FieldTriggerUpdateWithServices, 2u);
-    return ActorBridgeWhole(cpu, 0x8381c6u, Lufia2FieldTriggerUpdate, 2u);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_TRIGGER_CLOCK)
+    return ActorBridgeTimedFieldTrigger(cpu);
+#else
+    const uint32_t entry = (uint32_t)cpu->PB << 16 | 0x81c6u;
+    return interp_tier_dispatch_tail(cpu, entry, entry, cpu->S, cpu->host_return_valid);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_83A0(CpuState *cpu) {
@@ -18609,6 +18633,12 @@ RecompReturn Lufia2DecompBridge_82BCC4(CpuState *cpu) {
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_EVENT_SLOT_CLOCK)
 #include "event_slot_clock.inc"
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_IDLE_CLOCK)
+#include "field_idle_clock.inc"
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_TRIGGER_CLOCK)
+#include "field_trigger_clock.inc"
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
 #include "screen_fade_clock.inc"
