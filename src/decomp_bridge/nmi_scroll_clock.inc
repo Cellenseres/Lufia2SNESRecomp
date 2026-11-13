@@ -60,6 +60,14 @@ static void PrepareNmiScrollClock(NmiScrollClock *clock, CpuState *cpu,
     clock->span.count = count;
 }
 
+static bool NmiScrollRangeQuiet(uint32_t entry) {
+#if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_PAIRS) && defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+    return Lufia2DecompFrameRangeAllows(entry, 0x80882eu, NmiScrollPairHookOwned);
+#else
+    return Lufia2DecompFrameRangeQuiet(entry, 0x80882eu);
+#endif
+}
+
 static bool NmiScrollClockSupported(CpuState *cpu, bool tilemaps_only,
                                    NmiScrollClock *clock) {
     const uint32_t entry = tilemaps_only ? 0x8087fcu : 0x8087a7u;
@@ -109,7 +117,7 @@ static bool NmiScrollClockSupported(CpuState *cpu, bool tilemaps_only,
     uint64_t phase, current;
     snes_refresh_state_get(&phase, &current);
     return phase < 1364u && (!current || current == cpu->master_cycles) &&
-        Lufia2DecompFrameRangeQuiet(entry, 0x80882eu);
+        NmiScrollRangeQuiet(entry);
 }
 
 static RecompReturn ActorBridgeTimedNmiScroll(CpuState *cpu, bool tilemaps_only) {

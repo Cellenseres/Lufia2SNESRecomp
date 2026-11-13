@@ -2994,6 +2994,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) || defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
 #include "nmi_bus_clock.inc"
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_PAIRS) && defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+#include "nmi_scroll_pair_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
 #include "nmi_callbacks_clock.inc"
 #include "nmi_upload_clock.inc"
@@ -4175,6 +4178,11 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_PAIRS) && defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+    if (Lufia2DecompFrameRangeAllows(0x8087b2u, 0x8087b3u, NmiScrollPairHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x8087b2u, ActorBridgeNmiScrollPair);
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_PHASES)
     static const uint32_t region_phases[] = {0x83823bu, 0x83826bu, 0x838285u};
     for (unsigned i = 0u; i < sizeof region_phases / sizeof *region_phases; ++i) {
