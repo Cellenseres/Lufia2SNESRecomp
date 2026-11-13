@@ -171,13 +171,14 @@ static void EffectSlotCounterStep(CpuState *cpu, uint32_t entry) {
 }
 #endif
 
-static void ActorBridgeEffectSlotStep(CpuState *cpu, uint32_t entry) {
-#if defined(LUFIA2_BATTLE_EFFECT_SLOT_COUNTER_API)
-    if (entry == 0x818ab4u || entry == 0x818b25u) {
-        EffectSlotCounterStep(cpu, entry);
-        return;
-    }
-#endif
+typedef struct EffectSlotStepResult {
+    uint32_t next_pc;
+    unsigned opcodes;
+    unsigned progress_mask;
+} EffectSlotStepResult;
+
+static bool RunEffectSlotStep(CpuState *cpu, uint32_t entry,
+                              EffectSlotStepResult *step) {
     const bool actors = entry == 0x818ac1u || entry == 0x818b1bu;
     const bool advance = entry == 0x818aaau || entry == 0x818b1bu;
     bool header_only = false;
@@ -186,18 +187,18 @@ static void ActorBridgeEffectSlotStep(CpuState *cpu, uint32_t entry) {
         if (advance) {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_SLOT_CURSORS)
             if (!EffectSlotCursorClockSupported(cpu, entry, actors))
-                return;
+                return false;
             cursor_only = true;
 #else
-            return;
+            return false;
 #endif
         } else {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_SLOT_HEADERS)
             if (!EffectSlotHeaderClockSupported(cpu, entry, actors))
-                return;
+                return false;
             header_only = true;
 #else
-            return;
+            return false;
 #endif
         }
     }
@@ -253,6 +254,45 @@ static void ActorBridgeEffectSlotStep(CpuState *cpu, uint32_t entry) {
     BeginFixedSpanOpcode(&clock);
     assert(clock.index == clock.count && !clock.remaining);
     ActorBridgeStore(cpu, &state);
-    Lufia2DecompFrameReturnComplete(clock.count, clock.progress_mask);
-    interp_bridge_pre_opcode_redirect(result.pc);
+    *step = (EffectSlotStepResult){result.pc, clock.count, clock.progress_mask};
+    return true;
+}
+
+
+static void ActorBridgeEffectSlotStep(CpuState *cpu, uint32_t entry) {
+#if defined(LUFIA2_BATTLE_EFFECT_SLOT_COUNTER_API)
+    if (entry == 0x818ab4u || entry == 0x818b25u) {
+        EffectSlotCounterStep(cpu, entry);
+        return;
+    }
+#endif
+    const bool actors = entry == 0x818ac1u || entry == 0x818b1bu;
+    const uint32_t first = actors ? 0x818ac1u : 0x818a7eu;
+    const uint32_t cursor = actors ? 0x818b1bu : 0x818aaau;
+    unsigned budget = Lufia2DecompFrameOwnedSpanBudget(
+        first, first + 14u, ActorBridgeEffectSlotStep);
+    const unsigned cursor_budget = Lufia2DecompFrameOwnedSpanBudget(
+        cursor, cursor + 15u, ActorBridgeEffectSlotStep);
+    if (budget > cursor_budget)
+        budget = cursor_budget;
+    unsigned total = 0u;
+    unsigned last_progress = 0u;
+    uint32_t next = entry;
+    do {
+        EffectSlotStepResult step;
+        if (!RunEffectSlotStep(cpu, next, &step))
+            break;
+        for (unsigned opcode = 0u, mask = step.progress_mask; mask;
+             ++opcode, mask >>= 1u)
+            if (mask & 1u)
+                last_progress = total + opcode + 1u;
+        total += step.opcodes;
+        next = step.next_pc;
+        /* Each remaining slot phase can retire at most fourteen opcodes. */
+    } while ((next == first || next == cursor) &&
+             total <= budget && budget - total >= 14u);
+    if (total) {
+        Lufia2DecompFrameReturnCompleteSpan(total, last_progress);
+        interp_bridge_pre_opcode_redirect(next);
+    }
 }
