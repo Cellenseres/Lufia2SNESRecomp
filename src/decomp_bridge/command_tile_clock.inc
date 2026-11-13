@@ -5,7 +5,17 @@ static void ActorBridgeCommandTile(CpuState *cpu, uint32_t entry);
 static void ActorBridgeSelectedCommandTile(CpuState *cpu, uint32_t entry);
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_PARTY_COMMAND_TILES)
+static void ActorBridgePartyCommandTile(CpuState *cpu, uint32_t entry);
+static void ActorBridgeContinuePartyCommandTiles(CpuState *cpu, uint32_t entry);
+#endif
+
 static bool CommandTileHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_PARTY_COMMAND_TILES)
+    if ((pc == 0x81cc93u && hook == ActorBridgePartyCommandTile) ||
+        (pc == 0x81ccafu && hook == ActorBridgeContinuePartyCommandTiles))
+        return true;
+#endif
     if (pc == 0x81cb99u && hook == ActorBridgeCommandTile)
         return true;
 #if defined(LUFIA2_HAVE_NATIVE_SELECTED_COMMAND_TILE)
@@ -100,5 +110,99 @@ static void ActorBridgeSelectedCommandTile(CpuState *cpu, uint32_t entry) {
     };
     RunCommandTilePhase(cpu, timing, sizeof timing / sizeof timing[0],
         Lufia2BattlePrepareSelectedCommandTile, 0x81cbddu);
+}
+#endif
+
+#if defined(LUFIA2_HAVE_NATIVE_PARTY_COMMAND_TILES)
+static const FixedSpanOpcode party_command_begin[] = {
+    {0xcc93u, 3u, 3u, 0u},
+    {0xcc96u, 4u, 5u, 1u},
+    {0xcc9au, 2u, 3u, 1u},
+    {0xcc9cu, 4u, 5u, 1u},
+    {0xcca0u, 2u, 3u, 1u},
+    {0xcca2u, 4u, 5u, 1u},
+    {0xcca6u, 2u, 3u, 1u},
+    {0xcca8u, 1u, 2u, 0u},
+    {0xcca9u, 1u, 2u, 0u},
+    {0xccaau, 1u, 2u, 0u},
+    {0xccabu, 1u, 4u, 2u},
+};
+
+static const FixedSpanOpcode party_command_next[] = {
+    {0xccafu, 1u, 5u, 2u},
+    {0xccb0u, 3u, 3u, 0u},
+    {0xccb3u, 2u, 3u, 0u},
+    {0xcc96u, 4u, 5u, 1u},
+    {0xcc9au, 2u, 3u, 1u},
+    {0xcc9cu, 4u, 5u, 1u},
+    {0xcca0u, 2u, 3u, 1u},
+    {0xcca2u, 4u, 5u, 1u},
+    {0xcca6u, 2u, 3u, 1u},
+    {0xcca8u, 1u, 2u, 0u},
+    {0xcca9u, 1u, 2u, 0u},
+    {0xccaau, 1u, 2u, 0u},
+    {0xccabu, 1u, 4u, 2u},
+};
+
+static const FixedSpanOpcode party_command_selected[] = {
+    {0xccafu, 1u, 5u, 2u},
+    {0xccb0u, 3u, 3u, 0u},
+    {0xccb3u, 2u, 2u, 0u},
+    {0xccb5u, 2u, 3u, 0u},
+    {0xccb7u, 2u, 3u, 1u},
+    {0xccb9u, 2u, 2u, 0u},
+    {0xccbbu, 1u, 2u, 0u},
+    {0xccbcu, 3u, 4u, 1u},
+    {0xccbfu, 2u, 3u, 0u},
+    {0xccc1u, 2u, 4u, 2u},
+    {0xccc3u, 4u, 5u, 1u},
+    {0xccc7u, 1u, 2u, 0u},
+    {0xccc8u, 2u, 2u, 0u},
+    {0xcccau, 2u, 3u, 1u},
+    {0xccccu, 4u, 5u, 1u},
+    {0xccd0u, 2u, 3u, 1u},
+    {0xccd2u, 4u, 5u, 1u},
+    {0xccd6u, 2u, 3u, 1u},
+};
+
+static bool PartyCommandTileClockContextSupported(const CpuState *cpu,
+    uint32_t entry, unsigned clock_reserve) {
+    return !g_interp_bridge_pc_hook &&
+        g_snes && g_snes->apu && g_snes->cart && g_snes->cart->rom &&
+        g_snes->cart->type == CART_LOROM && g_snes->cart->romSize > 0xbb668u &&
+        g_snes->vPos < 262u &&
+        CommandTileClockContextSupported(cpu, entry, clock_reserve);
+}
+
+static void ActorBridgePartyCommandTile(CpuState *cpu, uint32_t entry) {
+    const unsigned count = sizeof party_command_begin / sizeof *party_command_begin;
+    if (entry != 0x81cc93u ||
+        !PartyCommandTileClockContextSupported(cpu, entry, 368u) ||
+        Lufia2DecompFrameSpanBudget(entry, 0x81ccacu,
+            ActorBridgePartyCommandTile) < count)
+        return;
+    RunCommandTilePhase(cpu, party_command_begin, count,
+        Lufia2BattlePreparePartyCommandTile, 0x81ccacu);
+}
+
+static void ActorBridgeContinuePartyCommandTiles(CpuState *cpu, uint32_t entry) {
+    if (entry != 0x81ccafu ||
+        !PartyCommandTileClockContextSupported(cpu, entry, 540u))
+        return;
+    const unsigned slot = cpu->ram[cpu->S + 1u] |
+        (unsigned)cpu->ram[cpu->S + 2u] << 8;
+    if (!slot || slot > 15u || slot % 3u ||
+        !Lufia2DecompFrameRangeQuiet(0x81cc96u, 0x81ccacu))
+        return;
+    const bool selected = slot == 15u;
+    const FixedSpanOpcode *timing = selected ? party_command_selected : party_command_next;
+    const unsigned count = selected
+        ? sizeof party_command_selected / sizeof *party_command_selected
+        : sizeof party_command_next / sizeof *party_command_next;
+    if (Lufia2DecompFrameSpanBudget(entry, 0x81ccd8u,
+            ActorBridgeContinuePartyCommandTiles) < count)
+        return;
+    RunCommandTilePhase(cpu, timing, count,
+        Lufia2BattleContinuePartyCommandTiles, selected ? 0x81ccd8u : 0x81ccacu);
 }
 #endif

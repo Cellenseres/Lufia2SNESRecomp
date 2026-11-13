@@ -42,3 +42,32 @@ function(lufia2_selected_command_tile_available output)
         set(${output} TRUE PARENT_SCOPE)
     endif()
 endfunction()
+
+function(lufia2_party_command_tiles_available output)
+    set(${output} FALSE PARENT_SCOPE)
+    lufia2_battle_command_tiles_available(_base)
+    if(NOT _base)
+        return()
+    endif()
+    set(_source "${LUFIA2_DECOMP_RESOLVED_ROOT}/src/battle/battle_party_commands.c")
+    if(NOT EXISTS "${_source}")
+        return()
+    endif()
+    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_source}")
+    file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/battle_command_tiles.h" _api)
+    file(READ "${_source}" _implementation)
+    file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/metadata/functions.toml" _functions)
+    string(REGEX MATCH
+        "\\[\\[function\\]\\][^[]*name[ \t]*=[ \t]*\"Lufia2BattleChoosePartyAction\"[^[]*"
+        _contract "${_functions}")
+    if(_api MATCHES "#define LUFIA2_BATTLE_PARTY_COMMAND_TILE_API 1" AND
+       _api MATCHES "Lufia2BattlePreparePartyCommandTile[(]" AND
+       _api MATCHES "Lufia2BattleContinuePartyCommandTiles[(]" AND
+       _implementation MATCHES "Lufia2BattlePreparePartyCommandTile[(][^;{]*[{]" AND
+       _implementation MATCHES "Lufia2BattleContinuePartyCommandTiles[(][^;{]*[{]" AND
+       _contract MATCHES "address[ \t]*=[ \t]*\"81:CC2E\"" AND
+       _contract MATCHES "entry_mx[ \t]*=[ \t]*\"M1X0\"" AND
+       _contract MATCHES "status[ \t]*=[ \t]*\"verified\"")
+        set(${output} TRUE PARENT_SCOPE)
+    endif()
+endfunction()

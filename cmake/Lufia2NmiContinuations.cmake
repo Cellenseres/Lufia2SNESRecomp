@@ -423,10 +423,16 @@ function(lufia2_add_nmi_continuations target core_root)
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleCommandTiles.cmake")
                 lufia2_battle_command_tiles_available(_battle_command_tiles)
                 lufia2_selected_command_tile_available(_selected_command_tile)
+                lufia2_party_command_tiles_available(_party_command_tiles)
                 if(_battle_command_tiles)
                     set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
                         APPEND PROPERTY COMPILE_DEFINITIONS
                             "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_TILES=1>")
+                    if(_party_command_tiles)
+                        set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                            APPEND PROPERTY COMPILE_DEFINITIONS
+                                "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_PARTY_COMMAND_TILES=1>")
+                    endif()
                     if(_selected_command_tile)
                         set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
                             APPEND PROPERTY COMPILE_DEFINITIONS
