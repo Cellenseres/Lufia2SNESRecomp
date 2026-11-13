@@ -24,6 +24,10 @@ static unsigned FramePairedFieldBudget(uint32_t entry) {
     if (entry == 0x00c21au)
         return LUFIA2_FIELD_TIMER_MAX_OPCODES + 1u;
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_EVENT_SLOT_CLOCK)
+    if (entry == 0x00cbaeu)
+        return LUFIA2_EVENT_SLOT_OPCODE_BUDGET;
+#endif
     return 0u;
 }
 

@@ -15010,10 +15010,17 @@ static uint8_t ActorBridgeFieldServicesAvailable(
     return (uint8_t)cpu_dispatch_has_entry(&profile, child);
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_EVENT_SLOT_CLOCK)
+static RecompReturn ActorBridgeTimedEventSlots(CpuState *cpu);
+#endif
+
 RecompReturn Lufia2DecompBridge_CBAE(CpuState *cpu) {
-    if (ActorBridgeFieldServicesAvailable(cpu, 0x80cbaeu, 3u, 0x80cc26u, 0u))
-        return ActorBridgeOwnedCalls(cpu, Lufia2FieldEventTimerTickWithServices, 3u);
-    return ActorBridgeWhole(cpu, 0x80cbaeu, Lufia2FieldEventTimerTick, 3u);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_EVENT_SLOT_CLOCK)
+    return ActorBridgeTimedEventSlots(cpu);
+#else
+    const uint32_t entry = (uint32_t)cpu->PB << 16 | 0xcbaeu;
+    return interp_tier_dispatch_tail(cpu, entry, entry, cpu->S, cpu->host_return_valid);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_81C6(CpuState *cpu) {
@@ -18599,6 +18606,9 @@ RecompReturn Lufia2DecompBridge_82BCC4(CpuState *cpu) {
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_FIELD_CHILD_CLOCK)
 #include "field_child_clock.inc"
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_EVENT_SLOT_CLOCK)
+#include "event_slot_clock.inc"
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
 #include "screen_fade_clock.inc"
