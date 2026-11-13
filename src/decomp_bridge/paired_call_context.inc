@@ -36,6 +36,10 @@ static unsigned FramePairedFieldBudget(uint32_t entry) {
     if (entry == 0x0381c6u)
         return LUFIA2_FIELD_TRIGGER_OPCODE_BUDGET;
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_REQUEST_CLOCK)
+    if (entry == 0x0383a0u || entry == 0x038103u)
+        return LUFIA2_FIELD_REQUEST_OPCODE_BUDGET;
+#endif
     return 0u;
 }
 
