@@ -52,6 +52,8 @@ bool Lufia2DecompPollFetchOpcode(struct CpuState *cpu, uint32_t pc, uint32_t fet
 bool Lufia2DecompFrameReturnCpuReady(void);
 /* Original interrupt state; callers still validate timing and hooks. */
 bool Lufia2DecompFramePairedCallReady(const struct CpuState *cpu, uint32_t entry);
+void Lufia2DecompFramePairedAccountSpan(const struct CpuState *cpu, uint32_t entry,
+    unsigned count, unsigned progress_mask);
 uint8_t Lufia2DecompNmiReadJoypadBusy(struct CpuState *cpu, bool *progress);
 uint32_t Lufia2DecompFramePairedReturnPc(const struct CpuState *cpu, uint32_t entry);
 bool Lufia2DecompFrameRangeQuiet(uint32_t first, uint32_t end);

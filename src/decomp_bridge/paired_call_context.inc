@@ -4,13 +4,20 @@ typedef struct FramePairedCallContext {
     const struct CpuState *cpu;
     uint32_t entry;
     bool blocked;
+    long *steps;
+    uint64_t *write_epoch;
+    uint64_t *dynamic_epoch;
 } FramePairedCallContext;
 
 static FramePairedCallContext s_frame_paired_call;
 static uint32_t s_frame_paired_return_pc = UINT32_MAX;
 
-static bool FramePairedNmiCallBlocked(uint32_t entry, bool interrupt_owner,
+static bool FramePairedCallBlocked(uint32_t entry, bool interrupt_owner,
     bool auto_quiescent, bool observed, long opcodes_left) {
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_TICK_CLOCK)
+    if ((entry & 0x7fffffu) == 0x009c72u)
+        return interrupt_owner || observed || opcodes_left < 32;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
 #if defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
     if ((entry & 0x7fffffu) == 0x0087a7u)
@@ -62,6 +69,10 @@ static bool FramePairedBattleCall(uint32_t entry) {
 
 static bool FramePairedCallTracks(uint32_t entry) {
     entry &= 0x7fffffu;
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_TICK_CLOCK)
+    if (entry == 0x009c72u)
+        return true;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
 #if defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
     if (entry == 0x0086c1u || entry == 0x0087a7u || entry == 0x0087fcu ||
@@ -79,9 +90,15 @@ static bool FramePairedCallTracks(uint32_t entry) {
 }
 
 bool Lufia2DecompFramePairedCallReady(const struct CpuState *cpu, uint32_t entry) {
-    return cpu && s_frame_paired_call.cpu == cpu &&
-        s_frame_paired_call.entry == (entry & 0x7fffffu) &&
-        !s_frame_paired_call.blocked;
+    if (!cpu || s_frame_paired_call.cpu != cpu ||
+        s_frame_paired_call.entry != (entry & 0x7fffffu) || s_frame_paired_call.blocked)
+        return false;
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_TICK_CLOCK)
+    if ((entry & 0x7fffffu) == 0x009c72u)
+        return s_frame_paired_call.steps && s_frame_paired_call.write_epoch &&
+            s_frame_paired_call.dynamic_epoch;
+#endif
+    return true;
 }
 
 uint32_t Lufia2DecompFramePairedReturnPc(const struct CpuState *cpu, uint32_t entry) {

@@ -15021,10 +15021,17 @@ RecompReturn Lufia2DecompBridge_83A0(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x8383a0u, Lufia2FieldMenuRequest, 2u);
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_TICK_CLOCK)
+static RecompReturn ActorBridgeTimedFieldTick(CpuState *cpu);
+#endif
+
 RecompReturn Lufia2DecompBridge_9C72(CpuState *cpu) {
-    if (ActorBridgeFieldServicesAvailable(cpu, 0x809c72u, 3u, 0x848000u, cpu->x_flag))
-        return ActorBridgeOwnedCalls(cpu, Lufia2FieldEventTickWithServices, 3u);
-    return ActorBridgeWhole(cpu, 0x809c72u, Lufia2FieldEventTick, 3u);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_TICK_CLOCK)
+    return ActorBridgeTimedFieldTick(cpu);
+#else
+    const uint32_t entry = (uint32_t)cpu->PB << 16 | 0x9c72u;
+    return interp_tier_dispatch_tail(cpu, entry, entry, cpu->S, cpu->host_return_valid);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_80C21A(CpuState *cpu) {
@@ -18575,6 +18582,9 @@ RecompReturn Lufia2DecompBridge_82BCC4(CpuState *cpu) {
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
 #include "party_swap_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_TICK_CLOCK)
+#include "field_service_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
 #include "screen_fade_clock.inc"
 #include "nmi_scroll_clock.inc"

@@ -88,6 +88,23 @@ void Lufia2DecompFrameReturnAccountOpcode(CpuState *cpu, unsigned cycles,
         bridge_apu_flush(cpu);
 }
 
+void Lufia2DecompFramePairedAccountSpan(const CpuState *cpu, uint32_t entry,
+    unsigned count, unsigned progress_mask) {
+    assert(Lufia2DecompFramePairedCallReady(cpu, entry) && count && count <= 32u);
+    assert(s_frame_paired_call.steps && s_frame_paired_call.write_epoch &&
+        s_frame_paired_call.dynamic_epoch);
+    /* Preserve the owning interpreter's checkpoint before a child can yield. */
+    *s_frame_paired_call.steps += (long)count;
+    if (s_frame_return_auto_quiescent) {
+        for (unsigned opcode = 0u; opcode < count && progress_mask;
+             ++opcode, progress_mask >>= 1u)
+            if (progress_mask & 1u)
+                *s_frame_paired_call.steps = (long)(count - opcode - 1u);
+        *s_frame_paired_call.write_epoch = g_interp_bridge_write_epoch;
+        *s_frame_paired_call.dynamic_epoch = s_interp_dynamic_progress_epoch;
+    }
+}
+
 void Lufia2DecompFrameReturnComplete(unsigned count, unsigned progress_mask) {
     s_frame_return_opcodes = count;
     s_frame_return_progress_mask = progress_mask;
