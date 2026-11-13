@@ -56,6 +56,14 @@ typedef struct FieldTriggerClock {
     unsigned own_opcodes;
 } FieldTriggerClock;
 
+static bool FieldTriggerRangeQuiet(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_PHASES)
+    return Lufia2DecompFrameRangeAllows(0x8381c6u, 0x8382a0u, FieldRegionHookOwned);
+#else
+    return Lufia2DecompFrameRangeQuiet(0x8381c6u, 0x8382a0u);
+#endif
+}
+
 static bool FieldTriggerClockSupported(const CpuState *cpu, uint16_t stack,
     uint8_t return_frame) {
     if (cpu != &g_cpu || !cpu->ram || cpu->emulation || cpu->D || cpu->_flag_D ||
@@ -71,7 +79,7 @@ static bool FieldTriggerClockSupported(const CpuState *cpu, uint16_t stack,
         !g_snes->apu || !g_snes->hdmaBeamOff || g_snes->dma->hdmaPendingInit ||
         g_snes->vPos >= 262u || !g_snes->cart || !g_snes->cart->rom ||
         g_snes->cart->type != CART_LOROM || g_snes->cart->romSize <= 0x1829fu ||
-        !Lufia2DecompFrameRangeQuiet(0x8381c6u, 0x8382a0u))
+        !FieldTriggerRangeQuiet())
         return false;
     const unsigned end_line = g_snes->vPos < 225u ? 225u : 262u;
     if ((end_line - g_snes->vPos) * 1364u - g_snes->hPos < FIELD_TRIGGER_CLOCK_RESERVE)

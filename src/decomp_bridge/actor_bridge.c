@@ -4150,6 +4150,10 @@ static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
 #include "field_frame_clock.inc"
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_PHASES)
+#include "field_region_clock.inc"
+#endif
+
 bool Lufia2DecompCommandTileHookOwned(
     uint32_t pc, void (*hook)(CpuState *, uint32_t)) {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_TILES)
@@ -4171,6 +4175,15 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_PHASES)
+    static const uint32_t region_phases[] = {0x83823bu, 0x83826bu, 0x838285u};
+    for (unsigned i = 0u; i < sizeof region_phases / sizeof *region_phases; ++i) {
+        const uint32_t entry = region_phases[i];
+        if (Lufia2DecompFrameRangeAllows(entry, entry + 1u, FieldRegionHookOwned))
+            interp_bridge_set_pre_opcode_hook(entry, ActorBridgeFieldRegionPhase);
+    }
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_FRAME_DECISION)
     if (Lufia2DecompFrameRangeAllows(0x838007u, 0x838008u, FieldFrameHookOwned))
         interp_bridge_set_pre_opcode_hook(0x838007u, ActorBridgePrepareFieldFrame);
