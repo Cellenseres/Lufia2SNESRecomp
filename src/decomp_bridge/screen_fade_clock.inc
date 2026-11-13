@@ -98,9 +98,10 @@ static bool ScreenFadeClockSupported(CpuState *cpu, ScreenFadeClock *clock) {
 
 static RecompReturn ActorBridgeTimedScreenFade(CpuState *cpu) {
     ScreenFadeClock clock = {0};
-    if (!ScreenFadeClockSupported(cpu, &clock))
-        return interp_tier_dispatch_tail(cpu, 0x8086c1u, 0x8086c1u,
-            cpu->S, cpu->host_return_valid);
+    if (!ScreenFadeClockSupported(cpu, &clock)) {
+        const uint32_t entry = (uint32_t)cpu->PB << 16 | 0x86c1u;
+        return interp_tier_dispatch_tail(cpu, entry, entry, cpu->S, cpu->host_return_valid);
+    }
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {NmiClockRead, NmiClockWrite, &clock.span, NULL, NULL};
     Lufia2CpuState state;

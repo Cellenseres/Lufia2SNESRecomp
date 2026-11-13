@@ -993,8 +993,8 @@ RecompReturn Lufia2DecompBridge_86C1(CpuState *cpu) {
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
     return ActorBridgeTimedScreenFade(cpu);
 #else
-    return interp_tier_dispatch_tail(cpu, 0x8086c1u, 0x8086c1u,
-        cpu->S, cpu->host_return_valid);
+    const uint32_t entry = (uint32_t)cpu->PB << 16 | 0x86c1u;
+    return interp_tier_dispatch_tail(cpu, entry, entry, cpu->S, cpu->host_return_valid);
 #endif
 }
 
@@ -5727,59 +5727,26 @@ RecompReturn Lufia2DecompBridge_00057D(CpuState *cpu) {
     return ActorBridgeRamBufferCopy(cpu, ((uint32_t)cpu->PB << 16) | 0x057du, Lufia2RamBlockMove);
 }
 
-/* Preserve ordered hardware accesses and the original saved frames. */
-static RecompReturn ActorBridgeNmiScrollUploads(
-    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction execute_uploads) {
-    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
-    const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu,
-        ActorBridgeExecutionCheckpoint, cpu};
-    Lufia2CpuState state;
-    Lufia2ExecutionResult result;
-
-    if (cpu->emulation ||
-        cpu->PB != 0x80u ||
-        cpu->S > 0x1ffcu ||
-        cpu->S < 0x1f04u || cpu->D != 0u || !(cpu->DB < 0x40u || (cpu->DB >= 0x80u && cpu->DB < 0xc0u)))
-        return ActorBridgeFallback(cpu, &frame, entry_pc24);
-    frame = ActorBridgeEnter(cpu);
-    ActorBridgeLoad(cpu, &state);
-    result = execute_uploads(&memory, &state);
-    ActorBridgeStore(cpu, &state);
-    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
-        return interp_tier_dispatch_tail(
-            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
-    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
-}
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+static RecompReturn ActorBridgeTimedNmiScroll(CpuState *cpu, bool tilemaps_only);
+#endif
 
 RecompReturn Lufia2DecompBridge_8087A7(CpuState *cpu) {
-    return ActorBridgeNmiScrollUploads(cpu, 0x8087a7u, Lufia2NmiScrollAndUploads);
-}
-
-/* Preserve ordered hardware accesses and the original saved frames. */
-static RecompReturn ActorBridgeNmiTilemapUploads(
-    CpuState *cpu, uint32_t entry_pc24, ActorWholeFunction execute_uploads) {
-    ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, 0xffffffffu};
-    const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu,
-        ActorBridgeExecutionCheckpoint, cpu};
-    Lufia2CpuState state;
-    Lufia2ExecutionResult result;
-
-    if (cpu->emulation ||
-        cpu->PB != 0x80u ||
-        cpu->S > 0x1ffcu ||
-        cpu->S < 0x1f02u || cpu->D != 0u || !(cpu->DB < 0x40u || (cpu->DB >= 0x80u && cpu->DB < 0xc0u)) || !cpu->m_flag || cpu->x_flag)
-        return ActorBridgeFallback(cpu, &frame, entry_pc24);
-    frame = ActorBridgeEnter(cpu);
-    ActorBridgeLoad(cpu, &state);
-    result = execute_uploads(&memory, &state);
-    ActorBridgeStore(cpu, &state);
-    return ActorBridgeReturn(cpu, &frame, 2, result.pc);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+    return ActorBridgeTimedNmiScroll(cpu, false);
+#else
+    const uint32_t entry = (uint32_t)cpu->PB << 16 | 0x87a7u;
+    return interp_tier_dispatch_tail(cpu, entry, entry, cpu->S, cpu->host_return_valid);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_8087FC(CpuState *cpu) {
-    return ActorBridgeNmiTilemapUploads(cpu, 0x8087fcu, Lufia2NmiTilemapUploads);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+    return ActorBridgeTimedNmiScroll(cpu, true);
+#else
+    const uint32_t entry = (uint32_t)cpu->PB << 16 | 0x87fcu;
+    return interp_tier_dispatch_tail(cpu, entry, entry, cpu->S, cpu->host_return_valid);
+#endif
 }
 
 /* Preserve ordered hardware accesses and the original saved frames. */
@@ -9305,11 +9272,13 @@ RecompReturn Lufia2DecompBridge_82A711(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_80882E(CpuState *cpu) {
-    return ActorBridgeWholeM1X16(cpu, 0x80882eu, Lufia2UploadTilemapBlock, 2u);
+    const uint32_t entry = (uint32_t)cpu->PB << 16 | 0x882eu;
+    return interp_tier_dispatch_tail(cpu, entry, entry, cpu->S, cpu->host_return_valid);
 }
 
 RecompReturn Lufia2DecompBridge_80884F(CpuState *cpu) {
-    return ActorBridgeWholeM1X16(cpu, 0x80884fu, Lufia2StartListedDma, 2u);
+    const uint32_t entry = (uint32_t)cpu->PB << 16 | 0x884fu;
+    return interp_tier_dispatch_tail(cpu, entry, entry, cpu->S, cpu->host_return_valid);
 }
 
 RecompReturn Lufia2DecompBridge_82FBE5(CpuState *cpu) {
@@ -18592,6 +18561,7 @@ RecompReturn Lufia2DecompBridge_82BCC4(CpuState *cpu) {
 #include "party_swap_clock.inc"
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
 #include "screen_fade_clock.inc"
+#include "nmi_scroll_clock.inc"
 #endif
 #endif
 RecompReturn Lufia2DecompBridge_82B6EF(CpuState *cpu) {
