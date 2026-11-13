@@ -9,9 +9,13 @@ typedef struct FramePairedCallContext {
 static FramePairedCallContext s_frame_paired_call;
 static uint32_t s_frame_paired_return_pc = UINT32_MAX;
 
-static bool FramePairedUploadBlocked(uint32_t entry, bool interrupt_owner,
+static bool FramePairedNmiCallBlocked(uint32_t entry, bool interrupt_owner,
     bool auto_quiescent, bool observed, long opcodes_left) {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
+#if defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+    if ((entry & 0x7fffffu) == 0x0086c1u)
+        return !interrupt_owner || auto_quiescent || observed || opcodes_left < 32;
+#endif
     return (entry & 0x7fffffu) == 0x008703u &&
         (!interrupt_owner || auto_quiescent || observed || opcodes_left < 512);
 #else
@@ -54,6 +58,10 @@ static bool FramePairedBattleCall(uint32_t entry) {
 static bool FramePairedCallTracks(uint32_t entry) {
     entry &= 0x7fffffu;
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
+#if defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+    if (entry == 0x0086c1u)
+        return true;
+#endif
     if (entry == 0x008703u)
         return true;
 #endif

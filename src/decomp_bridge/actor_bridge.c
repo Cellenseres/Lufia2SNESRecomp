@@ -985,8 +985,17 @@ RecompReturn Lufia2DecompBridge_B747(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x83b747u, Lufia2FieldAreaRects, 2);
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+static RecompReturn ActorBridgeTimedScreenFade(CpuState *cpu);
+#endif
+
 RecompReturn Lufia2DecompBridge_86C1(CpuState *cpu) {
-    return ActorBridgeWhole(cpu, 0x8086c1u, Lufia2ScreenFade, 2);
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+    return ActorBridgeTimedScreenFade(cpu);
+#else
+    return interp_tier_dispatch_tail(cpu, 0x8086c1u, 0x8086c1u,
+        cpu->S, cpu->host_return_valid);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_9EDD(CpuState *cpu) {
@@ -18581,6 +18590,9 @@ RecompReturn Lufia2DecompBridge_82BCC4(CpuState *cpu) {
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
 #include "party_swap_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+#include "screen_fade_clock.inc"
+#endif
 #endif
 RecompReturn Lufia2DecompBridge_82B6EF(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
