@@ -8,6 +8,9 @@ static void ActorBridgeVehicleTerrain(CpuState *cpu, uint32_t entry);
 static RecompReturn ActorBridgeTimedVehicleTerrain(CpuState *cpu);
 static bool VehicleTerrainHookOwned(uint32_t pc, void (*hook)(CpuState *, uint32_t));
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK) && defined(LUFIA2_HAVE_NATIVE_ITEM_REGION_CLOCK)
+static RecompReturn ActorBridgeTimedItemRegion(CpuState *cpu);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK)
 static RecompReturn ActorBridgeTimedFieldMap(CpuState *cpu, uint32_t entry);
 #endif
@@ -13571,6 +13574,9 @@ RecompReturn Lufia2DecompBridge_83F559(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_8EB63B(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK) && defined(LUFIA2_HAVE_NATIVE_ITEM_REGION_CLOCK)
+    return ActorBridgeTimedItemRegion(cpu);
+#else
     if (!cpu->m_flag || cpu->PB != 0x8eu || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
         return ActorBridgeFallback(cpu, &frame, 0x8eb63bu);
@@ -13578,6 +13584,7 @@ RecompReturn Lufia2DecompBridge_8EB63B(CpuState *cpu) {
     return ActorBridgeBattleEntry(cpu, 0x8eb63bu,
         0, Lufia2FieldTryItemRegion, 3u,
         BATTLE_BRIDGE_ANY_WIDTH, 0, BATTLE_BRIDGE_ANY_BANK, 0);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_8EB760(CpuState *cpu) {
@@ -18779,6 +18786,9 @@ RecompReturn Lufia2DecompBridge_82BCC4(CpuState *cpu) {
 #include "party_swap_clock.inc"
 #if defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK)
 #include "field_map_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_ITEM_REGION_CLOCK)
+#include "item_region_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_VEHICLE_TERRAIN)
 #include "vehicle_terrain_clock.inc"
 #endif
