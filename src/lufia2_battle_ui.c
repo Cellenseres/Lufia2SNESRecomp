@@ -120,8 +120,8 @@ void Lufia2BattleUiBegin(bool enabled, unsigned width, unsigned height) {
     s_width = width;
     s_height = height;
     s_active = s_capturing = true;
-    memset(s_cards, 0, sizeof s_cards);
-    memset(s_original_mask, 0, sizeof s_original_mask);
+    /* The row mask retires old scratch data. Composition requires all rows;
+     * partial restore uses only rows overwritten by Record this frame. */
 }
 
 bool Lufia2BattleUiActive(void) { return s_active; }
@@ -148,11 +148,15 @@ void Lufia2BattleUiFinish(uint8_t *pixels, size_t pitch) {
     s_ready = s_rows == ((UINT64_C(1) << LUFIA2_BATTLE_UI_CARD_HEIGHT) - 1u);
     if (!s_ready) {
         if (pixels && pitch >= s_width * 4u)
-            for (unsigned y = 0; y < s_height; ++y)
+            for (unsigned row = 0; row < LUFIA2_BATTLE_UI_CARD_HEIGHT; ++row) {
+                if (!(s_rows & (UINT64_C(1) << row))) continue;
+                /* Record certifies a common top and a visible destination. */
+                const unsigned y = s_top + row;
                 for (unsigned x = 0; x < LUFIA2_UI_NATIVE_WIDTH; ++x)
                     if (s_original_mask[y][x])
                         memcpy(pixels + y * pitch + ((s_width - LUFIA2_UI_NATIVE_WIDTH) / 2 + x) * 4u,
                                &s_original[y][x], 4);
+            }
         s_active = false;
     }
 }
