@@ -3858,9 +3858,16 @@ static void ActorBridgeSoundPollRun(CpuState *cpu, uint32_t entry) {
 }
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_TRANSFER_OPCODES)
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_PAYLOAD_PAIR)
+static bool ActorBridgeSoundPayloadPair(CpuState *cpu, uint32_t entry);
+#endif
 static void ActorBridgeSoundTransferOpcode(CpuState *cpu, uint32_t entry) {
     if (g_interp_bridge_pc_hook)
         return;
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_PAYLOAD_PAIR)
+    if (entry == 0x809969u && ActorBridgeSoundPayloadPair(cpu, entry))
+        return;
+#endif
     const ActorTimedOpcode *opcode = ActorBridgeSoundOpcode((uint16_t)entry);
     const bool wide = entry == 0x809c38u || entry == 0x809c3bu ||
                       (entry >= 0x809c4cu && entry <= 0x809c58u);
@@ -3909,6 +3916,9 @@ static void ActorBridgeSoundTransferOpcode(CpuState *cpu, uint32_t entry) {
 static void ActorBridgeSoundBeginPayload(CpuState *cpu, uint32_t entry);
 #endif
 #include "sound_span_guards.inc"
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_PAYLOAD_PAIR)
+#include "sound_payload_pair_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_BEGIN_PAYLOAD)
 #include "sound_begin_clock.inc"
 #endif
