@@ -20,6 +20,8 @@ static unsigned FramePairedFieldBudget(uint32_t entry) {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS)
     if (entry == 0x01b5a3u && !rtl_apu_extended_frame_timing())
         return LUFIA2_BATTLE_FIXED_OAM_OPCODE_BUDGET;
+    if (entry == 0x01b705u && !rtl_apu_extended_frame_timing())
+        return LUFIA2_BATTLE_FIXED_OAM_APPEND_OPCODE_BUDGET;
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_ITEM_REGION_CLOCK)
     if (entry == 0x0eb63bu)

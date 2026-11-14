@@ -179,6 +179,8 @@ static void BattleLeafFetch(CpuState *cpu, uint32_t pc, unsigned bytes) {
 }
 
 static RecompReturn ActorBridgeTimedBattleLeaf(CpuState *cpu, uint32_t entry) {
+    if (entry == 0x81b705u && !rtl_apu_extended_frame_timing())
+        return ActorBridgeTimedFixedOamAppend(cpu);
     ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
     BattleLeafCost cost;
     if (!BattleLeafClockSupported(cpu, entry, &cost))
