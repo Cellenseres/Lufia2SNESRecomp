@@ -59,3 +59,28 @@ function(lufia2_actor_slot_calls_available output)
         set(${output} TRUE PARENT_SCOPE)
     endif()
 endfunction()
+
+function(lufia2_actor_slot_boundaries_available output)
+    set(${output} FALSE PARENT_SCOPE)
+    lufia2_actor_slot_phases_available(_phases)
+    if(NOT _phases)
+        return()
+    endif()
+    file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/actor.h" _declarations)
+    file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/src/actor/actor_slots.c" _definitions)
+    foreach(_name IN ITEMS Lufia2ActorBeginSlotUpdates Lufia2ActorFinishSlotUpdates)
+        if(NOT _declarations MATCHES "${_name}[(]" OR
+           NOT _definitions MATCHES "${_name}[(][^;{]*[{]")
+            return()
+        endif()
+    endforeach()
+    file(READ "${LUFIA2_DECOMP_RESOLVED_ROOT}/metadata/functions.toml" _metadata)
+    string(REGEX MATCH
+        "\\[\\[function\\]\\][^[]*name[ \t]*=[ \t]*\"Lufia2UpdateActorSlots\"[^[]*"
+        _contract "${_metadata}")
+    if(_contract MATCHES "address[ \t]*=[ \t]*\"83:BB93\"" AND
+       _contract MATCHES "entry_mx[ \t]*=[ \t]*\"M1X1\"" AND
+       _contract MATCHES "status[ \t]*=[ \t]*\"verified\"")
+        set(${output} TRUE PARENT_SCOPE)
+    endif()
+endfunction()

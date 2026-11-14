@@ -452,53 +452,10 @@ RecompReturn Lufia2DecompBridge_A21A(CpuState *cpu) {
     return ActorBridgeWhole(cpu, 0x83a21au, Lufia2PatchedFieldActorSprites, 3);
 }
 
-typedef struct ActorSlotsCall {
-    CpuState *cpu;
-    RecompReturn unwound;
-} ActorSlotsCall;
-
-/* BB93 child through the runtime dispatcher. */
-static uint8_t ActorBridgeSlotChild(
-    void *context,
-    Lufia2CpuState *state,
-    uint32_t target,
-    uint32_t site) {
-    ActorSlotsCall *call = (ActorSlotsCall *)context;
-    RecompReturn result;
-
-    ActorBridgeStore(call->cpu, state);
-    result = cpu_dispatch_call_pc(call->cpu, target, site);
-    if (result != RECOMP_RETURN_NORMAL) {
-        call->unwound = result;
-        return 0;
-    }
-    ActorBridgeLoad(call->cpu, state);
-    return 1;
-}
-
 RecompReturn Lufia2DecompBridge_BB93(CpuState *cpu) {
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-    const Lufia2Memory memory = {
-        ActorBridgeRead, ActorBridgeWrite, cpu,
-        ActorBridgeExecutionCheckpoint, cpu};
-    ActorSlotsCall call;
-    Lufia2CpuState state;
-    Lufia2ExecutionResult result;
-
-    if (!ActorBridgeSupported(cpu, 1, 0))
-        return ActorBridgeFallback(cpu, &frame, 0x83bb93u);
-    call.cpu = cpu;
-    call.unwound = RECOMP_RETURN_NORMAL;
-    ActorBridgeLoad(cpu, &state);
-    result = Lufia2UpdateActorSlots(
-        &memory, &state, ActorBridgeSlotChild, &call);
-    if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND)
-        return (RecompReturn)((int)call.unwound - 1);
-    ActorBridgeStore(cpu, &state);
-    if (result.flow == LUFIA2_EXECUTION_BOUNDARY)
-        return interp_tier_dispatch_tail(
-            cpu, result.pc, result.pc, frame.entry_s, frame.hrv);
-    return ActorBridgeReturn(cpu, &frame, 3, result.pc);
+    /* Preserve the driver's clocks across child handoffs. */
+    return ActorBridgeFallback(cpu, &frame, 0x83bb93u);
 }
 
 
@@ -4335,6 +4292,9 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_PHASES)
     static const uint32_t actor_phases[] = {
+#if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_BOUNDARIES)
+        0x83bb93u, 0x83bbdau,
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_TRAVERSAL)
         0x83bba1u,
 #endif

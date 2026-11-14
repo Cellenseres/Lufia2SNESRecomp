@@ -5,6 +5,9 @@ static void ActorBridgeActorSlotPhase(CpuState *cpu, uint32_t entry);
 
 static bool ActorSlotPhaseHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
     return (
+#if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_BOUNDARIES)
+        pc == 0x83bb93u || pc == 0x83bbdau ||
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_TRAVERSAL)
         pc == 0x83bba1u ||
 #endif
@@ -20,6 +23,34 @@ static unsigned PlanActorSlotPhaseClocksForSlot(const CpuState *cpu, uint32_t en
     unsigned count = 0u;
 #define SLOT_OPCODE(pc, fetched, cycles, data) \
     (plan[count++] = (FixedSpanOpcode){pc, fetched, cycles, data})
+#if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_BOUNDARIES)
+    if (entry == 0x83bb93u || entry == 0x83bbdau) {
+        const bool begin = entry == 0x83bb93u;
+        const bool signaled = cpu->ram[0x1d0feu] != 0u;
+        const unsigned first = begin ? 0xbb93u : 0xbbdau;
+        SLOT_OPCODE(first, 4u, 5u, 1u);
+        SLOT_OPCODE(first + 4u, 2u, signaled ? 2u : 3u, 0u);
+        if (signaled) {
+            SLOT_OPCODE(first + 6u, 2u, 2u, 0u);
+            SLOT_OPCODE(first + 8u, 4u, 5u, 1u);
+        }
+        if (begin) {
+            SLOT_OPCODE(0xbb9fu, 2u, 3u, 1u);
+            *landing = 0x83bba1u;
+        } else {
+            const bool inactive = cpu->ram[0x09a1u] == 0xffu;
+            SLOT_OPCODE(0xbbe6u, 3u, 4u, 1u);
+            SLOT_OPCODE(0xbbe9u, 2u, 2u, 0u);
+            SLOT_OPCODE(0xbbebu, 2u, inactive ? 3u : 2u, 0u);
+            if (!inactive) {
+                SLOT_OPCODE(0xbbedu, 2u, 2u, 0u);
+                SLOT_OPCODE(0xbbefu, 3u, 6u, 2u);
+            }
+            *landing = 0x83bbf2u;
+        }
+        return count;
+    }
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_CHILD_RETURN)
     if (entry == 0x83bbcfu) {
         SLOT_OPCODE(0xbbcfu, 2u, 3u, 0u);
@@ -75,7 +106,16 @@ static unsigned PlanActorSlotPhaseClocksForSlot(const CpuState *cpu, uint32_t en
 
 static bool ActorSlotPhaseClockSupportedWindow(const CpuState *cpu, uint32_t entry,
     unsigned reserve) {
+    const bool boundary =
+#if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_BOUNDARIES)
+        entry == 0x83bb93u || entry == 0x83bbdau;
+#else
+        false;
+#endif
     if ((
+#if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_BOUNDARIES)
+        entry != 0x83bb93u && entry != 0x83bbdau &&
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_TRAVERSAL)
         entry != 0x83bba1u &&
 #endif
@@ -86,12 +126,12 @@ static bool ActorSlotPhaseClockSupportedWindow(const CpuState *cpu, uint32_t ent
         !cpu->ram || cpu->emulation || cpu->_flag_D || cpu->D ||
         cpu->PB != 0x83u || cpu->DB != 0x83u || cpu->m_flag != 1u ||
         cpu->x_flag > 1u || (entry == 0x83bba1u && cpu->x_flag != 1u) ||
-        cpu->ram[0xa7u] >= 40u ||
-        (!cpu->x_flag && cpu->ram[0xa8u]) || g_interp_bridge_pc_hook ||
+        (!boundary && (cpu->ram[0xa7u] >= 40u ||
+            (!cpu->x_flag && cpu->ram[0xa8u]))) || g_interp_bridge_pc_hook ||
         (cpu->host_return_valid && cpu->host_return_valid != 2u && cpu->host_return_valid != 3u) ||
         !g_snes || !g_snes->dma || !Lufia2DecompFrameReturnCpuReady() || !g_snes->apu ||
         !g_snes->cart || !g_snes->cart->rom || g_snes->cart->type != CART_LOROM ||
-        g_snes->cart->romSize <= 0x1bbdau || g_snes->vPos >= 262u ||
+        g_snes->cart->romSize <= (boundary ? 0x1bbf2u : 0x1bbdau) || g_snes->vPos >= 262u ||
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
         cpu->master_cycles > UINT64_MAX - reserve ||
         !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1ffcu,
@@ -235,6 +275,12 @@ static void ActorBridgeActorSlotTraversal(CpuState *cpu) {
 #endif
 
 static void ActorBridgeActorSlotPhase(CpuState *cpu, uint32_t entry) {
+#if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_BOUNDARIES) && \
+    (defined(SNES_COSIM) || defined(SNESRECOMP_INTERP_PROFILE) || \
+     (defined(SNESRECOMP_REVERSE_DEBUG) && SNESRECOMP_REVERSE_DEBUG))
+    if (entry == 0x83bb93u || entry == 0x83bbdau)
+        return;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_TRAVERSAL)
     if (entry == 0x83bba1u) {
         ActorBridgeActorSlotTraversal(cpu);
@@ -249,7 +295,11 @@ static void ActorBridgeActorSlotPhase(CpuState *cpu, uint32_t entry) {
     uint32_t landing;
     const unsigned count = PlanActorSlotPhaseClocksForSlot(
         cpu, entry, cpu->ram[0xa7u], timing, &landing);
-    const uint32_t end = entry == 0x83bba5u ? 0x83bbd1u : 0x83bbdau;
+    const uint32_t end =
+#if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_BOUNDARIES)
+        entry == 0x83bb93u ? 0x83bba1u : entry == 0x83bbdau ? 0x83bbf2u :
+#endif
+        entry == 0x83bba5u ? 0x83bbd1u : 0x83bbdau;
     unsigned budget;
 #if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_CHILD_RETURN)
     if (entry == 0x83bbcfu || entry == 0x83bba5u) {
@@ -276,6 +326,10 @@ static void ActorBridgeActorSlotPhase(CpuState *cpu, uint32_t entry) {
     const Lufia2ExecutionResult result = entry == 0x83bba5u
 #endif
         ? Lufia2ActorSelectSlotUpdate(&memory, &state)
+#if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_BOUNDARIES)
+        : entry == 0x83bb93u ? Lufia2ActorBeginSlotUpdates(&memory, &state)
+        : entry == 0x83bbdau ? Lufia2ActorFinishSlotUpdates(&memory, &state)
+#endif
         : Lufia2ActorAdvanceSlot(&memory, &state);
     BeginFixedSpanOpcode(&clock);
     assert(clock.index == count && !clock.remaining);
