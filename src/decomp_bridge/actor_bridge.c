@@ -3,6 +3,9 @@
 #include <stdint.h>
 
 #include "cpu_state.h"
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK)
+static RecompReturn ActorBridgeTimedFieldMap(CpuState *cpu, uint32_t entry);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_DISSOLVE_SETUP)
 static void ActorBridgeDissolveMask(CpuState *cpu, uint32_t pc);
 #endif
@@ -278,6 +281,9 @@ RecompReturn Lufia2DecompBridge_D350(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_F9D4(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK)
+    return ActorBridgeTimedFieldMap(cpu, 0x83f9d4u);
+#else
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
         ActorBridgeRead, ActorBridgeWrite, cpu,
@@ -290,6 +296,7 @@ RecompReturn Lufia2DecompBridge_F9D4(CpuState *cpu) {
     Lufia2ActorResolveMapCellOffset(&memory, &state);
     ActorBridgeStore(cpu, &state);
     return ActorBridgeReturn(cpu, &frame, 2, 0x83f9edu);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_FB12(CpuState *cpu) {
@@ -314,6 +321,9 @@ RecompReturn Lufia2DecompBridge_FB12(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_FB71(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK)
+    return ActorBridgeTimedFieldMap(cpu, 0x83fb71u);
+#else
     const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
     const Lufia2Memory memory = {
         ActorBridgeRead, ActorBridgeWrite, cpu,
@@ -326,6 +336,7 @@ RecompReturn Lufia2DecompBridge_FB71(CpuState *cpu) {
     Lufia2ActorReadMapCellValue(&memory, &state);
     ActorBridgeStore(cpu, &state);
     return ActorBridgeReturn(cpu, &frame, 3, 0x83fb8au);
+#endif
 }
 
 typedef Lufia2ExecutionResult (*ActorWholeFunction)(
@@ -587,7 +598,11 @@ RecompReturn Lufia2DecompBridge_C261(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_83F9F7(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK)
+    return ActorBridgeTimedFieldMap(cpu, 0x83f9f7u);
+#else
     return ActorBridgeWhole(cpu, 0x83f9f7u, Lufia2MapCellOffset, 2u);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_83F9D9(CpuState *cpu) {
@@ -3004,8 +3019,19 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
                                                wide_accumulator, 800u, 256u);
 }
 #include "fixed_span_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK) || defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_TRAVERSAL)
+static const FixedSpanOpcode actor_record_offset_timing[] = {
+    {0xab4fu, 2u, 3u, 1u}, {0xab51u, 2u, 3u, 1u},
+    {0xab53u, 1u, 2u, 0u}, {0xab54u, 2u, 3u, 1u},
+    {0xab56u, 2u, 3u, 1u}, {0xab58u, 2u, 3u, 1u},
+    {0xab5au, 2u, 3u, 1u}, {0xab5cu, 2u, 3u, 1u},
+    {0xab5eu, 2u, 3u, 1u}
+};
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_EVENT_SLOT_CLOCK) || defined(LUFIA2_HAVE_NATIVE_FIELD_IDLE_CLOCK) || \
-    defined(LUFIA2_HAVE_NATIVE_FIELD_STAIR_CLOCK) || defined(LUFIA2_HAVE_NATIVE_FIELD_RECTANGLE_CLOCK)
+    defined(LUFIA2_HAVE_NATIVE_FIELD_STAIR_CLOCK) || defined(LUFIA2_HAVE_NATIVE_FIELD_RECTANGLE_CLOCK) || \
+    defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK)
 #include "paired_span_clock.inc"
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_TILES)
@@ -4235,7 +4261,11 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_PHASES)
-    static const uint32_t actor_phases[] = {0x83bba5u, 0x83bbd1u};
+    static const uint32_t actor_phases[] = {
+#if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_TRAVERSAL)
+        0x83bba1u,
+#endif
+        0x83bba5u, 0x83bbd1u};
     for (unsigned i = 0u; i < sizeof actor_phases / sizeof *actor_phases; ++i) {
         const uint32_t entry = actor_phases[i];
         if (Lufia2DecompFrameRangeAllows(entry, entry + 1u, ActorSlotPhaseHookOwned))
@@ -7392,8 +7422,12 @@ static RecompReturn ActorBridgeSpriteResource(
 }
 
 RecompReturn Lufia2DecompBridge_83AB4F(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK)
+    return ActorBridgeTimedFieldMap(cpu, 0x83ab4fu);
+#else
     return ActorBridgeSpriteResource(cpu, 0x83ab4fu,
         Lufia2ActorSetRecordOffsets, 3u, 1u);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_83ABCC(CpuState *cpu) {
@@ -7571,7 +7605,11 @@ static RecompReturn ActorBridgeActorEventHelper(
     return ActorBridgeRunWhole(cpu, entry, helper, 2u, allow_x8 ? 0 : 4);
 }
 RecompReturn Lufia2DecompBridge_83C0EF(CpuState *cpu) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK)
+    return ActorBridgeTimedFieldMap(cpu, 0x83c0efu);
+#else
     return ActorBridgeActorEventHelper(cpu, 0x83c0efu, Lufia2FieldProbeLeaderPosition, 1, 0x1ffdu);
+#endif
 }
 RecompReturn Lufia2DecompBridge_83C0FA(CpuState *cpu) {
     return ActorBridgeActorEventHelper(cpu, 0x83c0fau, Lufia2FieldAcknowledgeControlChange, 1, 0x1ffdu);
@@ -18692,6 +18730,9 @@ RecompReturn Lufia2DecompBridge_82BCC4(CpuState *cpu) {
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
 #include "party_swap_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK)
+#include "field_map_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FIELD_TICK_CLOCK)
 #include "field_service_clock.inc"
 #endif
