@@ -1,4 +1,8 @@
 static bool ActorBridgeSoundHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_BEGIN_PAYLOAD)
+    if (pc == 0x809945u && hook == ActorBridgeSoundBeginPayload)
+        return true;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_SOURCE_CLOCK)
     if (SoundSourceHookOwned(pc, hook))
         return true;

@@ -3903,7 +3903,13 @@ static void ActorBridgeSoundTransferOpcode(CpuState *cpu, uint32_t entry) {
 
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_POLLS) || defined(LUFIA2_HAVE_NATIVE_SOUND_UPLOAD_STEPS) || \
     defined(LUFIA2_HAVE_NATIVE_SOUND_HANDSHAKE_STEPS) || defined(LUFIA2_HAVE_NATIVE_SOUND_TRANSFER_OPCODES)
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_BEGIN_PAYLOAD)
+static void ActorBridgeSoundBeginPayload(CpuState *cpu, uint32_t entry);
+#endif
 #include "sound_span_guards.inc"
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_BEGIN_PAYLOAD)
+#include "sound_begin_clock.inc"
+#endif
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_MENU_CURSOR_POLL)
@@ -4576,6 +4582,9 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
          i < sizeof sound_upload_opcodes / sizeof sound_upload_opcodes[0]; ++i)
         ActorBridgeInstallSoundHook(0x800000u | sound_upload_opcodes[i].pc,
                                           ActorBridgeSoundTransferOpcode);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_BEGIN_PAYLOAD)
+    ActorBridgeInstallSoundHook(0x809945u, ActorBridgeSoundBeginPayload);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS) && defined(LUFIA2_HAVE_NATIVE_BOOT_NMI_WAIT)
     if (Lufia2DecompFrameRangeAllows(0x808084u, 0x808088u,
@@ -8136,11 +8145,8 @@ RecompReturn Lufia2DecompBridge_809A0A(CpuState *cpu) {
 }
 
 RecompReturn Lufia2DecompBridge_809945(CpuState *cpu) {
-    if (!cpu->m_flag || cpu->x_flag) {
-        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
-        return ActorBridgeFallback(cpu, &frame, 0x809945u);
-    }
-    return ActorBridgeSoundDriver(cpu, 0x809945u, Lufia2SendSoundPayload, 2u);
+    const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+    return ActorBridgeFallback(cpu, &frame, 0x809945u);
 }
 
 RecompReturn Lufia2DecompBridge_8098A5(CpuState *cpu) {
