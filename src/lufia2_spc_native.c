@@ -313,7 +313,11 @@ static uint32_t Idle(void *context, const Apu *apu) {
     return wait > 0 ? (uint32_t)wait : 0;
 }
 
-static const SnesRecompApuProgram kProgram = {NULL, TakeOver, Active, Run, Cycle, Loaded, Idle};
+/* Active is adapter-owned and cannot change during an idle interval. Cycle
+ * only publishes the DSP clock until Idle's next queued-access boundary;
+ * timer/port events still end that interval before Run can observe them. */
+static const SnesRecompApuProgram kProgram = {NULL, TakeOver, Active, Run, Cycle,
+    Loaded, Idle};
 
 bool Lufia2SpcNativeInstall(void) {
 #if defined(LUFIA2_ENABLE_SNES_DSP)
@@ -323,7 +327,8 @@ bool Lufia2SpcNativeInstall(void) {
     const char *interpreted = getenv("LUFIA2_SPC_INTERPRETED");
 
     if (!s_installed && !(interpreted && interpreted[0] == '1')) {
-        snesrecomp_apu_set_program(&kProgram);
+        if (!snesrecomp_apu_set_program_with_capabilities(
+                &kProgram, SNESRECOMP_APU_IDLE_STABLE_DSP)) return false;
         s_installed = true;
     }
     return s_installed;
