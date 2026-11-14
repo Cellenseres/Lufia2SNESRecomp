@@ -3584,10 +3584,14 @@ static bool ActorBridgeSingleOpcodeSupported(const CpuState *cpu, uint32_t entry
         cpu, entry, 0x1fffu, true, SOUND_TRANSFER_SCANLINE_CLOCKS - 1u, 1u);
 }
 
+static bool ActorBridgeSoundGroupSupported(const CpuState *cpu, uint32_t entry);
+
 static bool ActorBridgeSoundTransferSupported(const CpuState *cpu, uint32_t entry) {
-    return !cpu->x_flag && !cpu->D && !cpu->_flag_D &&
-           ActorBridgeSoundWindowSupported(cpu, entry, 0x1ff8u,
-                                           ActorBridgeSoundTransferBudget(entry));
+    if (cpu->x_flag || cpu->D || cpu->_flag_D)
+        return false;
+    const unsigned budget = ActorBridgeSoundTransferBudget(entry);
+    return budget && ActorBridgeSoundGroupSupported(cpu, entry) &&
+        ActorBridgeSoundWindowSupported(cpu, entry, 0x1ff8u, budget);
 }
 
 static void ActorBridgeSoundUpload(CpuState *cpu, uint32_t entry) {
@@ -3873,6 +3877,15 @@ static void ActorBridgeSoundTransferOpcode(CpuState *cpu, uint32_t entry) {
     interp_bridge_pre_opcode_redirect(result.pc);
 }
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_SOURCE_CLOCK)
+#include "sound_source_clock.inc"
+#endif
+
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_POLLS) || defined(LUFIA2_HAVE_NATIVE_SOUND_UPLOAD_STEPS) || \
+    defined(LUFIA2_HAVE_NATIVE_SOUND_HANDSHAKE_STEPS) || defined(LUFIA2_HAVE_NATIVE_SOUND_TRANSFER_OPCODES)
+#include "sound_span_guards.inc"
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_MENU_CURSOR_POLL)
 static const ActorTimedOpcode cursor_poll_opcodes[] = {
     {0x8b0cu, 3u, 5u, 0u, 0u, 0u},
@@ -4493,10 +4506,13 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
         interp_bridge_set_pre_opcode_hook(selection_entries[i],
                                           ActorBridgeSelectResume);
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_SOURCE_CLOCK)
+    ActorBridgeInstallSoundSourceHooks();
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_POLLS)
     for (unsigned i = 0u; i < sizeof sound_poll_entries / sizeof sound_poll_entries[0];
          ++i)
-        interp_bridge_set_pre_opcode_hook(sound_poll_entries[i],
+        ActorBridgeInstallSoundHook(sound_poll_entries[i],
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_POLL_RUNS)
                                           ActorBridgeSoundPollRun);
 #else
@@ -4506,22 +4522,22 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_UPLOAD_STEPS)
     for (unsigned i = 0u;
          i < sizeof sound_upload_entries / sizeof sound_upload_entries[0]; ++i)
-        interp_bridge_set_pre_opcode_hook(sound_upload_entries[i],
+        ActorBridgeInstallSoundHook(sound_upload_entries[i],
                                           ActorBridgeSoundUpload);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_HANDSHAKE_STEPS)
     for (unsigned i = 0u;
          i < sizeof sound_branch_entries / sizeof sound_branch_entries[0]; ++i)
-        interp_bridge_set_pre_opcode_hook(sound_branch_entries[i],
+        ActorBridgeInstallSoundHook(sound_branch_entries[i],
                                           ActorBridgeSoundBranch);
     for (unsigned i = 0u; i < sizeof boot_sound_entries / sizeof boot_sound_entries[0];
          ++i)
-        interp_bridge_set_pre_opcode_hook(boot_sound_entries[i], ActorBridgeBootSound);
+        ActorBridgeInstallSoundHook(boot_sound_entries[i], ActorBridgeBootSound);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_TRANSFER_OPCODES)
     for (unsigned i = 0u;
          i < sizeof sound_upload_opcodes / sizeof sound_upload_opcodes[0]; ++i)
-        interp_bridge_set_pre_opcode_hook(0x800000u | sound_upload_opcodes[i].pc,
+        ActorBridgeInstallSoundHook(0x800000u | sound_upload_opcodes[i].pc,
                                           ActorBridgeSoundTransferOpcode);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS) && defined(LUFIA2_HAVE_NATIVE_BOOT_NMI_WAIT)
