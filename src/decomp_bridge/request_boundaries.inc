@@ -78,7 +78,7 @@ static int Lufia2DecompRunRequestBoundary(
     };
     if (registers->e || registers->k != (uint8_t)(pc >> 16) ||
         registers->pc != (uint16_t)pc || pc < 0x80953bu || pc > 0x82932fu ||
-        registers->waiting || registers->stopped ||
+        (pc > 0x809a09u && pc < 0x829313u) || registers->waiting || registers->stopped ||
         registers->nmiWanted || registers->irqWanted)
         return 0;
     unsigned selected;

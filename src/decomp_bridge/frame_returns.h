@@ -65,6 +65,38 @@ uint64_t Lufia2DecompNativeIdleSteps(void);
 uint32_t Lufia2DecompNativeIdleDiagnostics(uint64_t out[16],uint64_t contexts[16]);
 void Lufia2DecompFramePollProbe(const struct CpuState *cpu,uint32_t entry);
 bool Lufia2DecompPollFetchOpcode(struct CpuState *cpu, uint32_t pc, uint32_t fetched);
+/* Local to one admitted eventless semantic span. It grants only immutable
+ * LoROM instruction bytes and their ordinary fetch latches, not clocks/data
+ * accesses. Discard before returning/rechecking the caller's device window;
+ * no mapping/observer/lifecycle change may occur while the token is used. */
+typedef struct Lufia2DecompRomOpcodeSpan {
+    struct CpuState *cpu;
+    void *cart;
+    uint32_t base;
+    uint8_t count, bytes[32];
+} Lufia2DecompRomOpcodeSpan;
+bool Lufia2DecompPrepareRomOpcodeSpan(struct CpuState *cpu,uint32_t base,
+    unsigned count,Lufia2DecompRomOpcodeSpan *span);
+bool Lufia2DecompFetchRomOpcodeSpan(struct CpuState *cpu,
+    const Lufia2DecompRomOpcodeSpan *span,uint32_t pc,unsigned fetched);
+/* Pure host bookkeeping for a short, observer-free plain-ROM span. The
+ * caller guarantees no intervening CPU/device configuration changes. Each
+ * guest clock and progress/APU boundary is retained. CanJoin additionally
+ * certifies a pair of data-free/progress-free opcodes with no APU flush at
+ * the first boundary, allowing only their host clock publications to join.
+ * Unsupported/expired contexts use ordinary AccountOpcode immediately. */
+typedef struct Lufia2DecompClockSpan {
+    struct CpuState *cpu;
+    void *system;
+    uint64_t master, refresh_phase;
+    uint32_t remaining;
+} Lufia2DecompClockSpan;
+bool Lufia2DecompPrepareClockSpan(struct CpuState *cpu,unsigned budget,
+    Lufia2DecompClockSpan *span);
+bool Lufia2DecompClockSpanCanJoin(struct CpuState *cpu,
+    const Lufia2DecompClockSpan *span,uint64_t first,uint64_t total);
+void Lufia2DecompAccountClockSpan(struct CpuState *cpu,Lufia2DecompClockSpan *span,
+    unsigned cycles,uint64_t master,bool progress);
 bool Lufia2DecompFrameReturnCpuReady(void);
 bool Lufia2DecompFrameSchedulerBounces(void);
 /* Original interrupt state; callers still validate timing and hooks. */

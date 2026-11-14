@@ -18,6 +18,7 @@ typedef struct FixedSpanClock {
     uint64_t data_master;
     uint64_t fetch_master;
     bool progress;
+    const Lufia2DecompRomOpcodeSpan *opcode_span;
 } FixedSpanClock;
 
 static void FinishFixedSpanOpcode(FixedSpanClock *clock) {
@@ -26,27 +27,35 @@ static void FinishFixedSpanOpcode(FixedSpanClock *clock) {
     if (clock->progress && clock->index < 32u)
         clock->progress_mask |= 1u << clock->index;
     Lufia2DecompFrameReturnAccountOpcode(clock->cpu, timing->cycles,
-        clock->fetch_master + clock->data_master + internal * 6u, clock->progress);
+                                         clock->fetch_master + clock->data_master + internal * 6u,
+                                         clock->progress);
     ++clock->index;
     clock->data_master = 0u;
     clock->fetch_master = 0u;
     clock->progress = false;
 }
 
-static void BeginFixedSpanOpcode(FixedSpanClock *clock) {
-    while (!clock->remaining && clock->index < clock->count) {
-        const FixedSpanOpcode *timing = clock->timing + clock->index;
-        const uint32_t pc=clock->bank|timing->pc;
-        if(Lufia2DecompPollFetchOpcode(clock->cpu,pc,timing->fetched)) {
-            clock->fetch_master+=(uint64_t)timing->fetched*cpu_region_speed(pc);
-        } else for (unsigned byte = 0u; byte < timing->fetched; ++byte) {
+static inline void FetchFixedSpanOpcode(FixedSpanClock *clock) {
+    const FixedSpanOpcode *timing = clock->timing + clock->index;
+    const uint32_t pc = clock->bank | timing->pc;
+    if ((clock->opcode_span &&
+         Lufia2DecompFetchRomOpcodeSpan(clock->cpu, clock->opcode_span, pc, timing->fetched)) ||
+        Lufia2DecompPollFetchOpcode(clock->cpu, pc, timing->fetched)) {
+        clock->fetch_master += (uint64_t)timing->fetched * cpu_region_speed(pc);
+    } else
+        for (unsigned byte = 0u; byte < timing->fetched; ++byte) {
             bool progress = false;
             const uint32_t address = clock->bank | (uint16_t)(timing->pc + byte);
             (void)Lufia2DecompFrameReturnReadByte(clock->cpu, address, &progress);
             clock->fetch_master += cpu_region_speed(address);
             clock->progress |= progress;
         }
-        clock->remaining = timing->data_bytes;
+    clock->remaining = timing->data_bytes;
+}
+
+static void BeginFixedSpanOpcode(FixedSpanClock *clock) {
+    while (!clock->remaining && clock->index < clock->count) {
+        FetchFixedSpanOpcode(clock);
         if (!clock->remaining)
             FinishFixedSpanOpcode(clock);
     }
@@ -57,8 +66,7 @@ static uint8_t FixedSpanRead(void *context, uint32_t address) {
     BeginFixedSpanOpcode(clock);
     assert(clock->remaining);
     bool progress = false;
-    const uint8_t value =
-        Lufia2DecompFrameReturnReadByte(clock->cpu, address, &progress);
+    const uint8_t value = Lufia2DecompFrameReturnReadByte(clock->cpu, address, &progress);
     clock->data_master += cpu_region_speed(address);
     clock->progress |= progress;
     if (!--clock->remaining)

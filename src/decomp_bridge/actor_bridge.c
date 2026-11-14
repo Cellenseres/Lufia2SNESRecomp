@@ -3121,6 +3121,7 @@ static void ActorBridgeTargetMarkerRecords(CpuState *cpu, uint32_t entry);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_CLEANUP_STEPS)
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_CLEAR_SPANS)
+#include "effect_cleanup_bus.inc"
 #include "effect_clear_span_clock.inc"
 #else
 #include "effect_cleanup_clock.inc"
@@ -4424,7 +4425,12 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     interp_bridge_set_pre_opcode_hook(0x818b08u, ActorBridgeEffectDispatchPrepare);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_CLEANUP_STEPS)
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_CLEAR_SPANS)
+    if (Lufia2DecompFrameRangeAllows(0x818bfbu, 0x818bfcu, EffectClearHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x818bfbu, ActorBridgeEffectClearBytes);
+#else
     interp_bridge_set_pre_opcode_hook(0x818bfbu, ActorBridgeEffectClearBytes);
+#endif
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TRANSITION_STEPS)
     interp_bridge_set_pre_opcode_hook(0x848c91u, ActorBridgeSwirlRimStep);

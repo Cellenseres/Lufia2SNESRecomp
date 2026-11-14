@@ -1,6 +1,7 @@
 #include "decomp_bridge/frame_returns.h"
 #include <assert.h>
 #include <stddef.h>
+#include "snesrecomp_platform/beam_clock.h"
 
 static unsigned s_frame_return_opcodes;
 static unsigned s_frame_return_progress_mask;
@@ -86,6 +87,135 @@ void Lufia2DecompFrameReturnAccountOpcode(CpuState *cpu, unsigned cycles,
     Lufia2DecompNmiAccountCycles(cpu, cycles, master);
     if (progress && s_frame_return_auto_quiescent)
         bridge_apu_flush(cpu);
+}
+
+bool Lufia2DecompPrepareClockSpan(CpuState *cpu, unsigned budget, Lufia2DecompClockSpan *span) {
+    if (!span)
+        return false;
+    span->remaining = 0;
+#if defined(SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY) && !defined(SNES_COSIM) &&                        \
+    !defined(SNESRECOMP_INTERP_PROFILE) &&                                                         \
+    (!defined(SNESRECOMP_REVERSE_DEBUG) || !SNESRECOMP_REVERSE_DEBUG)
+    if (cpu != &g_cpu || !budget || budget > 352u || !s_frame_return_batch_allowed ||
+        !s_frame_return_auto_quiescent || s_interp_bus_timing_active ||
+        Lufia2NativeObserversActive() || !g_snes || !g_snes->apu || g_snes->ram != cpu->ram ||
+        !g_snes->cart || !g_snes->hdmaBeamOff || g_snes->inNmi || g_snes->inIrq ||
+        g_snes->hIrqEnabled || g_snes->vIrqEnabled ||
+        g_snes->beamMasterLast != cpu->master_cycles || cpu->master_cycles > UINT64_MAX - budget ||
+        s_apu_pending_master > UINT64_MAX - budget || snesrecomp_beam_hold_active())
+        return false;
+    const Cart *cart = g_snes->cart;
+    if (cart->type != CART_LOROM || cart->superfx || cart->cx4 || cart->dsp1 || cart->sdd1 ||
+        cart->sa1 || !g_snes->dma || g_snes->dma->dmaBusy || g_snes->dma->dmaTimer)
+        return false;
+    for (unsigned i = 0; i < 8; ++i)
+        if (g_snes->dma->channel[i].dmaActive)
+            return false;
+    uint64_t phase, charged;
+    snes_refresh_state_get(&phase, &charged);
+    if (!charged || charged != cpu->master_cycles || phase >= 1364u || budget >= 1364u - phase ||
+        !snesrecomp_beam_eventless_step(g_snes->hPos, g_snes->vPos, budget, true, false,
+                                        g_snes->autoJoyRead))
+        return false;
+    span->cpu = cpu;
+    span->system = g_snes;
+    span->master = charged;
+    span->refresh_phase = phase;
+    span->remaining = budget;
+    return true;
+#else
+    (void)cpu;
+    (void)budget;
+    return false;
+#endif
+}
+
+bool Lufia2DecompClockSpanCanJoin(CpuState *cpu, const Lufia2DecompClockSpan *span, uint64_t first,
+                                  uint64_t total) {
+    if (!span || !span->remaining || !first || first >= total || span->cpu != cpu ||
+        span->system != g_snes || span->master != cpu->master_cycles || total > span->remaining)
+        return false;
+    if (rtl_apu_extended_frame_timing() ||
+        !interp_bridge_use_absolute_apu_timeline(rtl_apu_frame_timeline_active(), false, false)) {
+        const uint64_t threshold = bridge_bounce_flush_thresh();
+        if (s_apu_pending_master >= threshold || first >= threshold - s_apu_pending_master)
+            return false;
+    }
+    return true;
+}
+
+void Lufia2DecompAccountClockSpan(CpuState *cpu, Lufia2DecompClockSpan *span, unsigned cycles,
+                                  uint64_t master, bool progress) {
+    if (!span || !span->remaining || !master || span->cpu != cpu || span->system != g_snes ||
+        span->master != cpu->master_cycles || master > span->remaining) {
+        if (span)
+            span->remaining = 0;
+        Lufia2DecompFrameReturnAccountOpcode(cpu, cycles, master, progress);
+        return;
+    }
+    /* The certificate excludes every refresh/beam/device edge for the whole
+     * bounded slice. Publish the same state at each observable boundary;
+     * a certified pair may join eventless updates only after CanJoin proves
+     * that the first cannot flush APU work. Guest cycles remain unchanged. */
+    cpu->cycles += cycles;
+    cpu->master_cycles += master;
+    cpu->coprocessor_master_cycles = cpu->master_cycles;
+    span->master = cpu->master_cycles;
+    span->refresh_phase += master;
+    span->remaining -= (uint32_t)master;
+    snes_refresh_state_set(span->refresh_phase, cpu->master_cycles);
+    g_snes->hPos = (uint16_t)(g_snes->hPos + master);
+    g_snes->beamMasterLast = cpu->master_cycles;
+    if (g_snes->autoJoyTimer)
+        g_snes->autoJoyTimer =
+            master >= g_snes->autoJoyTimer ? 0 : (uint16_t)(g_snes->autoJoyTimer - master);
+    g_snes->inVblank = g_snes->vPos >= 225u;
+    /* Same APU accounting as NmiAccountCycles for a certified no-SA1 cart.
+     * In particular, relative floating credit is still updated at every
+     * original progress flush, never merged across WRAM writes. */
+    if (rtl_apu_extended_frame_timing() ||
+        !interp_bridge_use_absolute_apu_timeline(rtl_apu_frame_timeline_active(), false, false)) {
+        s_apu_pending_master += master;
+        if (s_apu_pending_master >= bridge_bounce_flush_thresh())
+            bridge_apu_flush(cpu);
+    }
+    if (progress && s_frame_return_auto_quiescent)
+        bridge_apu_flush(cpu);
+}
+
+bool Lufia2DecompPrepareRomOpcodeSpan(CpuState *cpu, uint32_t base, unsigned count,
+                                      Lufia2DecompRomOpcodeSpan *span) {
+    if (!span)
+        return false;
+    span->count = 0;
+    if (!cpu || !count || count > sizeof span->bytes || (base & 0xff000000u) ||
+        !s_frame_return_batch_allowed || s_interp_bus_timing_active ||
+        Lufia2NativeObserversActive() || !g_snes || !g_snes->cart ||
+        g_snes->cart->type != CART_LOROM || (base & 0xffffu) < 0x8000u ||
+        (base & 0xffffu) > 0x10000u - count || ((base >> 16) & 0x7fu) >= 0x40u)
+        return false;
+    Cart *cart = g_snes->cart;
+    if (cart->superfx || cart->cx4 || cart->dsp1 || cart->sdd1 || cart->sa1)
+        return false;
+    const uint32_t offset = (((base >> 16) & 0x7fu) << 15) | (base & 0x7fffu);
+    if (!cart->rom || offset >= cart->romSize || cart->romSize - offset < count)
+        return false;
+    memcpy(span->bytes, cart->rom + offset, count);
+    span->cpu = cpu;
+    span->cart = cart;
+    span->base = base;
+    span->count = (uint8_t)count;
+    return true;
+}
+
+bool Lufia2DecompFetchRomOpcodeSpan(CpuState *cpu, const Lufia2DecompRomOpcodeSpan *span,
+                                    uint32_t pc, unsigned fetched) {
+    if (!span || !span->count || span->cpu != cpu || !span->cart || !fetched || fetched > 4u ||
+        fetched > span->count || pc < span->base || pc - span->base > span->count - fetched)
+        return false;
+    cpu->open_bus = span->bytes[pc - span->base + fetched - 1u];
+    ((Cart *)span->cart)->cpuBusAddress = pc + fetched - 1u;
+    return true;
 }
 
 void Lufia2DecompFramePairedAccountSpan(const CpuState *cpu, uint32_t entry,
