@@ -3104,6 +3104,9 @@ static void ActorBridgeTargetMarkerRecords(CpuState *cpu, uint32_t entry);
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_WAVE_FILL_STEPS)
 #include "wave_fill_word_clock.inc"
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_HDMA_BUILDERS)
+#include "hdma_builder_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_SLOT_STEPS)
 #include "effect_slot_clock.inc"
 #if defined(LUFIA2_BATTLE_EFFECT_SLOT_BEGIN_API)
@@ -4384,6 +4387,13 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_WAVE_FILL_STEPS)
     interp_bridge_set_pre_opcode_hook(0x85aef5u, ActorBridgeWaveFillWord);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_HDMA_BUILDERS)
+    for (unsigned mode = 0u; mode < 6u; ++mode) {
+        const uint32_t entry = 0x850000u | hdma_builder_profiles[mode].entry;
+        if (Lufia2DecompFrameRangeAllows(entry, entry + 1u, HdmaBuilderHookOwned))
+            interp_bridge_set_pre_opcode_hook(entry, ActorBridgeHdmaBuilder);
+    }
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_MENU_CLEAR)
     interp_bridge_set_pre_opcode_hook(0x84a4ddu, ActorBridgeMenuClearStep);

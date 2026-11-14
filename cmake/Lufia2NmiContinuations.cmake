@@ -458,6 +458,13 @@ function(lufia2_add_nmi_continuations target core_root)
                         APPEND PROPERTY COMPILE_DEFINITIONS
                             "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_TIMER_CALLS=1>")
                 endif()
+                include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleHdmaBuilders.cmake")
+                lufia2_battle_hdma_builders_available(_battle_hdma_builders)
+                if(_battle_hdma_builders)
+                    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                        APPEND PROPERTY COMPILE_DEFINITIONS
+                            "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_HDMA_BUILDERS=1>")
+                endif()
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleWaveFillSteps.cmake")
                 lufia2_battle_wave_fill_steps_available(_battle_wave_fill_steps)
                 if(_battle_wave_fill_steps)
@@ -1145,6 +1152,9 @@ function(lufia2_add_nmi_continuations target core_root)
                     string(REPLACE "${_hook_call}"
                         "                    if (((pc_before & 0x7fffffu) != 0x058f1fu ||\n                         step_cap - steps >= 10) &&\n                        ((pc_before & 0x7fffffu) != 0x058f3eu ||\n                         step_cap - steps >= 6)) {\n${_hook_call}\n                    }"
                         _text "${_text}")
+                endif()
+                if(_battle_hdma_builders)
+                    string(PREPEND _text "#define LUFIA2_HAVE_NATIVE_BATTLE_HDMA_BUILDERS 1\n")
                 endif()
                 if(_battle_wave_fill_steps)
                     string(PREPEND _text "#define LUFIA2_HAVE_NATIVE_BATTLE_WAVE_FILL_STEPS 1\n")
