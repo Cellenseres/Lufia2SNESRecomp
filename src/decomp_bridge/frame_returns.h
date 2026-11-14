@@ -15,6 +15,7 @@
 #define LUFIA2_FIELD_STAIR_OPCODE_BUDGET 512u
 #define LUFIA2_FIELD_RECTANGLE_OPCODE_BUDGET 512u
 #define LUFIA2_FIELD_MAP_OPCODE_BUDGET 64u
+#define LUFIA2_FIELD_VEHICLE_OPCODE_BUDGET 96u
 #define LUFIA2_FIELD_TRIGGER_OPCODE_BUDGET 256u
 #define LUFIA2_FIELD_TRIGGER_OWN_OPCODES 24u
 #define LUFIA2_FIELD_REQUEST_OPCODE_BUDGET 32u
@@ -62,6 +63,7 @@ uint32_t Lufia2DecompNativeIdleDiagnostics(uint64_t out[16],uint64_t contexts[16
 void Lufia2DecompFramePollProbe(const struct CpuState *cpu,uint32_t entry);
 bool Lufia2DecompPollFetchOpcode(struct CpuState *cpu, uint32_t pc, uint32_t fetched);
 bool Lufia2DecompFrameReturnCpuReady(void);
+bool Lufia2DecompFrameSchedulerBounces(void);
 /* Original interrupt state; callers still validate timing and hooks. */
 bool Lufia2DecompFramePairedCallReady(const struct CpuState *cpu, uint32_t entry);
 void Lufia2DecompFramePairedAccountSpan(const struct CpuState *cpu, uint32_t entry,

@@ -14,6 +14,10 @@ static uint32_t s_frame_paired_return_pc = UINT32_MAX;
 
 static unsigned FramePairedFieldBudget(uint32_t entry) {
     entry &= 0x7fffffu;
+#if defined(LUFIA2_HAVE_NATIVE_VEHICLE_TERRAIN)
+    if (entry == 0x0ebbafu)
+        return LUFIA2_FIELD_VEHICLE_OPCODE_BUDGET;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK)
     if (entry == 0x03ab4fu || entry == 0x03c0efu || entry == 0x03fb71u ||
         entry == 0x03f9d4u || entry == 0x03f9f7u)
