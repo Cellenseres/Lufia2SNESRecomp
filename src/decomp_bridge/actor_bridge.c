@@ -4199,6 +4199,10 @@ static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
 #include "actor_slot_clock.inc"
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PLAYER_CONTROL_CLOCK)
+#include "player_control_clock.inc"
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_FRAME_DECISION)
 #include "field_frame_clock.inc"
 #endif
@@ -4232,6 +4236,11 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PLAYER_CONTROL_CLOCK)
+    if (Lufia2DecompFrameRangeAllows(0x83c1f2u, 0x83c1f3u, PlayerStepHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x83c1f2u, ActorBridgePlayerStep);
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_TRIGGER_FRONTS)
     static const uint32_t trigger_fronts[] = {0x8381c6u, 0x8381cfu, 0x8381dbu, 0x8381fau};
     for (unsigned i = 0u; i < sizeof trigger_fronts / sizeof *trigger_fronts; ++i) {
