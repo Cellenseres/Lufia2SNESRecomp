@@ -21487,8 +21487,10 @@ RecompReturn Lufia2DecompBridge_81E7A6(CpuState *cpu) {
 #include "battle_status_detail_clock.inc"
 #include "battle_staged_command_clock.inc"
 static RecompReturn ActorBridgeTimedFixedOamAppend(CpuState *cpu);
+static RecompReturn ActorBridgeTimedFixedTileBlock(CpuState *cpu);
 #include "battle_leaf_clock.inc"
 #include "fixed_oam_append_clock.inc"
+#include "fixed_tile_block_clock.inc"
 #include "fixed_oam_clear_clock.inc"
 #include "battle_sprite_clock.inc"
 #include "battle_action_work_clock.inc"
