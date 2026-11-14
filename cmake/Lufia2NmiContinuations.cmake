@@ -464,6 +464,13 @@ function(lufia2_add_nmi_continuations target core_root)
                         APPEND PROPERTY COMPILE_DEFINITIONS
                             "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_TIMER_CALLS=1>")
                 endif()
+                include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2SpriteOverlays.cmake")
+                lufia2_sprite_overlays_available(_sprite_overlays)
+                if(_sprite_overlays)
+                    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                        APPEND PROPERTY COMPILE_DEFINITIONS
+                            "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_SPRITE_OVERLAYS=1>")
+                endif()
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleHdmaBuilders.cmake")
                 lufia2_battle_hdma_builders_available(_battle_hdma_builders)
                 if(_battle_hdma_builders)

@@ -117,7 +117,13 @@ static bool BattleSpriteClockSupported(const CpuState *cpu, uint32_t entry,
         *cost = (BattleLeafCost){2550u, 1281u, 290u};
     }
     return BattleClockAllows(cpu, entry, parent ? 0x81b6c4u : 0x81b5c4u,
-        parent ? 3u : 2u, false, BattleLeafClockRoom(entry, *cost), false, NULL);
+        parent ? 3u : 2u, false, BattleLeafClockRoom(entry, *cost), false,
+#if defined(LUFIA2_HAVE_NATIVE_SPRITE_OVERLAYS)
+        parent ? SpriteOverlayHookOwned : NULL
+#else
+        NULL
+#endif
+    );
 }
 
 static RecompReturn ActorBridgeTimedBattleSprites(CpuState *cpu, bool parent) {

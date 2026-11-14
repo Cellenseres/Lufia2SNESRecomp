@@ -3035,6 +3035,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
                                                wide_accumulator, 800u, 256u);
 }
 #include "fixed_span_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_SPRITE_OVERLAYS)
+#include "sprite_overlay_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK) || defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_TRAVERSAL)
 static const FixedSpanOpcode actor_record_offset_timing[] = {
     {0xab4fu, 2u, 3u, 1u}, {0xab51u, 2u, 3u, 1u},
@@ -4287,6 +4290,11 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_SPRITE_OVERLAYS)
+    if (Lufia2DecompFrameRangeAllows(0x81b680u, 0x81b681u, SpriteOverlayHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x81b680u, ActorBridgeSpriteOverlays);
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK) && defined(LUFIA2_HAVE_NATIVE_VEHICLE_TERRAIN)
     if (Lufia2DecompFrameRangeAllows(0x8ebbafu, 0x8ebbb0u, VehicleTerrainHookOwned))
         interp_bridge_set_pre_opcode_hook(0x8ebbafu, ActorBridgeVehicleTerrain);
