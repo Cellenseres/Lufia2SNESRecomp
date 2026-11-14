@@ -3574,9 +3574,7 @@ static bool ActorBridgeSoundTransferSupported(const CpuState *cpu, uint32_t entr
         ActorBridgeSoundWindowSupported(cpu, entry, 0x1ff8u, budget);
 }
 
-static void ActorBridgeSoundUpload(CpuState *cpu, uint32_t entry) {
-    if (cpu->m_flag != 1u || !ActorBridgeSoundTransferSupported(cpu, entry))
-        return;
+static void ActorBridgeRunSoundUpload(CpuState *cpu, uint32_t entry) {
     ActorTimedBus bus = {0};
     bus.cpu = cpu;
     const Lufia2Memory memory = {ActorBridgeTimedRead, ActorBridgeTimedWrite, &bus,
@@ -3590,6 +3588,12 @@ static void ActorBridgeSoundUpload(CpuState *cpu, uint32_t entry) {
     ActorBridgeStore(cpu, &state);
     Lufia2DecompFrameReturnComplete(bus.count, bus.progress_mask);
     interp_bridge_pre_opcode_redirect(result.pc);
+}
+
+static void ActorBridgeSoundUpload(CpuState *cpu, uint32_t entry) {
+    if (cpu->m_flag != 1u || !ActorBridgeSoundTransferSupported(cpu, entry))
+        return;
+    ActorBridgeRunSoundUpload(cpu, entry);
 }
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_HANDSHAKE_STEPS)
@@ -3616,10 +3620,7 @@ static void ActorBridgeSoundBranch(CpuState *cpu, uint32_t entry) {
     Lufia2DecompFrameReturnComplete(1u, 0u);
     interp_bridge_pre_opcode_redirect(next);
 }
-static void ActorBridgeBootSound(CpuState *cpu, uint32_t entry) {
-    if (cpu->m_flag != (entry != 0x809c3bu) ||
-        !ActorBridgeSoundTransferSupported(cpu, entry))
-        return;
+static void ActorBridgeRunBootSound(CpuState *cpu, uint32_t entry) {
     ActorTimedBus bus = {0};
     bus.cpu = cpu;
     const Lufia2Memory memory = {ActorBridgeTimedRead, ActorBridgeTimedWrite, &bus,
@@ -3634,6 +3635,13 @@ static void ActorBridgeBootSound(CpuState *cpu, uint32_t entry) {
     ActorBridgeStore(cpu, &state);
     Lufia2DecompFrameReturnComplete(bus.count, bus.progress_mask);
     interp_bridge_pre_opcode_redirect(result.pc);
+}
+
+static void ActorBridgeBootSound(CpuState *cpu, uint32_t entry) {
+    if (cpu->m_flag != (entry != 0x809c3bu) ||
+        !ActorBridgeSoundTransferSupported(cpu, entry))
+        return;
+    ActorBridgeRunBootSound(cpu, entry);
 }
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_POLL_RUNS) ||                                     \
@@ -3836,9 +3844,9 @@ static void ActorBridgeSoundTransferOpcode(CpuState *cpu, uint32_t entry) {
         return;
     if (ActorBridgeSoundTransferSupported(cpu, entry)) {
         if (entry >= 0x809c00u)
-            ActorBridgeBootSound(cpu, entry);
+            ActorBridgeRunBootSound(cpu, entry);
         else
-            ActorBridgeSoundUpload(cpu, entry);
+            ActorBridgeRunSoundUpload(cpu, entry);
         return;
     }
     if (!g_snes || cpu->coprocessor_master_cycles != cpu->master_cycles ||
