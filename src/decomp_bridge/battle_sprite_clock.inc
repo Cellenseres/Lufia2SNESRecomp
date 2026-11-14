@@ -121,6 +121,8 @@ static bool BattleSpriteClockSupported(const CpuState *cpu, uint32_t entry,
 }
 
 static RecompReturn ActorBridgeTimedBattleSprites(CpuState *cpu, bool parent) {
+    if (!parent && !rtl_apu_extended_frame_timing())
+        return ActorBridgeTimedFixedOamClear(cpu);
     const uint32_t entry = parent ? 0x81b5c4u : 0x81b5a3u;
     ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
     BattleLeafCost cost;

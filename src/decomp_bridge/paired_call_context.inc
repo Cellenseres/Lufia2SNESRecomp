@@ -1,4 +1,7 @@
 #include "decomp_bridge/frame_returns.h"
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS)
+#include "common_rtl.h"
+#endif
 
 typedef struct FramePairedCallContext {
     const struct CpuState *cpu;
@@ -14,6 +17,10 @@ static uint32_t s_frame_paired_return_pc = UINT32_MAX;
 
 static unsigned FramePairedFieldBudget(uint32_t entry) {
     entry &= 0x7fffffu;
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS)
+    if (entry == 0x01b5a3u && !rtl_apu_extended_frame_timing())
+        return LUFIA2_BATTLE_FIXED_OAM_OPCODE_BUDGET;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_ITEM_REGION_CLOCK)
     if (entry == 0x0eb63bu)
         return LUFIA2_FIELD_ITEM_REGION_OPCODE_BUDGET;
