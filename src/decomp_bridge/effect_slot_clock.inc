@@ -74,8 +74,25 @@ static bool EffectSlotClockWindowSupported(const CpuState *cpu,
         return false;
     const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u &&
         g_snes->hPos < 1024u ? 1024u : 1364u;
-    return ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, false,
-        fence - budget - 1u, budget);
+    if (ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, false,
+            fence - budget - 1u, budget))
+        return true;
+#if defined(SNES_COSIM) || defined(SNESRECOMP_INTERP_PROFILE) || \
+    (defined(SNESRECOMP_REVERSE_DEBUG) && SNESRECOMP_REVERSE_DEBUG)
+    return false;
+#endif
+    if (cpu != &g_cpu || charged != cpu->master_cycles ||
+        !g_snes->hdmaBeamOff || !g_snes->dma || g_snes->dma->hdmaPendingInit ||
+        !g_snes->cart || !g_snes->cart->rom ||
+        g_snes->cart->type != CART_LOROM || g_snes->cart->superfx ||
+        g_snes->cart->cx4 || g_snes->cart->dsp1 || g_snes->cart->sdd1 ||
+        g_snes->cart->sa1 || g_snes->vPos >= 262u ||
+        !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, false,
+            1363u, budget))
+        return false;
+    /* Per-opcode clocks retain line ends; VBlank and frame edges stay outside. */
+    const unsigned edge = g_snes->vPos < 225u ? 225u : 262u;
+    return budget < (edge - g_snes->vPos) * 1364u - g_snes->hPos;
 }
 
 static bool EffectSlotClockSupported(const CpuState *cpu, uint32_t entry,
