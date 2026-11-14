@@ -4330,6 +4330,9 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_TRAVERSAL)
         0x83bba1u,
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_CHILD_RETURN)
+        0x83bbcfu,
+#endif
         0x83bba5u, 0x83bbd1u};
     for (unsigned i = 0u; i < sizeof actor_phases / sizeof *actor_phases; ++i) {
         const uint32_t entry = actor_phases[i];
