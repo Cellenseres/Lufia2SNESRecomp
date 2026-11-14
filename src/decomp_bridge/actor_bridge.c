@@ -3859,6 +3859,8 @@ static void ActorBridgeSoundPollRun(CpuState *cpu, uint32_t entry) {
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_TRANSFER_OPCODES)
 static void ActorBridgeSoundTransferOpcode(CpuState *cpu, uint32_t entry) {
+    if (g_interp_bridge_pc_hook)
+        return;
     const ActorTimedOpcode *opcode = ActorBridgeSoundOpcode((uint16_t)entry);
     const bool wide = entry == 0x809c38u || entry == 0x809c3bu ||
                       (entry >= 0x809c4cu && entry <= 0x809c58u);
