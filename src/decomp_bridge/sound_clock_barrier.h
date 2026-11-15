@@ -34,6 +34,10 @@ void Lufia2DecompSoundClockAccount(Lufia2SoundClockBarrier *clock,
     unsigned cycles, uint64_t master, bool progress);
 void Lufia2DecompSoundClockBarrier(Lufia2SoundClockBarrier *clock);
 void Lufia2DecompSoundClockEnd(Lufia2SoundClockBarrier *clock);
+uint8_t Lufia2DecompSoundClockRead(Lufia2SoundClockBarrier *clock,
+    uint32_t address, bool *progress);
+void Lufia2DecompSoundClockWrite(Lufia2SoundClockBarrier *clock,
+    uint32_t address, uint8_t value, bool *progress);
 
 #ifdef __cplusplus
 }

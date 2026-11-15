@@ -119,8 +119,8 @@ static uint8_t SoundPayloadClockRead(void *context, uint32_t address) {
         assert(clock->span->remaining);
         SoundPayloadClockBeforeAccess(clock, address);
         bool progress = false;
-        const uint8_t value = Lufia2DecompFrameReturnReadByte(
-            clock->span->cpu, address, &progress);
+        const uint8_t value = Lufia2DecompSoundClockRead(
+            &clock->barrier, address, &progress);
         SoundPayloadClockFinishAccess(clock, address, progress);
         return value;
     }
@@ -136,7 +136,7 @@ static void SoundPayloadClockWrite(void *context, uint32_t address, uint8_t valu
         assert(clock->span->remaining);
         SoundPayloadClockBeforeAccess(clock, address);
         bool progress = false;
-        Lufia2DecompFrameReturnWriteByte(clock->span->cpu, address, value, &progress);
+        Lufia2DecompSoundClockWrite(&clock->barrier, address, value, &progress);
         SoundPayloadClockFinishAccess(clock, address, progress);
         return;
     }

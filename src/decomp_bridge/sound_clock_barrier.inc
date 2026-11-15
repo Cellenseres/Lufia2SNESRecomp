@@ -176,3 +176,57 @@ void Lufia2DecompSoundClockAccount(Lufia2SoundClockBarrier *clock,
 #endif
     Lufia2DecompFrameReturnAccountOpcode(clock->cpu, cycles, master, progress);
 }
+
+uint8_t Lufia2DecompSoundClockRead(Lufia2SoundClockBarrier *clock,
+    uint32_t address, bool *progress) {
+#if defined(LUFIA2_HAVE_SOUND_CLOCK_BARRIERS)
+    if (clock->enabled) {
+        const uint8_t bank = (uint8_t)(address >> 16);
+        const uint16_t offset = (uint16_t)address;
+        const int32_t wram = cpu_wram_offset(bank, offset);
+        Cart *cart = clock->system->cart;
+        uint8_t value;
+        if (wram >= 0) {
+            value = clock->cpu->ram[wram];
+        } else if ((bank & 0x7fu) < 0x50u && offset >= 0x8000u && cart->romSize) {
+            const uint32_t source = ((uint32_t)(bank & 0x7fu) << 15) |
+                (offset & 0x7fffu);
+            value = cart->rom[source % cart->romSize];
+        } else {
+            return Lufia2DecompFrameReturnReadByte(clock->cpu, address, progress);
+        }
+        clock->cpu->open_bus = value;
+        cart->cpuBusAddress = address & 0xffffffu;
+        *progress = false;
+        if ((bank & 0x7fu) < 0x40u && offset < 0x2000u) {
+            /* Low WRAM mirrors participate in the interpreter's wait ledger. */
+            ++s_interp_continuous_read_epoch;
+            BridgeDynamicValue *dynamic =
+                &s_bridge_dynamic_values[(address ^ (address >> 8) ^ (address >> 16)) & 63u];
+            if (!dynamic->valid || dynamic->address != address || dynamic->value != value) {
+                dynamic->valid = 1;
+                dynamic->address = address;
+                dynamic->value = value;
+                ++s_interp_dynamic_progress_epoch;
+                *progress = true;
+            }
+        }
+        return value;
+    }
+#endif
+    return Lufia2DecompFrameReturnReadByte(clock->cpu, address, progress);
+}
+
+void Lufia2DecompSoundClockWrite(Lufia2SoundClockBarrier *clock,
+    uint32_t address, uint8_t value, bool *progress) {
+#if defined(LUFIA2_HAVE_SOUND_CLOCK_BARRIERS)
+    if (clock->enabled && cpu_wram_offset((uint8_t)(address >> 16), (uint16_t)address) >= 0) {
+        ++g_interp_bridge_write_epoch;
+        /* Keep the CPU's write observers and title hooks on the original path. */
+        cpu_write8(clock->cpu, (uint8_t)(address >> 16), (uint16_t)address, value);
+        *progress = true;
+        return;
+    }
+#endif
+    Lufia2DecompFrameReturnWriteByte(clock->cpu, address, value, progress);
+}
