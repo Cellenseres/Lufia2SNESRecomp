@@ -17,6 +17,9 @@ const struct SnesRecompApuProgram *Lufia2SpcNativeProgram(void);
 /* True once the native driver owns the SPC. */
 bool Lufia2SpcNativeActive(void);
 
+/* Requires an enabled CPU-span contract and a settled native driver. */
+bool Lufia2SpcNativeCpuSpanReady(const struct Apu *apu);
+
 /* Driver progress for savestates and rollback snapshots. */
 void Lufia2SpcNativeSaveState(struct SaveLoadInfo *sli, const struct Apu *apu);
 /* False leaves the post-load fallback in place. */

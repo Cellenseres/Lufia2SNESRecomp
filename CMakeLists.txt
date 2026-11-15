@@ -567,6 +567,11 @@ if(LUFIA2_ENABLE_DECOMP)
 endif()
 if(LUFIA2_ENABLE_NATIVE_SPC)
     list(APPEND LUFIA2_HOST_SOURCES src/lufia2_spc_native.c)
+    if(SNESRECOMP_PLATFORM_APU_CPU_SPANS)
+        set_property(SOURCE "${CMAKE_SOURCE_DIR}/src/lufia2_spc_native.c" APPEND PROPERTY
+            COMPILE_DEFINITIONS
+                "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,Lufia2Recomp>:LUFIA2_ENABLE_APU_CPU_SPANS=1>")
+    endif()
 endif()
 
 if(LUFIA2_ENABLE_GAMEPLAY_CAPTURE)

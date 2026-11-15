@@ -1,3 +1,5 @@
+#include "sound_payload_clock.inc"
+
 enum {
     SOUND_PAYLOAD_PAIR_MASTER_BUDGET = 576u,
     SOUND_PAYLOAD_HANDSHAKE_MASTER_BUDGET = 768u
@@ -90,14 +92,20 @@ static bool RunSoundPayloadGroup(CpuState *cpu, uint32_t entry,
     };
     FixedSpanClock clock = {.cpu = cpu, .bank = 0x800000u,
         .timing = timing, .count = 17u};
-    const Lufia2Memory memory = {FixedSpanRead, FixedSpanWrite, &clock, NULL, NULL};
+    SoundPayloadClock payload_clock = {.span = &clock};
+    const bool clocked = SoundPayloadClockPrepare(&payload_clock,
+        handshake ? SOUND_PAYLOAD_HANDSHAKE_MASTER_BUDGET : SOUND_PAYLOAD_PAIR_MASTER_BUDGET);
+    const Lufia2Memory memory = clocked
+        ? (Lufia2Memory){SoundPayloadClockRead, SoundPayloadClockWrite,
+            &payload_clock, NULL, NULL}
+        : (Lufia2Memory){FixedSpanRead, FixedSpanWrite, &clock, NULL, NULL};
     Lufia2CpuState state;
     ActorBridgeLoad(cpu, &state);
     const Lufia2ExecutionResult sent = Lufia2SoundUploadStep(&memory, &state, entry);
     assert(sent.pc == 0x80997du);
     const Lufia2ExecutionResult prefetched = Lufia2SoundUploadStep(
         &memory, &state, sent.pc);
-    BeginFixedSpanOpcode(&clock);
+    SoundPayloadClockBegin(&payload_clock);
     assert(prefetched.pc == 0x809997u && clock.index == 17u && !clock.remaining);
     uint32_t next = prefetched.pc;
 #if defined(LUFIA2_HAVE_NATIVE_SOUND_POLLS) && \
@@ -109,14 +117,14 @@ static bool RunSoundPayloadGroup(CpuState *cpu, uint32_t entry,
         assert(compared.pc == 0x80999bu && clock.index == 18u);
         timing[18].cycles += !state.zero;
         clock.count = 19u;
-        BeginFixedSpanOpcode(&clock);
+        SoundPayloadClockBegin(&payload_clock);
         next = Lufia2SoundPollBranchTarget(compared.pc, state.zero, state.overflow);
         if (next == 0x80999du) {
             const bool more = state.x >= 3u;
             timing[24].cycles += more;
             clock.count = more ? 25u : 27u;
             next = Lufia2SoundUploadStep(&memory, &state, next).pc;
-            BeginFixedSpanOpcode(&clock);
+            SoundPayloadClockBegin(&payload_clock);
             assert(next == (more ? 0x809969u : 0x8099aeu));
         }
         assert(clock.index == clock.count && !clock.remaining);
@@ -124,6 +132,7 @@ static bool RunSoundPayloadGroup(CpuState *cpu, uint32_t entry,
 #else
     (void)handshake;
 #endif
+    SoundPayloadClockClose(&payload_clock);
     ActorBridgeStore(cpu, &state);
     result->next_pc = next;
     result->opcodes = clock.count;

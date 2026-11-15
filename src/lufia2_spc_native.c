@@ -327,8 +327,13 @@ bool Lufia2SpcNativeInstall(void) {
     const char *interpreted = getenv("LUFIA2_SPC_INTERPRETED");
 
     if (!s_installed && !(interpreted && interpreted[0] == '1')) {
+        uint32_t capabilities = SNESRECOMP_APU_IDLE_STABLE_DSP;
+#if defined(LUFIA2_ENABLE_APU_CPU_SPANS)
+        /* Callbacks use only APU/ARAM and adapter-owned state. */
+        capabilities |= SNESRECOMP_APU_CPU_INDEPENDENT;
+#endif
         if (!snesrecomp_apu_set_program_with_capabilities(
-                &kProgram, SNESRECOMP_APU_IDLE_STABLE_DSP)) return false;
+                &kProgram, capabilities)) return false;
         s_installed = true;
     }
     return s_installed;
@@ -337,6 +342,16 @@ bool Lufia2SpcNativeInstall(void) {
 const SnesRecompApuProgram *Lufia2SpcNativeProgram(void) { return &kProgram; }
 
 bool Lufia2SpcNativeActive(void) { return s_installed && s_active; }
+
+bool Lufia2SpcNativeCpuSpanReady(const Apu *apu) {
+#if defined(LUFIA2_ENABLE_APU_CPU_SPANS)
+    return apu && s_installed && s_active && !s_loaded_without_state &&
+        !s_resume_idle && s_hardware.context == apu;
+#else
+    (void)apu;
+    return false;
+#endif
+}
 
 /* ---- savestate chunk ---- */
 
