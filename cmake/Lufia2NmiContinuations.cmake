@@ -899,8 +899,9 @@ function(lufia2_add_nmi_continuations target core_root)
        "LUFIA2_HAVE_NATIVE_SOUND_UPLOAD_STEPS=1" IN_LIST _definitions)
         list(APPEND _definitions LUFIA2_HAVE_NATIVE_SOUND_SOURCE_CLOCK=1)
     endif()
-    if(_frame_returns AND (_decompress_steps OR _decompress_reference_steps))
-        list(APPEND _definitions LUFIA2_HAVE_NATIVE_DECOMPRESS_WINDOW_CONTEXT=1)
+    if(_frame_returns AND (_decompress_steps OR _decompress_reference_steps OR
+                           _battle_effect_dispatch_steps))
+        list(APPEND _definitions LUFIA2_HAVE_NATIVE_OPCODE_WINDOW_CONTEXT=1)
     endif()
     if(_frame_returns AND "LUFIA2_HAVE_NATIVE_SOUND_SOURCE_CLOCK=1" IN_LIST _definitions AND
        "LUFIA2_HAVE_NATIVE_SOUND_TRANSFER_OPCODES=1" IN_LIST _definitions)
@@ -1113,22 +1114,22 @@ function(lufia2_add_nmi_continuations target core_root)
                     "#include <stdint.h>\n#include \"decomp_bridge/frame_returns.h\"\nstatic int s_frame_return_auto_quiescent;\nstatic int s_frame_return_batch_allowed;\nstatic unsigned s_frame_return_poll_opcode_budget;\nstatic int s_frame_return_interrupt_blocked = 1;\nstatic void Lufia2DecompFrameReturnContinue(long *, int, uint64_t *, uint64_t *);\n")
                 string(APPEND _timing_suffix
                     "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/frame_return_cycles.inc\"\n")
-                if("LUFIA2_HAVE_NATIVE_DECOMPRESS_WINDOW_CONTEXT=1" IN_LIST _definitions)
+                if("LUFIA2_HAVE_NATIVE_OPCODE_WINDOW_CONTEXT=1" IN_LIST _definitions)
                     set(_window_save "                        const unsigned old_poll_budget = s_frame_return_poll_opcode_budget;\n")
                     string(FIND "${_text}" "${_window_save}" _window_index)
                     if(_window_index EQUAL -1)
-                        message(FATAL_ERROR "Missing decompressor callback context seam")
+                        message(FATAL_ERROR "Missing native opcode callback context seam")
                     endif()
                     string(REPLACE "${_window_save}"
-                        "${_window_save}                        const int old_decompress_window = s_decompress_window_ready;\n"
+                        "${_window_save}                        const int old_native_opcode_window = s_native_opcode_window_ready;\n"
                         _text "${_text}")
                     string(REPLACE "${_hook_call}"
-                        "                    s_decompress_window_ready = s_frame_return_batch_allowed && !n_stop;\n${_hook_call}\n                    s_decompress_window_ready = old_decompress_window;"
+                        "                    s_native_opcode_window_ready = s_frame_return_batch_allowed && !n_stop;\n${_hook_call}\n                    s_native_opcode_window_ready = old_native_opcode_window;"
                         _text "${_text}")
                     string(PREPEND _text
-                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/decompress_window_clock.h\"\nstatic int s_decompress_window_ready;\n")
+                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/native_opcode_window.h\"\nstatic int s_native_opcode_window_ready;\n")
                     string(APPEND _timing_suffix
-                        "\nbool Lufia2DecompDecompressWindowReady(void) { return s_decompress_window_ready != 0; }\n")
+                        "\nbool Lufia2DecompOpcodeWindowReady(void) { return s_native_opcode_window_ready != 0; }\n")
                 endif()
                 set(_paired_begin "                s_lle_next_unwind_is_deadline = 0;")
                 set(_paired_end "                s_interp_bounce_owner_depth = _saved_bounce_owner;")
@@ -1245,8 +1246,10 @@ function(lufia2_add_nmi_continuations target core_root)
                         _text "${_text}")
                 endif()
                 if(_battle_effect_dispatch_steps)
+                    string(PREPEND _text
+                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/effect_dispatch_clock.h\"\n")
                     string(REPLACE "${_hook_call}"
-                        "                    if (((pc_before & 0x7fffffu) != 0x018a95u &&\n                         (pc_before & 0x7fffffu) != 0x018b08u) ||\n                        step_cap - steps >= 9) {\n${_hook_call}\n                    }"
+                        "                    if (((pc_before & 0x7fffffu) != 0x018a95u &&\n                         (pc_before & 0x7fffffu) != 0x018b08u) ||\n                        !Lufia2DecompEffectDispatchHookOwned(pc_before, s_pre_opcode_hooks[hi].hook) ||\n                        step_cap - steps >= 9) {\n${_hook_call}\n                    }"
                         _text "${_text}")
                 endif()
                 if(_battle_effect_cleanup_steps)

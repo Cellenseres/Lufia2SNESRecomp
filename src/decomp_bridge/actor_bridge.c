@@ -2992,6 +2992,7 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
                                                wide_accumulator, 800u, 256u);
 }
 #include "fixed_span_clock.inc"
+#include "native_opcode_window.inc"
 #if defined(LUFIA2_HAVE_NATIVE_SPRITE_OVERLAYS)
 #include "sprite_overlay_clock.inc"
 #endif
@@ -4431,8 +4432,12 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #endif
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_DISPATCH_STEPS)
-    interp_bridge_set_pre_opcode_hook(0x818a95u, ActorBridgeEffectDispatchPrepare);
-    interp_bridge_set_pre_opcode_hook(0x818b08u, ActorBridgeEffectDispatchPrepare);
+    static const uint32_t effect_dispatch_entries[] = {0x818a95u, 0x818b08u};
+    for (unsigned i = 0u; i < 2u; ++i) {
+        const uint32_t entry = effect_dispatch_entries[i];
+        if (Lufia2DecompFrameRangeAllows(entry, entry + 1u, Lufia2DecompEffectDispatchHookOwned))
+            interp_bridge_set_pre_opcode_hook(entry, ActorBridgeEffectDispatchPrepare);
+    }
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_CLEANUP_STEPS)
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_CLEAR_SPANS)

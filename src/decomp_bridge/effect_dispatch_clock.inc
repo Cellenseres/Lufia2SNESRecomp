@@ -1,8 +1,9 @@
+#include "effect_dispatch_clock.h"
 #include "lufia2/battle_effect_slot_steps.h"
 
 static void ActorBridgeEffectDispatchPrepare(CpuState *cpu, uint32_t entry);
 
-static bool EffectDispatchHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+bool Lufia2DecompEffectDispatchHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
     return hook == ActorBridgeEffectDispatchPrepare &&
         (pc == 0x818a95u || pc == 0x818b08u);
 }
@@ -34,13 +35,14 @@ static bool EffectDispatchPrepareClockSupported(const CpuState *cpu,
     const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
         ? 1024u : 1364u;
     if (!ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, false,
-            fence - budget - 1u, budget))
+            fence - budget - 1u, budget) &&
+        !NativeOpcodeWindowSupported(cpu, entry, budget, 0x1fffu, false))
         return false;
     uint64_t phase, clock;
     snes_refresh_state_get(&phase, &clock);
     return phase < 1364u && clock == cpu->master_cycles &&
         Lufia2DecompFrameRangeAllows(entry,
-            entry + (entry == 0x818b08u ? 13u : 15u), EffectDispatchHookOwned);
+            entry + (entry == 0x818b08u ? 13u : 15u), Lufia2DecompEffectDispatchHookOwned);
 }
 
 static void ActorBridgeEffectDispatchPrepare(CpuState *cpu, uint32_t entry) {

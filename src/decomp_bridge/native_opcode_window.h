@@ -1,5 +1,5 @@
-#ifndef LUFIA2_DECOMPRESS_WINDOW_CLOCK_H
-#define LUFIA2_DECOMPRESS_WINDOW_CLOCK_H
+#ifndef LUFIA2_NATIVE_OPCODE_WINDOW_H
+#define LUFIA2_NATIVE_OPCODE_WINDOW_H
 
 #include <stdbool.h>
 
@@ -8,7 +8,7 @@ extern "C" {
 #endif
 
 /* Valid only within the SDK's current pre-opcode callback. */
-bool Lufia2DecompDecompressWindowReady(void);
+bool Lufia2DecompOpcodeWindowReady(void);
 
 #ifdef __cplusplus
 }
