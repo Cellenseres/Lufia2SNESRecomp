@@ -4,6 +4,9 @@ typedef struct SoundPayloadClock {
     FixedSpanClock *span;
 #if defined(LUFIA2_HAVE_SOUND_CLOCK_BARRIERS)
     Lufia2SoundClockBarrier barrier;
+    Cart *cart;
+    const uint8_t *rom;
+    unsigned fetch_speed;
 #endif
     bool enabled;
 } SoundPayloadClock;
@@ -12,6 +15,11 @@ static bool SoundPayloadClockPrepare(SoundPayloadClock *clock, unsigned budget) 
 #if defined(LUFIA2_HAVE_SOUND_CLOCK_BARRIERS)
     clock->enabled = Lufia2DecompSoundClockBegin(
         clock->span->cpu, budget, &clock->barrier);
+    if (clock->enabled) {
+        clock->cart = g_snes->cart;
+        clock->rom = clock->cart->rom;
+        clock->fetch_speed = cpu_region_speed(0x809969u);
+    }
 #else
     (void)budget;
     clock->enabled = false;
@@ -29,6 +37,22 @@ static void SoundPayloadClockClose(SoundPayloadClock *clock) {
 }
 
 #if defined(LUFIA2_HAVE_SOUND_CLOCK_BARRIERS)
+static inline void SoundPayloadClockFetch(SoundPayloadClock *clock) {
+    FixedSpanClock *span = clock->span;
+    if (!clock->barrier.enabled) {
+        FetchFixedSpanOpcode(span);
+        return;
+    }
+    /* The admitted group fixes bank 80, ROM bounds and observers. Its only
+     * device accesses are APU ports, so mapping and ROM speed remain fixed. */
+    const FixedSpanOpcode *timing = span->timing + span->index;
+    const uint32_t last = timing->pc + timing->fetched - 1u;
+    span->cpu->open_bus = clock->rom[last & 0x7fffu];
+    clock->cart->cpuBusAddress = 0x800000u | last;
+    span->fetch_master += (uint64_t)timing->fetched * clock->fetch_speed;
+    span->remaining = timing->data_bytes;
+}
+
 static void SoundPayloadClockFinish(SoundPayloadClock *clock) {
     FixedSpanClock *span = clock->span;
     const FixedSpanOpcode *timing = span->timing + span->index;
@@ -77,7 +101,7 @@ static void SoundPayloadClockBegin(SoundPayloadClock *clock) {
     if (clock->enabled) {
         FixedSpanClock *span = clock->span;
         while (!span->remaining && span->index < span->count) {
-            FetchFixedSpanOpcode(span);
+            SoundPayloadClockFetch(clock);
             if (!span->remaining)
                 SoundPayloadClockFinish(clock);
         }
