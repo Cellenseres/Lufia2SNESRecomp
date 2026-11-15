@@ -61,6 +61,9 @@ static unsigned s_queue_count;
 static bool s_loaded_without_state;
 /* An older interpreted snapshot may rejoin only at an empty main-loop boundary. */
 static bool s_resume_idle;
+/* Command ports seen by the last run that ended waiting for block data. */
+static uint8_t s_block_wait_command, s_block_wait_check;
+static bool s_block_wait_valid;
 
 static void Apply(Apu *apu, const QueuedAccess *access) {
     switch ((AccessKind)access->kind) {
@@ -207,6 +210,30 @@ static void RunDriver(Apu *apu) {
     s_run_delay = 0;
 }
 
+/* A receive step waiting for the next data pair reads the end-mark port and
+ * then the index port, and returns unchanged unless one of them moved. The CPU
+ * sends the data ports before the index, so those runs only repeat the two
+ * reads. Keep the reads for the port trace and skip the bridge round. */
+static bool SkipUnchangedBlockWait(Apu *apu) {
+    if (!s_block_wait_valid || s_hardware.context != apu || s_driver.aram != apu->ram ||
+        s_driver.wait != LUFIA2_SPC_WAIT_BLOCK_DATA ||
+        !s_driver.step_count || apu->inPorts[3] != s_block_wait_check ||
+        apu->inPorts[2] != s_block_wait_command)
+        return false;
+    (void)ReadPort(apu, 3);
+    (void)ReadPort(apu, 2);
+    return true;
+}
+
+static void RunDriverOrSkip(Apu *apu) {
+    if (SkipUnchangedBlockWait(apu))
+        return;
+    RunDriver(apu);
+    s_block_wait_valid = s_driver.wait == LUFIA2_SPC_WAIT_BLOCK_DATA && s_driver.step_count;
+    s_block_wait_command = apu->inPorts[2];
+    s_block_wait_check = apu->inPorts[3];
+}
+
 static bool ResumeIdleReady(const Apu *apu) {
     return s_resume_idle && apu->spc->pc == 0x0388u &&
         apu->spc->sp == 0xffu && !apu->spc->p && !apu->spc->stopped &&
@@ -242,6 +269,7 @@ static bool TakeOver(void *context, Apu *apu) {
     snesrecomp_dsp_bridge_native_end(apu);
 #endif
     s_resume_idle = false;
+    s_block_wait_valid = false;
     s_active = true;
     return true;
 }
@@ -249,6 +277,7 @@ static bool TakeOver(void *context, Apu *apu) {
 /* Missing native chunk: preserve SPC until a proven empty-loop rejoin. */
 static void SettleAfterLoad(Apu *apu) {
     s_loaded_without_state = false;
+    s_block_wait_valid = false;
     s_queue_count = 0;
     s_run_deferred = false;
     s_active = apu->spc->pc == DRIVER_ENTRY && apu->cpuCyclesLeft != 0 &&
@@ -280,7 +309,7 @@ static void Run(void *context, Apu *apu) {
         s_run_deferred = true;
         return;
     }
-    RunDriver(apu);
+    RunDriverOrSkip(apu);
 }
 
 static void Cycle(void *context, Apu *apu) {
@@ -293,7 +322,7 @@ static void Cycle(void *context, Apu *apu) {
     ApplyDue(apu);
     if (s_queue_count == 0 && s_run_deferred) {
         s_run_deferred = false;
-        RunDriver(apu);
+        RunDriverOrSkip(apu);
     }
 }
 
@@ -302,6 +331,7 @@ static void Loaded(void *context, Apu *apu) {
     (void)apu;
     s_loaded_without_state = true;
     s_resume_idle = false;
+    s_block_wait_valid = false;
 }
 
 /* Cycle only applies the queue head when due. */
@@ -434,6 +464,7 @@ bool Lufia2SpcNativeLoadState(SaveLoadInfo *sli, Apu *apu) {
     s_driver.repeat_arguments = header.repeat_arguments;
     s_loaded_without_state = false;
     s_resume_idle = false;
+    s_block_wait_valid = false;
     Bind(apu);
     return true;
 }
