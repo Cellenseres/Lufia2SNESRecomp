@@ -189,10 +189,8 @@ static bool ReferenceClockSupported(const CpuState *cpu, uint32_t entry,
     if (refresh_phase >= 1364u || refresh_clock != cpu->master_cycles ||
         !g_snes || g_snes->vPos >= 262u)
         return false;
-    const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
-        ? 1024u : 1364u;
-    return ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1ffbu, true,
-        fence - budget - 1u, budget) && ReferenceHooksAllow(cpu, *phase);
+    return DecompressClockWindowSupported(cpu, entry, budget, false) &&
+        ReferenceHooksAllow(cpu, *phase);
 }
 
 static void ActorBridgeDecompressReferenceClock(CpuState *cpu, uint32_t entry) {

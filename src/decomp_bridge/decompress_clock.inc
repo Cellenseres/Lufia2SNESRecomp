@@ -20,6 +20,15 @@ typedef struct DecompressClock {
 
 static void ActorBridgeDecompressClock(CpuState *cpu, uint32_t entry);
 
+static bool DecompressHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return hook == ActorBridgeDecompressClock &&
+        (pc == 0x808eefu || pc == 0x808f93u ||
+         pc == 0x808efau || pc == 0x808f9eu ||
+         pc == 0x808f66u || pc == 0x80900au ||
+         pc == 0x808f40u || pc == 0x808fe4u ||
+         pc == 0x808f14u || pc == 0x808fb8u);
+}
+
 static bool DecompressAdvanceHookOwned(uint32_t pc,
     void (*hook)(CpuState *, uint32_t)) {
     return (pc == 0x808f14u || pc == 0x808fb8u) &&
@@ -256,11 +265,7 @@ static bool DecompressClockSupported(const CpuState *cpu, uint32_t entry) {
         return false;
     if (!DecompressHooksAllowed(cpu, entry, first, mirror))
         return false;
-    const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u &&
-        (!advance || g_snes->hPos <= 1024u)
-        ? 1024u : 1364u;
-    return ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1ffbu, true,
-        fence - budget - 1u, budget);
+    return DecompressClockWindowSupported(cpu, entry, budget, advance);
 }
 
 static void ActorBridgeDecompressClock(CpuState *cpu, uint32_t entry) {

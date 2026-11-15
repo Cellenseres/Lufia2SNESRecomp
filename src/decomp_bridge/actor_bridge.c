@@ -3102,6 +3102,9 @@ static void ActorBridgeTargetMarkerRecords(CpuState *cpu, uint32_t entry);
 #include "swirl_parts_clock.inc"
 #endif
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_DECOMPRESS_STEPS) || defined(LUFIA2_HAVE_NATIVE_DECOMPRESS_REFERENCE_STEPS)
+#include "decompress_window_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_DECOMPRESS_STEPS)
 #include "decompress_clock.inc"
 #endif
@@ -4450,17 +4453,17 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #endif
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_DECOMPRESS_STEPS)
-    interp_bridge_set_pre_opcode_hook(0x808eefu, ActorBridgeDecompressClock);
-    interp_bridge_set_pre_opcode_hook(0x808f93u, ActorBridgeDecompressClock);
-    interp_bridge_set_pre_opcode_hook(0x808efau, ActorBridgeDecompressClock);
-    interp_bridge_set_pre_opcode_hook(0x808f9eu, ActorBridgeDecompressClock);
-    interp_bridge_set_pre_opcode_hook(0x808f66u, ActorBridgeDecompressClock);
-    interp_bridge_set_pre_opcode_hook(0x80900au, ActorBridgeDecompressClock);
+    InstallDecompressHook(0x808eefu, ActorBridgeDecompressClock, DecompressHookOwned);
+    InstallDecompressHook(0x808f93u, ActorBridgeDecompressClock, DecompressHookOwned);
+    InstallDecompressHook(0x808efau, ActorBridgeDecompressClock, DecompressHookOwned);
+    InstallDecompressHook(0x808f9eu, ActorBridgeDecompressClock, DecompressHookOwned);
+    InstallDecompressHook(0x808f66u, ActorBridgeDecompressClock, DecompressHookOwned);
+    InstallDecompressHook(0x80900au, ActorBridgeDecompressClock, DecompressHookOwned);
 #if defined(LUFIA2_HAVE_NATIVE_DECOMPRESS_FLAG_STEPS)
-    interp_bridge_set_pre_opcode_hook(0x808f40u, ActorBridgeDecompressClock);
-    interp_bridge_set_pre_opcode_hook(0x808fe4u, ActorBridgeDecompressClock);
-    interp_bridge_set_pre_opcode_hook(0x808f14u, ActorBridgeDecompressClock);
-    interp_bridge_set_pre_opcode_hook(0x808fb8u, ActorBridgeDecompressClock);
+    InstallDecompressHook(0x808f40u, ActorBridgeDecompressClock, DecompressHookOwned);
+    InstallDecompressHook(0x808fe4u, ActorBridgeDecompressClock, DecompressHookOwned);
+    InstallDecompressHook(0x808f14u, ActorBridgeDecompressClock, DecompressHookOwned);
+    InstallDecompressHook(0x808fb8u, ActorBridgeDecompressClock, DecompressHookOwned);
 #endif
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_RIPPLE_STEPS)
@@ -4478,12 +4481,12 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     interp_bridge_set_pre_opcode_hook(0x85ecbdu, ActorBridgeBattleInputClock);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_DECOMPRESS_REFERENCE_STEPS)
-    interp_bridge_set_pre_opcode_hook(0x808f44u, ActorBridgeDecompressReferenceClock);
-    interp_bridge_set_pre_opcode_hook(0x808fe8u, ActorBridgeDecompressReferenceClock);
-    interp_bridge_set_pre_opcode_hook(0x808f6fu, ActorBridgeDecompressReferenceClock);
-    interp_bridge_set_pre_opcode_hook(0x809013u, ActorBridgeDecompressReferenceClock);
-    interp_bridge_set_pre_opcode_hook(0x808f5cu, ActorBridgeDecompressReferenceClock);
-    interp_bridge_set_pre_opcode_hook(0x809000u, ActorBridgeDecompressReferenceClock);
+    InstallDecompressHook(0x808f44u, ActorBridgeDecompressReferenceClock, ReferenceHookOwned);
+    InstallDecompressHook(0x808fe8u, ActorBridgeDecompressReferenceClock, ReferenceHookOwned);
+    InstallDecompressHook(0x808f6fu, ActorBridgeDecompressReferenceClock, ReferenceHookOwned);
+    InstallDecompressHook(0x809013u, ActorBridgeDecompressReferenceClock, ReferenceHookOwned);
+    InstallDecompressHook(0x808f5cu, ActorBridgeDecompressReferenceClock, ReferenceHookOwned);
+    InstallDecompressHook(0x809000u, ActorBridgeDecompressReferenceClock, ReferenceHookOwned);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_BACKGROUND_STEPS)
     interp_bridge_set_pre_opcode_hook(0x81ba59u, ActorBridgeBackgroundDecodeWord);
