@@ -3081,6 +3081,9 @@ static void ActorBridgeTargetMarkerRecords(CpuState *cpu, uint32_t entry);
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_DISPATCH_STEPS)
 #include "effect_dispatch_clock.inc"
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_FRAME_STEPS)
+#include "effect_frame_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_CLEANUP_STEPS)
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_CLEAR_SPANS)
 #include "effect_cleanup_bus.inc"
@@ -4437,6 +4440,17 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
         const uint32_t entry = effect_dispatch_entries[i];
         if (Lufia2DecompFrameRangeAllows(entry, entry + 1u, Lufia2DecompEffectDispatchHookOwned))
             interp_bridge_set_pre_opcode_hook(entry, ActorBridgeEffectDispatchPrepare);
+    }
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_FRAME_STEPS)
+    static const uint32_t effect_frame_entries[] = {
+        0x818a76u, 0x818ab9u, 0x818b2du, 0x818b3cu,
+        0x818b4bu, 0x818b5au, 0x818bc1u, 0x818bcbu
+    };
+    for (unsigned i = 0u; i < sizeof effect_frame_entries / sizeof *effect_frame_entries; ++i) {
+        const uint32_t entry = effect_frame_entries[i];
+        if (Lufia2DecompFrameRangeAllows(entry, entry + 1u, EffectFrameHookOwned))
+            interp_bridge_set_pre_opcode_hook(entry, ActorBridgeEffectFrameStep);
     }
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_CLEANUP_STEPS)

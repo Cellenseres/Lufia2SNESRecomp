@@ -557,6 +557,12 @@ function(lufia2_add_nmi_continuations target core_root)
                         APPEND PROPERTY COMPILE_DEFINITIONS
                             "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_DISPATCH_STEPS=1>")
                 endif()
+                lufia2_battle_effect_frame_steps_available(_battle_effect_frame_steps)
+                if(_battle_effect_frame_steps)
+                    set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                        APPEND PROPERTY COMPILE_DEFINITIONS
+                            "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_FRAME_STEPS=1>")
+                endif()
                 include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleEffectCleanupSteps.cmake")
                 lufia2_battle_effect_cleanup_steps_available(_battle_effect_cleanup_steps)
                 if(_battle_effect_cleanup_steps)
@@ -1182,6 +1188,18 @@ function(lufia2_add_nmi_continuations target core_root)
                         _text "${_text}")
                     string(PREPEND _text
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/actor_record_offsets_clock.h\"\n")
+                endif()
+                if(_battle_effect_frame_steps)
+                    set(_effect_frame_hook "                if (s_pre_opcode_hooks[hi].pc24 == key) {\n")
+                    string(FIND "${_text}" "${_effect_frame_hook}" _effect_frame_hook_index)
+                    if(_effect_frame_hook_index EQUAL -1)
+                        message(FATAL_ERROR "Missing effect frame hook admission seam")
+                    endif()
+                    string(REPLACE "${_effect_frame_hook}"
+                        "${_effect_frame_hook}                    uint32_t effect_end = 0;\n                    switch (key) {\n                    case 0x018a76u: case 0x018ab9u: case 0x018b2du: case 0x018b3cu:\n                    case 0x018b4bu: case 0x018b5au: case 0x018bc1u: case 0x018bcbu:\n                        effect_end = Lufia2DecompEffectFrameHookEnd(pc_before, s_pre_opcode_hooks[hi].hook);\n                        break;\n                    default: break;\n                    }\n                    if (effect_end) {\n                        int effect_stop = 0;\n                        for (int si = 0; si < n_stop; ++si) {\n                            const uint32_t stop = stop_pcs[si] & 0x7fffffu;\n                            effect_stop |= stop >= key && stop < (effect_end & 0x7fffffu);\n                        }\n                        if (effect_stop || step_cap - steps < 4) break;\n                    }\n"
+                        _text "${_text}")
+                    string(PREPEND _text
+                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/effect_frame_clock.h\"\n")
                 endif()
                 if(_nmi_scroll_pairs)
                     string(PREPEND _text "#define LUFIA2_HAVE_NATIVE_NMI_SCROLL_PAIRS 1\n")
