@@ -3574,7 +3574,11 @@ static bool ActorBridgeSoundTransferSupported(const CpuState *cpu, uint32_t entr
         ActorBridgeSoundWindowSupported(cpu, entry, 0x1ff8u, budget);
 }
 
+#include "sound_payload_progress_clock.inc"
+
 static void ActorBridgeRunSoundUpload(CpuState *cpu, uint32_t entry) {
+    if (entry == 0x80999du && ActorBridgeSoundPayloadProgress(cpu, entry))
+        return;
     ActorTimedBus bus = {0};
     bus.cpu = cpu;
     const Lufia2Memory memory = {ActorBridgeTimedRead, ActorBridgeTimedWrite, &bus,
