@@ -1,4 +1,7 @@
-enum { SOUND_PAYLOAD_PAIR_MASTER_BUDGET = 576u };
+enum {
+    SOUND_PAYLOAD_PAIR_MASTER_BUDGET = 576u,
+    SOUND_PAYLOAD_HANDSHAKE_MASTER_BUDGET = 768u
+};
 
 static bool ActorBridgeSoundPayloadPair(CpuState *cpu, uint32_t entry) {
 #if defined(SNES_COSIM) || defined(SNESRECOMP_INTERP_PROFILE) || \
@@ -16,14 +19,24 @@ static bool ActorBridgeSoundPayloadPair(CpuState *cpu, uint32_t entry) {
         !ActorBridgeSoundWindowSupported(cpu, entry, 0x1fffu,
                                           SOUND_PAYLOAD_PAIR_MASTER_BUDGET))
         return false;
+    const unsigned opcode_budget = Lufia2DecompFrameSpanBudget(
+        entry, entry + 1u, ActorBridgeSoundTransferOpcode);
     const Cart *cart = g_snes->cart;
     if (!cart || cart->type != CART_LOROM || !cart->rom || cart->romSize < 0x1997u ||
         cart->superfx || cart->cx4 || cart->dsp1 || cart->sdd1 || cart->sa1 ||
-        Lufia2DecompFrameSpanBudget(entry, entry + 1u,
-            ActorBridgeSoundTransferOpcode) < 17u ||
+        opcode_budget < 17u ||
         !Lufia2DecompFrameRangeAllows(entry, 0x809997u, ActorBridgeSoundHookOwned))
         return false;
-    const FixedSpanOpcode timing[] = {
+    bool handshake = false;
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_POLLS) && \
+    defined(LUFIA2_HAVE_NATIVE_SOUND_HANDSHAKE_STEPS)
+    handshake = opcode_budget >= 27u && cart->romSize >= 0x19aeu &&
+        cpu->master_cycles <= UINT64_MAX - SOUND_PAYLOAD_HANDSHAKE_MASTER_BUDGET &&
+        ActorBridgeSoundWindowSupported(cpu, entry, 0x1fffu,
+            SOUND_PAYLOAD_HANDSHAKE_MASTER_BUDGET) &&
+        Lufia2DecompFrameRangeAllows(0x809997u, 0x8099aeu, ActorBridgeSoundHookOwned);
+#endif
+    FixedSpanOpcode timing[] = {
         {0x9969u, 2u, 3u, 1u}, {0x996bu, 4u, 5u, 1u},
         {0x996fu, 2u, 3u, 1u}, {0x9971u, 4u, 5u, 1u},
         {0x9975u, 2u, 3u, 1u}, {0x9977u, 2u, 2u, 0u},
@@ -34,7 +47,12 @@ static bool ActorBridgeSoundPayloadPair(CpuState *cpu, uint32_t entry) {
         {0x9988u, 3u, (uint8_t)(4u + (cpu->Y + 1u >= 0x100u)), 1u},
         {0x998bu, 2u, 3u, 1u}, {0x998du, 1u, 2u, 0u},
         {0x998eu, 2u, 3u, 0u}, {0x9993u, 2u, 3u, 1u},
-        {0x9995u, 2u, 2u, 0u}
+        {0x9995u, 2u, 2u, 0u},
+        {0x9997u, 4u, 5u, 1u}, {0x999bu, 2u, 2u, 0u},
+        {0x999du, 2u, 5u, 2u}, {0x999fu, 2u, 5u, 2u},
+        {0x99a1u, 3u, 3u, 0u}, {0x99a4u, 1u, 2u, 0u},
+        {0x99a5u, 1u, 2u, 0u}, {0x99a6u, 2u, 2u, 0u},
+        {0x99a8u, 2u, 2u, 0u}, {0x99aau, 4u, 5u, 1u}
     };
     FixedSpanClock clock = {.cpu = cpu, .bank = 0x800000u,
         .timing = timing, .count = 17u};
@@ -47,9 +65,34 @@ static bool ActorBridgeSoundPayloadPair(CpuState *cpu, uint32_t entry) {
         &memory, &state, sent.pc);
     BeginFixedSpanOpcode(&clock);
     assert(prefetched.pc == 0x809997u && clock.index == 17u && !clock.remaining);
+    uint32_t next = prefetched.pc;
+#if defined(LUFIA2_HAVE_NATIVE_SOUND_POLLS) && \
+    defined(LUFIA2_HAVE_NATIVE_SOUND_HANDSHAKE_STEPS)
+    if (handshake) {
+        clock.count = 18u;
+        const Lufia2ExecutionResult compared = Lufia2SoundPollStep(
+            &memory, &state, next);
+        assert(compared.pc == 0x80999bu && clock.index == 18u);
+        timing[18].cycles += !state.zero;
+        clock.count = 19u;
+        BeginFixedSpanOpcode(&clock);
+        next = Lufia2SoundPollBranchTarget(compared.pc, state.zero, state.overflow);
+        if (next == 0x80999du) {
+            const bool more = state.x >= 3u;
+            timing[24].cycles += more;
+            clock.count = more ? 25u : 27u;
+            next = Lufia2SoundUploadStep(&memory, &state, next).pc;
+            BeginFixedSpanOpcode(&clock);
+            assert(next == (more ? 0x809969u : 0x8099aeu));
+        }
+        assert(clock.index == clock.count && !clock.remaining);
+    }
+#else
+    (void)handshake;
+#endif
     ActorBridgeStore(cpu, &state);
-    Lufia2DecompFrameReturnComplete(17u, clock.progress_mask);
-    interp_bridge_pre_opcode_redirect(prefetched.pc);
+    Lufia2DecompFrameReturnComplete(clock.count, clock.progress_mask);
+    interp_bridge_pre_opcode_redirect(next);
     return true;
 #endif
 }
