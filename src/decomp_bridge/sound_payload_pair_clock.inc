@@ -27,11 +27,21 @@ static bool SoundPayloadWindowSupported(const CpuState *cpu, uint32_t entry,
 #endif
 }
 
-static bool ActorBridgeSoundPayloadPair(CpuState *cpu, uint32_t entry) {
+typedef struct SoundPayloadGroupResult {
+    uint32_t next_pc;
+    unsigned opcodes;
+    unsigned progress_mask;
+    unsigned budget;
+} SoundPayloadGroupResult;
+
+static bool RunSoundPayloadGroup(CpuState *cpu, uint32_t entry,
+    unsigned limit, SoundPayloadGroupResult *result) {
 #if defined(SNES_COSIM) || defined(SNESRECOMP_INTERP_PROFILE) || \
     (defined(SNESRECOMP_REVERSE_DEBUG) && SNESRECOMP_REVERSE_DEBUG)
     (void)cpu;
     (void)entry;
+    (void)limit;
+    (void)result;
     return false;
 #else
     if (cpu != &g_cpu || entry != 0x809969u || cpu->PB != 0x80u ||
@@ -42,8 +52,10 @@ static bool ActorBridgeSoundPayloadPair(CpuState *cpu, uint32_t entry) {
         cpu->master_cycles > UINT64_MAX - SOUND_PAYLOAD_PAIR_MASTER_BUDGET ||
         !SoundPayloadWindowSupported(cpu, entry, SOUND_PAYLOAD_PAIR_MASTER_BUDGET))
         return false;
-    const unsigned opcode_budget = Lufia2DecompFrameSpanBudget(
+    unsigned opcode_budget = Lufia2DecompFrameSpanBudget(
         entry, entry + 1u, ActorBridgeSoundTransferOpcode);
+    if (limit && opcode_budget > limit)
+        opcode_budget = limit;
     const Cart *cart = g_snes->cart;
     if (!cart || cart->type != CART_LOROM || !cart->rom || cart->romSize < 0x1997u ||
         cart->superfx || cart->cx4 || cart->dsp1 || cart->sdd1 || cart->sa1 ||
@@ -113,8 +125,53 @@ static bool ActorBridgeSoundPayloadPair(CpuState *cpu, uint32_t entry) {
     (void)handshake;
 #endif
     ActorBridgeStore(cpu, &state);
-    Lufia2DecompFrameReturnComplete(clock.count, clock.progress_mask);
-    interp_bridge_pre_opcode_redirect(next);
+    result->next_pc = next;
+    result->opcodes = clock.count;
+    result->progress_mask = clock.progress_mask;
+    result->budget = opcode_budget;
     return true;
 #endif
+}
+
+#if defined(LUFIA2_HAVE_NATIVE_OPCODE_WINDOW_CONTEXT)
+static unsigned SoundPayloadLastProgress(unsigned mask) {
+    unsigned position = 0u;
+    while (mask) {
+        ++position;
+        mask >>= 1u;
+    }
+    return position;
+}
+#endif
+
+static bool ActorBridgeSoundPayloadPair(CpuState *cpu, uint32_t entry) {
+    SoundPayloadGroupResult group;
+    if (!RunSoundPayloadGroup(cpu, entry, 0u, &group))
+        return false;
+    unsigned retired = group.opcodes;
+    unsigned last_progress = 0u;
+#if defined(LUFIA2_HAVE_NATIVE_OPCODE_WINDOW_CONTEXT)
+    if (group.next_pc == entry && group.opcodes == 25u &&
+        Lufia2DecompOpcodeWindowReady()) {
+        const unsigned budget = group.budget;
+        last_progress = SoundPayloadLastProgress(group.progress_mask);
+        while (group.next_pc == entry && group.opcodes == 25u &&
+               budget - retired >= 27u) {
+            SoundPayloadGroupResult next;
+            if (!RunSoundPayloadGroup(cpu, entry, budget - retired, &next))
+                break;
+            const unsigned progress = SoundPayloadLastProgress(next.progress_mask);
+            if (progress)
+                last_progress = retired + progress;
+            retired += next.opcodes;
+            group = next;
+        }
+    }
+#endif
+    if (retired == group.opcodes)
+        Lufia2DecompFrameReturnComplete(group.opcodes, group.progress_mask);
+    else
+        Lufia2DecompFrameReturnCompleteSpan(retired, last_progress);
+    interp_bridge_pre_opcode_redirect(group.next_pc);
+    return true;
 }
