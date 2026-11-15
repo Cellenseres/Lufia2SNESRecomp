@@ -510,6 +510,13 @@ if(EXISTS "${SNESRECOMP_ROOT}/runner/src/snes/snes.h")
     unset(_snes_h)
 endif()
 
+get_property(_lufia2_beam_hold_query GLOBAL PROPERTY SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY)
+if(_lufia2_beam_hold_query)
+    set_property(SOURCE src/decomp_bridge/actor_bridge.c APPEND PROPERTY
+        COMPILE_DEFINITIONS LUFIA2_HAVE_BEAM_HOLD_QUERY=1)
+endif()
+unset(_lufia2_beam_hold_query)
+
 set(LUFIA2_HOST_SOURCES
     src/main.c
     src/decomp_bridge/host_events.c

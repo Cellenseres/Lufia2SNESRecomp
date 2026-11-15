@@ -3,6 +3,30 @@ enum {
     SOUND_PAYLOAD_HANDSHAKE_MASTER_BUDGET = 768u
 };
 
+static bool SoundPayloadWindowSupported(const CpuState *cpu, uint32_t entry,
+                                        unsigned budget) {
+    if (ActorBridgeSoundWindowSupported(cpu, entry, 0x1fffu, budget))
+        return true;
+#if defined(LUFIA2_HAVE_BEAM_HOLD_QUERY) || defined(SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY)
+    /* Per-opcode clocks still walk the beam. Only ordinary line boundaries
+     * may occur here; HDMA, VBlank and field transitions keep the old route. */
+    if (!g_snes || !g_snes->apu || !g_snes->dma || !g_snes->hdmaBeamOff ||
+        g_snes->dma->hdmaPendingInit || g_snes->vPos >= 262u ||
+        g_snes->vPos == 224u || g_snes->vPos == 261u ||
+        !budget || budget >= SOUND_TRANSFER_SCANLINE_CLOCKS ||
+        cpu->master_cycles > UINT64_MAX - budget || snesrecomp_beam_hold_active())
+        return false;
+    uint64_t phase, current;
+    snes_refresh_state_get(&phase, &current);
+    if (phase >= SOUND_TRANSFER_SCANLINE_CLOCKS || current != cpu->master_cycles)
+        return false;
+    return ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, true,
+        SOUND_TRANSFER_SCANLINE_CLOCKS - 1u, budget);
+#else
+    return false;
+#endif
+}
+
 static bool ActorBridgeSoundPayloadPair(CpuState *cpu, uint32_t entry) {
 #if defined(SNES_COSIM) || defined(SNESRECOMP_INTERP_PROFILE) || \
     (defined(SNESRECOMP_REVERSE_DEBUG) && SNESRECOMP_REVERSE_DEBUG)
@@ -16,8 +40,7 @@ static bool ActorBridgeSoundPayloadPair(CpuState *cpu, uint32_t entry) {
         !Lufia2DecompFrameReturnCpuReady() || !g_snes || g_snes->vPos >= 262u ||
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
         cpu->master_cycles > UINT64_MAX - SOUND_PAYLOAD_PAIR_MASTER_BUDGET ||
-        !ActorBridgeSoundWindowSupported(cpu, entry, 0x1fffu,
-                                          SOUND_PAYLOAD_PAIR_MASTER_BUDGET))
+        !SoundPayloadWindowSupported(cpu, entry, SOUND_PAYLOAD_PAIR_MASTER_BUDGET))
         return false;
     const unsigned opcode_budget = Lufia2DecompFrameSpanBudget(
         entry, entry + 1u, ActorBridgeSoundTransferOpcode);
@@ -32,8 +55,7 @@ static bool ActorBridgeSoundPayloadPair(CpuState *cpu, uint32_t entry) {
     defined(LUFIA2_HAVE_NATIVE_SOUND_HANDSHAKE_STEPS)
     handshake = opcode_budget >= 27u && cart->romSize >= 0x19aeu &&
         cpu->master_cycles <= UINT64_MAX - SOUND_PAYLOAD_HANDSHAKE_MASTER_BUDGET &&
-        ActorBridgeSoundWindowSupported(cpu, entry, 0x1fffu,
-            SOUND_PAYLOAD_HANDSHAKE_MASTER_BUDGET) &&
+        SoundPayloadWindowSupported(cpu, entry, SOUND_PAYLOAD_HANDSHAKE_MASTER_BUDGET) &&
         Lufia2DecompFrameRangeAllows(0x809997u, 0x8099aeu, ActorBridgeSoundHookOwned);
 #endif
     FixedSpanOpcode timing[] = {
