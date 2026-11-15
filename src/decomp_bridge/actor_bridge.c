@@ -3003,6 +3003,7 @@ static const FixedSpanOpcode actor_record_offset_timing[] = {
     {0xab5au, 2u, 3u, 1u}, {0xab5cu, 2u, 3u, 1u},
     {0xab5eu, 2u, 3u, 1u}
 };
+#include "actor_record_offsets_clock.inc"
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_EVENT_SLOT_CLOCK) || defined(LUFIA2_HAVE_NATIVE_FIELD_IDLE_CLOCK) || \
@@ -4379,6 +4380,11 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #endif
     interp_bridge_set_pre_opcode_hook(0x82fb94u, ActorBridgeInventorySearch);
     interp_bridge_set_pre_opcode_hook(0x83a746u, ActorBridgeActorFinePosition);
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK) || defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_TRAVERSAL)
+    if (Lufia2DecompFrameRangeAllows(0x83ab4fu, 0x83ab50u,
+            Lufia2DecompActorRecordOffsetsHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x83ab4fu, ActorBridgeActorRecordOffsets);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TIMER_CALLS)
     interp_bridge_set_pre_opcode_hook(0x858f1bu, ActorBridgeBattleTimerCall);
     interp_bridge_set_pre_opcode_hook(0x858f3cu, ActorBridgeBattleTimerCall);

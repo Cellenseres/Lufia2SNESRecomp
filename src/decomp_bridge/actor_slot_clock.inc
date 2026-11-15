@@ -236,7 +236,7 @@ static bool PrepareActorSlotTraversal(const CpuState *cpu, ActorSlotTraversalPla
     unsigned *reserve) {
     const uint32_t entry = 0x83bba1u;
     if (!ActorSlotPhaseClockSupportedWindow(cpu, entry, 0u) ||
-        !Lufia2DecompFrameRangeQuiet(0x83ab4fu, 0x83ab61u))
+        !ActorRecordOffsetsHooksAllow())
         return false;
     const unsigned budget = Lufia2DecompFrameOwnedSpanBudget(
         entry, 0x83bbdau, ActorBridgeActorSlotPhase);

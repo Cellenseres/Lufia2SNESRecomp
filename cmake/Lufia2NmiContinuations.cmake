@@ -1149,6 +1149,19 @@ function(lufia2_add_nmi_continuations target core_root)
                 if(_beam_hold_query)
                     string(PREPEND _text "#define SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY 1\n")
                 endif()
+                if("LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK=1" IN_LIST _definitions OR
+                   "LUFIA2_HAVE_NATIVE_ACTOR_SLOT_TRAVERSAL=1" IN_LIST _definitions)
+                    set(_record_hook_entry "                if (s_pre_opcode_hooks[hi].pc24 == key) {\n")
+                    string(FIND "${_text}" "${_record_hook_entry}" _record_hook_index)
+                    if(_record_hook_index EQUAL -1)
+                        message(FATAL_ERROR "Missing actor record hook admission seam")
+                    endif()
+                    string(REPLACE "${_record_hook_entry}"
+                        "${_record_hook_entry}                    if ((pc_before & 0x7fffffu) == 0x03ab4fu &&\n                        Lufia2DecompActorRecordOffsetsHookOwned(pc_before, s_pre_opcode_hooks[hi].hook)) {\n                        int record_stop = 0;\n                        for (int si = 0; si < n_stop; ++si) {\n                            const uint32_t stop = stop_pcs[si] & 0x7fffffu;\n                            record_stop |= stop >= 0x03ab4fu && stop < 0x03ab60u;\n                        }\n                        if (record_stop || step_cap - steps < 9) break;\n                    }\n"
+                        _text "${_text}")
+                    string(PREPEND _text
+                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/actor_record_offsets_clock.h\"\n")
+                endif()
                 if(_nmi_scroll_pairs)
                     string(PREPEND _text "#define LUFIA2_HAVE_NATIVE_NMI_SCROLL_PAIRS 1\n")
                 endif()

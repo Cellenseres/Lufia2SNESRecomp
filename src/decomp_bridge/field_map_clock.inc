@@ -102,7 +102,7 @@ static bool FieldMapClockSupported(const CpuState *cpu, uint32_t entry, unsigned
         return false;
     if (entry == 0x83ab4fu) {
         if (cpu->ram[0xa7u] >= 40u ||
-            !Lufia2DecompFrameRangeQuiet(0x83ab4fu, 0x83ab61u))
+            !ActorRecordOffsetsHooksAllow())
             return false;
     } else if (entry == 0x83c0efu) {
         if (!Lufia2DecompFrameRangeQuiet(0x83c0efu, 0x83c0fau))
