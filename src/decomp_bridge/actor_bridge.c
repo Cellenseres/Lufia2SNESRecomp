@@ -51,6 +51,7 @@ static void ActorBridgeColumnSpan(CpuState *cpu, uint32_t pc);
 #include "../lufia2_sprite_visibility.h"
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
 #include "snes/dma.h"
+#include "snesrecomp_platform/beam_clock.h"
 static RecompReturn ActorBridgeTimedMessageCopy(CpuState *cpu);
 #include "common_cpu_infra.h"
 #include "decomp_bridge/frame_returns.h"
@@ -4493,7 +4494,14 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     interp_bridge_set_pre_opcode_hook(0x85a760u, ActorBridgeRippleStepClock);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_RIPPLE_WORD_STEPS)
-    interp_bridge_set_pre_opcode_hook(0x85aa61u, ActorBridgeRippleWordClock);
+    if (Lufia2DecompFrameRangeAllows(0x85aa61u, 0x85aa62u, RippleWordRowHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x85aa61u, ActorBridgeRippleWordClock);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_RIPPLE_WORD_PHASES)
+    if (Lufia2DecompFrameRangeAllows(0x85aa3du, 0x85aa3eu, RippleWordPhaseHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x85aa3du, ActorBridgeRippleWordPhaseClock);
+    if (Lufia2DecompFrameRangeAllows(0x85aa74u, 0x85aa75u, RippleWordPhaseHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x85aa74u, ActorBridgeRippleWordPhaseClock);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_INPUT_STEPS)
     interp_bridge_set_pre_opcode_hook(0x85ec9au, ActorBridgeBattleInputClock);

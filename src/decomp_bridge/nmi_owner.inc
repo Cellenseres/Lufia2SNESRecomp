@@ -80,6 +80,16 @@ static bool Lufia2DecompNmiHookHasOwner(uint32_t pc, int stop_on_rti,
     case 0x05a760u:
         return opcodes_left >= LUFIA2_NMI_RIPPLE_FINISH_OPCODES;
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_RIPPLE_WORD_PHASES)
+    case 0x05aa3du:
+    case 0x05aa74u:
+        return !(admission_flags & LUFIA2_NMI_OWNER_OBSERVED) &&
+            opcodes_left >= ((pc & 0x7fffffu) == 0x05aa3du
+                ? LUFIA2_NMI_RIPPLE_WORD_PREPARE_OPCODES
+                : LUFIA2_NMI_RIPPLE_WORD_FINISH_OPCODES) &&
+            !s_frame_return_interrupt_blocked && !s_interp_bus_timing_active &&
+            !g_interp_bridge_pc_hook && !s_interp_pctrace;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_RIPPLE_WORD_STEPS)
     case 0x05aa61u:
         return !(admission_flags & LUFIA2_NMI_OWNER_OBSERVED) &&
