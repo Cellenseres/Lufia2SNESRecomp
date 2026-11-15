@@ -4,6 +4,10 @@ static bool NmiScrollPairHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
     return pc == 0x8087b2u && hook == ActorBridgeNmiScrollPair;
 }
 
+bool Lufia2DecompNmiScrollPairHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return NmiScrollPairHookOwned(pc, hook);
+}
+
 static void PrepareNmiScrollPairClock(const CpuState *cpu, FixedSpanOpcode *timing) {
     static const FixedSpanOpcode pair[] = {
         {0x87b2u, 3u, 4u, 1u}, {0x87b5u, 2u, 4u, 1u},
@@ -22,7 +26,7 @@ static bool NmiScrollPairClockSupported(const CpuState *cpu) {
         cpu->m_flag == 1u &&
         cpu->X >= 0x210du && cpu->X <= 0x2114u &&
         cpu->Y == 2u * (cpu->X - 0x210du) &&
-        NmiClockWindow(cpu, false, 0x8087b2u, 0x8087c4u, 320u, 320u,
+        NmiClockWindow(cpu, false, 0x8087b2u, 0x8087c4u, 320u, 320u, true,
             NmiScrollPairHookOwned);
 }
 

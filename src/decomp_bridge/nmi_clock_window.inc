@@ -1,5 +1,5 @@
 static bool NmiClockWindow(const CpuState *cpu, bool byte_index, uint32_t first, uint32_t end,
-    unsigned budget, unsigned reserve,
+    unsigned budget, unsigned reserve, bool allow_line_crossing,
     bool (*owned)(uint32_t, InterpPreOpcodeHook)) {
     if (!g_snes || !g_snes->inNmi || g_snes->inIrq || !g_snes->dma ||
         !cpu->ram || cpu->ram != g_snes->ram || cpu->emulation ||
@@ -17,8 +17,17 @@ static bool NmiClockWindow(const CpuState *cpu, bool byte_index, uint32_t first,
         return false;
     const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
         ? 1024u : 1364u;
-    if ((unsigned)g_snes->hPos + budget >= fence)
-        return false;
+    if ((unsigned)g_snes->hPos + budget >= fence) {
+        if (!allow_line_crossing || !g_snes->hdmaBeamOff ||
+            g_snes->hPos >= 1364u || g_snes->vPos >= 262u ||
+            snesrecomp_beam_hold_active())
+            return false;
+        const unsigned next_line = g_snes->vPos < 225u ? 225u : 262u;
+        const uint64_t before_edge =
+            (uint64_t)(next_line - g_snes->vPos) * 1364u - g_snes->hPos;
+        if (budget >= before_edge)
+            return false;
+    }
     for (unsigned channel = 0u; channel < 8u; ++channel)
         if (g_snes->dma->channel[channel].dmaActive)
             return false;

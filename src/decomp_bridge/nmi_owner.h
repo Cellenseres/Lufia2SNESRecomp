@@ -2,6 +2,9 @@
 #define LUFIA2_NMI_OWNER_H
 
 #include <stdbool.h>
+#include <stdint.h>
+
+struct CpuState;
 
 enum {
     LUFIA2_NMI_OWNER_QUIESCENT = 1u,
@@ -26,7 +29,17 @@ enum {
     LUFIA2_NMI_TIMER_ADVANCE_OPCODES = 6u
 };
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+bool Lufia2DecompNmiScrollPairHookOwned(uint32_t pc,
+    void (*hook)(struct CpuState *, uint32_t));
 bool Lufia2DecompNmiHasInterruptOwner(void);
 void Lufia2DecompNmiInstallTickHook(void);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
