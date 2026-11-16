@@ -461,7 +461,16 @@ static unsigned PlayerStepReserve(const PlayerStepPlan *plan) {
 static void ActorBridgePlayerStep(CpuState *cpu, uint32_t entry);
 
 static bool PlayerStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
-    return pc == 0x83c1f2u && hook == ActorBridgePlayerStep;
+    if (hook != ActorBridgePlayerStep)
+        return false;
+    switch (pc) {
+    case 0x83c1f2u: return true;
+#if defined(LUFIA2_HAVE_NATIVE_PLAYER_CONTINUATIONS)
+    case 0x83c0efu: case 0x83c202u: case 0x83c206u:
+    case 0x83c217u: case 0x83c243u: return true;
+#endif
+    default: return false;
+    }
 }
 
 static bool PlayerStepWindowSupported(const CpuState *cpu, unsigned reserve) {
@@ -496,10 +505,12 @@ static bool PreparePlayerStep(const CpuState *cpu, PlayerStepPlan *plan,
         {0x83fb12u, 0x83fb2eu}, {0x83fbbdu, 0x83fbfeu},
         {0x83fc69u, 0x83fc8bu}
     };
-    if (!budget)
+    if (!budget || !Lufia2DecompFrameRangeAllows(
+            0x83c1f2u, 0x83c245u, PlayerStepHookOwned))
         return false;
     for (unsigned child = 0u; child < sizeof children / sizeof *children; ++child)
-        if (!Lufia2DecompFrameRangeQuiet(children[child][0], children[child][1]))
+        if (!Lufia2DecompFrameRangeAllows(children[child][0], children[child][1],
+                PlayerStepHookOwned))
             return false;
     if (!PlanPlayerStep(cpu, g_snes->cart->rom, g_snes->cart->romSize, plan) ||
         plan->count > budget)
@@ -509,8 +520,12 @@ static bool PreparePlayerStep(const CpuState *cpu, PlayerStepPlan *plan,
 }
 
 static void ActorBridgePlayerStep(CpuState *cpu, uint32_t entry) {
-    if (entry != 0x83c1f2u)
+    if (entry != 0x83c1f2u) {
+#if defined(LUFIA2_HAVE_NATIVE_PLAYER_CONTINUATIONS)
+        ActorBridgePlayerContinuation(cpu, entry);
+#endif
         return;
+    }
     PlayerStepPlan plan;
     unsigned reserve;
     if (!PreparePlayerStep(cpu, &plan, &reserve))

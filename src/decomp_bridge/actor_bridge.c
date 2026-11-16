@@ -4317,6 +4317,9 @@ static void ActorBridgeFramePollStep(CpuState *cpu, uint32_t entry) {
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PLAYER_CONTROL_CLOCK)
+#if defined(LUFIA2_HAVE_NATIVE_PLAYER_CONTINUATIONS)
+static void ActorBridgePlayerContinuation(CpuState *cpu, uint32_t entry);
+#endif
 #include "player_control_clock.inc"
 #endif
 
@@ -4372,6 +4375,15 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_PLAYER_CONTROL_CLOCK)
     if (Lufia2DecompFrameRangeAllows(0x83c1f2u, 0x83c1f3u, PlayerStepHookOwned))
         interp_bridge_set_pre_opcode_hook(0x83c1f2u, ActorBridgePlayerStep);
+#if defined(LUFIA2_HAVE_NATIVE_PLAYER_CONTINUATIONS)
+    static const uint32_t player_continuations[] = {
+        0x83c0efu, 0x83c202u, 0x83c206u, 0x83c217u, 0x83c243u
+    };
+    for (unsigned i = 0u; i < sizeof player_continuations / sizeof *player_continuations; ++i)
+        if (Lufia2DecompFrameRangeAllows(player_continuations[i],
+                player_continuations[i] + 1u, PlayerStepHookOwned))
+            interp_bridge_set_pre_opcode_hook(player_continuations[i], ActorBridgePlayerStep);
+#endif
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_TRIGGER_FRONTS)
@@ -18972,6 +18984,9 @@ RecompReturn Lufia2DecompBridge_82BCC4(CpuState *cpu) {
 #include "party_swap_clock.inc"
 #if defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK)
 #include "field_map_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_PLAYER_CONTINUATIONS)
+#include "player_continuation_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_ITEM_REGION_CLOCK)
 #include "item_region_clock.inc"
 #endif

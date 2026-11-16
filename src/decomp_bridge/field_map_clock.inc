@@ -105,7 +105,11 @@ static bool FieldMapClockSupported(const CpuState *cpu, uint32_t entry, unsigned
             !ActorRecordOffsetsHooksAllow())
             return false;
     } else if (entry == 0x83c0efu) {
+#if defined(LUFIA2_HAVE_NATIVE_PLAYER_CONTINUATIONS)
+        if (!Lufia2DecompFrameRangeAllows(0x83c0efu, 0x83c0fau, PlayerStepHookOwned))
+#else
         if (!Lufia2DecompFrameRangeQuiet(0x83c0efu, 0x83c0fau))
+#endif
             return false;
     } else {
         if (!Lufia2DecompFrameRangeQuiet(0x83f9f7u, 0x83fa12u))
