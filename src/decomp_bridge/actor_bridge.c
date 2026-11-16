@@ -2939,7 +2939,16 @@ static uint32_t NmiScrollFrontHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
 static uint32_t NmiTilemapStepHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_REQUEST)
+static uint32_t ScreenFadeRequestHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
+#endif
+
 uint32_t Lufia2DecompNmiTimedHookEnd(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_REQUEST)
+    const uint32_t fade_end = ScreenFadeRequestHookEnd(pc, hook);
+    if (fade_end)
+        return fade_end;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_TILEMAP_STEPS)
     const uint32_t tilemap_end = NmiTilemapStepHookEnd(pc, hook);
     if (tilemap_end)
@@ -3089,6 +3098,9 @@ static const FixedSpanOpcode actor_record_offset_timing[] = {
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) || defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
 #include "nmi_bus_clock.inc"
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_REQUEST)
+#include "screen_fade_request_clock.inc"
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_TILEMAP_STEPS)
 #include "nmi_tilemap_steps_clock.inc"
@@ -4369,6 +4381,11 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
         if (Lufia2DecompFrameRangeAllows(entry, entry + 1u, FieldTriggerFrontHookOwned))
             interp_bridge_set_pre_opcode_hook(entry, ActorBridgeFieldTriggerFront);
     }
+#endif
+
+#if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_REQUEST)
+    if (Lufia2DecompFrameRangeAllows(0x8086c1u, 0x8086c2u, ScreenFadeRequestHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x8086c1u, ActorBridgeScreenFadeRequest);
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_NMI_TILEMAP_STEPS)

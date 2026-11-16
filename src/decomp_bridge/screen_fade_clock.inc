@@ -93,7 +93,11 @@ static bool ScreenFadeClockSupported(CpuState *cpu, ScreenFadeClock *clock) {
     uint64_t phase, current;
     snes_refresh_state_get(&phase, &current);
     return phase < 1364u && (!current || current == cpu->master_cycles) &&
+#if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_REQUEST)
+        Lufia2DecompFrameRangeAllows(0x8086c1u, 0x808703u, ScreenFadeRequestHookOwned);
+#else
         Lufia2DecompFrameRangeQuiet(0x8086c1u, 0x808703u);
+#endif
 }
 
 static RecompReturn ActorBridgeTimedScreenFade(CpuState *cpu) {
