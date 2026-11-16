@@ -159,19 +159,30 @@ bool Lufia2DecompWorldFrameCanResume(CpuState *cpu) {
     return WorldClockContext(cpu) && WorldClockWindow(cpu, 0x86925cu);
 }
 
-RecompReturn Lufia2DecompWorldFrameResume(CpuState *cpu, uint32_t *next_pc) {
+static RecompReturn WorldFrameResumeAt(
+    CpuState *cpu, uint32_t entry, uint32_t *next_pc) {
     const ActorBridgeFrame frame = {cpu->S, 0u, UINT32_MAX};
     WorldFrameClock clock = {0};
     clock.span.cpu = cpu;
     clock.span.bank = 0x860000u;
     clock.child = (ActorPushedCall){cpu, frame, RECOMP_RETURN_NORMAL};
     WorldClockArm(&clock);
-    WorldClockLoad(&clock, 0x925cu, WORLD_READ_MOVEMENT);
+    if (entry == 0x86925cu)
+        WorldClockLoad(&clock, 0x925cu, WORLD_READ_MOVEMENT);
+    else
+        WorldClockCall(&clock, (uint16_t)entry);
     const Lufia2Memory memory = {WorldClockRead, WorldClockWrite, &clock, NULL, NULL};
     Lufia2CpuState state;
     ActorBridgeLoad(cpu, &state);
-    const Lufia2ExecutionResult result = Lufia2WorldMapContinueSession(
-        &memory, &state, WorldClockChild, &clock);
+    Lufia2ExecutionResult result;
+#if defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_TAIL)
+    if (entry != 0x86925cu)
+        result = Lufia2WorldMapContinueFrameTail(
+            &memory, &state, entry, WorldClockChild, &clock);
+    else
+#endif
+        result = Lufia2WorldMapContinueSession(
+            &memory, &state, WorldClockChild, &clock);
     if (result.flow == LUFIA2_EXECUTION_CHILD_UNWOUND) {
         *next_pc = 0x860000u | (uint16_t)(clock.next_call + 3u);
         return clock.child.unwound;
@@ -182,3 +193,15 @@ RecompReturn Lufia2DecompWorldFrameResume(CpuState *cpu, uint32_t *next_pc) {
     *next_pc = result.pc;
     return RECOMP_RETURN_NORMAL;
 }
+
+RecompReturn Lufia2DecompWorldFrameResume(CpuState *cpu, uint32_t *next_pc) {
+    return WorldFrameResumeAt(cpu, 0x86925cu, next_pc);
+}
+
+#if defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_TAIL)
+RecompReturn Lufia2DecompWorldFrameResumeFrom(
+    CpuState *cpu, uint32_t entry, uint32_t *next_pc) {
+    assert(Lufia2DecompWorldFrameEntry(entry));
+    return WorldFrameResumeAt(cpu, entry, next_pc);
+}
+#endif

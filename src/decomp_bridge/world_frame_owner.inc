@@ -1,6 +1,7 @@
-if (pc_before == 0x86925cu && auto_quiescent && !stop_on_rti && !n_stop &&
+if (Lufia2DecompWorldFrameEntry(pc_before) && auto_quiescent && !stop_on_rti && !n_stop &&
     s_interp_bridge_depth == 1 && !trace && !dtrace && !wlog_state_sync &&
     !s_interp_pctrace && !g_interp_bridge_pc_hook && !s_interp_bus_timing_active &&
+    !Lufia2NativeObserversActive() &&
     steps >= 0 && step_cap > steps && step_cap - steps >= 32) {
     sync_interp_to_cpu(&in, cpu);
     const int saved_blocked = s_frame_return_interrupt_blocked;
@@ -24,7 +25,11 @@ if (pc_before == 0x86925cu && auto_quiescent && !stop_on_rti && !n_stop &&
         cpu->host_return_valid = 0;
         uint32_t next_pc = pc_before;
         s_frame_return_interrupt_blocked = current_blocked;
+#if defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_TAIL)
+        const RecompReturn result = Lufia2DecompWorldFrameResumeFrom(cpu, pc_before, &next_pc);
+#else
         const RecompReturn result = Lufia2DecompWorldFrameResume(cpu, &next_pc);
+#endif
         s_frame_return_interrupt_blocked = saved_blocked;
         cpu->host_return_valid = (uint8_t)saved_hrv;
         s_interp_bounce_owner_depth = saved_owner;
