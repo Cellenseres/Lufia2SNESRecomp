@@ -3133,7 +3133,7 @@ static const FixedSpanOpcode actor_record_offset_timing[] = {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_STEPS)
 #include "battle_target_name_clock.inc"
 #endif
-#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CURSOR)
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CURSOR) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_SELECTION)
 #include "battle_target_cursor_clock.inc"
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_MARKER_SPANS)
@@ -4540,6 +4540,13 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
         if (Lufia2DecompFrameRangeAllows(target_cursor_phases[i], target_cursor_phases[i] + 1u,
                 TargetCursorHookOwned))
             interp_bridge_set_pre_opcode_hook(target_cursor_phases[i], ActorBridgeTargetCursorPhase);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_SELECTION)
+    static const uint32_t target_selection_phases[] = {0x81d593u, 0x81d5b2u, 0x81d623u};
+    for (unsigned i = 0u; i < sizeof target_selection_phases / sizeof *target_selection_phases; ++i)
+        if (Lufia2DecompFrameRangeAllows(target_selection_phases[i], target_selection_phases[i] + 1u,
+                TargetCursorHookOwned))
+            interp_bridge_set_pre_opcode_hook(target_selection_phases[i], ActorBridgeTargetCursorPhase);
 #endif
     interp_bridge_set_pre_opcode_hook(0x82fb94u, ActorBridgeInventorySearch);
     interp_bridge_set_pre_opcode_hook(0x83a746u, ActorBridgeActorFinePosition);

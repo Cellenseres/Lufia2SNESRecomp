@@ -4,9 +4,16 @@ static void ActorBridgeTargetCursorPhase(CpuState *cpu, uint32_t entry);
 
 static uint32_t TargetCursorPhaseEnd(uint32_t pc) {
     switch (pc) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_SELECTION)
+    case 0x81d593u: return 0x81d5b4u;
+    case 0x81d5b2u: return 0x81d60eu;
+    case 0x81d623u: return 0x81d635u;
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CURSOR)
     case 0x81d5b7u: return 0x81d5e3u;
     case 0x81d5e7u: return 0x81d603u;
     case 0x81d603u: return 0x81d60eu;
+#endif
     default: return 0u;
     }
 }
@@ -17,7 +24,7 @@ static bool TargetCursorHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
 
 static void ActorBridgeTargetCursorPhase(CpuState *cpu, uint32_t entry) {
     const uint32_t end = TargetCursorPhaseEnd(entry);
-    const unsigned reserve = entry == 0x81d5b7u ? 768u : entry == 0x81d5e7u ? 512u : 256u;
+    const unsigned reserve = entry == 0x81d5b7u ? 768u : (entry == 0x81d5e7u || entry == 0x81d593u) ? 512u : 256u;
     if (!end || cpu != &g_cpu || cpu->PB != 0x81u || cpu->DB != 0x7eu ||
         cpu->D || cpu->_flag_D || cpu->m_flag != 1u || cpu->x_flag ||
         !Lufia2DecompFrameReturnCpuReady() ||
@@ -80,7 +87,38 @@ static void ActorBridgeTargetCursorPhase(CpuState *cpu, uint32_t entry) {
         CURSOR_OPCODE(0xd5feu, 1u, 2u, 0u);
         CURSOR_OPCODE(0xd5ffu, 3u, 4u, 1u);
         CURSOR_OPCODE(0xd602u, 1u, 5u, 2u);
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_SELECTION)
+    } else if (entry == 0x81d593u) {
+        const bool enemy = cpu->ram[0x27u] != 0u;
+        CURSOR_OPCODE(0xd593u, 3u, 3u, 0u);
+        CURSOR_OPCODE(0xd596u, 3u, 4u, 1u);
+        CURSOR_OPCODE(0xd599u, 2u, 3u, 1u);
+        CURSOR_OPCODE(0xd59bu, 2u, 3u, 0u);
+        CURSOR_OPCODE(0xd59du, 3u, 3u, 0u);
+        CURSOR_OPCODE(0xd5a0u, 1u, 2u, 0u);
+        CURSOR_OPCODE(0xd5a1u, 1u, 2u, 0u);
+        CURSOR_OPCODE(0xd5a2u, 1u, 2u, 0u);
+        CURSOR_OPCODE(0xd5a3u, 2u, 3u, 0u);
+        CURSOR_OPCODE(0xd5a5u, 2u, 3u, 1u);
+        CURSOR_OPCODE(0xd5a7u, 2u, enemy ? 3u : 2u, 0u);
+        if (!enemy) {
+            CURSOR_OPCODE(0xd5a9u, 3u, 4u, 1u);
+            CURSOR_OPCODE(0xd5acu, 3u, 4u, 1u);
+        }
+    } else if (entry == 0x81d623u) {
+        CURSOR_OPCODE(0xd623u, 2u, 3u, 1u);
+        CURSOR_OPCODE(0xd625u, 2u, 2u, 0u);
+        CURSOR_OPCODE(0xd627u, 2u, 3u, 1u);
+        CURSOR_OPCODE(0xd629u, 3u, 4u, 1u);
+        CURSOR_OPCODE(0xd62cu, 3u, 4u, 1u);
+        CURSOR_OPCODE(0xd62fu, 2u, 2u, 0u);
+        CURSOR_OPCODE(0xd631u, 4u, 5u, 1u);
+#endif
     } else {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_SELECTION)
+        if (entry == 0x81d5b2u)
+            CURSOR_OPCODE(0xd5b2u, 2u, 3u, 0u);
+#endif
         const bool hidden = cpu->ram[0x28u] != 0u;
         CURSOR_OPCODE(0xd603u, 2u, 3u, 1u);
         CURSOR_OPCODE(0xd605u, 2u, hidden ? 3u : 2u, 0u);
