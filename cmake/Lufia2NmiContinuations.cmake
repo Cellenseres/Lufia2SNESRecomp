@@ -921,6 +921,14 @@ function(lufia2_add_nmi_continuations target core_root)
             endif()
         endif()
     endif()
+    set(_frame_decisions FALSE)
+    if(_frame_returns)
+        include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2FrameDecisions.cmake")
+        lufia2_frame_decisions_available(_frame_decisions)
+        if(_frame_decisions)
+            list(APPEND _definitions LUFIA2_HAVE_NATIVE_FRAME_DECISIONS=1)
+        endif()
+    endif()
     set(_world_frame_loop FALSE)
     if(_frame_returns AND _sound_source_spans AND
        "LUFIA2_HAVE_NATIVE_SOUND_UPLOAD_STEPS=1" IN_LIST _definitions)
@@ -928,7 +936,7 @@ function(lufia2_add_nmi_continuations target core_root)
     endif()
     if(_frame_returns AND (_decompress_steps OR _decompress_reference_steps OR
                            _battle_effect_dispatch_steps OR _action_clear_steps OR
-                           _battle_target_name_steps))
+                           _battle_target_name_steps OR _frame_decisions))
         list(APPEND _definitions LUFIA2_HAVE_NATIVE_OPCODE_WINDOW_CONTEXT=1)
     endif()
     if(_frame_returns AND "LUFIA2_HAVE_NATIVE_SOUND_SOURCE_CLOCK=1" IN_LIST _definitions AND
@@ -1302,6 +1310,17 @@ function(lufia2_add_nmi_continuations target core_root)
                     endif()
                     string(REPLACE "${_action_clear_hook}"
                         "${_action_clear_hook}                    if (Lufia2DecompActionClearStepHookOwned(\n                            pc_before, s_pre_opcode_hooks[hi].hook) &&\n                        ((pc_before >> 16) != 0x85u || !auto_quiescent ||\n                         s_interp_bridge_depth != 1 || n_stop || stop_on_rti ||\n                         trace || dtrace || wlog_state_sync || s_interp_pctrace ||\n                         g_interp_bridge_pc_hook || Lufia2NativeObserversActive() ||\n                         step_cap - steps < 16))\n                        break;\n"
+                        _text "${_text}")
+                endif()
+                if(_frame_decisions)
+                    string(PREPEND _text "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/frame_decision_clock.h\"\n")
+                    set(_decision_hook "                if (s_pre_opcode_hooks[hi].pc24 == key) {\n")
+                    string(FIND "${_text}" "${_decision_hook}" _decision_hook_at)
+                    if(_decision_hook_at EQUAL -1)
+                        message(FATAL_ERROR "Native frame-decision hook entry changed")
+                    endif()
+                    string(REPLACE "${_decision_hook}"
+                        "${_decision_hook}                    if (key == 0x05ec85u || key == 0x05ec8fu || key == 0x06925cu ||\n                        key == 0x069264u || key == 0x069288u) {\n                        if (Lufia2DecompFrameDecisionHookOwned(pc_before, s_pre_opcode_hooks[hi].hook) &&\n                            (pc_before < 0x800000u || !auto_quiescent ||\n                             s_interp_bridge_depth != 1 || n_stop || stop_on_rti ||\n                             trace || dtrace || wlog_state_sync || s_interp_pctrace ||\n                             g_interp_bridge_pc_hook || Lufia2NativeObserversActive() ||\n                             step_cap - steps < 16))\n                            break;\n                    }\n"
                         _text "${_text}")
                 endif()
                 if(_battle_target_name_steps)

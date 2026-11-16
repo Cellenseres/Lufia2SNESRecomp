@@ -119,7 +119,12 @@ static bool WorldClockWindow(CpuState *cpu, uint32_t entry) {
     if (!Lufia2DecompFrameReturnCpuReady() ||
         !ActorBridgeSoundWindowSupported(cpu, entry, 0x1ffcu, 384u) ||
         g_snes->hPos > 800u ||
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_DECISIONS)
+        !Lufia2DecompFrameRangeAllows(0x86925cu, 0x8692a1u,
+            Lufia2DecompFrameDecisionHookOwned))
+#else
         !Lufia2DecompFrameRangeQuiet(0x86925cu, 0x8692a1u))
+#endif
         return false;
     uint64_t phase, charged;
     snes_refresh_state_get(&phase, &charged);

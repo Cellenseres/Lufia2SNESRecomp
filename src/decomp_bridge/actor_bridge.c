@@ -2994,6 +2994,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 }
 #include "fixed_span_clock.inc"
 #include "native_opcode_window.inc"
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_DECISIONS)
+#include "frame_decision_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_ACTION_CLEAR_STEPS)
 #include "action_clear_clock.inc"
 #endif
@@ -4514,6 +4517,18 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
         interp_bridge_set_pre_opcode_hook(0x85aa3du, ActorBridgeRippleWordPhaseClock);
     if (Lufia2DecompFrameRangeAllows(0x85aa74u, 0x85aa75u, RippleWordPhaseHookOwned))
         interp_bridge_set_pre_opcode_hook(0x85aa74u, ActorBridgeRippleWordPhaseClock);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_DECISIONS)
+    static const uint32_t frame_decision_entries[] = {
+        0x85ec85u, 0x85ec8fu, 0x86925cu, 0x869264u, 0x869288u
+    };
+    for (unsigned index = 0u; index < sizeof frame_decision_entries /
+            sizeof frame_decision_entries[0]; ++index) {
+        const uint32_t entry = frame_decision_entries[index];
+        if (Lufia2DecompFrameRangeAllows(entry, entry + 1u,
+                Lufia2DecompFrameDecisionHookOwned))
+            interp_bridge_set_pre_opcode_hook(entry, ActorBridgeFrameDecision);
+    }
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_INPUT_STEPS)
     interp_bridge_set_pre_opcode_hook(0x85ec9au, ActorBridgeBattleInputClock);
