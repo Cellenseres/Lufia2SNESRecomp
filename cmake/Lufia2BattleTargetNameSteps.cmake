@@ -56,3 +56,22 @@ function(lufia2_battle_target_selection_available output)
         set(${output} TRUE PARENT_SCOPE)
     endif()
 endfunction()
+
+function(lufia2_battle_target_input_available output)
+    set(${output} FALSE PARENT_SCOPE)
+    set(_header "${LUFIA2_DECOMP_RESOLVED_ROOT}/include/lufia2/battle_target_name_steps.h")
+    set(_source "${LUFIA2_DECOMP_RESOLVED_ROOT}/src/battle/battle_targets.c")
+    if(NOT EXISTS "${_header}" OR NOT EXISTS "${_source}")
+        return()
+    endif()
+    file(READ "${_header}" _api)
+    file(READ "${_source}" _implementation)
+    if(_api MATCHES "#define LUFIA2_BATTLE_TARGET_INPUT_PHASES 1([\r\n]|$)" AND
+       _api MATCHES "Lufia2BattleTargetInputStep[(]" AND
+       _implementation MATCHES "Lufia2BattleTargetInputStep[(][^;{]*[{]" AND
+       _implementation MATCHES "case 0x81d638u:" AND
+       _implementation MATCHES "case 0x81d648u:" AND
+       _implementation MATCHES "case 0x81d64eu:")
+        set(${output} TRUE PARENT_SCOPE)
+    endif()
+endfunction()
