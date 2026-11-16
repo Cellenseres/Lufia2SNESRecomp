@@ -11,6 +11,15 @@ static bool Lufia2DecompNmiHookHasOwner(uint32_t pc, int stop_on_rti,
     case 0x04f12fu:
         return opcodes_left >= 26u;
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_FRONTS)
+    case 0x0087a7u: case 0x0087c4u: case 0x0087cfu:
+    case 0x0087dau: case 0x0087e5u:
+        return !(admission_flags & LUFIA2_NMI_OWNER_OBSERVED) &&
+            opcodes_left >= ((pc & 0x7fffffu) == 0x0087a7u
+                ? LUFIA2_NMI_SCROLL_SETUP_OPCODES : LUFIA2_NMI_DMA_SELECT_OPCODES) &&
+            !s_frame_return_interrupt_blocked && !s_interp_bus_timing_active &&
+            !g_interp_bridge_pc_hook && !s_interp_pctrace;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK)
     case 0x00869bu:
         return !(admission_flags & LUFIA2_NMI_OWNER_OBSERVED) &&

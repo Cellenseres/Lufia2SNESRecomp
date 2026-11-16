@@ -2931,7 +2931,16 @@ static void ActorBridgeNmiPrepareFrameRestore(CpuState *cpu, uint32_t pc) {
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_FRONTS)
+static uint32_t NmiScrollFrontHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
+#endif
+
 uint32_t Lufia2DecompNmiTimedHookEnd(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_FRONTS)
+    const uint32_t scroll_end = NmiScrollFrontHookEnd(pc, hook);
+    if (scroll_end)
+        return scroll_end;
+#endif
     if (hook != ActorBridgeNmiResume)
         return 0u;
     switch (pc & 0x7fffffu) {
@@ -3071,6 +3080,9 @@ static const FixedSpanOpcode actor_record_offset_timing[] = {
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK) || defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
 #include "nmi_bus_clock.inc"
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_FRONTS)
+#include "nmi_scroll_front_clock.inc"
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_PAIRS) && defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
 #include "nmi_scroll_pair_clock.inc"
@@ -4347,6 +4359,15 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     }
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_FRONTS)
+    static const uint32_t scroll_fronts[] = {
+        0x8087a7u, 0x8087c4u, 0x8087cfu, 0x8087dau, 0x8087e5u
+    };
+    for (unsigned i = 0u; i < sizeof scroll_fronts / sizeof *scroll_fronts; ++i)
+        if (Lufia2DecompFrameRangeAllows(scroll_fronts[i], scroll_fronts[i] + 1u,
+                NmiScrollFrontHookOwned))
+            interp_bridge_set_pre_opcode_hook(scroll_fronts[i], ActorBridgeNmiScrollFront);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_PAIRS) && defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
     if (Lufia2DecompFrameRangeAllows(0x8087b2u, 0x8087b3u, NmiScrollPairHookOwned))
         interp_bridge_set_pre_opcode_hook(0x8087b2u, ActorBridgeNmiScrollPair);

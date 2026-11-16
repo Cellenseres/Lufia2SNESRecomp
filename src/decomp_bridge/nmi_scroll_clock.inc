@@ -60,9 +60,24 @@ static void PrepareNmiScrollClock(NmiScrollClock *clock, CpuState *cpu,
     clock->span.count = count;
 }
 
-static bool NmiScrollRangeQuiet(uint32_t entry) {
+static bool NmiScrollBodyHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_FRONTS)
+    if (NmiScrollFrontHookOwned(pc, hook))
+        return true;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_PAIRS) && defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
-    return Lufia2DecompFrameRangeAllows(entry, 0x80882eu, NmiScrollPairHookOwned);
+    return NmiScrollPairHookOwned(pc, hook);
+#else
+    (void)pc;
+    (void)hook;
+    return false;
+#endif
+}
+
+static bool NmiScrollRangeQuiet(uint32_t entry) {
+#if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_FRONTS) || \
+    (defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_PAIRS) && defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK))
+    return Lufia2DecompFrameRangeAllows(entry, 0x80882eu, NmiScrollBodyHookOwned);
 #else
     return Lufia2DecompFrameRangeQuiet(entry, 0x80882eu);
 #endif
