@@ -126,6 +126,7 @@ static void NmiUploadSelectPhase(NmiUploadClock *clock, NmiUploadPhase phase) {
     clock->bus.timing = timing;
     clock->bus.count = count;
     clock->bus.index = 0u;
+    clock->bus.progress_mask = 0u;
 }
 
 static void NmiUploadAdvancePhase(NmiUploadClock *clock) {
@@ -160,8 +161,11 @@ static void NmiUploadAdvancePhase(NmiUploadClock *clock) {
 
 static void NmiUploadBeginOpcode(NmiUploadClock *clock) {
     while (!clock->bus.remaining && clock->phase != NMI_UPLOAD_DONE) {
-        if (clock->bus.index == clock->bus.count)
+        if (clock->bus.index == clock->bus.count) {
+            Lufia2DecompFramePairedAccountSpan(clock->bus.cpu, 0x808703u,
+                clock->bus.count, clock->bus.progress_mask);
             NmiUploadAdvancePhase(clock);
+        }
         if (clock->phase != NMI_UPLOAD_DONE)
             NmiClockBeginOpcode(&clock->bus);
     }
@@ -249,7 +253,11 @@ static void NmiUploadWrite(void *context, uint32_t address, uint8_t value) {
 }
 
 static bool NmiUploadSupported(const CpuState *cpu) {
-    const unsigned reserve = 20000u;
+    unsigned reserve = 20000u;
+    if (cpu == &g_cpu && g_snes && cpu->ram && cpu->ram == g_snes->ram &&
+        !((cpu->ram[0x72u] | cpu->ram[0x73u]) & 0xc0u) &&
+        !g_snes->autoJoyRead && !g_snes->autoJoyTimer)
+        reserve = 2048u;
     if (!g_snes || !g_snes->inNmi || g_snes->inIrq || !g_snes->dma || !g_snes->apu ||
         cpu != &g_cpu || !cpu->ram || cpu->ram != g_snes->ram ||
         cpu->emulation || cpu->PB != 0x80u ||
