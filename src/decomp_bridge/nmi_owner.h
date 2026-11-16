@@ -33,6 +33,9 @@ enum {
 extern "C" {
 #endif
 
+uint32_t Lufia2DecompNmiTimedHookEnd(uint32_t pc,
+    void (*hook)(struct CpuState *, uint32_t));
+
 bool Lufia2DecompNmiScrollPairHookOwned(uint32_t pc,
     void (*hook)(struct CpuState *, uint32_t));
 bool Lufia2DecompNmiHasInterruptOwner(void);

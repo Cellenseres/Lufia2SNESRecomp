@@ -2930,6 +2930,43 @@ static void ActorBridgeNmiPrepareFrameRestore(CpuState *cpu, uint32_t pc) {
 }
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+uint32_t Lufia2DecompNmiTimedHookEnd(uint32_t pc, InterpPreOpcodeHook hook) {
+    if (hook != ActorBridgeNmiResume)
+        return 0u;
+    switch (pc & 0x7fffffu) {
+#if defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
+    case 0x008664u: return (pc & 0xff0000u) | 0x8699u;
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
+    case 0x00864cu: case 0x008653u: case 0x00865au:
+        return (pc & 0xff0000u) | 0x8661u;
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK)
+    case 0x00869bu: return (pc & 0xff0000u) | 0x86bfu;
+#endif
+    default: return 0u;
+    }
+}
+
+static bool ActorBridgeNmiResumeHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    if (hook != ActorBridgeNmiResume)
+        return false;
+    switch (pc & 0x7fffffu) {
+#if defined(LUFIA2_HAVE_NATIVE_NMI_ENTRY)
+    case 0x00862du:
+#endif
+    case 0x008638u: case 0x00864cu: case 0x008653u: case 0x00865au:
+#if defined(LUFIA2_HAVE_NATIVE_NMI_FINISH)
+    case 0x008664u: case 0x00869bu:
+#endif
+        return true;
+    default:
+        return false;
+    }
+}
+#endif
+
 void Lufia2DecompInstallNmiHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TABLE_SERVICES)
     interp_bridge_set_pre_opcode_hook(0x84f12fu, ActorBridgeCardTableHdmaHook);
@@ -2943,8 +2980,14 @@ void Lufia2DecompInstallNmiHooks(void) {
         0x808664u, 0x80869bu,
 #endif
     };
-    for (unsigned i = 0; i < sizeof entries / sizeof entries[0]; ++i)
+    for (unsigned i = 0; i < sizeof entries / sizeof entries[0]; ++i) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+        if (!Lufia2DecompFrameRangeAllows(entries[i], entries[i] + 1u,
+                ActorBridgeNmiResumeHookOwned))
+            continue;
+#endif
         interp_bridge_set_pre_opcode_hook(entries[i], ActorBridgeNmiResume);
+    }
 #if defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_WIDTH)
     Lufia2DecompSetPlayTimeTickContinuation(ActorBridgeNmiPrepareFrameRestore);
     Lufia2DecompNmiInstallTickHook();

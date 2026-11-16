@@ -1327,6 +1327,17 @@ function(lufia2_add_nmi_continuations target core_root)
                         "${_decision_hook}                    if (key == 0x05ec85u || key == 0x05ec8fu || key == 0x06925cu ||\n                        key == 0x069264u || key == 0x069288u) {\n                        if (Lufia2DecompFrameDecisionHookOwned(pc_before, s_pre_opcode_hooks[hi].hook) &&\n                            (pc_before < 0x800000u || !auto_quiescent ||\n                             s_interp_bridge_depth != 1 || n_stop || stop_on_rti ||\n                             trace || dtrace || wlog_state_sync || s_interp_pctrace ||\n                             g_interp_bridge_pc_hook || Lufia2NativeObserversActive() ||\n                             step_cap - steps < 16))\n                            break;\n                    }\n"
                         _text "${_text}")
                 endif()
+                if(_nmi_display_clock OR _nmi_callback_clock OR _nmi_restore_clock)
+                    string(PREPEND _text "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/nmi_owner.h\"\n")
+                    set(_nmi_timed_hook "                if (s_pre_opcode_hooks[hi].pc24 == key) {\n")
+                    string(FIND "${_text}" "${_nmi_timed_hook}" _nmi_timed_hook_at)
+                    if(_nmi_timed_hook_at EQUAL -1)
+                        message(FATAL_ERROR "Native NMI timed hook entry changed")
+                    endif()
+                    string(REPLACE "${_nmi_timed_hook}"
+                        "${_nmi_timed_hook}                    if ((key == 0x00864cu || key == 0x008653u || key == 0x00865au ||\n                         key == 0x008664u || (key == 0x00869bu && !in.xf))) {\n                        const uint32_t nmi_end = Lufia2DecompNmiTimedHookEnd(\n                            pc_before, s_pre_opcode_hooks[hi].hook) & 0x7fffffu;\n                        if (nmi_end) {\n                            const unsigned needed = key == 0x008664u ? LUFIA2_NMI_DISPLAY_OPCODES :\n                                key == 0x00869bu ? LUFIA2_NMI_RESTORE_OPCODES :\n                                key == 0x00864cu ? LUFIA2_NMI_PRIMARY_CALLBACK_OPCODES :\n                                key == 0x008653u ? LUFIA2_NMI_SECONDARY_OPCODES : LUFIA2_NMI_SCROLL_OPCODES;\n                            int nmi_stop = 0;\n                            for (int si = 0; si < n_stop; ++si) {\n                                const uint32_t stop = stop_pcs[si] & 0x7fffffu;\n                                nmi_stop |= stop >= key && stop < nmi_end;\n                            }\n                            if ((pc_before >> 16) != 0x80u || nmi_stop || !stop_on_rti ||\n                                auto_quiescent || trace || dtrace || wlog_state_sync ||\n                                s_interp_pctrace || g_interp_bridge_pc_hook ||\n                                s_interp_bus_timing_active || in.waiting || in.stopped ||\n                                in.nmiWanted || in.irqWanted || Lufia2NativeObserversActive() ||\n                                steps < 0 || step_cap <= steps || step_cap - steps < needed)\n                                break;\n                        }\n                    }\n"
+                        _text "${_text}")
+                endif()
                 if(_battle_target_name_steps)
                     string(PREPEND _text "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/battle_target_name_clock.h\"\n")
                     set(_target_name_hook "                if (s_pre_opcode_hooks[hi].pc24 == key) {\n")

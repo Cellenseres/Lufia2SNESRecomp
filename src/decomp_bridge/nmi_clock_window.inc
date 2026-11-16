@@ -18,6 +18,7 @@ static bool NmiClockWindow(const CpuState *cpu, bool byte_index, uint32_t first,
     const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
         ? 1024u : 1364u;
     if ((unsigned)g_snes->hPos + budget >= fence) {
+#if defined(LUFIA2_HAVE_BEAM_HOLD_QUERY) || defined(SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY)
         if (!allow_line_crossing || !g_snes->hdmaBeamOff ||
             g_snes->hPos >= 1364u || g_snes->vPos >= 262u ||
             snesrecomp_beam_hold_active())
@@ -27,6 +28,10 @@ static bool NmiClockWindow(const CpuState *cpu, bool byte_index, uint32_t first,
             (uint64_t)(next_line - g_snes->vPos) * 1364u - g_snes->hPos;
         if (budget >= before_edge)
             return false;
+#else
+        (void)allow_line_crossing;
+        return false;
+#endif
     }
     for (unsigned channel = 0u; channel < 8u; ++channel)
         if (g_snes->dma->channel[channel].dmaActive)

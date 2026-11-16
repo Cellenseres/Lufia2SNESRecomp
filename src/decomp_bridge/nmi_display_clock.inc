@@ -56,7 +56,7 @@ static bool NmiDisplaySupported(const CpuState *cpu, NmiDisplayPlan *plan) {
         return false;
     NmiDisplaySchedule(cpu, plan);
     return NmiClockWindow(cpu, cpu->x_flag != 0u, 0x808664u, 0x808699u, plan->budget,
-        NMI_DISPLAY_MAX_CLOCKS, false, NmiDisplayHookOwned);
+        NMI_DISPLAY_MAX_CLOCKS, true, NmiDisplayHookOwned);
 }
 
 static bool RunNativeNmiDisplay(CpuState *cpu) {
