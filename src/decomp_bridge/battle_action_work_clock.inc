@@ -1,3 +1,20 @@
+static bool BattleActionCopyClockSupported(const CpuState *cpu, unsigned kind,
+    uint32_t entry, uint32_t end, unsigned room) {
+    if (kind < 3u || cpu->PB != 0x85u || cpu->host_return_valid != 3u ||
+        !Lufia2DecompFramePairedCallReady(cpu, entry) || !g_snes || !g_snes->dma ||
+        !g_snes->cart || !g_snes->cart->rom || g_snes->vPos >= 225u ||
+        !g_snes->hdmaBeamOff || g_snes->dma->hdmaPendingInit ||
+        g_snes->autoJoyTimer || snesrecomp_beam_hold_active())
+        return false;
+    const Cart *cart = g_snes->cart;
+    const unsigned rom_end = ((entry >> 16) & 0x7fu) * 0x8000u + (end & 0x7fffu);
+    if (cart->romSize < rom_end || cart->superfx || cart->cx4 || cart->dsp1 ||
+        cart->sdd1 || cart->sa1 || g_snes->hPos >= 1364u ||
+        (uint64_t)(225u - g_snes->vPos) * 1364u - g_snes->hPos <= room)
+        return false;
+    return BattleClockAllows(cpu, entry, end, 3u, true, room, false, NULL);
+}
+
 static RecompReturn ActorBridgeTimedActionWork(CpuState *cpu, unsigned kind) {
     static const uint16_t offsets[] = {0xccceu, 0xcce3u, 0xccf8u, 0xcd8cu, 0xcd9bu};
     static const uint16_t returns[] = {0xcce2u, 0xccf7u, 0xcd0fu, 0xcd9au, 0xcda9u};
@@ -15,9 +32,12 @@ static RecompReturn ActorBridgeTimedActionWork(CpuState *cpu, unsigned kind) {
         interp_bridge_use_absolute_apu_timeline(rtl_apu_frame_timeline_active(),
             cart_has_sa1(g_snes->cart), rtl_apu_extended_frame_timing() &&
             g_snes->apu && g_snes->apu->portTimeValid) &&
-        BattleQuietClockSupported(cpu, entry,
+        (BattleQuietClockSupported(cpu, entry,
             (entry & 0xff0000u) | (uint32_t)(returns[kind] + 1u), 3u, true,
-            BattleLeafClockRoom(entry, cost));
+            BattleLeafClockRoom(entry, cost)) ||
+         BattleActionCopyClockSupported(cpu, kind, entry,
+            (entry & 0xff0000u) | (uint32_t)(returns[kind] + 1u),
+            BattleLeafClockRoom(entry, cost)));
     if (!supported)
         return ActorBridgeFallback(cpu, &frame, entry);
     if (frame.hrv)

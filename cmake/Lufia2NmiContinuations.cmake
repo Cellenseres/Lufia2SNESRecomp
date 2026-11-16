@@ -1166,6 +1166,14 @@ function(lufia2_add_nmi_continuations target core_root)
                     string(APPEND _timing_suffix
                         "\nbool Lufia2DecompOpcodeWindowReady(void) { return s_native_opcode_window_ready != 0; }\n")
                 endif()
+                set(_copy_bounce "                !lle_bounce_target_excluded(target);")
+                string(FIND "${_text}" "${_copy_bounce}" _copy_bounce_offset)
+                if(_copy_bounce_offset EQUAL -1)
+                    message(FATAL_ERROR "Action copy timing requires the reviewed AOT bounce")
+                endif()
+                string(REPLACE "${_copy_bounce}"
+                    "                !lle_bounce_target_excluded(target) &&\n                !FramePairedActionCopyBlocked(target, auto_quiescent,\n                    n_stop || stop_on_rti || trace || dtrace || wlog_state_sync ||\n                    s_interp_pctrace || g_interp_bridge_pc_hook, step_cap - steps);"
+                    _text "${_text}")
                 set(_paired_begin "                s_lle_next_unwind_is_deadline = 0;")
                 set(_paired_end "                s_interp_bounce_owner_depth = _saved_bounce_owner;")
                 foreach(_marker IN ITEMS "${_paired_begin}" "${_paired_end}")

@@ -75,6 +75,23 @@ static unsigned FramePairedFieldBudget(uint32_t entry) {
     return 0u;
 }
 
+static bool FramePairedActionCopyBlocked(uint32_t entry, bool automatic,
+    bool observed, long opcodes_left) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS)
+    entry &= 0x7fffffu;
+    if (entry == 0x05cd8cu || entry == 0x05cd9bu) {
+        /* The caller JSL and all 546 instructions in the copy must fit. */
+        return !automatic || observed || opcodes_left < 547;
+    }
+#else
+    (void)entry;
+    (void)automatic;
+    (void)observed;
+    (void)opcodes_left;
+#endif
+    return false;
+}
+
 static bool FramePairedCallBlocked(uint32_t entry, bool interrupt_owner,
     bool auto_quiescent, bool observed, long opcodes_left) {
     const unsigned field_budget = FramePairedFieldBudget(entry);
