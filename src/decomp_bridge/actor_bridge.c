@@ -4391,9 +4391,12 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     interp_bridge_set_pre_opcode_hook(0x81d60eu, ActorBridgeTargetMarkerRecords);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_STEPS)
-    interp_bridge_set_pre_opcode_hook(0x81d58du, ActorBridgeBattleTargetName);
-    interp_bridge_set_pre_opcode_hook(0x81d7c5u, ActorBridgeBattleTargetName);
-    interp_bridge_set_pre_opcode_hook(0x81d8ccu, ActorBridgeBattleTargetName);
+    if (Lufia2DecompFrameRangeAllows(0x81d58du, 0x81d58eu, Lufia2DecompTargetNameHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x81d58du, ActorBridgeBattleTargetName);
+    if (Lufia2DecompFrameRangeAllows(0x81d7c5u, 0x81d7c6u, Lufia2DecompTargetNameHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x81d7c5u, ActorBridgeBattleTargetName);
+    if (Lufia2DecompFrameRangeAllows(0x81d8ccu, 0x81d8cdu, Lufia2DecompTargetNameHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x81d8ccu, ActorBridgeBattleTargetName);
 #endif
     interp_bridge_set_pre_opcode_hook(0x82fb94u, ActorBridgeInventorySearch);
     interp_bridge_set_pre_opcode_hook(0x83a746u, ActorBridgeActorFinePosition);

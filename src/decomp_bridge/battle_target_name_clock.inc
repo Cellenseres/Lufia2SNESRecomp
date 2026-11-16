@@ -1,3 +1,16 @@
+#include "battle_target_name_clock.h"
+
+static void ActorBridgeBattleTargetName(CpuState *cpu, uint32_t entry);
+
+bool Lufia2DecompTargetNameHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return (pc == 0x81d58du || pc == 0x81d7c5u || pc == 0x81d8ccu ||
+        pc == 0x01d58du || pc == 0x01d7c5u || pc == 0x01d8ccu) &&
+        hook == ActorBridgeBattleTargetName;
+}
+
+_Static_assert(LUFIA2_TARGET_NAME_MAX_OPCODES == 3u * 8u,
+    "Review the complete target-name span budget");
+
 #include "lufia2/battle_target_name_steps.h"
 
 static unsigned BattleTargetNameSpanSize(const CpuState *cpu, uint32_t entry) {
@@ -10,7 +23,7 @@ static unsigned BattleTargetNameSpanSize(const CpuState *cpu, uint32_t entry) {
         cpu->master_cycles != cpu->coprocessor_master_cycles ||
         !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, false, 1363u, 1u) ||
         g_snes->vPos >= 262u ||
-        !Lufia2DecompFrameRangeQuiet(entry + 1u, entry + 6u))
+        !Lufia2DecompFrameRangeAllows(entry, entry + 6u, Lufia2DecompTargetNameHookOwned))
         return 0u;
     uint64_t phase, current;
     snes_refresh_state_get(&phase, &current);
@@ -37,7 +50,7 @@ static void ActorBridgeBattleTargetName(CpuState *cpu, uint32_t entry) {
     const unsigned bytes = BattleTargetNameSpanSize(cpu, entry);
     if (!bytes)
         return;
-    FixedSpanOpcode timing[24];
+    FixedSpanOpcode timing[LUFIA2_TARGET_NAME_MAX_OPCODES];
     for (unsigned index = 0u; index < bytes; ++index) {
         const uint16_t pc = (uint16_t)entry;
         timing[3u * index] = (FixedSpanOpcode){pc, 3u, 6u, 1u};
