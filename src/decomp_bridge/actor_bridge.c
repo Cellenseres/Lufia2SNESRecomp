@@ -2943,7 +2943,16 @@ static uint32_t NmiTilemapStepHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
 static uint32_t ScreenFadeRequestHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_NMI_CALLBACKS)
+static uint32_t BattleNmiCallbackHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
+#endif
+
 uint32_t Lufia2DecompNmiTimedHookEnd(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_NMI_CALLBACKS)
+    const uint32_t battle_end = BattleNmiCallbackHookEnd(pc, hook);
+    if (battle_end)
+        return battle_end;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_REQUEST)
     const uint32_t fade_end = ScreenFadeRequestHookEnd(pc, hook);
     if (fade_end)
@@ -3148,6 +3157,9 @@ static void ActorBridgeTargetMarkerRecords(CpuState *cpu, uint32_t entry);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TIMER_CALLS)
 #include "battle_timer_call_clock.inc"
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_NMI_CALLBACKS)
+#include "battle_nmi_callback_clock.inc"
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_WAVE_FILL_STEPS)
 #include "wave_fill_word_clock.inc"
@@ -4525,6 +4537,13 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     if (Lufia2DecompFrameRangeAllows(0x83ab4fu, 0x83ab50u,
             Lufia2DecompActorRecordOffsetsHookOwned))
         interp_bridge_set_pre_opcode_hook(0x83ab4fu, ActorBridgeActorRecordOffsets);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_NMI_CALLBACKS)
+    static const uint32_t battle_callbacks[] = {0x858e79u, 0x858e7cu, 0x858e8eu};
+    for (unsigned i = 0u; i < sizeof battle_callbacks / sizeof *battle_callbacks; ++i)
+        if (Lufia2DecompFrameRangeAllows(battle_callbacks[i], battle_callbacks[i] + 1u,
+                BattleNmiCallbackHookOwned))
+            interp_bridge_set_pre_opcode_hook(battle_callbacks[i], ActorBridgeBattleNmiCallback);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TIMER_CALLS)
     interp_bridge_set_pre_opcode_hook(0x858f1bu, ActorBridgeBattleTimerCall);

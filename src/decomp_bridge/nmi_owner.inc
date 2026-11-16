@@ -94,6 +94,13 @@ static bool Lufia2DecompNmiHookHasOwner(uint32_t pc, int stop_on_rti,
             !s_frame_return_interrupt_blocked && !s_interp_bus_timing_active &&
             !g_interp_bridge_pc_hook && !s_interp_pctrace;
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_NMI_CALLBACKS)
+    case 0x058e79u: case 0x058e7cu: case 0x058e8eu:
+        return !(admission_flags & LUFIA2_NMI_OWNER_OBSERVED) &&
+            opcodes_left >= LUFIA2_NMI_BATTLE_CALLBACK_OPCODES &&
+            !s_frame_return_interrupt_blocked && !s_interp_bus_timing_active &&
+            !g_interp_bridge_pc_hook && !s_interp_pctrace;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TIMER_CALLS)
     case 0x058f1bu:
     case 0x058f3cu:
