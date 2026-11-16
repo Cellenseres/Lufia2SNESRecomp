@@ -4361,7 +4361,10 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 
 #if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_FRONTS)
     static const uint32_t scroll_fronts[] = {
-        0x8087a7u, 0x8087c4u, 0x8087cfu, 0x8087dau, 0x8087e5u
+        0x8087a7u, 0x8087c4u, 0x8087cfu, 0x8087dau, 0x8087e5u,
+#if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_FINISH)
+        0x8087f3u,
+#endif
     };
     for (unsigned i = 0u; i < sizeof scroll_fronts / sizeof *scroll_fronts; ++i)
         if (Lufia2DecompFrameRangeAllows(scroll_fronts[i], scroll_fronts[i] + 1u,
