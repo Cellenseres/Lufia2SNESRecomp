@@ -37,9 +37,10 @@ static unsigned BattleTargetNameSpanSize(const CpuState *cpu, uint32_t entry) {
     while (bytes) {
         const unsigned budget = bytes * iteration + 40u -
             (bytes == cpu->Y + 1u ? 6u : 0u);
-        if (budget < fence - g_snes->hPos &&
-            budget <= UINT64_MAX - cpu->master_cycles &&
-            deadline - cpu->master_cycles >= budget)
+        if (budget <= UINT64_MAX - cpu->master_cycles &&
+            deadline - cpu->master_cycles >= budget &&
+            (budget < fence - g_snes->hPos ||
+             NativeOpcodeWindowSupported(cpu, entry, budget, 0x1fffu, false)))
             return bytes;
         --bytes;
     }

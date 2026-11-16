@@ -927,7 +927,8 @@ function(lufia2_add_nmi_continuations target core_root)
         list(APPEND _definitions LUFIA2_HAVE_NATIVE_SOUND_SOURCE_CLOCK=1)
     endif()
     if(_frame_returns AND (_decompress_steps OR _decompress_reference_steps OR
-                           _battle_effect_dispatch_steps OR _action_clear_steps))
+                           _battle_effect_dispatch_steps OR _action_clear_steps OR
+                           _battle_target_name_steps))
         list(APPEND _definitions LUFIA2_HAVE_NATIVE_OPCODE_WINDOW_CONTEXT=1)
     endif()
     if(_frame_returns AND "LUFIA2_HAVE_NATIVE_SOUND_SOURCE_CLOCK=1" IN_LIST _definitions AND

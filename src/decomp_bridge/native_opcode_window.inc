@@ -4,7 +4,8 @@
     defined(LUFIA2_HAVE_NATIVE_DECOMPRESS_REFERENCE_STEPS) || \
     defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_DISPATCH_STEPS) || \
     defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_FRAME_STEPS) || \
-    defined(LUFIA2_HAVE_NATIVE_ACTION_CLEAR_STEPS)
+    defined(LUFIA2_HAVE_NATIVE_ACTION_CLEAR_STEPS) || \
+    defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_STEPS)
 static bool NativeOpcodeWindowSupported(const CpuState *cpu, uint32_t entry,
     unsigned budget, unsigned stack_limit, bool wide_accumulator) {
     if (!g_snes || !budget)
