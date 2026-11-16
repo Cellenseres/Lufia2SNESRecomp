@@ -1,3 +1,13 @@
+static bool ActionWorkHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_ACTION_CLEAR_STEPS)
+    return Lufia2DecompActionClearStepHookOwned(pc, hook);
+#else
+    (void)pc;
+    (void)hook;
+    return false;
+#endif
+}
+
 static bool BattleActionCopyClockSupported(const CpuState *cpu, unsigned kind,
     uint32_t entry, uint32_t end, unsigned room) {
     if (kind < 3u || cpu->PB != 0x85u || cpu->host_return_valid != 3u ||
@@ -32,9 +42,9 @@ static RecompReturn ActorBridgeTimedActionWork(CpuState *cpu, unsigned kind) {
         interp_bridge_use_absolute_apu_timeline(rtl_apu_frame_timeline_active(),
             cart_has_sa1(g_snes->cart), rtl_apu_extended_frame_timing() &&
             g_snes->apu && g_snes->apu->portTimeValid) &&
-        (BattleQuietClockSupported(cpu, entry,
+        (BattleQuietClockAllows(cpu, entry,
             (entry & 0xff0000u) | (uint32_t)(returns[kind] + 1u), 3u, true,
-            BattleLeafClockRoom(entry, cost)) ||
+            BattleLeafClockRoom(entry, cost), ActionWorkHookOwned) ||
          BattleActionCopyClockSupported(cpu, kind, entry,
             (entry & 0xff0000u) | (uint32_t)(returns[kind] + 1u),
             BattleLeafClockRoom(entry, cost)));

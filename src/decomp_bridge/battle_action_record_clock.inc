@@ -58,7 +58,7 @@ static RecompReturn ActorBridgeTimedActionRecord(CpuState *cpu, unsigned kind) {
         !BattleQuietClockSupported(cpu, entry, 0x850000u | (returns[kind] + 1u),
             frame_size, true, BattleLeafClockRoom(entry, cost)) ||
         (kind && !Lufia2DecompFrameRangeQuiet(0x85cdfau, 0x85ce21u)) ||
-        (kind == 2u && !Lufia2DecompFrameRangeQuiet(0x85ccceu, 0x85cce3u)))
+        (kind == 2u && !Lufia2DecompFrameRangeAllows(0x85ccceu, 0x85cce3u, ActionWorkHookOwned)))
         return ActorBridgeFallback(cpu, &frame, entry);
     if (kind) {
         const unsigned pointer = kind == 1u ? 0xb5u : 0xb8u;

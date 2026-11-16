@@ -2994,6 +2994,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 }
 #include "fixed_span_clock.inc"
 #include "native_opcode_window.inc"
+#if defined(LUFIA2_HAVE_NATIVE_ACTION_CLEAR_STEPS)
+#include "action_clear_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_SPRITE_OVERLAYS)
 #include "sprite_overlay_clock.inc"
 #endif
@@ -4268,6 +4271,12 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_ACTION_CLEAR_STEPS)
+    if (Lufia2DecompFrameRangeAllows(0x85ccd7u, 0x85ccd8u, Lufia2DecompActionClearStepHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x85ccd7u, ActorBridgeActionClearStep);
+    if (Lufia2DecompFrameRangeAllows(0x85ccecu, 0x85ccedu, Lufia2DecompActionClearStepHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x85ccecu, ActorBridgeActionClearStep);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_SPRITE_OVERLAYS)
     if (Lufia2DecompFrameRangeAllows(0x81b680u, 0x81b681u, SpriteOverlayHookOwned))
         interp_bridge_set_pre_opcode_hook(0x81b680u, ActorBridgeSpriteOverlays);
