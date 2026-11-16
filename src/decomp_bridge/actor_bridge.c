@@ -4695,8 +4695,10 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     }
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_INPUT_STEPS)
-    interp_bridge_set_pre_opcode_hook(0x85ec9au, ActorBridgeBattleInputClock);
-    interp_bridge_set_pre_opcode_hook(0x85ecbdu, ActorBridgeBattleInputClock);
+    if (Lufia2DecompFrameRangeAllows(0x85ec9au, 0x85ec9bu, Lufia2DecompBattleInputHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x85ec9au, ActorBridgeBattleInputClock);
+    if (Lufia2DecompFrameRangeAllows(0x85ecbdu, 0x85ecbeu, Lufia2DecompBattleInputHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x85ecbdu, ActorBridgeBattleInputClock);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_DECOMPRESS_REFERENCE_STEPS)
     InstallDecompressHook(0x808f44u, ActorBridgeDecompressReferenceClock, ReferenceHookOwned);

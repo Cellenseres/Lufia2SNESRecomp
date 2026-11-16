@@ -1,20 +1,21 @@
 #include "lufia2/battle_input_steps.h"
+#include "battle_input_clock.h"
 
 enum { BATTLE_INPUT_CLOCK_BUDGET = 512u };
 
 static void ActorBridgeBattleInputClock(CpuState *cpu, uint32_t entry);
 
-static bool BattleInputHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+bool Lufia2DecompBattleInputHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
     return hook == ActorBridgeBattleInputClock &&
         (pc == 0x85ec9au || pc == 0x85ecbdu);
 }
 
 static bool BattleInputHooksAllow(uint32_t entry) {
     return (entry != 0x85ec9au || Lufia2DecompFrameRangeAllows(
-                0x85ec9au, 0x85ecb7u, BattleInputHookOwned)) &&
+                0x85ec9au, 0x85ecb7u, Lufia2DecompBattleInputHookOwned)) &&
         Lufia2DecompFrameRangeAllows(
             entry == 0x85ec9au ? 0x85ecceu : entry,
-            0x85ecdbu, BattleInputHookOwned);
+            0x85ecdbu, Lufia2DecompBattleInputHookOwned);
 }
 
 typedef struct BattleInputClock {
@@ -154,9 +155,16 @@ static bool InputClockSupported(const CpuState *cpu, uint32_t entry) {
         return false;
     const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
         ? 1024u : 1364u;
-    return ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1ffbu, true,
-        fence - BATTLE_INPUT_CLOCK_BUDGET - 1u, BATTLE_INPUT_CLOCK_BUDGET) &&
-        BattleInputHooksAllow(entry);
+    const bool within_line = ActorBridgeTimedStepSupportedWindow(cpu, entry,
+        0x1ffbu, true, fence - BATTLE_INPUT_CLOCK_BUDGET - 1u,
+        BATTLE_INPUT_CLOCK_BUDGET);
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_INPUT_WINDOW)
+    const bool window = within_line || NativeOpcodeWindowSupported(cpu, entry,
+        BATTLE_INPUT_CLOCK_BUDGET, 0x1ffbu, false);
+#else
+    const bool window = within_line;
+#endif
+    return window && BattleInputHooksAllow(entry);
 }
 
 static void ActorBridgeBattleInputClock(CpuState *cpu, uint32_t entry) {

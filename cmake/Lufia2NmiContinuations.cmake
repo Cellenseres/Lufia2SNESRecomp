@@ -973,6 +973,9 @@ function(lufia2_add_nmi_continuations target core_root)
     else()
         set(_battle_nmi_callbacks FALSE)
     endif()
+    if(_frame_returns AND _battle_input_steps)
+        list(APPEND _definitions LUFIA2_HAVE_NATIVE_BATTLE_INPUT_WINDOW=1)
+    endif()
     if(_frame_returns AND _battle_target_input)
         list(APPEND _definitions LUFIA2_HAVE_NATIVE_BATTLE_TARGET_INPUT=1)
     else()
@@ -994,7 +997,7 @@ function(lufia2_add_nmi_continuations target core_root)
     else()
         set(_player_continuations FALSE)
     endif()
-    if(_frame_returns AND (_battle_target_input OR _battle_target_selection OR _battle_target_cursor OR _player_continuations OR _decompress_steps OR _decompress_reference_steps OR
+    if(_frame_returns AND (_battle_input_steps OR _battle_target_input OR _battle_target_selection OR _battle_target_cursor OR _player_continuations OR _decompress_steps OR _decompress_reference_steps OR
                            _battle_effect_dispatch_steps OR _action_clear_steps OR
                            _battle_target_name_steps OR _frame_decisions))
         list(APPEND _definitions LUFIA2_HAVE_NATIVE_OPCODE_WINDOW_CONTEXT=1)
@@ -1439,8 +1442,18 @@ function(lufia2_add_nmi_continuations target core_root)
                         _text "${_text}")
                 endif()
                 if(_battle_input_steps)
+                    string(PREPEND _text
+                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/battle_input_clock.h\"\n")
+                    set(_battle_input_hook "                if (s_pre_opcode_hooks[hi].pc24 == key) {\n")
+                    string(FIND "${_text}" "${_battle_input_hook}" _battle_input_hook_at)
+                    if(_battle_input_hook_at EQUAL -1)
+                        message(FATAL_ERROR "Native battle input hook entry changed")
+                    endif()
+                    string(REPLACE "${_battle_input_hook}"
+                        "${_battle_input_hook}                    if (n_stop && Lufia2DecompBattleInputHookOwned(\n                            pc_before, s_pre_opcode_hooks[hi].hook))\n                        break;\n"
+                        _text "${_text}")
                     string(REPLACE "${_hook_call}"
-                        "                    if (((pc_before & 0x7fffffu) != 0x05ec9au ||\n                         step_cap - steps >= 14) &&\n                        ((pc_before & 0x7fffffu) != 0x05ecbdu ||\n                         step_cap - steps >= 15)) {\n${_hook_call}\n                    }"
+                        "                    if ((((pc_before & 0x7fffffu) != 0x05ec9au ||\n                         step_cap - steps >= 14) &&\n                        ((pc_before & 0x7fffffu) != 0x05ecbdu ||\n                         step_cap - steps >= 15)) ||\n                        !Lufia2DecompBattleInputHookOwned(\n                            pc_before, s_pre_opcode_hooks[hi].hook)) {\n${_hook_call}\n                    }"
                         _text "${_text}")
                 endif()
                 if(_battle_nmi_callbacks)
