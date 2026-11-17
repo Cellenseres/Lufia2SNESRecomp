@@ -4426,6 +4426,10 @@ static void ActorBridgePlayerContinuation(CpuState *cpu, uint32_t entry);
 #include "battle_command_loop_clock.inc"
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TURN_DISPLAY_STEPS)
+#include "turn_display_clock.inc"
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BATTLE_FILL_STEPS)
 #include "battle_fill_cells_clock.inc"
 #endif
@@ -4571,6 +4575,15 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_PAIRS) && defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
     if (Lufia2DecompFrameRangeAllows(0x8087b2u, 0x8087b3u, NmiScrollPairHookOwned))
         interp_bridge_set_pre_opcode_hook(0x8087b2u, ActorBridgeNmiScrollPair);
+#endif
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_TURN_DISPLAY_STEPS)
+    static const uint32_t turn_regions[] = {0x859ddau, 0x859df0u};
+    for (unsigned i = 0u; i < sizeof turn_regions / sizeof *turn_regions; ++i) {
+        const uint32_t entry = turn_regions[i];
+        if (Lufia2DecompFrameRangeAllows(entry, TurnDisplayRegionEnd(entry), TurnDisplayRegionHookOwned))
+            interp_bridge_set_pre_opcode_hook(entry, ActorBridgeTurnDisplayRegion);
+    }
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BATTLE_FILL_STEPS)
