@@ -4394,6 +4394,10 @@ static void ActorBridgePlayerContinuation(CpuState *cpu, uint32_t entry);
 #include "field_region_clock.inc"
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BATTLE_DISPLAY_STEPS)
+#include "battle_display_clock.inc"
+#endif
+
 bool Lufia2DecompCommandTileHookOwned(
     uint32_t pc, void (*hook)(CpuState *, uint32_t)) {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_TILES)
@@ -4520,6 +4524,15 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_PAIRS) && defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
     if (Lufia2DecompFrameRangeAllows(0x8087b2u, 0x8087b3u, NmiScrollPairHookOwned))
         interp_bridge_set_pre_opcode_hook(0x8087b2u, ActorBridgeNmiScrollPair);
+#endif
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BATTLE_DISPLAY_STEPS)
+    static const uint32_t display_blocks[] = {0x859c68u, 0x859cc4u};
+    for (unsigned i = 0u; i < sizeof display_blocks / sizeof *display_blocks; ++i) {
+        const uint32_t entry = display_blocks[i];
+        if (Lufia2DecompFrameRangeAllows(entry, entry + 1u, BattleDisplayHookOwned))
+            interp_bridge_set_pre_opcode_hook(entry, ActorBridgeBattleDisplayBlock);
+    }
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_PHASES)
