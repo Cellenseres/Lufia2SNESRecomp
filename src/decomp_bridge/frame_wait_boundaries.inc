@@ -1,4 +1,7 @@
 #include "lufia2/frame_wait.h"
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_EXIT_STEPS)
+#include "lufia2/frame_exit_steps.h"
+#endif
 #include "lufia2/system.h"
 
 extern uint32_t g_interp816_cur_pc;
@@ -31,13 +34,19 @@ static uint8_t FrameWaitBoundaryRead(void *context, uint32_t address) {
 
 static int Lufia2DecompRunFrameWaitBoundary(
     Interp816 *registers, uint32_t pc, uint8_t opcode) {
+    if (opcode != 0xa5u && opcode != 0xc5u && opcode != 0xf0u && opcode != 0x60u)
+        return 0;
     static const uint32_t counters[] = {
         0x8293c6u, 0x83900cu, 0x8eb550u, 0x868b4cu, 0x869750u,
         0x80bf0bu, 0x848d4du, 0x80937bu, 0x848363u, 0x84a5acu,
         0x85851cu, 0x85ec94u, 0x85ecb7u, 0x8eb288u, 0x8ec2c4u};
     static const uint32_t returns[] = {
         0x8293ceu, 0x839012u, 0x8eb556u, 0x868b54u, 0x869757u, 0x80bf11u,
-        0x848d53u, 0x809382u, 0x848369u, 0x84a5b4u, 0x858522u, 0x8eb28eu};
+        0x848d53u, 0x809382u, 0x848369u, 0x84a5b4u, 0x858522u, 0x8eb28eu,
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_EXIT_STEPS)
+        0x83829fu,
+#endif
+    };
     if (registers->e || registers->k != pc >> 16 ||
         registers->pc != (uint16_t)pc || registers->waiting ||
         registers->stopped || registers->nmiWanted || registers->irqWanted)
@@ -81,7 +90,12 @@ static int Lufia2DecompRunFrameWaitBoundary(
     Lufia2ExecutionResult result;
     if (returning) {
         cycles = 6u;
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_EXIT_STEPS)
+        result = pc == 0x83829fu ? Lufia2FrameExitStep(&memory, &state, pc)
+            : Lufia2FrameWaitReturnStep(&memory, &state, pc);
+#else
         result = Lufia2FrameWaitReturnStep(&memory, &state, pc);
+#endif
     } else {
         cycles = opcode == 0xf0u ? 2u + registers->z
             : 3u + !registers->mf + ((registers->dp & 0xffu) != 0u);

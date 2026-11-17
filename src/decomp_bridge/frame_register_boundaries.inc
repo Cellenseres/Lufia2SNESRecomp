@@ -1,4 +1,7 @@
 #include "lufia2/frame_wait.h"
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_EXIT_STEPS)
+#include "lufia2/frame_exit_steps.h"
+#endif
 
 extern uint32_t g_interp816_cur_pc;
 
@@ -23,6 +26,9 @@ static int Lufia2DecompRunFrameRegisterBoundary(
         break;
     case 0x8293ccu: case 0x868b52u: case 0x809381u: case 0x84a5b2u:
     case 0x868b6fu:
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_EXIT_STEPS)
+    case 0x83829eu:
+#endif
         expected_opcode = 0x28u;
         break;
     case 0x8293cdu: case 0x868b53u: case 0x869756u: case 0x84a5b3u:
@@ -33,6 +39,9 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     case 0x868b5au: expected_opcode = 0xc2u; break;
     case 0x868b70u: expected_opcode = 0xfau; break;
     case 0x868b71u: expected_opcode = 0x7au; break;
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_EXIT_STEPS)
+    case 0x85ecdau: case 0x85ecefu:
+#endif
     case 0x868b72u: expected_opcode = 0x6bu; break;
     default: return 0;
     }
@@ -71,7 +80,12 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     case 0x6bu: cycles = 6u; break;
     default: cycles = 3u; break;
     }
-    const Lufia2ExecutionResult result = pc >= 0x868b55u && pc <= 0x868b72u
+    const Lufia2ExecutionResult result =
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_EXIT_STEPS)
+        pc == 0x83829eu || pc == 0x85ecdau || pc == 0x85ecefu
+        ? Lufia2FrameExitStep(&memory, &state, pc) :
+#endif
+        pc >= 0x868b55u && pc <= 0x868b72u
         ? Lufia2SpriteFrameRegisterStep(&memory, &state, pc)
         : Lufia2FrameWaitRegisterStep(&memory, &state, pc);
     registers->a = state.accumulator;
