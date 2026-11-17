@@ -3139,6 +3139,9 @@ static const FixedSpanOpcode actor_record_offset_timing[] = {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_INPUT)
 #include "battle_target_input_clock.inc"
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_RESULT_STEPS)
+#include "battle_result_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_MARKER_SPANS)
 static void ActorBridgeTargetMarkerRecords(CpuState *cpu, uint32_t entry);
 #include "battle_target_marker_clock.inc"
@@ -4374,6 +4377,14 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_RESULT_STEPS)
+    static const uint32_t result_phases[] = {0x81de88u, 0x81de93u, 0x81de95u, 0x81dea2u};
+    for (unsigned index = 0u; index < sizeof(result_phases) / sizeof(result_phases[0]); ++index) {
+        const uint32_t entry = result_phases[index];
+        if (Lufia2DecompFrameRangeAllows(entry, entry + 1u, ResultPhaseHookOwned))
+            interp_bridge_set_pre_opcode_hook(entry, ActorBridgeResultPhase);
+    }
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_ACTION_CLEAR_STEPS)
     if (Lufia2DecompFrameRangeAllows(0x85ccd7u, 0x85ccd8u, Lufia2DecompActionClearStepHookOwned))
         interp_bridge_set_pre_opcode_hook(0x85ccd7u, ActorBridgeActionClearStep);
