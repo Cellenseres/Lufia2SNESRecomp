@@ -8,6 +8,10 @@ static bool BackgroundWordHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
     return pc == 0x81ba59u && hook == ActorBridgeBackgroundDecodeWord;
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_BACKGROUND_WORD_SPANS)
+#include "background_word_span_clock.inc"
+#endif
+
 static bool BackgroundWordClockSupported(const CpuState *cpu, uint32_t entry) {
     if (entry != 0x81ba59u || cpu->m_flag || cpu->x_flag ||
         cpu->DB != 0x7eu || cpu->D || cpu->_flag_D ||
@@ -30,6 +34,12 @@ static bool BackgroundWordClockSupported(const CpuState *cpu, uint32_t entry) {
 }
 
 static void ActorBridgeBackgroundDecodeWord(CpuState *cpu, uint32_t entry) {
+#if defined(LUFIA2_HAVE_NATIVE_BACKGROUND_WORD_SPANS)
+    if (!Lufia2DecompOpcodeWindowReady())
+        return;
+    if (TryBackgroundWordSpan(cpu, entry))
+        return;
+#endif
     if (!BackgroundWordClockSupported(cpu, entry))
         return;
     const FixedSpanOpcode timing[] = {
