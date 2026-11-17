@@ -1,3 +1,6 @@
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTROL_STEPS)
+#include "lufia2/field_region_control_steps.h"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)
 #include "lufia2/battle_target_control_steps.h"
 #endif
@@ -26,8 +29,11 @@ static int Lufia2DecompRunFrameRegisterBoundary(
         registers->pc != (uint16_t)pc || registers->waiting ||
         registers->stopped || registers->nmiWanted || registers->irqWanted)
         return 0;
-#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS)
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS)
     switch (opcode) {
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTROL_STEPS)
+    case 0xabu:
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS)
     case 0xa2u:
 #endif
@@ -44,6 +50,9 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     bool nmi_control = false;
 #endif
     uint8_t expected_opcode;
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTROL_STEPS)
+    bool region_control = false;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)
     bool target_control = false;
 #endif
@@ -54,6 +63,26 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     bool field_control = false;
 #endif
     switch (pc) {
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTROL_STEPS)
+    case 0x83827du:
+        region_control = true;
+        expected_opcode = 0xabu;
+        break;
+    case 0x838265u:
+    case 0x838268u:
+    case 0x83827au:
+    case 0x83827eu:
+    case 0x838289u:
+    case 0x838292u:
+    case 0x83829bu:
+        region_control = true;
+        expected_opcode = 0x20u;
+        break;
+    case 0x838281u:
+        region_control = true;
+        expected_opcode = 0x22u;
+        break;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)
     case 0x81ccacu:
     case 0x81ccd8u:
@@ -198,7 +227,7 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     } else if (opcode == 0x80u)
         (void)registers->read(registers->mem, pc + 1u);
 #endif
-#if (defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)) && !defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_CONTROL_STEPS)
+#if (defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTROL_STEPS)) && !defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_CONTROL_STEPS)
     else if (opcode == 0x20u) {
         (void)registers->read(registers->mem, pc + 1u);
         (void)registers->read(registers->mem, pc + 2u);
@@ -210,7 +239,7 @@ static int Lufia2DecompRunFrameRegisterBoundary(
         (void)registers->read(registers->mem, pc + 2u);
     }
 #endif
-#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)
     if (opcode == 0x22u) {
         (void)registers->read(registers->mem, pc + 1u);
         (void)registers->read(registers->mem, pc + 2u);
@@ -219,24 +248,31 @@ static int Lufia2DecompRunFrameRegisterBoundary(
 #endif
     unsigned cycles;
     switch (opcode) {
-#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)
     case 0x22u: cycles = 8u; break;
 #endif
-#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS)
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS)
     case 0x60u: cycles = 6u; break;
 #endif
     case 0x48u: cycles = 3u + !registers->mf; break;
     case 0x68u: cycles = 4u + !registers->mf; break;
     case 0x5au: case 0xdau: cycles = 3u + !registers->xf; break;
     case 0x7au: case 0xfau: cycles = 4u + !registers->xf; break;
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTROL_STEPS)
+    case 0xabu:
+#endif
     case 0x28u: cycles = 4u; break;
-#if defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)
+#if defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTROL_STEPS)
     case 0x20u:
 #endif
     case 0x6bu: cycles = 6u; break;
     default: cycles = 3u; break;
     }
     const Lufia2ExecutionResult result =
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTROL_STEPS)
+        region_control
+        ? Lufia2FieldRegionControlStep(&memory, &state, pc) :
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)
         target_control
         ? Lufia2BattleTargetControlStep(&memory, &state, pc) :
@@ -268,6 +304,10 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     registers->x = state.x;
     registers->y = state.y;
     registers->sp = state.stack;
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTROL_STEPS)
+    if (opcode == 0xabu)
+        registers->db = state.data_bank;
+#endif
     registers->k = state.program_bank;
     registers->pc = (uint16_t)result.pc;
     registers->mf = state.accumulator_is_8_bit;
