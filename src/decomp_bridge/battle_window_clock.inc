@@ -193,10 +193,14 @@ static void BattleWindowWrite(void *context, uint32_t address, uint8_t value) {
     FixedSpanWrite(&clock->span, address, value);
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_FILL_STEPS)
+#include "battle_output_range.h"
+#else
 static bool BattleWindowOutputSupported(unsigned start, unsigned end) {
     return end <= 0x10000u && (end <= 0x09f2u || start >= 0x0a00u) &&
            (end <= 0x0a3cu || start >= 0x0a3eu) && (end <= 0x1efcu || start >= 0x2000u);
 }
+#endif
 
 static bool BattleWindowEndsBeamSupported(const CpuState *cpu, unsigned room) {
     const uint32_t entry = 0x81e570u;

@@ -4426,6 +4426,10 @@ static void ActorBridgePlayerContinuation(CpuState *cpu, uint32_t entry);
 #include "battle_command_loop_clock.inc"
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BATTLE_FILL_STEPS)
+#include "battle_fill_cells_clock.inc"
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_BACKGROUND_STEPS)
 #include "effect_background_clock.inc"
 #endif
@@ -4567,6 +4571,11 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_PAIRS) && defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
     if (Lufia2DecompFrameRangeAllows(0x8087b2u, 0x8087b3u, NmiScrollPairHookOwned))
         interp_bridge_set_pre_opcode_hook(0x8087b2u, ActorBridgeNmiScrollPair);
+#endif
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BATTLE_FILL_STEPS)
+    if (Lufia2DecompFrameRangeAllows(0x81e7ecu, 0x81e7f4u, BattleFillCellsHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x81e7ecu, ActorBridgeBattleFillCells);
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_BACKGROUND_STEPS)

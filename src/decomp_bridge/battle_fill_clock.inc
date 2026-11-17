@@ -114,7 +114,12 @@ static RecompReturn ActorBridgeTimedBattleFill(CpuState *cpu) {
     const unsigned room = master + 40u * (master / 1324u + 2u);
     if (!columns || !rows || cpu->_flag_D || cpu->m_flag != 1u ||
         !BattleWindowOutputSupported(cpu->X, end) ||
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_FILL_STEPS)
+        !BattleQuietClockAllows(cpu, entry, 0x81e808u, 2u, false, room,
+            BattleFillCellsHookOwned))
+#else
         !BattleQuietClockSupported(cpu, entry, 0x81e808u, 2u, false, room))
+#endif
         return ActorBridgeFallback(cpu, &frame, cpu->PB == 1u ? 0x01e7d2u : entry);
     if (frame.hrv)
         frame.host_return_pc24 = Lufia2DecompFramePairedReturnPc(cpu, entry);

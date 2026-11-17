@@ -109,7 +109,11 @@ static RecompReturn ActorBridgeTimedFilledWindow(CpuState *cpu, unsigned kind) {
     if (cpu->DB != 0x7eu || !columns || !rows || cpu->_flag_D ||
         cpu->m_flag != 1u || !BattleWindowOutputSupported(cpu->X, end) ||
         !BattleQuietClockSupported(cpu, entry, entry + 31u, 3u, false, room) ||
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_FILL_STEPS)
+        !Lufia2DecompFrameRangeAllows(0x81e7d2u, 0x81e808u, BattleFillCellsHookOwned) ||
+#else
         !Lufia2DecompFrameRangeQuiet(0x81e7d2u, 0x81e808u) ||
+#endif
         !Lufia2DecompFrameRangeQuiet(0x81e503u, 0x81e593u))
         return ActorBridgeFallback(cpu, &frame,
                                    cpu->PB == 1u ? entry & 0x7fffffu : entry);
