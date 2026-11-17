@@ -23,13 +23,13 @@ if (Lufia2DecompFieldRegionEntry(pc_before) && auto_quiescent && !stop_on_rti &&
         s_interp_bounce_recomp_base = g_recomp_stack_top;
         s_interp_bounce_owner_depth = s_interp_bridge_depth;
         s_lle_next_unwind_is_deadline = 0;
-        const FieldRegionSdkContext saved_region = s_field_region_context;
-        s_field_region_context = (FieldRegionSdkContext){cpu, &steps,
+        const NativeCallOwnerContext saved_call_owner = s_native_call_owner;
+        s_native_call_owner = (NativeCallOwnerContext){cpu, &steps,
             &progress_write_epoch, &progress_dynamic_epoch, step_cap};
         uint32_t next_pc = pc_before;
         s_frame_return_interrupt_blocked = current_blocked;
         const RecompReturn result = Lufia2DecompFieldRegionResume(cpu, pc_before, &next_pc);
-        s_field_region_context = saved_region;
+        s_native_call_owner = saved_call_owner;
         s_frame_return_interrupt_blocked = saved_blocked;
         s_interp_bounce_owner_depth = saved_owner;
         s_interp_bounce_recomp_base = saved_base;

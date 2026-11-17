@@ -21781,3 +21781,7 @@ RecompReturn Lufia2DecompBridge_81E38F(CpuState *cpu) {
 #if defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTINUATIONS)
 #include "field_region_continuation_clock.inc"
 #endif
+
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_UPKEEP_STEPS)
+#include "battle_upkeep_clock.inc"
+#endif

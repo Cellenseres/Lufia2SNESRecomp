@@ -70,13 +70,13 @@ static uint8_t FieldRegionContinuationChild(void *context, Lufia2CpuState *state
     FieldRegionContinuationClock *clock = context;
     assert(site == clock->next_call && frame_size == clock->frame_size);
     assert(!clock->span.remaining && clock->span.index == clock->span.count);
-    Lufia2DecompFieldRegionAccountPrefix(clock->child.cpu,
+    Lufia2DecompCallOwnerAccountPrefix(clock->child.cpu,
         clock->span.count, clock->span.progress_mask);
-    if (!Lufia2DecompFieldRegionInvokeChild(clock->child.cpu, &clock->child,
+    if (!Lufia2DecompCallOwnerInvokeChild(clock->child.cpu, &clock->child,
             state, target, site, frame_size, ActorBridgePushedChild))
         return 0u;
     const uint32_t landing = site + frame_size + 1u;
-    if (!Lufia2DecompFieldRegionHasBudget(clock->child.cpu, 10u) ||
+    if (!Lufia2DecompCallOwnerHasBudget(clock->child.cpu, 10u) ||
         !Lufia2DecompFieldRegionCanResume(clock->child.cpu, landing)) {
         clock->child.unwound = interp_tier_dispatch_tail(clock->child.cpu,
             landing, site, clock->child.frame.entry_s, 0u);
@@ -105,7 +105,7 @@ RecompReturn Lufia2DecompFieldRegionResume(
     BeginFixedSpanOpcode(&clock.span);
     assert(result.flow == LUFIA2_EXECUTION_BOUNDARY && result.pc == 0x83829eu);
     assert(!clock.span.remaining && clock.span.index == clock.span.count);
-    Lufia2DecompFieldRegionAccountPrefix(cpu, clock.span.count, clock.span.progress_mask);
+    Lufia2DecompCallOwnerAccountPrefix(cpu, clock.span.count, clock.span.progress_mask);
     ActorBridgeStore(cpu, &state);
     cpu->PB = state.program_bank;
     *next_pc = result.pc;

@@ -45,8 +45,6 @@ function(lufia2_compose_field_region_continuations output source)
         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/field_region_owner.inc\"\n${_marker}"
         _text "${source}")
     string(PREPEND _text
-        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/field_region_owner.h\"\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/field_region_sdk_context.inc\"\n")
-    string(APPEND _text
-        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/field_region_sdk_child.inc\"\n")
+        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/field_region_owner.h\"\n")
     set(${output} "${_text}" PARENT_SCOPE)
 endfunction()
