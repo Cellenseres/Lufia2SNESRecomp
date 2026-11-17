@@ -10,6 +10,8 @@ if (Lufia2DecompFieldRegionEntry(pc_before) && auto_quiescent && !stop_on_rti &&
     const bool can_resume = Lufia2DecompFieldRegionCanResume(cpu, pc_before);
     s_frame_return_interrupt_blocked = saved_blocked;
     if (can_resume) {
+        const bool selector_only = pc_before == 0x838285u &&
+            ((in.a & 0xffu) < 0x0bu || (in.a & 0xffu) > 0x0du);
         if (s_apu_pending_master >= bridge_bounce_flush_thresh())
             bridge_apu_flush(cpu);
         const int saved_auto = s_frame_return_auto_quiescent;
@@ -72,7 +74,10 @@ if (Lufia2DecompFieldRegionEntry(pc_before) && auto_quiescent && !stop_on_rti &&
         }
         in.k = (uint8_t)(next_pc >> 16);
         in.pc = (uint16_t)next_pc;
-        if (reset_cap_on_bounce)
+        /* No child deferred a loop increment for a standalone selector. */
+        if (selector_only)
+            --steps;
+        if (reset_cap_on_bounce && !selector_only)
             steps = 0;
         continue;
     }
