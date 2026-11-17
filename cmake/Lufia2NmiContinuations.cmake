@@ -947,6 +947,16 @@ function(lufia2_add_nmi_continuations target core_root)
             list(APPEND _definitions LUFIA2_HAVE_NATIVE_SOUND_BEGIN_PAYLOAD=1)
         endif()
     endif()
+    set(_battle_tilemap_spans FALSE)
+    if(_frame_returns AND _battle_status)
+        include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2BattleTilemapSpans.cmake")
+        lufia2_battle_tilemap_spans_available(_battle_tilemap_spans)
+        if(_battle_tilemap_spans)
+            set_property(SOURCE "${CMAKE_CURRENT_SOURCE_DIR}/src/decomp_bridge/actor_bridge.c"
+                APPEND PROPERTY COMPILE_DEFINITIONS
+                    "$<$<STREQUAL:$<TARGET_PROPERTY:NAME>,${target}>:LUFIA2_HAVE_NATIVE_BATTLE_TILEMAP_SPANS=1>")
+        endif()
+    endif()
     set(_action_copy_spans FALSE)
     if(_frame_returns AND _battle_status)
         include("${CMAKE_CURRENT_FUNCTION_LIST_DIR}/Lufia2ActionCopySpans.cmake")
@@ -1025,7 +1035,7 @@ function(lufia2_add_nmi_continuations target core_root)
     else()
         set(_player_continuations FALSE)
     endif()
-    if(_frame_returns AND (_action_copy_spans OR _effect_clear_window OR _battle_result_steps OR _battle_target_marker_clock OR _battle_input_steps OR _battle_target_input OR _battle_target_selection OR _battle_target_cursor OR _player_continuations OR _decompress_steps OR _decompress_reference_steps OR
+    if(_frame_returns AND (_battle_tilemap_spans OR _action_copy_spans OR _effect_clear_window OR _battle_result_steps OR _battle_target_marker_clock OR _battle_input_steps OR _battle_target_input OR _battle_target_selection OR _battle_target_cursor OR _player_continuations OR _decompress_steps OR _decompress_reference_steps OR
                            _battle_effect_dispatch_steps OR _action_clear_steps OR
                            _battle_target_name_steps OR _frame_decisions))
         list(APPEND _definitions LUFIA2_HAVE_NATIVE_OPCODE_WINDOW_CONTEXT=1)
