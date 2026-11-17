@@ -153,13 +153,21 @@ static void BeginBattleDivide(BattleDivideClock *clock, CpuState *cpu,
     SetBattleDividePhase(clock, DIVIDE_BEGIN);
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_DIVIDE_BIT_SPANS)
+#include "divide_bit_clock.inc"
+#endif
+
 static RecompReturn ActorBridgeTimedBattleDivide(CpuState *cpu) {
     const uint32_t entry = 0x808378u;
     ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
     const unsigned master = BATTLE_DIVIDE_CYCLE_LIMIT * 8u;
     const unsigned room = master + 40u * (master / 1324u + 2u);
     if (cpu->D || cpu->_flag_D ||
+#if defined(LUFIA2_HAVE_NATIVE_DIVIDE_BIT_SPANS)
+        !BattleQuietClockAllows(cpu, entry, 0x808450u, 3u, true, room, DivideBitHookOwned))
+#else
         !BattleQuietClockSupported(cpu, entry, 0x808450u, 3u, true, room))
+#endif
         return ActorBridgeFallback(cpu, &frame, cpu->PB == 0u ? 0x008378u : entry);
     if (frame.hrv)
         frame.host_return_pc24 = Lufia2DecompFramePairedReturnPc(cpu, entry);

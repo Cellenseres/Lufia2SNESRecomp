@@ -245,7 +245,11 @@ static RecompReturn ActorBridgeTimedBattleGauge(CpuState *cpu, bool label) {
         (label && cpu->Y < 6u) || end > 0x10000u || !(end <= 0x11u || start >= 0x17u) ||
         !(end <= 0x4eu || start >= 0x54u) || !(end <= 0x1ef8u || start >= 0x2000u) ||
         !Lufia2DecompFrameRangeQuiet(0x80834cu, 0x808378u) ||
+#if defined(LUFIA2_HAVE_NATIVE_DIVIDE_BIT_SPANS)
+        !Lufia2DecompFrameRangeAllows(0x808378u, 0x808450u, DivideBitHookOwned) ||
+#else
         !Lufia2DecompFrameRangeQuiet(0x808378u, 0x808450u) ||
+#endif
         !BattleQuietClockSupported(cpu, entry, 0x81e38fu, 2u, false, room))
         return ActorBridgeFallback(cpu, &frame,
                                    cpu->PB == 1u ? entry & 0x7fffffu : entry);

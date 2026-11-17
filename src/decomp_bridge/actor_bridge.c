@@ -102,6 +102,13 @@ static void ActorBridgeBattleFrameCells(CpuState *cpu, uint32_t entry);
 static RecompReturn ActorBridgeTimedBattleDigits(CpuState *cpu);
 static RecompReturn ActorBridgeTimedBattleMultiply(CpuState *cpu);
 static RecompReturn ActorBridgeTimedBattleDivide(CpuState *cpu);
+#if defined(LUFIA2_HAVE_NATIVE_DIVIDE_BIT_SPANS)
+static void ActorBridgeDivideBitSpan(CpuState *cpu, uint32_t entry);
+static bool DivideBitHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return pc >= 0x80837eu && pc < 0x80844eu &&
+        (pc - 0x80837eu) % 13u == 0u && hook == ActorBridgeDivideBitSpan;
+}
+#endif
 static RecompReturn ActorBridgeTimedStatusDigits(CpuState *cpu);
 static RecompReturn ActorBridgeTimedBattleGauge(CpuState *cpu, bool label);
 static RecompReturn ActorBridgeTimedStatusDetail(CpuState *cpu);
@@ -4459,6 +4466,13 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_DIVIDE_BIT_SPANS)
+    for (unsigned bit = 0u; bit < 16u; ++bit) {
+        const uint32_t entry = 0x80837eu + bit * 13u;
+        if (Lufia2DecompFrameRangeAllows(entry, entry + 13u, DivideBitHookOwned))
+            interp_bridge_set_pre_opcode_hook(entry, ActorBridgeDivideBitSpan);
+    }
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TILEMAP_SPANS)
     if (Lufia2DecompFrameRangeAllows(0x8188e9u, 0x8188eau, BattleTilemapHookOwned))
         interp_bridge_set_pre_opcode_hook(0x8188e9u, ActorBridgeBattleTilemapSpan);
