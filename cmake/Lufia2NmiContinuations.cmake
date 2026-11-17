@@ -82,6 +82,7 @@ function(lufia2_add_nmi_continuations target core_root)
     set(_battle_target_cursor FALSE)
     set(_battle_target_input FALSE)
     set(_battle_result_steps FALSE)
+    set(_effect_clear_window FALSE)
     set(_battle_target_marker_clock FALSE)
     set(_battle_target_selection FALSE)
     set(_filled_windows FALSE)
@@ -978,6 +979,10 @@ function(lufia2_add_nmi_continuations target core_root)
     else()
         set(_battle_nmi_callbacks FALSE)
     endif()
+    if(_frame_returns AND _battle_effect_cleanup_steps AND _battle_effect_clear_spans)
+        set(_effect_clear_window TRUE)
+        list(APPEND _definitions LUFIA2_HAVE_NATIVE_EFFECT_CLEAR_WINDOW=1)
+    endif()
     if(_frame_returns AND _battle_result_steps)
         list(APPEND _definitions LUFIA2_HAVE_NATIVE_BATTLE_RESULT_STEPS=1)
     else()
@@ -1010,7 +1015,7 @@ function(lufia2_add_nmi_continuations target core_root)
     else()
         set(_player_continuations FALSE)
     endif()
-    if(_frame_returns AND (_battle_result_steps OR _battle_target_marker_clock OR _battle_input_steps OR _battle_target_input OR _battle_target_selection OR _battle_target_cursor OR _player_continuations OR _decompress_steps OR _decompress_reference_steps OR
+    if(_frame_returns AND (_effect_clear_window OR _battle_result_steps OR _battle_target_marker_clock OR _battle_input_steps OR _battle_target_input OR _battle_target_selection OR _battle_target_cursor OR _player_continuations OR _decompress_steps OR _decompress_reference_steps OR
                            _battle_effect_dispatch_steps OR _action_clear_steps OR
                            _battle_target_name_steps OR _frame_decisions))
         list(APPEND _definitions LUFIA2_HAVE_NATIVE_OPCODE_WINDOW_CONTEXT=1)
@@ -1523,9 +1528,21 @@ function(lufia2_add_nmi_continuations target core_root)
                         _text "${_text}")
                 endif()
                 if(_battle_effect_cleanup_steps)
-                    string(REPLACE "${_hook_call}"
-                        "                    if ((pc_before & 0x7fffffu) != 0x018bfbu ||\n                        step_cap - steps >= 12) {\n${_hook_call}\n                    }"
+                    string(PREPEND _text
+                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/effect_clear_clock.h\"\n")
+                    set(_clear_hook "                if (s_pre_opcode_hooks[hi].pc24 == key) {\n")
+                    string(FIND "${_text}" "${_clear_hook}" _clear_hook_at)
+                    if(_clear_hook_at EQUAL -1)
+                        message(FATAL_ERROR "Native effect clear hook entry changed")
+                    endif()
+                    string(REPLACE "${_clear_hook}"
+                        "${_clear_hook}                    if (key == 0x018bfbu && n_stop &&\n                        Lufia2DecompEffectClearHookOwned(pc_before, s_pre_opcode_hooks[hi].hook))\n                        break;\n"
                         _text "${_text}")
+                    if(NOT _battle_effect_clear_spans)
+                        string(REPLACE "${_hook_call}"
+                            "                    if ((pc_before & 0x7fffffu) != 0x018bfbu ||\n                        step_cap - steps >= LUFIA2_EFFECT_CLEAR_STEP_OPCODES ||\n                        !Lufia2DecompEffectClearHookOwned(pc_before, s_pre_opcode_hooks[hi].hook)) {\n${_hook_call}\n                    }"
+                            _text "${_text}")
+                    endif()
                 endif()
                 if(_decompress_reference_steps)
                     string(REPLACE "${_hook_call}"

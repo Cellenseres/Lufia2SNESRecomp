@@ -9,6 +9,7 @@ static bool EffectClearClockSupported(const CpuState *cpu, uint32_t entry) {
         (cpu->host_return_valid != 0u && cpu->host_return_valid != 2u &&
          cpu->host_return_valid != 3u) ||
         !Lufia2DecompFrameReturnCpuReady() || !g_snes ||
+        !Lufia2DecompFrameRangeAllows(entry, entry + 6u, Lufia2DecompEffectClearHookOwned) ||
         g_snes->ramAdr != 0x3800u - cpu->X ||
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
         cpu->master_cycles > UINT64_MAX - EFFECT_CLEAR_STEP_BUDGET)

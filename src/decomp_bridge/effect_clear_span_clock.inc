@@ -1,11 +1,5 @@
 #include "lufia2/battle_effect_slot_steps.h"
 
-static void ActorBridgeEffectClearBytes(CpuState *cpu, uint32_t entry);
-
-static bool EffectClearHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
-    return pc == 0x818bfbu && hook == ActorBridgeEffectClearBytes;
-}
-
 static unsigned EffectClearSpanSize(CpuState *cpu, uint32_t entry) {
     if (cpu != &g_cpu || entry != 0x818bfbu || cpu->PB != 0x81u || cpu->m_flag != 1u ||
         cpu->x_flag || cpu->DB != 0x97u || cpu->D || cpu->_flag_D || cpu->emulation || !cpu->X ||
@@ -16,7 +10,7 @@ static unsigned EffectClearSpanSize(CpuState *cpu, uint32_t entry) {
         g_snes->ramAdr != 0x3800u - cpu->X ||
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
         !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, false, 1363u, 1u) ||
-        !Lufia2DecompFrameRangeAllows(entry, entry + 6u, EffectClearHookOwned))
+        !Lufia2DecompFrameRangeAllows(entry, entry + 6u, Lufia2DecompEffectClearHookOwned))
         return 0u;
     uint64_t phase, current;
     snes_refresh_state_get(&phase, &current);
@@ -49,6 +43,19 @@ static unsigned EffectClearSpanSize(CpuState *cpu, uint32_t entry) {
         bytes = limit;
     if (limit == cpu->X && bytes < limit && limit * iteration + 34u <= room)
         bytes = limit;
+#if defined(LUFIA2_HAVE_NATIVE_EFFECT_CLEAR_WINDOW)
+    uint64_t window_room = 1363u;
+    if (deadline && window_room > deadline - cpu->master_cycles)
+        window_room = deadline - cpu->master_cycles;
+    if (window_room > UINT64_MAX - cpu->master_cycles)
+        window_room = UINT64_MAX - cpu->master_cycles;
+    unsigned window_bytes = window_room > 40u ? (unsigned)((window_room - 40u) / iteration) : 0u;
+    if (window_bytes > limit)
+        window_bytes = limit;
+    if (window_bytes > bytes && NativeOpcodeWindowSupported(cpu, entry,
+            window_bytes * iteration + 40u, 0x1fffu, false))
+        return window_bytes;
+#endif
     return bytes;
 }
 
