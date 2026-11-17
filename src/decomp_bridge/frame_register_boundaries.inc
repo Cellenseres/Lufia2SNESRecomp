@@ -1,4 +1,7 @@
 #include "lufia2/frame_wait.h"
+#if defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_CONTROL_STEPS)
+#include "lufia2/world_frame_control_steps.h"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_EXIT_STEPS)
 #include "lufia2/frame_exit_steps.h"
 #endif
@@ -43,6 +46,10 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     case 0x85ecdau: case 0x85ecefu:
 #endif
     case 0x868b72u: expected_opcode = 0x6bu; break;
+#if defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_CONTROL_STEPS)
+    case 0x869282u: case 0x86929cu: expected_opcode = 0x20u; break;
+    case 0x86929fu: expected_opcode = 0x80u; break;
+#endif
     default: return 0;
     }
     if (opcode != expected_opcode)
@@ -70,6 +77,13 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     const bool width_change = opcode == 0xe2u || opcode == 0xc2u;
     if (width_change)
         (void)registers->read(registers->mem, pc + 1u);
+#if defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_CONTROL_STEPS)
+    else if (opcode == 0x20u) {
+        (void)registers->read(registers->mem, pc + 1u);
+        (void)registers->read(registers->mem, pc + 2u);
+    } else if (opcode == 0x80u)
+        (void)registers->read(registers->mem, pc + 1u);
+#endif
     unsigned cycles;
     switch (opcode) {
     case 0x48u: cycles = 3u + !registers->mf; break;
@@ -77,10 +91,17 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     case 0x5au: case 0xdau: cycles = 3u + !registers->xf; break;
     case 0x7au: case 0xfau: cycles = 4u + !registers->xf; break;
     case 0x28u: cycles = 4u; break;
+#if defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_CONTROL_STEPS)
+    case 0x20u:
+#endif
     case 0x6bu: cycles = 6u; break;
     default: cycles = 3u; break;
     }
     const Lufia2ExecutionResult result =
+#if defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_CONTROL_STEPS)
+        pc == 0x869282u || pc == 0x86929cu || pc == 0x86929fu
+        ? Lufia2WorldFrameControlStep(&memory, &state, pc) :
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_EXIT_STEPS)
         pc == 0x83829eu || pc == 0x85ecdau || pc == 0x85ecefu
         ? Lufia2FrameExitStep(&memory, &state, pc) :
