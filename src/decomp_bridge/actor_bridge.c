@@ -4426,6 +4426,10 @@ static void ActorBridgePlayerContinuation(CpuState *cpu, uint32_t entry);
 #include "battle_command_loop_clock.inc"
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_BACKGROUND_STEPS)
+#include "effect_background_clock.inc"
+#endif
+
 bool Lufia2DecompCommandTileHookOwned(
     uint32_t pc, void (*hook)(CpuState *, uint32_t)) {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_TILES)
@@ -4563,6 +4567,15 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_PAIRS) && defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
     if (Lufia2DecompFrameRangeAllows(0x8087b2u, 0x8087b3u, NmiScrollPairHookOwned))
         interp_bridge_set_pre_opcode_hook(0x8087b2u, ActorBridgeNmiScrollPair);
+#endif
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BATTLE_EFFECT_BACKGROUND_STEPS)
+    static const uint32_t backgrounds[] = {0x818b69u, 0x818b6eu, 0x818b95u};
+    for (unsigned i = 0u; i < sizeof backgrounds / sizeof *backgrounds; ++i) {
+        const uint32_t entry = backgrounds[i];
+        if (Lufia2DecompFrameRangeAllows(entry, EffectBackgroundEnd(entry), EffectBackgroundHookOwned))
+            interp_bridge_set_pre_opcode_hook(entry, ActorBridgeEffectBackground);
+    }
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_LOOP)
