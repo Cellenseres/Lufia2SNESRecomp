@@ -3079,6 +3079,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 #if defined(LUFIA2_HAVE_NATIVE_ACTION_CLEAR_STEPS)
 #include "action_clear_clock.inc"
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_ACTION_COPY_SPANS)
+#include "action_copy_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_SPRITE_OVERLAYS)
 #include "sprite_overlay_clock.inc"
 #endif
@@ -4385,6 +4388,14 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_ACTION_COPY_SPANS)
+    static const uint32_t action_copy_entries[] = {0x85cd8fu, 0x85cd9eu};
+    for (unsigned index = 0u; index < 2u; ++index) {
+        const uint32_t entry = action_copy_entries[index];
+        if (Lufia2DecompFrameRangeAllows(entry, entry + 1u, ActionCopyHookOwned))
+            interp_bridge_set_pre_opcode_hook(entry, ActorBridgeActionCopySpan);
+    }
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_RESULT_STEPS)
     static const uint32_t result_phases[] = {0x81de88u, 0x81de93u, 0x81de95u, 0x81dea2u};
     for (unsigned index = 0u; index < sizeof(result_phases) / sizeof(result_phases[0]); ++index) {

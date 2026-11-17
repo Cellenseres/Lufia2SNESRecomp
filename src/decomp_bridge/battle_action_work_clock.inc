@@ -1,4 +1,8 @@
 static bool ActionWorkHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_ACTION_COPY_SPANS)
+    if (ActionCopyHookOwned(pc, hook))
+        return true;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_ACTION_CLEAR_STEPS)
     return Lufia2DecompActionClearStepHookOwned(pc, hook);
 #else
@@ -22,7 +26,7 @@ static bool BattleActionCopyClockSupported(const CpuState *cpu, unsigned kind,
         cart->sdd1 || cart->sa1 || g_snes->hPos >= 1364u ||
         (uint64_t)(225u - g_snes->vPos) * 1364u - g_snes->hPos <= room)
         return false;
-    return BattleClockAllows(cpu, entry, end, 3u, true, room, false, NULL);
+    return BattleClockAllows(cpu, entry, end, 3u, true, room, false, ActionWorkHookOwned);
 }
 
 static RecompReturn ActorBridgeTimedActionWork(CpuState *cpu, unsigned kind) {
