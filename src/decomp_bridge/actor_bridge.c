@@ -4457,7 +4457,10 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 
 #if defined(LUFIA2_HAVE_NATIVE_NMI_TILEMAP_STEPS)
     static const uint32_t tilemap_steps[] = {
-        0x8087fcu, 0x80880du, 0x80881cu, 0x808829u
+        0x8087fcu, 0x80880du, 0x80881cu, 0x808829u,
+#if defined(LUFIA2_HAVE_NATIVE_NMI_TILEMAP_LOADS)
+        0x808802u, 0x808811u, 0x808820u,
+#endif
     };
     for (unsigned i = 0u; i < sizeof tilemap_steps / sizeof *tilemap_steps; ++i)
         if (Lufia2DecompFrameRangeAllows(tilemap_steps[i], tilemap_steps[i] + 1u,

@@ -20,6 +20,9 @@ static bool Lufia2DecompNmiHookHasOwner(uint32_t pc, int stop_on_rti,
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_TILEMAP_STEPS)
     case 0x0087fcu: case 0x00880du: case 0x00881cu: case 0x008829u:
+#if defined(LUFIA2_HAVE_NATIVE_NMI_TILEMAP_LOADS)
+    case 0x008802u: case 0x008811u: case 0x008820u:
+#endif
         return !(admission_flags & LUFIA2_NMI_OWNER_OBSERVED) &&
             opcodes_left >= ((pc & 0x7fffffu) == 0x0087fcu
                 ? LUFIA2_NMI_TILEMAP_HEADER_OPCODES : LUFIA2_NMI_TILEMAP_STEP_OPCODES) &&
