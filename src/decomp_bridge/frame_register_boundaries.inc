@@ -1,3 +1,6 @@
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)
+#include "lufia2/battle_target_control_steps.h"
+#endif
 #include "lufia2/frame_wait.h"
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS)
 #include "lufia2/nmi_control_steps.h"
@@ -23,7 +26,7 @@ static int Lufia2DecompRunFrameRegisterBoundary(
         registers->pc != (uint16_t)pc || registers->waiting ||
         registers->stopped || registers->nmiWanted || registers->irqWanted)
         return 0;
-#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS)
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS)
     switch (opcode) {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS)
     case 0xa2u:
@@ -41,6 +44,9 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     bool nmi_control = false;
 #endif
     uint8_t expected_opcode;
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)
+    bool target_control = false;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS)
     bool battle_control = false;
 #endif
@@ -48,6 +54,28 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     bool field_control = false;
 #endif
     switch (pc) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)
+    case 0x81ccacu:
+    case 0x81ccd8u:
+    case 0x81ccdfu:
+    case 0x81d5afu:
+    case 0x81d5b4u:
+    case 0x81d618u:
+    case 0x81d635u:
+        target_control = true;
+        expected_opcode = 0x20u;
+        break;
+    case 0x81ccdbu:
+    case 0x81cce8u:
+    case 0x81d581u:
+    case 0x81d5e3u:
+    case 0x81d640u:
+    case 0x81d644u:
+    case 0x81d64au:
+        target_control = true;
+        expected_opcode = 0x22u;
+        break;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS)
     case 0x808703u:
         nmi_control = true;
@@ -170,7 +198,7 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     } else if (opcode == 0x80u)
         (void)registers->read(registers->mem, pc + 1u);
 #endif
-#if defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS) && !defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_CONTROL_STEPS)
+#if (defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)) && !defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_CONTROL_STEPS)
     else if (opcode == 0x20u) {
         (void)registers->read(registers->mem, pc + 1u);
         (void)registers->read(registers->mem, pc + 2u);
@@ -182,7 +210,7 @@ static int Lufia2DecompRunFrameRegisterBoundary(
         (void)registers->read(registers->mem, pc + 2u);
     }
 #endif
-#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS)
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)
     if (opcode == 0x22u) {
         (void)registers->read(registers->mem, pc + 1u);
         (void)registers->read(registers->mem, pc + 2u);
@@ -191,10 +219,10 @@ static int Lufia2DecompRunFrameRegisterBoundary(
 #endif
     unsigned cycles;
     switch (opcode) {
-#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS)
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)
     case 0x22u: cycles = 8u; break;
 #endif
-#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS)
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS)
     case 0x60u: cycles = 6u; break;
 #endif
     case 0x48u: cycles = 3u + !registers->mf; break;
@@ -202,13 +230,17 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     case 0x5au: case 0xdau: cycles = 3u + !registers->xf; break;
     case 0x7au: case 0xfau: cycles = 4u + !registers->xf; break;
     case 0x28u: cycles = 4u; break;
-#if defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS)
+#if defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)
     case 0x20u:
 #endif
     case 0x6bu: cycles = 6u; break;
     default: cycles = 3u; break;
     }
     const Lufia2ExecutionResult result =
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS)
+        target_control
+        ? Lufia2BattleTargetControlStep(&memory, &state, pc) :
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS)
         nmi_control
         ? Lufia2NmiControlStep(&memory, &state, pc) :
