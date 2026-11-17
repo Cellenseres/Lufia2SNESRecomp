@@ -4422,6 +4422,10 @@ static void ActorBridgePlayerContinuation(CpuState *cpu, uint32_t entry);
 #include "battle_display_clock.inc"
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_LOOP)
+#include "battle_command_loop_clock.inc"
+#endif
+
 bool Lufia2DecompCommandTileHookOwned(
     uint32_t pc, void (*hook)(CpuState *, uint32_t)) {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_TILES)
@@ -4559,6 +4563,11 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_PAIRS) && defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK) && defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
     if (Lufia2DecompFrameRangeAllows(0x8087b2u, 0x8087b3u, NmiScrollPairHookOwned))
         interp_bridge_set_pre_opcode_hook(0x8087b2u, ActorBridgeNmiScrollPair);
+#endif
+
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_LOOP)
+    if (Lufia2DecompFrameRangeAllows(0x81cbb2u, 0x81cbb8u, BattleCommandLoopHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x81cbb2u, ActorBridgeBattleCommandLoop);
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_BATTLE_DISPLAY_STEPS)
