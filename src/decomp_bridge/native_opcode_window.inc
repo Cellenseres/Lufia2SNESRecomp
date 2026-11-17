@@ -1,6 +1,7 @@
 #include "native_opcode_window.h"
 
-#if defined(LUFIA2_HAVE_NATIVE_BATTLE_GAUGE_STEPS) || \
+#if defined(LUFIA2_HAVE_NATIVE_SCENE_SLOT_RESET_STEPS) || \
+    defined(LUFIA2_HAVE_NATIVE_BATTLE_GAUGE_STEPS) || \
     defined(LUFIA2_HAVE_NATIVE_DIVIDE_BIT_SPANS) || \
     defined(LUFIA2_HAVE_NATIVE_VRAM_QUEUE_PHASES) || \
     defined(LUFIA2_HAVE_NATIVE_BACKGROUND_WORD_SPANS) || \

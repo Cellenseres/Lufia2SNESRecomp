@@ -3124,6 +3124,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 }
 #include "fixed_span_clock.inc"
 #include "native_opcode_window.inc"
+#if defined(LUFIA2_HAVE_NATIVE_SCENE_SLOT_RESET_STEPS)
+#include "scene_slot_reset_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_DECISIONS)
 #include "frame_decision_clock.inc"
 #endif
@@ -4474,6 +4477,12 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_SCENE_SLOT_RESET_STEPS)
+    if (Lufia2DecompFrameRangeAllows(0x83a692u, 0x83a693u, SceneSlotResetHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x83a692u, ActorBridgeSceneSlotReset);
+    if (Lufia2DecompFrameRangeAllows(0x83a6a6u, 0x83a6a7u, SceneSlotResetHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x83a6a6u, ActorBridgeSceneSlotReset);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_GAUGE_STEPS)
     static const uint32_t gauge_entries[] = {
         0x81e308u, 0x81e310u, 0x81e339u, 0x81e33du, 0x81e352u, 0x81e369u, 0x81e380u
