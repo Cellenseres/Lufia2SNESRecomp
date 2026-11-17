@@ -2955,7 +2955,16 @@ static uint32_t NmiPadStepHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
 static uint32_t NmiUploadCheckHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_NMI_DMA_SETUP)
+static uint32_t NmiDmaSetupHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
+#endif
+
 uint32_t Lufia2DecompNmiTimedHookEnd(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_NMI_DMA_SETUP)
+    const uint32_t dma_end = NmiDmaSetupHookEnd(pc, hook);
+    if (dma_end)
+        return dma_end;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_UPLOAD_CHECKS)
     const uint32_t upload_end = NmiUploadCheckHookEnd(pc, hook);
     if (upload_end)
@@ -3147,6 +3156,9 @@ static const FixedSpanOpcode actor_record_offset_timing[] = {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
 #include "nmi_callbacks_clock.inc"
 #include "nmi_upload_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_NMI_DMA_SETUP)
+#include "nmi_dma_setup_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_UPLOAD_CHECKS)
 #include "nmi_upload_check_clock.inc"
 #endif
@@ -4483,6 +4495,13 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
         interp_bridge_set_pre_opcode_hook(0x8086c1u, ActorBridgeScreenFadeRequest);
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_NMI_DMA_SETUP)
+    static const uint32_t dma_setups[] = {0x80870cu, 0x80873cu};
+    for (unsigned i = 0u; i < sizeof dma_setups / sizeof *dma_setups; ++i)
+        if (Lufia2DecompFrameRangeAllows(dma_setups[i], dma_setups[i] + 1u,
+                NmiDmaSetupHookOwned))
+            interp_bridge_set_pre_opcode_hook(dma_setups[i], ActorBridgeNmiDmaSetup);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_UPLOAD_CHECKS)
     const uint32_t upload_checks[] = {0x808706u, 0x808736u};
     for (unsigned i = 0u; i < sizeof upload_checks / sizeof *upload_checks; ++i)

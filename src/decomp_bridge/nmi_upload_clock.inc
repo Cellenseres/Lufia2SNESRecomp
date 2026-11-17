@@ -3,6 +3,26 @@ extern int g_interp_apu_driving;
 static bool NmiPadStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook);
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_NMI_DMA_SETUP)
+#if defined(LUFIA2_HAVE_NATIVE_NMI_UPLOAD_CHECKS)
+static bool NmiUploadHookOwned(uint32_t pc, InterpPreOpcodeHook hook);
+#endif
+
+static bool NmiDmaSetupHookOwned(uint32_t pc, InterpPreOpcodeHook hook);
+
+static bool NmiUploadDmaHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    if (NmiDmaSetupHookOwned(pc, hook))
+        return true;
+#if defined(LUFIA2_HAVE_NATIVE_NMI_UPLOAD_CHECKS)
+    return NmiUploadHookOwned(pc, hook);
+#elif defined(LUFIA2_HAVE_NATIVE_NMI_PAD_STEPS)
+    return NmiPadStepHookOwned(pc, hook);
+#else
+    return false;
+#endif
+}
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_NMI_UPLOAD_CHECKS)
 static bool NmiUploadCheckHookOwned(uint32_t pc, InterpPreOpcodeHook hook);
 
@@ -317,7 +337,9 @@ static bool NmiUploadSupported(const CpuState *cpu) {
     uint64_t phase, current;
     snes_refresh_state_get(&phase, &current);
     return phase < 1364u && (!current || current == cpu->master_cycles) &&
-#if defined(LUFIA2_HAVE_NATIVE_NMI_UPLOAD_CHECKS)
+#if defined(LUFIA2_HAVE_NATIVE_NMI_DMA_SETUP)
+        Lufia2DecompFrameRangeAllows(0x808703u, 0x8087a7u, NmiUploadDmaHookOwned);
+#elif defined(LUFIA2_HAVE_NATIVE_NMI_UPLOAD_CHECKS)
         Lufia2DecompFrameRangeAllows(0x808703u, 0x8087a7u, NmiUploadHookOwned);
 #elif defined(LUFIA2_HAVE_NATIVE_NMI_PAD_STEPS)
         Lufia2DecompFrameRangeAllows(0x808703u, 0x8087a7u, NmiPadStepHookOwned);
