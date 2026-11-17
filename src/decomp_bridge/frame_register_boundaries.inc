@@ -1,4 +1,7 @@
 #include "lufia2/frame_wait.h"
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS)
+#include "lufia2/field_control_steps.h"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_CONTROL_STEPS)
 #include "lufia2/world_frame_control_steps.h"
 #endif
@@ -14,8 +17,34 @@ static int Lufia2DecompRunFrameRegisterBoundary(
         registers->pc != (uint16_t)pc || registers->waiting ||
         registers->stopped || registers->nmiWanted || registers->irqWanted)
         return 0;
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS)
+    switch (opcode) {
+    case 0x48u: case 0x08u: case 0xe2u: case 0x28u: case 0x68u:
+    case 0x5au: case 0xdau: case 0xc2u: case 0xfau: case 0x7au:
+    case 0x6bu: case 0x20u: case 0x80u: case 0x60u: case 0x22u:
+        break;
+    default: return 0;
+    }
+#endif
     uint8_t expected_opcode;
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS)
+    bool field_control = false;
+#endif
     switch (pc) {
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS)
+    case 0x8381cbu: case 0x83c1feu: case 0x83c20fu: case 0x83c213u:
+        field_control = true;
+        expected_opcode = 0x22u;
+        break;
+    case 0x83c0f9u: case 0x83bc27u: case 0x83c245u:
+        field_control = true;
+        expected_opcode = 0x60u;
+        break;
+    case 0x83bc25u:
+        field_control = true;
+        expected_opcode = 0xe2u;
+        break;
+#endif
     case 0x8293c2u: case 0x868b48u: case 0x86974fu: case 0x84a5a8u:
         expected_opcode = 0x48u;
         break;
@@ -84,8 +113,19 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     } else if (opcode == 0x80u)
         (void)registers->read(registers->mem, pc + 1u);
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS)
+    if (opcode == 0x22u) {
+        (void)registers->read(registers->mem, pc + 1u);
+        (void)registers->read(registers->mem, pc + 2u);
+        (void)registers->read(registers->mem, pc + 3u);
+    }
+#endif
     unsigned cycles;
     switch (opcode) {
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS)
+    case 0x22u: cycles = 8u; break;
+    case 0x60u: cycles = 6u; break;
+#endif
     case 0x48u: cycles = 3u + !registers->mf; break;
     case 0x68u: cycles = 4u + !registers->mf; break;
     case 0x5au: case 0xdau: cycles = 3u + !registers->xf; break;
@@ -98,6 +138,10 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     default: cycles = 3u; break;
     }
     const Lufia2ExecutionResult result =
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS)
+        field_control
+        ? Lufia2FieldControlStep(&memory, &state, pc) :
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_CONTROL_STEPS)
         pc == 0x869282u || pc == 0x86929cu || pc == 0x86929fu
         ? Lufia2WorldFrameControlStep(&memory, &state, pc) :
