@@ -1,4 +1,7 @@
 extern int g_interp_apu_driving;
+#if defined(LUFIA2_HAVE_NATIVE_NMI_PAD_STEPS)
+static bool NmiPadStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook);
+#endif
 
 typedef enum NmiUploadPhase {
     NMI_UPLOAD_STATUS,
@@ -29,6 +32,11 @@ typedef struct NmiUploadClock {
     NmiUploadPhase phase;
     FixedSpanOpcode branch;
     unsigned pad;
+#if defined(LUFIA2_HAVE_NATIVE_NMI_PAD_STEPS)
+    bool pad_step;
+    unsigned opcodes;
+    unsigned progress_mask;
+#endif
     uint8_t request;
     bool busy;
     uint16_t buttons;
@@ -162,9 +170,20 @@ static void NmiUploadAdvancePhase(NmiUploadClock *clock) {
 static void NmiUploadBeginOpcode(NmiUploadClock *clock) {
     while (!clock->bus.remaining && clock->phase != NMI_UPLOAD_DONE) {
         if (clock->bus.index == clock->bus.count) {
-            Lufia2DecompFramePairedAccountSpan(clock->bus.cpu, 0x808703u,
-                clock->bus.count, clock->bus.progress_mask);
+#if defined(LUFIA2_HAVE_NATIVE_NMI_PAD_STEPS)
+            const bool finished = clock->pad_step && clock->phase == NMI_UPLOAD_PAD_LOOP;
+            if (clock->pad_step) {
+                clock->progress_mask |= clock->bus.progress_mask << clock->opcodes;
+                clock->opcodes += clock->bus.count;
+            } else
+#endif
+                Lufia2DecompFramePairedAccountSpan(clock->bus.cpu, 0x808703u,
+                    clock->bus.count, clock->bus.progress_mask);
             NmiUploadAdvancePhase(clock);
+#if defined(LUFIA2_HAVE_NATIVE_NMI_PAD_STEPS)
+            if (finished)
+                return;
+#endif
         }
         if (clock->phase != NMI_UPLOAD_DONE)
             NmiClockBeginOpcode(&clock->bus);
@@ -286,7 +305,11 @@ static bool NmiUploadSupported(const CpuState *cpu) {
     uint64_t phase, current;
     snes_refresh_state_get(&phase, &current);
     return phase < 1364u && (!current || current == cpu->master_cycles) &&
+#if defined(LUFIA2_HAVE_NATIVE_NMI_PAD_STEPS)
+        Lufia2DecompFrameRangeAllows(0x808703u, 0x8087a7u, NmiPadStepHookOwned);
+#else
         Lufia2DecompFrameRangeQuiet(0x808703u, 0x8087a7u);
+#endif
 }
 
 static RecompReturn RunNativeNmiUpload(CpuState *cpu) {

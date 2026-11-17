@@ -2947,7 +2947,16 @@ static uint32_t ScreenFadeRequestHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
 static uint32_t BattleNmiCallbackHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_NMI_PAD_STEPS)
+static uint32_t NmiPadStepHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
+#endif
+
 uint32_t Lufia2DecompNmiTimedHookEnd(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_NMI_PAD_STEPS)
+    const uint32_t pad_end = NmiPadStepHookEnd(pc, hook);
+    if (pad_end)
+        return pad_end;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_NMI_CALLBACKS)
     const uint32_t battle_end = BattleNmiCallbackHookEnd(pc, hook);
     if (battle_end)
@@ -3129,6 +3138,9 @@ static const FixedSpanOpcode actor_record_offset_timing[] = {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CALLBACK_CLOCK)
 #include "nmi_callbacks_clock.inc"
 #include "nmi_upload_clock.inc"
+#if defined(LUFIA2_HAVE_NATIVE_NMI_PAD_STEPS)
+#include "nmi_pad_clock.inc"
+#endif
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_DISPLAY_CLOCK)
 #include "nmi_display_clock.inc"
@@ -4453,6 +4465,11 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_REQUEST)
     if (Lufia2DecompFrameRangeAllows(0x8086c1u, 0x8086c2u, ScreenFadeRequestHookOwned))
         interp_bridge_set_pre_opcode_hook(0x8086c1u, ActorBridgeScreenFadeRequest);
+#endif
+
+#if defined(LUFIA2_HAVE_NATIVE_NMI_PAD_STEPS)
+    if (Lufia2DecompFrameRangeAllows(0x808770u, 0x8087a5u, NmiPadStepHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x808770u, ActorBridgeNmiPadStep);
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_NMI_TILEMAP_STEPS)
