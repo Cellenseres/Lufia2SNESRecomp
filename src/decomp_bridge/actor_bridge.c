@@ -21777,3 +21777,7 @@ RecompReturn Lufia2DecompBridge_81E38F(CpuState *cpu) {
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_WORLD_FRAME_LOOP)
 #include "world_frame_clock.inc"
 #endif
+
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTINUATIONS)
+#include "field_region_continuation_clock.inc"
+#endif
