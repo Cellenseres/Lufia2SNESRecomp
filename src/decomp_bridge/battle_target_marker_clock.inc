@@ -1,4 +1,5 @@
 #include "lufia2/battle_target_marker_steps.h"
+#include "battle_target_marker_clock.h"
 
 static const FixedSpanOpcode target_marker_unavailable[2][8] = {
     {
@@ -103,7 +104,7 @@ static void TargetMarkerWrite(void *context, uint32_t address, uint8_t value) {
     FixedSpanWrite(&clock->span, address, value);
 }
 
-static bool TargetMarkerHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+bool Lufia2DecompTargetMarkerHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
     return pc == 0x81d60eu && hook == ActorBridgeTargetMarkerRecords;
 }
 
@@ -119,22 +120,28 @@ static unsigned TargetMarkerSpanSize(const CpuState *cpu, uint32_t entry) {
         !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, false,
             1363u, 1u) || g_snes->vPos >= 262u ||
         g_snes->dma->hdmaPendingInit ||
-        !Lufia2DecompFrameRangeAllows(entry, 0x81d623u, TargetMarkerHookOwned))
+        !Lufia2DecompFrameRangeAllows(entry, 0x81d623u, Lufia2DecompTargetMarkerHookOwned))
         return 0u;
     uint64_t phase, charged;
     snes_refresh_state_get(&phase, &charged);
     if (phase >= 1364u || (charged && charged != cpu->master_cycles))
         return 0u;
     unsigned records = cpu->ram[0x25u];
-    if (records > 3u)
-        records = 3u;
+    if (records > LUFIA2_TARGET_MARKER_MAX_RECORDS)
+        records = LUFIA2_TARGET_MARKER_MAX_RECORDS;
     const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
         ? 1024u : 1364u;
     const uint64_t deadline = Lufia2DecompFrameReturnDeadline();
     while (records) {
         const unsigned room = 29u * records * 8u + 80u;
-        if (g_snes->hPos < fence && room < fence - g_snes->hPos &&
-            cpu->master_cycles <= UINT64_MAX - room &&
+        const bool within_line = g_snes->hPos < fence && room < fence - g_snes->hPos;
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_MARKER_WINDOW)
+        const bool window = within_line ||
+            NativeOpcodeWindowSupported(cpu, entry, room, 0x1fffu, false);
+#else
+        const bool window = within_line;
+#endif
+        if (window && cpu->master_cycles <= UINT64_MAX - room &&
             deadline - cpu->master_cycles >= room)
             return records;
         --records;

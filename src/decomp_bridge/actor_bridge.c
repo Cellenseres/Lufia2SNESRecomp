@@ -4527,7 +4527,8 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     interp_bridge_set_pre_opcode_hook(0x81e553u, ActorBridgeBattleFrameCells);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_MARKER_SPANS)
-    interp_bridge_set_pre_opcode_hook(0x81d60eu, ActorBridgeTargetMarkerRecords);
+    if (Lufia2DecompFrameRangeAllows(0x81d60eu, 0x81d60fu, Lufia2DecompTargetMarkerHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x81d60eu, ActorBridgeTargetMarkerRecords);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_STEPS)
     if (Lufia2DecompFrameRangeAllows(0x81d58du, 0x81d58eu, Lufia2DecompTargetNameHookOwned))
