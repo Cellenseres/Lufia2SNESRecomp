@@ -111,6 +111,14 @@ static bool DivideBitHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
 #endif
 static RecompReturn ActorBridgeTimedStatusDigits(CpuState *cpu);
 static RecompReturn ActorBridgeTimedBattleGauge(CpuState *cpu, bool label);
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_GAUGE_STEPS)
+static void ActorBridgeGaugeStep(CpuState *cpu, uint32_t entry);
+static bool GaugeStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return hook == ActorBridgeGaugeStep && (pc == 0x81e308u || pc == 0x81e310u ||
+        pc == 0x81e339u || pc == 0x81e33du || pc == 0x81e352u ||
+        pc == 0x81e369u || pc == 0x81e380u);
+}
+#endif
 static RecompReturn ActorBridgeTimedStatusDetail(CpuState *cpu);
 static RecompReturn ActorBridgeTimedStagedCommand(CpuState *cpu);
 static RecompReturn ActorBridgeTimedBattleLeaf(CpuState *cpu, uint32_t entry);
@@ -4466,6 +4474,15 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_GAUGE_STEPS)
+    static const uint32_t gauge_entries[] = {
+        0x81e308u, 0x81e310u, 0x81e339u, 0x81e33du, 0x81e352u, 0x81e369u, 0x81e380u
+    };
+    for (unsigned i = 0u; i < sizeof gauge_entries / sizeof gauge_entries[0]; ++i)
+        if (Lufia2DecompFrameRangeAllows(gauge_entries[i], gauge_entries[i] + 1u,
+                GaugeStepHookOwned))
+            interp_bridge_set_pre_opcode_hook(gauge_entries[i], ActorBridgeGaugeStep);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_DIVIDE_BIT_SPANS)
     for (unsigned bit = 0u; bit < 16u; ++bit) {
         const uint32_t entry = 0x80837eu + bit * 13u;

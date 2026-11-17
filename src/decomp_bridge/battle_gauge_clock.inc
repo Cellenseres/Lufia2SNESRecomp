@@ -234,6 +234,10 @@ static void BattleGaugeWrite(void *context, uint32_t address, uint8_t value) {
         clock->remaining = value;
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_GAUGE_STEPS)
+#include "gauge_step_clock.inc"
+#endif
+
 static RecompReturn ActorBridgeTimedBattleGauge(CpuState *cpu, bool label) {
     const uint32_t entry = label ? 0x81e2afu : 0x81e308u;
     ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
@@ -242,15 +246,24 @@ static RecompReturn ActorBridgeTimedBattleGauge(CpuState *cpu, bool label) {
     const unsigned start = cpu->Y + (label ? 0u : 10u),
                    end = cpu->Y + (label ? 11u : 17u);
     if (!cpu->ram || cpu->DB != 0x7eu || cpu->D || cpu->_flag_D || cpu->m_flag != 1u ||
-        (label && cpu->Y < 6u) || end > 0x10000u || !(end <= 0x11u || start >= 0x17u) ||
+        (label && cpu->Y < 6u) ||
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_GAUGE_STEPS)
+        !GaugeOutputRangeSupported(start, end) ||
+#else
+        end > 0x10000u || !(end <= 0x11u || start >= 0x17u) ||
         !(end <= 0x4eu || start >= 0x54u) || !(end <= 0x1ef8u || start >= 0x2000u) ||
+#endif
         !Lufia2DecompFrameRangeQuiet(0x80834cu, 0x808378u) ||
 #if defined(LUFIA2_HAVE_NATIVE_DIVIDE_BIT_SPANS)
         !Lufia2DecompFrameRangeAllows(0x808378u, 0x808450u, DivideBitHookOwned) ||
 #else
         !Lufia2DecompFrameRangeQuiet(0x808378u, 0x808450u) ||
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_GAUGE_STEPS)
+        !BattleQuietClockAllows(cpu, entry, 0x81e38fu, 2u, false, room, GaugeStepHookOwned))
+#else
         !BattleQuietClockSupported(cpu, entry, 0x81e38fu, 2u, false, room))
+#endif
         return ActorBridgeFallback(cpu, &frame,
                                    cpu->PB == 1u ? entry & 0x7fffffu : entry);
     if (frame.hrv)
