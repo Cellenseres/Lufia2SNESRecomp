@@ -1,3 +1,6 @@
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_SETUP)
+#include "lufia2/battle_target_name_setup.h"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_UPLOAD_CONTROL_STEPS)
 #include "lufia2/nmi_upload_control_steps.h"
 #endif
@@ -32,8 +35,11 @@ static int Lufia2DecompRunFrameRegisterBoundary(
         registers->pc != (uint16_t)pc || registers->waiting ||
         registers->stopped || registers->nmiWanted || registers->irqWanted)
         return 0;
-#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_NMI_UPLOAD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS)
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_SETUP) || defined(LUFIA2_HAVE_NATIVE_NMI_UPLOAD_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_FIELD_REGION_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_CONTROL_STEPS) || defined(LUFIA2_HAVE_NATIVE_NMI_CONTROL_STEPS)
     switch (opcode) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_SETUP)
+    case 0xa0u: case 0x7bu:
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_UPLOAD_CONTROL_STEPS)
     case 0xa9u: case 0x8du:
 #endif
@@ -56,6 +62,9 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     bool nmi_control = false;
 #endif
     uint8_t expected_opcode;
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_SETUP)
+    bool name_setup = false;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_UPLOAD_CONTROL_STEPS)
     bool upload_control = false;
 #endif
@@ -72,6 +81,16 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     bool field_control = false;
 #endif
     switch (pc) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_SETUP)
+    case 0x81d589u: case 0x81d7c1u: case 0x81d8c8u:
+        name_setup = true;
+        expected_opcode = 0xa0u;
+        break;
+    case 0x81d58cu: case 0x81d7c4u: case 0x81d8cbu:
+        name_setup = true;
+        expected_opcode = 0x7bu;
+        break;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_UPLOAD_CONTROL_STEPS)
     case 0x808731u: case 0x808760u:
         upload_control = true;
@@ -277,8 +296,19 @@ static int Lufia2DecompRunFrameRegisterBoundary(
         (void)registers->read(registers->mem, pc + 2u);
     }
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_SETUP)
+    if (opcode == 0xa0u) {
+        (void)registers->read(registers->mem, pc + 1u);
+        if (!registers->xf)
+            (void)registers->read(registers->mem, pc + 2u);
+    }
+#endif
     unsigned cycles;
     switch (opcode) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_SETUP)
+    case 0xa0u: cycles = 2u + !registers->xf; break;
+    case 0x7bu: cycles = 2u; break;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_UPLOAD_CONTROL_STEPS)
     case 0xa9u: cycles = 2u; break;
     case 0x8du: cycles = 4u; break;
@@ -304,6 +334,10 @@ static int Lufia2DecompRunFrameRegisterBoundary(
     default: cycles = 3u; break;
     }
     const Lufia2ExecutionResult result =
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_SETUP)
+        name_setup
+        ? Lufia2BattleTargetNameSetupStep(&memory, &state, pc) :
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_UPLOAD_CONTROL_STEPS)
         upload_control
         ? Lufia2NmiUploadControlStep(&memory, &state, pc) :
