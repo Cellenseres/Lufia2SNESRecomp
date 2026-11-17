@@ -115,10 +115,39 @@ static void WorldClockFinish(WorldFrameClock *clock, uint32_t landing) {
 }
 
 
-static bool WorldClockWindow(CpuState *cpu, uint32_t entry) {
-    if (!Lufia2DecompFrameReturnCpuReady() ||
-        !ActorBridgeSoundWindowSupported(cpu, entry, 0x1ffcu, 384u) ||
-        g_snes->hPos > 800u ||
+/* Bound the prefix through its next JSR, including one refresh stall. */
+static unsigned WorldClockPrefixBudget(uint32_t entry) {
+    unsigned code_bytes = 3u, data_bytes = 2u, internal_cycles = 1u;
+    switch (entry) {
+    case 0x86925cu:
+        code_bytes = 26u; data_bytes = 5u; internal_cycles = 3u;
+        break;
+    case 0x869264u:
+        code_bytes = 21u; data_bytes = 4u; internal_cycles = 2u;
+        break;
+    case 0x869288u:
+        code_bytes = 11u; data_bytes = 4u; internal_cycles = 2u;
+        break;
+    case 0x86929fu:
+        code_bytes = 28u; data_bytes = 5u; internal_cycles = 4u;
+        break;
+    case 0x869276u: case 0x869279u: case 0x86927cu:
+    case 0x86927fu: case 0x869282u: case 0x869285u:
+    case 0x869290u: case 0x869293u: case 0x869296u:
+    case 0x869299u: case 0x86929cu:
+        break;
+    default:
+        return 0u;
+    }
+    return code_bytes * cpu_region_speed(entry) + data_bytes * 8u +
+        internal_cycles * 6u + 40u;
+}
+
+static bool WorldClockWindow(CpuState *cpu, uint32_t entry, unsigned budget) {
+    if (!g_snes || !Lufia2DecompFrameReturnCpuReady())
+        return false;
+    if (!budget ||
+        !ActorBridgeSoundWindowSupported(cpu, entry, 0x1ffcu, budget) ||
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_DECISIONS)
         !Lufia2DecompFrameRangeAllows(0x86925cu, 0x8692a1u,
             Lufia2DecompFrameDecisionHookOwned))
@@ -146,7 +175,8 @@ static uint8_t WorldClockChild(void *context, Lufia2CpuState *state,
     if (!ActorBridgePushedChild(&clock->child, state, target, site, frame))
         return 0u;
     const uint32_t landing = site + 3u;
-    if (!WorldClockContext(clock->child.cpu) || !WorldClockWindow(clock->child.cpu, landing)) {
+    if (!WorldClockContext(clock->child.cpu) || !g_snes ||
+        !WorldClockWindow(clock->child.cpu, landing, WorldClockPrefixBudget(landing))) {
         clock->child.unwound = interp_tier_dispatch_tail(clock->child.cpu,
             landing, site, clock->child.frame.entry_s, 0u);
         return 0u;
@@ -155,8 +185,15 @@ static uint8_t WorldClockChild(void *context, Lufia2CpuState *state,
     return 1u;
 }
 
+bool Lufia2DecompWorldFrameCanResumeFrom(CpuState *cpu, uint32_t entry) {
+    return Lufia2DecompWorldFrameEntry(entry) && WorldClockContext(cpu) && g_snes &&
+        WorldClockWindow(cpu, entry, WorldClockPrefixBudget(entry));
+}
+
 bool Lufia2DecompWorldFrameCanResume(CpuState *cpu) {
-    return WorldClockContext(cpu) && WorldClockWindow(cpu, 0x86925cu);
+    /* Preserve the partial header's existing handoff threshold. */
+    return WorldClockContext(cpu) && g_snes && g_snes->hPos <= 800u &&
+        WorldClockWindow(cpu, 0x86925cu, 384u);
 }
 
 static RecompReturn WorldFrameResumeAt(

@@ -28,6 +28,7 @@ static inline bool Lufia2DecompWorldFrameEntry(uint32_t pc) {
 
 RecompReturn Lufia2DecompWorldFrameResumeFrom(
     CpuState *cpu, uint32_t entry, uint32_t *next_pc);
+bool Lufia2DecompWorldFrameCanResumeFrom(CpuState *cpu, uint32_t entry);
 bool Lufia2DecompWorldFrameCanResume(CpuState *cpu);
 RecompReturn Lufia2DecompWorldFrameResume(CpuState *cpu, uint32_t *next_pc);
 

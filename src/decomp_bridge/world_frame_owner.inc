@@ -7,7 +7,7 @@ if (Lufia2DecompWorldFrameEntry(pc_before) && auto_quiescent && !stop_on_rti && 
     const int saved_blocked = s_frame_return_interrupt_blocked;
     const int current_blocked = in.waiting || in.stopped || in.nmiWanted || in.irqWanted;
     s_frame_return_interrupt_blocked = current_blocked;
-    const bool can_resume = Lufia2DecompWorldFrameCanResume(cpu);
+    const bool can_resume = Lufia2DecompWorldFrameCanResumeFrom(cpu, pc_before);
     s_frame_return_interrupt_blocked = saved_blocked;
     if (can_resume) {
         if (s_apu_pending_master >= bridge_bounce_flush_thresh())
