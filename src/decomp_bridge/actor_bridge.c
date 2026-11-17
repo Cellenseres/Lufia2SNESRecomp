@@ -4882,8 +4882,17 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     interp_bridge_set_pre_opcode_hook(0x85a736u, ActorBridgeRippleRowClock);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_QUEUE_STEPS)
+#if defined(LUFIA2_HAVE_NATIVE_VRAM_QUEUE_PHASES)
+    if (Lufia2DecompFrameRangeAllows(0x85ecdbu, 0x85ece3u, BattleQueueHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x85ecdbu, ActorBridgeBattleQueueStep);
+    if (Lufia2DecompFrameRangeAllows(0x85ecdeu, 0x85ece3u, BattleQueueHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x85ecdeu, ActorBridgeBattleQueueStep);
+    if (Lufia2DecompFrameRangeAllows(0x85ece3u, 0x85eceeu, BattleQueueHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x85ece3u, ActorBridgeBattleQueueStep);
+#else
     interp_bridge_set_pre_opcode_hook(0x85ecdbu, ActorBridgeBattleQueueStep);
     interp_bridge_set_pre_opcode_hook(0x85ecdeu, ActorBridgeBattleQueueStep);
+#endif
 #endif
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_EQUIPMENT_GROUP_STEPS)

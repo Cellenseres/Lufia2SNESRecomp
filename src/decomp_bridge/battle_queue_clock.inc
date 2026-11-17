@@ -6,8 +6,16 @@ static void ActorBridgeBattleQueueStep(CpuState *cpu, uint32_t entry);
 
 static bool BattleQueueHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
     return hook == ActorBridgeBattleQueueStep &&
-        (pc == 0x85ecdbu || pc == 0x85ecdeu);
+        (pc == 0x85ecdbu || pc == 0x85ecdeu
+#if defined(LUFIA2_HAVE_NATIVE_VRAM_QUEUE_PHASES)
+         || pc == 0x85ece3u
+#endif
+        );
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_VRAM_QUEUE_PHASES)
+#include "vram_queue_phase_clock.inc"
+#endif
 
 typedef struct BattleQueueClock {
     FixedSpanClock span;
@@ -74,9 +82,21 @@ static bool BattleQueueClockSupported(const CpuState *cpu, uint32_t entry,
 }
 
 static void ActorBridgeBattleQueueStep(CpuState *cpu, uint32_t entry) {
-    bool known_free;
-    if (!BattleQueueClockSupported(cpu, entry, &known_free))
+#if defined(LUFIA2_HAVE_NATIVE_VRAM_QUEUE_PHASES)
+    if (!Lufia2DecompOpcodeWindowReady())
         return;
+    if (entry == 0x85ece3u) {
+        TryVramQueuePhase(cpu, entry);
+        return;
+    }
+#endif
+    bool known_free;
+    if (!BattleQueueClockSupported(cpu, entry, &known_free)) {
+#if defined(LUFIA2_HAVE_NATIVE_VRAM_QUEUE_PHASES)
+        TryVramQueuePhase(cpu, entry);
+#endif
+        return;
+    }
     static const FixedSpanOpcode row_timing[] = {
         {0xecdeu, 3u, 5u, 2u}, {0xece1u, 2u, 2u, 0u},
         {0xece3u, 1u, 2u, 0u}, {0xece4u, 1u, 2u, 0u},
