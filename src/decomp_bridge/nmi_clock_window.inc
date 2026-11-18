@@ -1,6 +1,6 @@
-static bool NmiClockWindow(const CpuState *cpu, bool byte_index, uint32_t first, uint32_t end,
+static bool NmiClockWindowWithDeferredHdma(const CpuState *cpu, bool byte_index, uint32_t first, uint32_t end,
     unsigned budget, unsigned reserve, bool allow_line_crossing,
-    bool (*owned)(uint32_t, InterpPreOpcodeHook)) {
+    bool (*owned)(uint32_t, InterpPreOpcodeHook), bool defer_hdma_init) {
     if (!g_snes || !g_snes->inNmi || g_snes->inIrq || !g_snes->dma ||
         !cpu->ram || cpu->ram != g_snes->ram || cpu->emulation ||
         cpu->PB != 0x80u || cpu->DB != 0x80u || cpu->D || cpu->_flag_D ||
@@ -11,10 +11,20 @@ static bool NmiClockWindow(const CpuState *cpu, bool byte_index, uint32_t first,
         cpu->master_cycles > UINT64_MAX - reserve ||
         g_snes->hIrqEnabled || g_snes->vIrqEnabled ||
         g_snes->dma->dmaBusy || g_snes->dma->dmaTimer ||
-        g_snes->dma->hdmaPendingInit || !g_snes->cart ||
+        !g_snes->cart ||
         !g_snes->cart->rom || g_snes->cart->type != CART_LOROM ||
         g_snes->cart->romSize < (end & 0xffffu) + 1u - 0x8000u)
         return false;
+    if (g_snes->dma->hdmaPendingInit) {
+#if defined(LUFIA2_HAVE_BEAM_HOLD_QUERY) || defined(SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY)
+        // Scroll-register writes cannot start pending HDMA while beam HDMA is off.
+        if (!defer_hdma_init || !g_snes->hdmaBeamOff || snesrecomp_beam_hold_active())
+            return false;
+#else
+        (void)defer_hdma_init;
+        return false;
+#endif
+    }
     const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
         ? 1024u : 1364u;
     if ((unsigned)g_snes->hPos + budget >= fence) {
@@ -44,4 +54,11 @@ static bool NmiClockWindow(const CpuState *cpu, bool byte_index, uint32_t first,
     snes_refresh_state_get(&phase, &current);
     return phase < 1364u && (!current || current == cpu->master_cycles) &&
         Lufia2DecompFrameRangeAllows(first, end, owned);
+}
+
+static bool NmiClockWindow(const CpuState *cpu, bool byte_index, uint32_t first, uint32_t end,
+    unsigned budget, unsigned reserve, bool allow_line_crossing,
+    bool (*owned)(uint32_t, InterpPreOpcodeHook)) {
+    return NmiClockWindowWithDeferredHdma(cpu, byte_index, first, end, budget, reserve,
+        allow_line_crossing, owned, false);
 }
