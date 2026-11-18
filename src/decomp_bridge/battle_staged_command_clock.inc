@@ -156,7 +156,7 @@ static RecompReturn ActorBridgeTimedStagedCommand(CpuState *cpu) {
         !Lufia2DecompFrameRangeQuiet(0x81d12eu, 0x81d12fu) ||
         (!cpu->_flag_C && (!Lufia2DecompFrameRangeAllows(0x81e1b5u, 0x81e2afu, BattleStatusStepHookOwned) ||
                            !Lufia2DecompFrameRangeQuiet(0x81e2afu, 0x81e38fu) ||
-                           !Lufia2DecompFrameRangeQuiet(0x81e503u, 0x81e593u) ||
+                           !Lufia2DecompFrameRangeAllows(0x81e503u, 0x81e593u, BattleFrameEndsHookOwned) ||
                            !Lufia2DecompFrameRangeAllows(0x81e808u, 0x81e835u, DecimalDigitsHookOwned) ||
                            !Lufia2DecompFrameRangeAllows(0x80834cu, 0x808378u, BattleMultiplyHookOwned) ||
                            !Lufia2DecompFrameRangeQuiet(0x808378u, 0x808450u))))

@@ -116,6 +116,10 @@ static bool BattleWindowStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
 }
 #endif
 static RecompReturn ActorBridgeTimedBattleDigits(CpuState *cpu);
+static bool BattleFrameEndsHookOwned(uint32_t pc, void (*hook)(CpuState *, uint32_t));
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_FRAME_ENDS_WINDOW)
+static void ActorBridgeBattleFrameEndsWindow(CpuState *cpu, uint32_t entry);
+#endif
 static bool BattleStatusStepHookOwned(uint32_t pc, void (*hook)(CpuState *, uint32_t));
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS_STEPS)
 static void ActorBridgeBattleStatusStep(CpuState *cpu, uint32_t entry);
@@ -4532,6 +4536,10 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_FRAME_ENDS_WINDOW)
+    if (Lufia2DecompFrameRangeAllows(0x81e570u, 0x81e571u, BattleFrameEndsHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x81e570u, ActorBridgeBattleFrameEndsWindow);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS_STEPS)
     static const uint32_t status_entries[] = {0x81e1b5u, 0x81e1dau, 0x81e1eau, 0x81e1fbu,
         0x81e23bu, 0x81e261u, 0x81e290u, 0x81e2acu};

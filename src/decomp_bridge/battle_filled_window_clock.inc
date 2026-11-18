@@ -114,7 +114,7 @@ static RecompReturn ActorBridgeTimedFilledWindow(CpuState *cpu, unsigned kind) {
 #else
         !Lufia2DecompFrameRangeQuiet(0x81e7d2u, 0x81e808u) ||
 #endif
-        !Lufia2DecompFrameRangeQuiet(0x81e503u, 0x81e593u))
+        !Lufia2DecompFrameRangeAllows(0x81e503u, 0x81e593u, BattleFrameEndsHookOwned))
         return ActorBridgeFallback(cpu, &frame,
                                    cpu->PB == 1u ? entry & 0x7fffffu : entry);
     if (frame.hrv)

@@ -4,8 +4,20 @@
 static void ActorBridgeBattleFrameCells(CpuState *cpu, uint32_t entry);
 #endif
 
+static bool BattleFrameEndsHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_FRAME_ENDS_WINDOW)
+    return pc == 0x81e570u && hook == ActorBridgeBattleFrameEndsWindow;
+#else
+    (void)pc;
+    (void)hook;
+    return false;
+#endif
+}
+
 static bool BattleFrameRowHookOwned(uint32_t pc,
     void (*hook)(CpuState *, uint32_t)) {
+    if (BattleFrameEndsHookOwned(pc, hook))
+        return true;
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_WINDOW_STEPS)
     if (BattleWindowStepHookOwned(pc, hook))
         return true;
@@ -217,7 +229,7 @@ static bool BattleWindowEndsBeamSupported(const CpuState *cpu, unsigned room) {
         !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1ffdu, true,
             1363u, room) || g_snes->vPos >= 225u ||
         g_snes->dma->hdmaPendingInit ||
-        !Lufia2DecompFrameRangeQuiet(entry, 0x81e593u))
+        !Lufia2DecompFrameRangeAllows(entry, 0x81e593u, BattleFrameEndsHookOwned))
         return false;
     const unsigned fence = g_snes->hdmaBeamOff ? 1364u : 1024u;
     if (room >= fence || g_snes->hPos >= fence - room)
@@ -226,6 +238,10 @@ static bool BattleWindowEndsBeamSupported(const CpuState *cpu, unsigned room) {
     snes_refresh_state_get(&phase, &charged);
     return phase < 1364u && (!charged || charged == cpu->master_cycles);
 }
+
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_FRAME_ENDS_WINDOW)
+#include "battle_frame_ends_window.inc"
+#endif
 
 static RecompReturn ActorBridgeTimedBattleWindow(CpuState *cpu, unsigned kind) {
     static const uint32_t entries[] = {0x81e503u, 0x81e542u, 0x81e570u};
