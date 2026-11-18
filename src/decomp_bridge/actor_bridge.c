@@ -100,6 +100,14 @@ static RecompReturn ActorBridgeTimedBattleWindow(CpuState *cpu, unsigned kind);
 static void ActorBridgeBattleFrameCells(CpuState *cpu, uint32_t entry);
 static bool BattleFrameRowHookOwned(uint32_t pc, void (*hook)(CpuState *, uint32_t));
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_INPUT_STEPS)
+static void ActorBridgeBattleCommandInputStep(CpuState *cpu, uint32_t entry);
+static bool BattleCommandInputHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return hook == ActorBridgeBattleCommandInputStep &&
+        (pc == 0x81cbf1u || pc == 0x81cc07u || pc == 0x81cc1au || pc == 0x81cc26u);
+}
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_WINDOW_STEPS)
 static void ActorBridgeBattleWindowStep(CpuState *cpu, uint32_t entry);
 static bool BattleWindowStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
@@ -3132,6 +3140,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 }
 #include "fixed_span_clock.inc"
 #include "native_opcode_window.inc"
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_INPUT_STEPS)
+#include "command_input_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_SAVE_ACTION_STEPS)
 #include "save_action_clock.inc"
 #endif
@@ -4491,6 +4502,16 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_INPUT_STEPS)
+    static const uint32_t command_input_entries[] = {
+        0x81cbf1u, 0x81cc07u, 0x81cc1au, 0x81cc26u};
+    for (unsigned i = 0u; i < sizeof command_input_entries / sizeof *command_input_entries; ++i) {
+        const uint32_t entry = command_input_entries[i];
+        if (Lufia2DecompFrameRangeAllows(entry, entry + 1u, BattleCommandInputHookOwned))
+            interp_bridge_set_pre_opcode_hook(entry, ActorBridgeBattleCommandInputStep);
+    }
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_WINDOW_STEPS)
     static const uint32_t window_step_entries[] = {
         0x81e503u, 0x81e527u, 0x81e52du, 0x81e542u, 0x81e55du};
