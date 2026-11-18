@@ -116,6 +116,10 @@ static bool BattleWindowStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
 }
 #endif
 static RecompReturn ActorBridgeTimedBattleDigits(CpuState *cpu);
+static bool EventTimerStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook);
+#if defined(LUFIA2_HAVE_NATIVE_EVENT_TIMER_STEPS)
+static void ActorBridgeEventTimerStep(CpuState *cpu, uint32_t entry);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS_ROLL_STEPS)
 static void ActorBridgeBattleStatusRoll(CpuState *cpu, uint32_t entry);
 static bool BattleStatusRollHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
@@ -3171,6 +3175,10 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 }
 #include "fixed_span_clock.inc"
 #include "native_opcode_window.inc"
+#if defined(LUFIA2_HAVE_NATIVE_EVENT_TIMER_STEPS)
+#include "event_timer_steps_clock.inc"
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS_ROLL_STEPS)
 #include "battle_status_roll_clock.inc"
 #endif
@@ -4545,6 +4553,15 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_EVENT_TIMER_STEPS)
+    static const uint32_t timer_entries[] = {
+        0x80cbaeu, 0x80cbbdu, 0x80cbf6u, 0x80cbf9u, 0x80cc09u};
+    for (unsigned i = 0u; i < sizeof timer_entries / sizeof timer_entries[0]; ++i)
+        if (Lufia2DecompFrameRangeAllows(timer_entries[i], timer_entries[i] + 1u,
+                EventTimerStepHookOwned))
+            interp_bridge_set_pre_opcode_hook(timer_entries[i], ActorBridgeEventTimerStep);
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS_ROLL_STEPS)
     static const uint32_t status_roll_entries[] = {0x85d40du, 0x85d43fu};
     for (unsigned i = 0u; i < sizeof status_roll_entries / sizeof status_roll_entries[0]; ++i)
@@ -22120,3 +22137,15 @@ RecompReturn Lufia2DecompBridge_81E38F(CpuState *cpu) {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_UPKEEP_STEPS)
 #include "battle_upkeep_clock.inc"
 #endif
+
+static bool EventTimerStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_EVENT_TIMER_STEPS)
+    return hook == ActorBridgeEventTimerStep &&
+        (pc == 0x80cbaeu || pc == 0x80cbbdu || pc == 0x80cbf6u ||
+         pc == 0x80cbf9u || pc == 0x80cc09u);
+#else
+    (void)pc;
+    (void)hook;
+    return false;
+#endif
+}

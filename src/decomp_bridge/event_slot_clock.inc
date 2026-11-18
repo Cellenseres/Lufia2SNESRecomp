@@ -71,7 +71,7 @@ static bool EventSlotClockSupported(const CpuState *cpu) {
         !g_snes->apu || !g_snes->hdmaBeamOff || g_snes->dma->hdmaPendingInit ||
         g_snes->vPos >= 262u || !g_snes->cart || !g_snes->cart->rom ||
         g_snes->cart->type != CART_LOROM || g_snes->cart->romSize <= 0x4c25u ||
-        !Lufia2DecompFrameRangeQuiet(0x80cbaeu, 0x80cc26u))
+        !Lufia2DecompFrameRangeAllows(0x80cbaeu, 0x80cc26u, EventTimerStepHookOwned))
         return false;
     const unsigned end_line = g_snes->vPos < 225u ? 225u : 262u;
     if ((end_line - g_snes->vPos) * 1364u - g_snes->hPos < EVENT_SLOT_CLOCK_RESERVE)
