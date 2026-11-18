@@ -1360,7 +1360,7 @@ function(lufia2_add_nmi_continuations target core_root)
                     message(FATAL_ERROR "Native NMI calls require reviewed opcode execution")
                 endif()
                 set(_native_opcode "        int _cyc = Lufia2DecompNmiRunCallBoundary(\n            &in, pc_before, op, stop_on_rti, auto_quiescent,\n            trace || dtrace || wlog_state_sync || s_interp_pctrace);\n")
-                if(_nmi_child_boundaries OR _battle_effect_frame_steps)
+                if(_nmi_child_boundaries OR _battle_effect_frame_steps OR _cursor_pixel_spans)
                     string(PREPEND _text
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunDirectCall(Interp816 *, uint32_t, uint8_t, uint32_t, bool);\n")
                     string(APPEND _timing_suffix
@@ -1546,6 +1546,12 @@ function(lufia2_add_nmi_continuations target core_root)
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/menu_wait_polls.inc\"\n")
                 endif()
                 if(_cursor_pixel_spans)
+                    string(APPEND _native_opcode
+                        "        if (!_cyc && (pc_before == 0x828a98u || pc_before == 0x828ad3u) &&\n"
+                        "            auto_quiescent && !stop_on_rti && !n_stop && !trace && !dtrace &&\n"
+                        "            !wlog_state_sync && !s_interp_pctrace && !g_interp_bridge_pc_hook &&\n"
+                        "            !Lufia2NativeObserversActive() && g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
+                        "            _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x828afau, false);\n")
                     string(PREPEND _native_opcode "        int _lufia2_cursor_accounted = 0;\n")
                     string(APPEND _native_opcode "        if (!_cyc && !n_stop && (!yield_pc || auto_quiescent) &&\n            (!g_snes || (!g_snes->hIrqEnabled && !g_snes->vIrqEnabled &&\n             (!g_snes->nmiEnabled || s_lle_master_deadline)))) {\n            _cyc = Lufia2DecompRunCursorPixelSpan(&in, cpu, pc_before, op, Lufia2CursorPixelAccountInstruction);\n            _lufia2_cursor_accounted = _cyc != 0;\n        }\n")
                     string(PREPEND _text
