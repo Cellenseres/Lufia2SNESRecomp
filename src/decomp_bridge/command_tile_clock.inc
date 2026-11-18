@@ -47,15 +47,16 @@ static bool CommandTileClockContextSupported(
 }
 
 #if defined(LUFIA2_HAVE_NATIVE_COMMAND_TILE_WINDOWS)
-static bool CommandTileWindowSupported(const CpuState *cpu, uint32_t entry) {
+static bool CommandTileWindowSupported(
+    const CpuState *cpu, uint32_t entry, unsigned clock_reserve) {
     if (cpu != &g_cpu || cpu->m_flag != 1u || cpu->x_flag || cpu->DB != 0x97u ||
         cpu->D || cpu->_flag_D || cpu->S < 0x1f02u ||
         (cpu->host_return_valid && cpu->host_return_valid != 2u &&
          cpu->host_return_valid != 3u) ||
         !Lufia2DecompFrameReturnCpuReady() ||
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
-        cpu->master_cycles > UINT64_MAX - 352u ||
-        !NativeOpcodeWindowSupported(cpu, entry, 352u, 0x1ffcu, false))
+        cpu->master_cycles > UINT64_MAX - clock_reserve ||
+        !NativeOpcodeWindowSupported(cpu, entry, clock_reserve, 0x1ffcu, false))
         return false;
     uint64_t phase, charged;
     snes_refresh_state_get(&phase, &charged);
@@ -72,7 +73,7 @@ static bool CommandTileClockSupported(const CpuState *cpu, uint32_t entry) {
         return false;
     if (CommandTileClockContextSupported(cpu, entry, 34u * 8u + 80u))
         return true;
-    return CommandTileWindowSupported(cpu, entry);
+    return CommandTileWindowSupported(cpu, entry, 352u);
 #else
     return entry == 0x81cb99u && cpu->X <= 6u && !(cpu->X % 3u) &&
         CommandTileClockContextSupported(cpu, entry, 34u * 8u + 80u) &&
@@ -117,9 +118,18 @@ static void ActorBridgeCommandTile(CpuState *cpu, uint32_t entry) {
 
 #if defined(LUFIA2_HAVE_NATIVE_SELECTED_COMMAND_TILE)
 static bool SelectedCommandTileClockSupported(const CpuState *cpu, uint32_t entry) {
+#if defined(LUFIA2_HAVE_NATIVE_COMMAND_TILE_WINDOWS)
+    if (entry != 0x81cbb8u || !Lufia2DecompOpcodeWindowReady() ||
+        Lufia2DecompFrameSpanBudget(entry, 0x81cbddu,
+            ActorBridgeSelectedCommandTile) < 17u)
+        return false;
+    return CommandTileClockContextSupported(cpu, entry, 53u * 8u + 80u) ||
+        CommandTileWindowSupported(cpu, entry, 53u * 8u + 80u);
+#else
     return entry == 0x81cbb8u &&
         CommandTileClockContextSupported(cpu, entry, 53u * 8u + 80u) &&
         Lufia2DecompFrameRangeAllows(entry, 0x81cbddu, CommandTileHookOwned);
+#endif
 }
 
 static void ActorBridgeSelectedCommandTile(CpuState *cpu, uint32_t entry) {
@@ -195,11 +205,20 @@ static const FixedSpanOpcode party_command_selected[] = {
 
 static bool PartyCommandTileClockContextSupported(const CpuState *cpu,
     uint32_t entry, unsigned clock_reserve) {
+#if defined(LUFIA2_HAVE_NATIVE_COMMAND_TILE_WINDOWS)
+    if (!Lufia2DecompOpcodeWindowReady())
+        return false;
+#endif
     return !g_interp_bridge_pc_hook &&
         g_snes && g_snes->apu && g_snes->cart && g_snes->cart->rom &&
         g_snes->cart->type == CART_LOROM && g_snes->cart->romSize > 0xbb668u &&
         g_snes->vPos < 262u &&
+#if defined(LUFIA2_HAVE_NATIVE_COMMAND_TILE_WINDOWS)
+        (CommandTileClockContextSupported(cpu, entry, clock_reserve) ||
+         CommandTileWindowSupported(cpu, entry, clock_reserve));
+#else
         CommandTileClockContextSupported(cpu, entry, clock_reserve);
+#endif
 }
 
 static void ActorBridgePartyCommandTile(CpuState *cpu, uint32_t entry) {

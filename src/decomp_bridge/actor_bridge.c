@@ -4735,7 +4735,8 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
         interp_bridge_set_pre_opcode_hook(0x81ccafu, ActorBridgeContinuePartyCommandTiles);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_SELECTED_COMMAND_TILE)
-    interp_bridge_set_pre_opcode_hook(0x81cbb8u, ActorBridgeSelectedCommandTile);
+    if (Lufia2DecompFrameRangeAllows(0x81cbb8u, 0x81cbb9u, CommandTileHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x81cbb8u, ActorBridgeSelectedCommandTile);
 #endif
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS) && defined(LUFIA2_HAVE_NATIVE_MEMBER_SCREENS)
