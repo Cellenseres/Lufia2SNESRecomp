@@ -124,6 +124,14 @@ static bool TargetRecordStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
          pc == 0x81d500u || pc == 0x81d521u || pc == 0x81d52bu || pc == 0x81d531u);
 }
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_ACTION_PARAMETER_STEPS)
+static void ActorBridgeActionParameterStep(CpuState *cpu, uint32_t entry);
+static bool ActionParameterStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return hook == ActorBridgeActionParameterStep &&
+        (pc == 0x85d3edu || pc == 0x85d3fdu || pc == 0x85d400u ||
+         pc == 0x85d432u || pc == 0x85d63au);
+}
+#endif
 static bool EventTimerStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook);
 #if defined(LUFIA2_HAVE_NATIVE_EVENT_TIMER_STEPS)
 static void ActorBridgeEventTimerStep(CpuState *cpu, uint32_t entry);
@@ -3183,6 +3191,10 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 }
 #include "fixed_span_clock.inc"
 #include "native_opcode_window.inc"
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_ACTION_PARAMETER_STEPS)
+#include "action_parameter_steps_clock.inc"
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_RECORD_STEPS)
 #include "target_record_steps_clock.inc"
 #endif
@@ -4565,6 +4577,15 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_ACTION_PARAMETER_STEPS)
+    static const uint32_t action_parameter_entries[] = {
+        0x85d3edu, 0x85d3fdu, 0x85d400u, 0x85d432u, 0x85d63au};
+    for (unsigned i = 0u; i < sizeof action_parameter_entries / sizeof action_parameter_entries[0]; ++i)
+        if (Lufia2DecompFrameRangeAllows(action_parameter_entries[i], action_parameter_entries[i] + 1u,
+                ActionParameterStepHookOwned))
+            interp_bridge_set_pre_opcode_hook(action_parameter_entries[i], ActorBridgeActionParameterStep);
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_RECORD_STEPS)
     static const uint32_t target_record_entries[] = {
         0x81d4e5u, 0x81d4f2u, 0x81d4fcu, 0x81d500u, 0x81d521u, 0x81d52bu, 0x81d531u};

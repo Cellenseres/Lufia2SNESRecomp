@@ -45,7 +45,13 @@ static void ActorBridgeBattleStatusRoll(CpuState *cpu, uint32_t entry) {
         return;
     const uint32_t fence = adding ? (finished ? 0x85d45au : 0x85d44au)
                                   : (finished ? 0x85d428u : 0x85d418u);
-    const unsigned count = finished ? 14u : 8u;
+    bool next_limit = false;
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_ACTION_PARAMETER_STEPS)
+    const uint32_t loop_head = adding ? 0x85d439u : 0x85d407u;
+    next_limit = !finished && Lufia2DecompFrameRangeQuiet(loop_head, loop_head + 2u) &&
+        Lufia2DecompFrameSpanBudget(entry, fence, ActorBridgeBattleStatusRoll) >= 9u;
+#endif
+    const unsigned count = finished ? 14u : next_limit ? 9u : 8u;
     const unsigned reserve = finished ? 448u : 256u;
     // Every data access is WRAM; this span cannot enable HDMA.
     if (cpu->master_cycles > UINT64_MAX - reserve ||
@@ -63,6 +69,8 @@ static void ActorBridgeBattleStatusRoll(CpuState *cpu, uint32_t entry) {
     if (adding)
         for (unsigned i = 0u; i < 8u; ++i)
             timing[i].pc += 0x32u;
+    if (next_limit)
+        timing[8] = (FixedSpanOpcode){adding ? 0xd439u : 0xd407u, 2u, 2u, 0u};
     if (finished) {
         timing[7].cycles = 2u;
         memcpy(timing + 8u, adding ? status_roll_add : status_roll_remove,
@@ -80,13 +88,18 @@ static void ActorBridgeBattleStatusRoll(CpuState *cpu, uint32_t entry) {
     Lufia2CpuState state;
     ActorBridgeLoad(cpu, &state);
     const uint64_t start = cpu->master_cycles;
-    const Lufia2ExecutionResult result =
-        Lufia2BattleStatusRollStep(&memory, &state, entry);
+    Lufia2ExecutionResult result;
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_ACTION_PARAMETER_STEPS)
+    if (next_limit)
+        result = Lufia2BattleStatusRollContinueStep(&memory, &state, entry);
+    else
+#endif
+        result = Lufia2BattleStatusRollStep(&memory, &state, entry);
     BeginFixedSpanOpcode(&clock);
     assert(result.flow == LUFIA2_EXECUTION_BOUNDARY &&
            result.pc == (finished ? fence
-                         : adding ? 0x85d439u
-                                  : 0x85d407u));
+                         : adding ? (next_limit ? 0x85d43bu : 0x85d439u)
+                                  : (next_limit ? 0x85d409u : 0x85d407u)));
     assert(clock.index == count && !clock.remaining);
     assert(cpu->master_cycles - start <= reserve);
     ActorBridgeStore(cpu, &state);
