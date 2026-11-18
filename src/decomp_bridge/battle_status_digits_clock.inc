@@ -97,7 +97,7 @@ static RecompReturn ActorBridgeTimedStatusDigits(CpuState *cpu) {
     const unsigned end = cpu->Y + 9u;
     if (end > 0x10000u || !(end <= 0x11u || cpu->Y >= 0x17u) ||
         !(end <= 0xb2u || cpu->Y >= 0xb5u) || !(end <= 0x1efcu || cpu->Y >= 0x2000u) ||
-        !Lufia2DecompFrameRangeQuiet(0x81e808u, 0x81e835u) ||
+        !Lufia2DecompFrameRangeAllows(0x81e808u, 0x81e835u, DecimalDigitsHookOwned) ||
         !BattleQuietClockSupported(cpu, entry, 0x81e308u, 2u, false, room))
         return ActorBridgeFallback(cpu, &frame, cpu->PB == 1u ? 0x01e2c8u : entry);
     if (frame.hrv)

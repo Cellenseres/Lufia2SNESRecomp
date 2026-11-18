@@ -18,6 +18,17 @@ static const FixedSpanOpcode battle_digits_finish[] = {
     {0xe824u, 2u, 3u, 0u}, {0xe82fu, 1u, 2u, 0u}, {0xe830u, 2u, 3u, 0u},
     {0xe832u, 2u, 3u, 1u}, {0xe834u, 1u, 6u, 2u}};
 
+static bool DecimalDigitsHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_DECIMAL_DIGITS_STEPS)
+    return (pc == 0x81e808u || pc == 0x81e80eu || pc == 0x81e81fu || pc == 0x81e82fu) &&
+        hook == ActorBridgeDecimalDigitsStep;
+#else
+    (void)pc;
+    (void)hook;
+    return false;
+#endif
+}
+
 typedef enum BattleDigitsPhase {
     DIGITS_SETUP,
     DIGITS_HUNDREDS,
@@ -92,6 +103,10 @@ static void BeginBattleDigits(BattleDigitsClock *clock, CpuState *cpu,
     SetBattleDigitsPhase(clock, DIGITS_SETUP);
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_DECIMAL_DIGITS_STEPS)
+#include "decimal_digits_steps_clock.inc"
+#endif
+
 static RecompReturn ActorBridgeTimedBattleDigits(CpuState *cpu) {
     const uint32_t entry = 0x81e808u;
     ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
@@ -101,7 +116,7 @@ static RecompReturn ActorBridgeTimedBattleDigits(CpuState *cpu) {
     const unsigned room = master + 40u * (master / 1324u + 2u);
     if (cpu->D || cpu->_flag_D || cpu->m_flag != 1u ||
         (cpu->DB != 0x7eu && cpu->DB != 0x7fu && (cpu->DB & 0x7fu) >= 0x40u) ||
-        !BattleQuietClockSupported(cpu, entry, 0x81e835u, 2u, false, room))
+        !BattleQuietClockAllows(cpu, entry, 0x81e835u, 2u, false, room, DecimalDigitsHookOwned))
         return ActorBridgeFallback(cpu, &frame, cpu->PB == 1u ? 0x01e808u : entry);
     if (frame.hrv)
         frame.host_return_pc24 = Lufia2DecompFramePairedReturnPc(cpu, entry);

@@ -116,6 +116,10 @@ static bool BattleWindowStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
 }
 #endif
 static RecompReturn ActorBridgeTimedBattleDigits(CpuState *cpu);
+static bool DecimalDigitsHookOwned(uint32_t pc, void (*hook)(CpuState *, uint32_t));
+#if defined(LUFIA2_HAVE_NATIVE_DECIMAL_DIGITS_STEPS)
+static void ActorBridgeDecimalDigitsStep(CpuState *cpu, uint32_t entry);
+#endif
 static RecompReturn ActorBridgeTimedBattleMultiply(CpuState *cpu);
 static bool BattleMultiplyHookOwned(uint32_t pc, void (*hook)(CpuState *, uint32_t));
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_MULTIPLY_WINDOW)
@@ -4524,6 +4528,13 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_DECIMAL_DIGITS_STEPS)
+    static const uint32_t digits_entries[] = {0x81e808u, 0x81e80eu, 0x81e81fu, 0x81e82fu};
+    for (unsigned i = 0u; i < sizeof digits_entries / sizeof digits_entries[0]; ++i)
+        if (Lufia2DecompFrameRangeAllows(digits_entries[i], digits_entries[i] + 1u,
+                DecimalDigitsHookOwned))
+            interp_bridge_set_pre_opcode_hook(digits_entries[i], ActorBridgeDecimalDigitsStep);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_MULTIPLY_WINDOW)
     if (Lufia2DecompFrameRangeAllows(0x80834cu, 0x80834du, BattleMultiplyHookOwned))
         interp_bridge_set_pre_opcode_hook(0x80834cu, ActorBridgeBattleMultiplyWindow);
