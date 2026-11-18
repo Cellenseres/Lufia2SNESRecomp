@@ -6,6 +6,10 @@ static void ActorBridgeBattleFrameCells(CpuState *cpu, uint32_t entry);
 
 static bool BattleFrameRowHookOwned(uint32_t pc,
     void (*hook)(CpuState *, uint32_t)) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_WINDOW_STEPS)
+    if (BattleWindowStepHookOwned(pc, hook))
+        return true;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_ROW_SPANS)
     return pc == 0x81e553u && hook == ActorBridgeBattleFrameCells;
 #else
@@ -392,4 +396,8 @@ static void ActorBridgeBattleFrameCells(CpuState *cpu, uint32_t entry) {
     Lufia2DecompFrameReturnComplete(clock.opcodes, clock.progress_mask);
     interp_bridge_pre_opcode_redirect(result.pc);
 }
+#endif
+
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_WINDOW_STEPS)
+#include "window_row_step_clock.inc"
 #endif
