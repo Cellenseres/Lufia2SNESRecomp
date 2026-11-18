@@ -372,8 +372,16 @@ static unsigned BattleRowSpanSize(const CpuState *cpu, uint32_t entry) {
     return 0u;
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_ROW_WINDOWS)
+#include "frame_row_window.inc"
+#endif
+
 static void ActorBridgeBattleFrameCells(CpuState *cpu, uint32_t entry) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_ROW_WINDOWS)
+    const unsigned cells = BattleRowWindowSpanSize(cpu, entry);
+#else
     const unsigned cells = BattleRowSpanSize(cpu, entry);
+#endif
     if (!cells)
         return;
     const unsigned bank = cpu->DB == 0x7fu ? 0x10000u : 0u;

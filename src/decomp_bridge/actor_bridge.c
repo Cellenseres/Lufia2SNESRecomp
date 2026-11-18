@@ -98,6 +98,7 @@ static RecompReturn ActorBridgeTimedFilledWindow(CpuState *cpu, unsigned kind);
 static RecompReturn ActorBridgeTimedBattleWindow(CpuState *cpu, unsigned kind);
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_ROW_SPANS)
 static void ActorBridgeBattleFrameCells(CpuState *cpu, uint32_t entry);
+static bool BattleFrameRowHookOwned(uint32_t pc, void (*hook)(CpuState *, uint32_t));
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_WINDOW_STEPS)
 static void ActorBridgeBattleWindowStep(CpuState *cpu, uint32_t entry);
@@ -4770,7 +4771,8 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     interp_bridge_set_pre_opcode_hook(0x008000u, ActorBridgeResetEntry);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_ROW_SPANS)
-    interp_bridge_set_pre_opcode_hook(0x81e553u, ActorBridgeBattleFrameCells);
+    if (Lufia2DecompFrameRangeAllows(0x81e553u, 0x81e554u, BattleFrameRowHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x81e553u, ActorBridgeBattleFrameCells);
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_MARKER_SPANS)
     if (Lufia2DecompFrameRangeAllows(0x81d60eu, 0x81d60fu, Lufia2DecompTargetMarkerHookOwned))
