@@ -117,6 +117,10 @@ static bool BattleWindowStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
 #endif
 static RecompReturn ActorBridgeTimedBattleDigits(CpuState *cpu);
 static RecompReturn ActorBridgeTimedBattleMultiply(CpuState *cpu);
+static bool BattleMultiplyHookOwned(uint32_t pc, void (*hook)(CpuState *, uint32_t));
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_MULTIPLY_WINDOW)
+static void ActorBridgeBattleMultiplyWindow(CpuState *cpu, uint32_t entry);
+#endif
 static RecompReturn ActorBridgeTimedBattleDivide(CpuState *cpu);
 #if defined(LUFIA2_HAVE_NATIVE_DIVIDE_BIT_SPANS)
 static void ActorBridgeDivideBitSpan(CpuState *cpu, uint32_t entry);
@@ -4520,6 +4524,10 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_MULTIPLY_WINDOW)
+    if (Lufia2DecompFrameRangeAllows(0x80834cu, 0x80834du, BattleMultiplyHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x80834cu, ActorBridgeBattleMultiplyWindow);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_PARTY_INPUT_STEPS)
     if (Lufia2DecompFrameRangeAllows(0x81ccecu, 0x81ccedu, PartyInputHookOwned))
         interp_bridge_set_pre_opcode_hook(0x81ccecu, ActorBridgePartyInputStep);

@@ -158,7 +158,7 @@ static RecompReturn ActorBridgeTimedStagedCommand(CpuState *cpu) {
                            !Lufia2DecompFrameRangeQuiet(0x81e2afu, 0x81e38fu) ||
                            !Lufia2DecompFrameRangeQuiet(0x81e503u, 0x81e593u) ||
                            !Lufia2DecompFrameRangeQuiet(0x81e808u, 0x81e835u) ||
-                           !Lufia2DecompFrameRangeQuiet(0x80834cu, 0x808378u) ||
+                           !Lufia2DecompFrameRangeAllows(0x80834cu, 0x808378u, BattleMultiplyHookOwned) ||
                            !Lufia2DecompFrameRangeQuiet(0x808378u, 0x808450u))))
         return ActorBridgeFallback(cpu, &frame, cpu->PB == 1u ? 0x01d081u : entry);
     if (frame.hrv)

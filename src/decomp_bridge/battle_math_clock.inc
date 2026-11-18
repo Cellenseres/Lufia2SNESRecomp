@@ -10,6 +10,16 @@ static const FixedSpanOpcode battle_multiply_steps[] = {
     {0x836fu, 3u, 5u, 2u}, {0x8372u, 2u, 4u, 2u}, {0x8374u, 1u, 4u, 1u},
     {0x8375u, 1u, 5u, 2u}, {0x8376u, 1u, 4u, 1u}, {0x8377u, 1u, 6u, 3u}};
 
+static bool BattleMultiplyHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_MULTIPLY_WINDOW)
+    return pc == 0x80834cu && hook == ActorBridgeBattleMultiplyWindow;
+#else
+    (void)pc;
+    (void)hook;
+    return false;
+#endif
+}
+
 static void BeginBattleMultiply(FixedSpanClock *clock, CpuState *cpu,
                                 bool inline_return) {
     *clock = (FixedSpanClock){0};
@@ -20,13 +30,17 @@ static void BeginBattleMultiply(FixedSpanClock *clock, CpuState *cpu,
         sizeof battle_multiply_steps / sizeof(FixedSpanOpcode) - !inline_return;
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_MULTIPLY_WINDOW)
+#include "battle_multiply_window.inc"
+#endif
+
 static RecompReturn ActorBridgeTimedBattleMultiply(CpuState *cpu) {
     const uint32_t entry = 0x80834cu;
     ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
     const unsigned master = BATTLE_MULTIPLY_CYCLE_LIMIT * 8u;
     const unsigned room = master + 40u * (master / 1324u + 2u);
     if (cpu->D || cpu->_flag_D || cpu->m_flag != 1u || (cpu->DB & 0x7fu) >= 0x40u ||
-        !BattleQuietClockSupported(cpu, entry, 0x808378u, 3u, false, room))
+        !BattleQuietClockAllows(cpu, entry, 0x808378u, 3u, false, room, BattleMultiplyHookOwned))
         return ActorBridgeFallback(cpu, &frame, cpu->PB == 0u ? 0x00834cu : entry);
     if (frame.hrv)
         frame.host_return_pc24 = Lufia2DecompFramePairedReturnPc(cpu, entry);
