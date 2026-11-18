@@ -3124,6 +3124,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 }
 #include "fixed_span_clock.inc"
 #include "native_opcode_window.inc"
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_SCENE_OBJECT_STEPS)
+#include "scene_object_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_SCENE_SLOT_RESET_STEPS)
 #include "scene_slot_reset_clock.inc"
 #endif
@@ -4477,6 +4480,12 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_FIELD_SCENE_OBJECT_STEPS)
+    if (Lufia2DecompFrameRangeAllows(0x83a7cau, 0x83a7cbu, SceneObjectHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x83a7cau, ActorBridgeSceneObjectStep);
+    if (Lufia2DecompFrameRangeAllows(0x83a804u, 0x83a805u, SceneObjectHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x83a804u, ActorBridgeSceneObjectStep);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_SCENE_SLOT_RESET_STEPS)
     if (Lufia2DecompFrameRangeAllows(0x83a692u, 0x83a693u, SceneSlotResetHookOwned))
         interp_bridge_set_pre_opcode_hook(0x83a692u, ActorBridgeSceneSlotReset);
