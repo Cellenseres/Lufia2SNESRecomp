@@ -46,10 +46,38 @@ static bool CommandTileClockContextSupported(
     return phase < 1364u && (!charged || charged == cpu->master_cycles);
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_COMMAND_TILE_WINDOWS)
+static bool CommandTileWindowSupported(const CpuState *cpu, uint32_t entry) {
+    if (cpu != &g_cpu || cpu->m_flag != 1u || cpu->x_flag || cpu->DB != 0x97u ||
+        cpu->D || cpu->_flag_D || cpu->S < 0x1f02u ||
+        (cpu->host_return_valid && cpu->host_return_valid != 2u &&
+         cpu->host_return_valid != 3u) ||
+        !Lufia2DecompFrameReturnCpuReady() ||
+        cpu->coprocessor_master_cycles != cpu->master_cycles ||
+        cpu->master_cycles > UINT64_MAX - 352u ||
+        !NativeOpcodeWindowSupported(cpu, entry, 352u, 0x1ffcu, false))
+        return false;
+    uint64_t phase, charged;
+    snes_refresh_state_get(&phase, &charged);
+    return phase < 1364u && (!charged || charged == cpu->master_cycles);
+}
+#endif
+
 static bool CommandTileClockSupported(const CpuState *cpu, uint32_t entry) {
+#if defined(LUFIA2_HAVE_NATIVE_COMMAND_TILE_WINDOWS)
+    if (entry != 0x81cb99u || cpu->X > 6u || cpu->X % 3u)
+        return false;
+    if (!Lufia2DecompOpcodeWindowReady() ||
+        Lufia2DecompFrameSpanBudget(entry, 0x81cbafu, ActorBridgeCommandTile) < 10u)
+        return false;
+    if (CommandTileClockContextSupported(cpu, entry, 34u * 8u + 80u))
+        return true;
+    return CommandTileWindowSupported(cpu, entry);
+#else
     return entry == 0x81cb99u && cpu->X <= 6u && !(cpu->X % 3u) &&
         CommandTileClockContextSupported(cpu, entry, 34u * 8u + 80u) &&
         Lufia2DecompFrameRangeAllows(entry, 0x81cbafu, CommandTileHookOwned);
+#endif
 }
 
 static void RunCommandTilePhase(CpuState *cpu, const FixedSpanOpcode *timing,

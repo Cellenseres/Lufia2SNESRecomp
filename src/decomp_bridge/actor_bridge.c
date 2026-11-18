@@ -4726,7 +4726,8 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 #endif
 
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_TILES)
-    interp_bridge_set_pre_opcode_hook(0x81cb99u, ActorBridgeCommandTile);
+    if (Lufia2DecompFrameRangeAllows(0x81cb99u, 0x81cb9au, CommandTileHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x81cb99u, ActorBridgeCommandTile);
 #if defined(LUFIA2_HAVE_NATIVE_PARTY_COMMAND_TILES)
     if (Lufia2DecompFrameRangeAllows(0x81cc93u, 0x81cc94u, CommandTileHookOwned))
         interp_bridge_set_pre_opcode_hook(0x81cc93u, ActorBridgePartyCommandTile);
