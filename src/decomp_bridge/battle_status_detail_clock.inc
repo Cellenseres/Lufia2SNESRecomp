@@ -97,6 +97,21 @@ static const FixedSpanOpcode status_detail_end[] = {
     {0xe2adu, 1u, 4u, 1u},
 };
 
+static bool BattleStatusStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS_STEPS)
+    return (pc == 0x81e1dau || pc == 0x81e1eau || pc == 0x81e2acu) &&
+        hook == ActorBridgeBattleStatusStep;
+#else
+    (void)pc;
+    (void)hook;
+    return false;
+#endif
+}
+
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS_STEPS)
+#include "battle_status_steps_clock.inc"
+#endif
+
 typedef struct StatusDetailClock {
     FixedSpanClock span;
     unsigned symbols_left;
@@ -267,7 +282,7 @@ static RecompReturn ActorBridgeTimedStatusDetail(CpuState *cpu) {
     const unsigned room = master + 40u * (master / 1324u + 2u);
     if (!cpu->ram || cpu->DB != 0x7eu || cpu->D || cpu->_flag_D || cpu->m_flag != 1u ||
         cpu->X > 6u || (cpu->X & 1u) ||
-        !BattleQuietClockSupported(cpu, entry, 0x81e2afu, 2u, false, room) ||
+        !BattleQuietClockAllows(cpu, entry, 0x81e2afu, 2u, false, room, BattleStatusStepHookOwned) ||
         !Lufia2DecompFrameRangeQuiet(0x81e2afu, 0x81e38fu) ||
         !Lufia2DecompFrameRangeAllows(0x81e808u, 0x81e835u, DecimalDigitsHookOwned) ||
         !Lufia2DecompFrameRangeAllows(0x80834cu, 0x808378u, BattleMultiplyHookOwned) ||

@@ -154,7 +154,7 @@ static RecompReturn ActorBridgeTimedStagedCommand(CpuState *cpu) {
     const unsigned room = master + 40u * (master / 1324u + 2u);
     if (!BattleQuietClockSupported(cpu, entry, 0x81d0c6u, 2u, false, room) ||
         !Lufia2DecompFrameRangeQuiet(0x81d12eu, 0x81d12fu) ||
-        (!cpu->_flag_C && (!Lufia2DecompFrameRangeQuiet(0x81e1b5u, 0x81e2afu) ||
+        (!cpu->_flag_C && (!Lufia2DecompFrameRangeAllows(0x81e1b5u, 0x81e2afu, BattleStatusStepHookOwned) ||
                            !Lufia2DecompFrameRangeQuiet(0x81e2afu, 0x81e38fu) ||
                            !Lufia2DecompFrameRangeQuiet(0x81e503u, 0x81e593u) ||
                            !Lufia2DecompFrameRangeAllows(0x81e808u, 0x81e835u, DecimalDigitsHookOwned) ||
