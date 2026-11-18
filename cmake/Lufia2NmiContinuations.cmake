@@ -1360,6 +1360,20 @@ function(lufia2_add_nmi_continuations target core_root)
                     message(FATAL_ERROR "Native NMI calls require reviewed opcode execution")
                 endif()
                 set(_native_opcode "        int _cyc = Lufia2DecompNmiRunCallBoundary(\n            &in, pc_before, op, stop_on_rti, auto_quiescent,\n            trace || dtrace || wlog_state_sync || s_interp_pctrace);\n")
+                if(_nmi_child_boundaries OR _battle_effect_frame_steps)
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunDirectCall(Interp816 *, uint32_t, uint8_t, uint32_t, bool);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/direct_call_opcode.inc\"\n")
+                endif()
+                if(_nmi_child_boundaries)
+                    string(APPEND _native_opcode
+                        "        if (!_cyc && pc_before == 0x8087d7u && stop_on_rti &&\n"
+                        "            !auto_quiescent && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
+                        "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
+                        "            g_snes && g_snes->inNmi && !g_snes->inIrq)\n"
+                        "            _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x80884fu, false);\n")
+                endif()
                 if(_battle_target_name_setup)
                     string(PREPEND _text "#define LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_SETUP 1\n")
                 endif()
