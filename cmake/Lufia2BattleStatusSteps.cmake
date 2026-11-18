@@ -10,8 +10,8 @@ function(lufia2_battle_status_steps_available output)
     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_header}" "${_source}")
     file(READ "${_header}" _api)
     file(READ "${_source}" _body)
-    if(NOT _api MATCHES "#define[ \t]+LUFIA2_BATTLE_STATUS_STEPS_API[ \t]+1([ \t\r\n]|$)" OR
-       NOT _api MATCHES "#define[ \t]+LUFIA2_BATTLE_STATUS_MAX_OPCODES[ \t]+27u([ \t\r\n]|$)" OR
+    if(NOT _api MATCHES "#define[ \t]+LUFIA2_BATTLE_STATUS_STEPS_API[ \t]+2([ \t\r\n]|$)" OR
+       NOT _api MATCHES "#define[ \t]+LUFIA2_BATTLE_STATUS_MAX_OPCODES[ \t]+30u([ \t\r\n]|$)" OR
        NOT _api MATCHES "#define[ \t]+LUFIA2_BATTLE_STATUS_MAX_SYMBOLS[ \t]+3u([ \t\r\n]|$)" OR
        NOT _api MATCHES "Lufia2BattleStatusStep[(]" OR
        NOT _body MATCHES "Lufia2ExecutionResult[ \r\n]+Lufia2BattleStatusStep[(][^;{]*[{]")

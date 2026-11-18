@@ -4533,7 +4533,8 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS_STEPS)
-    static const uint32_t status_entries[] = {0x81e1dau, 0x81e1eau, 0x81e2acu};
+    static const uint32_t status_entries[] = {0x81e1b5u, 0x81e1dau, 0x81e1eau, 0x81e1fbu,
+        0x81e23bu, 0x81e261u, 0x81e290u, 0x81e2acu};
     for (unsigned i = 0u; i < sizeof status_entries / sizeof status_entries[0]; ++i)
         if (Lufia2DecompFrameRangeAllows(status_entries[i], status_entries[i] + 1u,
                 BattleStatusStepHookOwned))

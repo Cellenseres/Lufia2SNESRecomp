@@ -99,7 +99,8 @@ static const FixedSpanOpcode status_detail_end[] = {
 
 static bool BattleStatusStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_STATUS_STEPS)
-    return (pc == 0x81e1dau || pc == 0x81e1eau || pc == 0x81e2acu) &&
+    return (pc == 0x81e1b5u || pc == 0x81e1dau || pc == 0x81e1eau || pc == 0x81e1fbu ||
+        pc == 0x81e23bu || pc == 0x81e261u || pc == 0x81e290u || pc == 0x81e2acu) &&
         hook == ActorBridgeBattleStatusStep;
 #else
     (void)pc;
