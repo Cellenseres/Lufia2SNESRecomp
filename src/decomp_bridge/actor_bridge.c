@@ -116,6 +116,14 @@ static bool BattleWindowStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
 }
 #endif
 static RecompReturn ActorBridgeTimedBattleDigits(CpuState *cpu);
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_RECORD_STEPS)
+static void ActorBridgeTargetRecordStep(CpuState *cpu, uint32_t entry);
+static bool TargetRecordStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
+    return hook == ActorBridgeTargetRecordStep &&
+        (pc == 0x81d4e5u || pc == 0x81d4f2u || pc == 0x81d4fcu ||
+         pc == 0x81d500u || pc == 0x81d521u || pc == 0x81d52bu || pc == 0x81d531u);
+}
+#endif
 static bool EventTimerStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook);
 #if defined(LUFIA2_HAVE_NATIVE_EVENT_TIMER_STEPS)
 static void ActorBridgeEventTimerStep(CpuState *cpu, uint32_t entry);
@@ -3175,6 +3183,10 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 }
 #include "fixed_span_clock.inc"
 #include "native_opcode_window.inc"
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_RECORD_STEPS)
+#include "target_record_steps_clock.inc"
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_EVENT_TIMER_STEPS)
 #include "event_timer_steps_clock.inc"
 #endif
@@ -4553,6 +4565,15 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_RECORD_STEPS)
+    static const uint32_t target_record_entries[] = {
+        0x81d4e5u, 0x81d4f2u, 0x81d4fcu, 0x81d500u, 0x81d521u, 0x81d52bu, 0x81d531u};
+    for (unsigned i = 0u; i < sizeof target_record_entries / sizeof target_record_entries[0]; ++i)
+        if (Lufia2DecompFrameRangeAllows(target_record_entries[i], target_record_entries[i] + 1u,
+                TargetRecordStepHookOwned))
+            interp_bridge_set_pre_opcode_hook(target_record_entries[i], ActorBridgeTargetRecordStep);
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_EVENT_TIMER_STEPS)
     static const uint32_t timer_entries[] = {
         0x80cbaeu, 0x80cbbdu, 0x80cbf6u, 0x80cbf9u, 0x80cc09u};
