@@ -1,14 +1,15 @@
 extern uint32_t g_interp816_cur_pc;
 
-static int Lufia2DecompRunDirectCall(
-    Interp816 *registers, uint32_t pc, uint8_t opcode, uint32_t target, bool long_call) {
+static int Lufia2DecompRunDirectCallWithWidth(
+    Interp816 *registers, uint32_t pc, uint8_t opcode, uint32_t target,
+    bool long_call, bool accumulator_8_bit) {
 #if defined(SNES_COSIM) || defined(SNESRECOMP_INTERP_PROFILE) || \
     (defined(SNESRECOMP_REVERSE_DEBUG) && SNESRECOMP_REVERSE_DEBUG)
     return 0;
 #endif
     if (opcode != (long_call ? 0x22u : 0x20u) ||
         registers->k != (pc >> 16) || registers->pc != (uint16_t)pc ||
-        registers->e || !registers->mf || registers->xf ||
+        registers->e || registers->mf != accumulator_8_bit || registers->xf ||
         registers->waiting || registers->stopped ||
         registers->nmiWanted || registers->irqWanted ||
         registers->sp < 0x1f00u || registers->sp > 0x1fffu ||
@@ -45,4 +46,9 @@ static int Lufia2DecompRunDirectCall(
     registers->k = (uint8_t)(target >> 16);
     registers->cyclesUsed = long_call ? 8 : 6;
     return registers->cyclesUsed;
+}
+
+static int Lufia2DecompRunDirectCall(
+    Interp816 *registers, uint32_t pc, uint8_t opcode, uint32_t target, bool long_call) {
+    return Lufia2DecompRunDirectCallWithWidth(registers, pc, opcode, target, long_call, true);
 }
