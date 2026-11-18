@@ -1457,12 +1457,33 @@ function(lufia2_add_nmi_continuations target core_root)
                     string(APPEND _timing_suffix
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/session_actor_spans.inc\"\n")
                 endif()
+                if(_battle_effect_command_steps OR _battle_effect_frame_steps)
+                    string(APPEND _native_opcode
+                        "        if (!_cyc && (pc_before & 0xfffe00u) == 0x818a00u) {\n")
+                endif()
                 if(_battle_effect_command_steps)
-                    string(APPEND _native_opcode "        if (!_cyc && (op == 0xfcu || op == 0x80u || op == 0xabu) &&\n            (pc_before & 0xfffe00u) == 0x818a00u)\n            _cyc = Lufia2DecompRunEffectCommandStep(&in, pc_before, op);\n")
+                    string(APPEND _native_opcode
+                        "            if (op == 0xfcu || op == 0x80u || op == 0xabu)\n"
+                        "                _cyc = Lufia2DecompRunEffectCommandStep(&in, pc_before, op);\n")
                     string(PREPEND _text
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunEffectCommandStep(Interp816 *, uint32_t, uint8_t);\n")
                     string(APPEND _timing_suffix
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/effect_command_calls.inc\"\n")
+                endif()
+                if(_battle_effect_frame_steps)
+                    string(APPEND _native_opcode
+                        "            if ((op == 0x20u || op == 0x22u) &&\n"
+                        "                (pc_before & 0xffff00u) == 0x818b00u &&\n"
+                        "                !n_stop && !stop_on_rti && !trace && !dtrace && !wlog_state_sync &&\n"
+                        "                !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive())\n"
+                        "                _cyc = Lufia2DecompRunEffectDirectCall(&in, pc_before, op);\n")
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunEffectDirectCall(Interp816 *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/effect_direct_calls.inc\"\n")
+                endif()
+                if(_battle_effect_command_steps OR _battle_effect_frame_steps)
+                    string(APPEND _native_opcode "        }\n")
                 endif()
                 if(_actor_slot_calls)
                     string(APPEND _native_opcode "        if (!_cyc && (pc_before & 0xffff00u) == 0x83bb00u && (op == 0x20u || op == 0x80u || op == 0x6bu))\n            _cyc = Lufia2DecompRunActorSlotCall(&in, pc_before, op);\n")
