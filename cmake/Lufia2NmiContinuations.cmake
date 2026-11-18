@@ -1485,6 +1485,17 @@ function(lufia2_add_nmi_continuations target core_root)
                 if(_battle_effect_command_steps OR _battle_effect_frame_steps)
                     string(APPEND _native_opcode "        }\n")
                 endif()
+                if(_battle_command_steps)
+                    string(APPEND _native_opcode
+                        "        if (!_cyc && pc_before == 0x81cbafu &&\n"
+                        "            !n_stop && !stop_on_rti && !trace && !dtrace && !wlog_state_sync &&\n"
+                        "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive())\n"
+                        "            _cyc = Lufia2DecompRunCommandTileCall(&in, op);\n")
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunCommandTileCall(Interp816 *, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/command_tile_call.inc\"\n")
+                endif()
                 if(_actor_slot_calls)
                     string(APPEND _native_opcode "        if (!_cyc && (pc_before & 0xffff00u) == 0x83bb00u && (op == 0x20u || op == 0x80u || op == 0x6bu))\n            _cyc = Lufia2DecompRunActorSlotCall(&in, pc_before, op);\n")
                     string(PREPEND _text
