@@ -12,8 +12,8 @@ static bool ScreenFadeRequestHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
 static void ActorBridgeScreenFadeRequest(CpuState *cpu, uint32_t entry) {
     const uint32_t end = ScreenFadeRequestHookEnd(entry, ActorBridgeScreenFadeRequest);
     if (!end || entry < 0x800000u || cpu != &g_cpu || cpu->m_flag != 1u ||
-        !NmiClockWindow(cpu, cpu->x_flag != 0u, entry, end, 192u, 192u,
-            true, ScreenFadeRequestHookOwned))
+        !NmiClockWindowWithDeferredHdma(cpu, cpu->x_flag != 0u, entry, end, 192u, 192u,
+            true, ScreenFadeRequestHookOwned, true))
         return;
     const FixedSpanOpcode timing[] = {
         {0x86c1u, 3u, 4u, 1u},

@@ -55,8 +55,8 @@ static bool NmiCallbacksSupported(const CpuState *cpu, uint32_t entry,
         return false;
     *plan = NmiCallbacksPlan(cpu, entry);
     const unsigned reserve = entry == 0x80864cu ? 218u : 172u;
-    return NmiClockWindow(cpu, cpu->x_flag != 0u, entry, plan->next,
-        plan->budget, reserve, true, NmiCallbackHookOwned);
+    return NmiClockWindowWithDeferredHdma(cpu, cpu->x_flag != 0u, entry, plan->next,
+        plan->budget, reserve, true, NmiCallbackHookOwned, true);
 }
 
 static bool RunNativeNmiCallbacks(CpuState *cpu, uint32_t entry) {

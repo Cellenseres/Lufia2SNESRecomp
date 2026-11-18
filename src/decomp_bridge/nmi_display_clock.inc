@@ -55,8 +55,8 @@ static bool NmiDisplaySupported(const CpuState *cpu, NmiDisplayPlan *plan) {
     if (!g_snes || !cpu->ram || cpu->ram != g_snes->ram || cpu->m_flag != 1u)
         return false;
     NmiDisplaySchedule(cpu, plan);
-    return NmiClockWindow(cpu, cpu->x_flag != 0u, 0x808664u, 0x808699u, plan->budget,
-        NMI_DISPLAY_MAX_CLOCKS, true, NmiDisplayHookOwned);
+    return NmiClockWindowWithDeferredHdma(cpu, cpu->x_flag != 0u, 0x808664u, 0x808699u, plan->budget,
+        NMI_DISPLAY_MAX_CLOCKS, true, NmiDisplayHookOwned, true);
 }
 
 static bool RunNativeNmiDisplay(CpuState *cpu) {

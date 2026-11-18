@@ -1,3 +1,5 @@
+#include "screen_fade_timing.inc"
+
 enum { SCREEN_FADE_MAX_OPCODES = 26u, SCREEN_FADE_CLOCK_RESERVE = 640u };
 
 typedef struct ScreenFadeClock {
@@ -6,31 +8,8 @@ typedef struct ScreenFadeClock {
 } ScreenFadeClock;
 
 static void PrepareScreenFadeClock(ScreenFadeClock *clock, CpuState *cpu) {
-    static const FixedSpanOpcode common[] = {
-        {0x86c1u, 3u, 4u, 1u}, {0x86c4u, 2u, 2u, 0u},
-        {0x86c6u, 1u, 3u, 0u}, {0x86c7u, 3u, 4u, 1u},
-        {0x86cau, 2u, 2u, 0u}, {0x86ccu, 1u, 2u, 0u},
-        {0x86cdu, 3u, 4u, 1u}, {0x86d0u, 3u, 4u, 1u},
-        {0x86d3u, 1u, 2u, 0u}, {0x86d4u, 1u, 2u, 0u},
-        {0x86d5u, 1u, 2u, 0u}, {0x86d6u, 1u, 3u, 0u},
-        {0x86d7u, 2u, 2u, 0u}, {0x86d9u, 2u, 2u, 0u}
-    };
-    static const FixedSpanOpcode fade_in[] = {
-        {0x86f2u, 1u, 3u, 0u}, {0x86f3u, 3u, 4u, 1u},
-        {0x86f6u, 2u, 2u, 0u}, {0x86f8u, 2u, 2u, 0u},
-        {0x86fau, 3u, 4u, 1u}, {0x86fdu, 2u, 2u, 0u},
-        {0x86ffu, 3u, 4u, 1u}
-    };
-    static const FixedSpanOpcode fade_out[] = {
-        {0x86dbu, 1u, 3u, 0u}, {0x86dcu, 1u, 2u, 0u},
-        {0x86ddu, 2u, 2u, 0u}, {0x86dfu, 2u, 2u, 0u},
-        {0x86e1u, 1u, 2u, 0u}, {0x86e2u, 3u, 4u, 1u},
-        {0x86e5u, 1u, 2u, 0u}, {0x86e6u, 2u, 2u, 0u},
-        {0x86e8u, 3u, 4u, 1u}, {0x86ebu, 2u, 2u, 0u},
-        {0x86edu, 3u, 4u, 1u}, {0x86f0u, 2u, 3u, 0u}
-    };
     for (unsigned i = 0u; i < 14u; ++i)
-        clock->timing[i] = common[i];
+        clock->timing[i] = screen_fade_common_timing[i];
     unsigned count = 2u;
     const uint8_t control = cpu->ram[0x0581u];
     if (!(control & 0x80u)) {
@@ -39,7 +18,7 @@ static void PrepareScreenFadeClock(ScreenFadeClock *clock, CpuState *cpu) {
         const bool fading_out = (control & 0x40u) != 0u;
         const uint8_t next_level = cpu->ram[0x0582u] + (control & 0x3fu);
         const bool finished = (next_level >> 3u) >= 15u;
-        const FixedSpanOpcode *tail = fading_out ? fade_out : fade_in;
+        const FixedSpanOpcode *tail = fading_out ? screen_fade_out_timing : screen_fade_in_timing;
         const unsigned tail_count = fading_out ? (finished ? 12u : 8u)
                                                : (finished ? 7u : 4u);
         clock->timing[13].cycles += !fading_out;
@@ -93,7 +72,9 @@ static bool ScreenFadeClockSupported(CpuState *cpu, ScreenFadeClock *clock) {
     uint64_t phase, current;
     snes_refresh_state_get(&phase, &current);
     return phase < 1364u && (!current || current == cpu->master_cycles) &&
-#if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_REQUEST)
+#if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_STEPS)
+        Lufia2DecompFrameRangeAllows(0x8086c1u, 0x808703u, ScreenFadeClockHookOwned);
+#elif defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_REQUEST)
         Lufia2DecompFrameRangeAllows(0x8086c1u, 0x808703u, ScreenFadeRequestHookOwned);
 #else
         Lufia2DecompFrameRangeQuiet(0x8086c1u, 0x808703u);

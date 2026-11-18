@@ -2970,6 +2970,10 @@ static uint32_t NmiScrollFrontHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
 static uint32_t NmiTilemapStepHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_STEPS)
+static uint32_t ScreenFadeStepHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_REQUEST)
 static uint32_t ScreenFadeRequestHookEnd(uint32_t pc, InterpPreOpcodeHook hook);
 #endif
@@ -3019,6 +3023,11 @@ uint32_t Lufia2DecompNmiTimedHookEnd(uint32_t pc, InterpPreOpcodeHook hook) {
     const uint32_t battle_end = BattleNmiCallbackHookEnd(pc, hook);
     if (battle_end)
         return battle_end;
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_STEPS)
+    const uint32_t fade_step_end = ScreenFadeStepHookEnd(pc, hook);
+    if (fade_step_end)
+        return fade_step_end;
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_REQUEST)
     const uint32_t fade_end = ScreenFadeRequestHookEnd(pc, hook);
@@ -3195,6 +3204,9 @@ static const FixedSpanOpcode actor_record_offset_timing[] = {
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_REQUEST)
 #include "screen_fade_request_clock.inc"
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_STEPS)
+#include "screen_fade_steps_clock.inc"
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_TILEMAP_STEPS)
 #include "nmi_tilemap_steps_clock.inc"
@@ -4617,6 +4629,13 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     }
 #endif
 
+#if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_STEPS)
+    static const uint32_t fade_steps[] = {0x8086c6u, 0x8086dbu, 0x8086f2u};
+    for (unsigned i = 0u; i < sizeof fade_steps / sizeof fade_steps[0]; ++i)
+        if (Lufia2DecompFrameRangeAllows(fade_steps[i], fade_steps[i] + 1u,
+                ScreenFadeStepHookOwned))
+            interp_bridge_set_pre_opcode_hook(fade_steps[i], ActorBridgeScreenFadeStep);
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_SCREEN_FADE_REQUEST)
     if (Lufia2DecompFrameRangeAllows(0x8086c1u, 0x8086c2u, ScreenFadeRequestHookOwned))
         interp_bridge_set_pre_opcode_hook(0x8086c1u, ActorBridgeScreenFadeRequest);
