@@ -1,3 +1,7 @@
+#if defined(LUFIA2_HAVE_NATIVE_NMI_LISTED_DMA_PREPARE)
+#include "lufia2/nmi_listed_dma_steps.h"
+#endif
+
 static void ActorBridgeNmiScrollFront(CpuState *cpu, uint32_t entry);
 
 static uint32_t NmiScrollFrontHookEnd(uint32_t pc, InterpPreOpcodeHook hook) {
@@ -6,6 +10,10 @@ static uint32_t NmiScrollFrontHookEnd(uint32_t pc, InterpPreOpcodeHook hook) {
     switch (pc & 0x7fffffu) {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_FINISH)
     case 0x0087f3u: return (pc & 0xff0000u) | 0x87fcu;
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_NMI_LISTED_DMA_PREPARE)
+    case 0x0087c8u: case 0x0087d3u: case 0x0087deu: case 0x0087e9u:
+        return pc + 4u;
 #endif
     case 0x0087a7u: return (pc & 0xff0000u) | 0x87b2u;
     case 0x0087c4u: case 0x0087cfu: case 0x0087dau: case 0x0087e5u:
@@ -26,16 +34,27 @@ static void ActorBridgeNmiScrollFront(CpuState *cpu, uint32_t entry) {
 #else
     const bool finish = false;
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_NMI_LISTED_DMA_PREPARE)
+    const bool prepare_dma = entry == 0x8087c8u || entry == 0x8087d3u ||
+        entry == 0x8087deu || entry == 0x8087e9u;
+#endif
     if (!end || entry < 0x800000u || cpu != &g_cpu ||
         (!setup && (cpu->m_flag != 1u || cpu->x_flag)) ||
-        !NmiClockWindow(cpu, cpu->x_flag != 0u, entry, end, 256u, 256u, true,
-            NmiScrollFrontHookOwned))
+        !NmiClockWindowWithDeferredHdma(cpu, cpu->x_flag != 0u, entry, end, 256u, 256u, true,
+            NmiScrollFrontHookOwned, true))
         return;
     if (finish && (cpu->ram[0x81u] || cpu->ram[cpu->S + 2u] != 0x60u ||
         cpu->ram[cpu->S + 3u] != 0x86u))
         return;
     FixedSpanOpcode timing[LUFIA2_NMI_SCROLL_SETUP_OPCODES];
     unsigned count;
+#if defined(LUFIA2_HAVE_NATIVE_NMI_LISTED_DMA_PREPARE)
+    if (prepare_dma) {
+        timing[0] = (FixedSpanOpcode){(uint16_t)entry, 2u, 3u, 1u};
+        timing[1] = (FixedSpanOpcode){(uint16_t)(entry + 2u), 2u, 4u, 2u};
+        count = LUFIA2_NMI_DMA_PREPARE_OPCODES;
+    } else
+#endif
     if (finish) {
         static const FixedSpanOpcode completion[] = {
             {0x87f3u, 2u, 3u, 1u}, {0x87f5u, 2u, 3u, 0u},
@@ -67,6 +86,11 @@ static void ActorBridgeNmiScrollFront(CpuState *cpu, uint32_t entry) {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_FINISH)
     if (finish)
         result = Lufia2NmiFinishScrollAndReturn(&memory, &state);
+    else
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_NMI_LISTED_DMA_PREPARE)
+    if (prepare_dma)
+        result = Lufia2NmiPrepareListedDma(&memory, &state, entry);
     else
 #endif
         result = setup ? Lufia2NmiPrepareScrollWrites(&memory, &state)

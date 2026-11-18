@@ -24,8 +24,8 @@ static bool NmiTilemapStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
 static void ActorBridgeNmiTilemapStep(CpuState *cpu, uint32_t entry) {
     const uint32_t end = NmiTilemapStepHookEnd(entry, ActorBridgeNmiTilemapStep);
     if (!end || entry < 0x800000u || cpu != &g_cpu || cpu->m_flag != 1u ||
-        cpu->x_flag || !NmiClockWindow(cpu, false, entry, end, 256u, 256u,
-            true, NmiTilemapStepHookOwned))
+        cpu->x_flag || !NmiClockWindowWithDeferredHdma(cpu, false, entry, end, 256u, 256u,
+            true, NmiTilemapStepHookOwned, true))
         return;
     FixedSpanOpcode timing[LUFIA2_NMI_TILEMAP_HEADER_OPCODES];
     unsigned count = 0u;

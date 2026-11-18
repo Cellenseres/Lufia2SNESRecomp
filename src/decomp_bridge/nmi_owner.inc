@@ -64,6 +64,13 @@ static bool Lufia2DecompNmiHookHasOwner(uint32_t pc, int stop_on_rti,
             !s_frame_return_interrupt_blocked && !s_interp_bus_timing_active &&
             !g_interp_bridge_pc_hook && !s_interp_pctrace;
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_NMI_LISTED_DMA_PREPARE)
+    case 0x0087c8u: case 0x0087d3u: case 0x0087deu: case 0x0087e9u:
+        return !(admission_flags & LUFIA2_NMI_OWNER_OBSERVED) &&
+            opcodes_left >= LUFIA2_NMI_DMA_PREPARE_OPCODES &&
+            !s_frame_return_interrupt_blocked && !s_interp_bus_timing_active &&
+            !g_interp_bridge_pc_hook && !s_interp_pctrace;
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_NMI_SCROLL_FRONTS)
     case 0x0087a7u: case 0x0087c4u: case 0x0087cfu:
     case 0x0087dau: case 0x0087e5u:

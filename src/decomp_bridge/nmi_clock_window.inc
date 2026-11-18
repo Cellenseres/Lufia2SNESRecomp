@@ -17,7 +17,7 @@ static bool NmiClockWindowWithDeferredHdma(const CpuState *cpu, bool byte_index,
         return false;
     if (g_snes->dma->hdmaPendingInit) {
 #if defined(LUFIA2_HAVE_BEAM_HOLD_QUERY) || defined(SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY)
-        // Scroll-register writes cannot start pending HDMA while beam HDMA is off.
+        // Only spans that cannot enable HDMA may defer pending descriptors.
         if (!defer_hdma_init || !g_snes->hdmaBeamOff || snesrecomp_beam_hold_active())
             return false;
 #else
