@@ -53,6 +53,12 @@ static unsigned EffectBeginSlotBudget(uint32_t entry, bool motion) {
 
 static bool EffectBeginSlotSupported(const CpuState *cpu, uint32_t entry,
                                     bool actor, bool motion) {
+#if defined(LUFIA2_HAVE_NATIVE_OPCODE_WINDOW_CONTEXT)
+    if (!Lufia2DecompOpcodeWindowReady())
+        return false;
+#else
+    return false;
+#endif
     if ((entry != 0x818a8cu && entry != 0x818acfu) ||
         cpu->PB != 0x81u || cpu->DB != 0x7eu || cpu->D || cpu->_flag_D ||
         cpu->m_flag != 1u || cpu->x_flag || !cpu->ram ||
@@ -73,7 +79,8 @@ static bool EffectBeginSlotSupported(const CpuState *cpu, uint32_t entry,
     const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
         ? 1024u : 1364u;
     if (!ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1fffu, false,
-            fence - budget - 1u, budget))
+            fence - budget - 1u, budget) &&
+        !NativeOpcodeWindowSupported(cpu, entry, budget, 0x1fffu, false))
         return false;
     uint64_t phase, clock;
     snes_refresh_state_get(&phase, &clock);
