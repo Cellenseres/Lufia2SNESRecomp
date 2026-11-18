@@ -52,11 +52,16 @@ static RecompReturn ActorBridgeTimedActionRecord(CpuState *cpu, unsigned kind) {
             !cpu->m_flag || !((cpu->DB & 0x7fu) < 0x40u || cpu->DB == 0x7eu)))
         return ActorBridgeFallback(cpu, &frame, entry);
     BattleLeafCost cost = BattleActionRecordCost((uint8_t)cpu->A, kind);
+    bool (*owned)(uint32_t, InterpPreOpcodeHook) = NULL;
+#if defined(LUFIA2_HAVE_NATIVE_ACTION_RECORD_COPY_SPANS)
+    if (kind)
+        owned = ActionRecordCopyHookOwned;
+#endif
     if (!interp_bridge_use_absolute_apu_timeline(rtl_apu_frame_timeline_active(),
             cart_has_sa1(g_snes->cart), rtl_apu_extended_frame_timing() &&
             g_snes->apu && g_snes->apu->portTimeValid) ||
-        !BattleQuietClockSupported(cpu, entry, 0x850000u | (returns[kind] + 1u),
-            frame_size, true, BattleLeafClockRoom(entry, cost)) ||
+        !BattleQuietClockAllows(cpu, entry, 0x850000u | (returns[kind] + 1u),
+            frame_size, true, BattleLeafClockRoom(entry, cost), owned) ||
         (kind && !Lufia2DecompFrameRangeQuiet(0x85cdfau, 0x85ce21u)) ||
         (kind == 2u && !Lufia2DecompFrameRangeAllows(0x85ccceu, 0x85cce3u, ActionWorkHookOwned)))
         return ActorBridgeFallback(cpu, &frame, entry);

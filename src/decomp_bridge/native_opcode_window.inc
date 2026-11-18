@@ -1,6 +1,8 @@
 #include "native_opcode_window.h"
 
-#if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_INPUT_STEPS) || \
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_PARTY_INPUT_STEPS) || \
+    defined(LUFIA2_HAVE_NATIVE_ACTION_RECORD_COPY_SPANS) || \
+    defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_INPUT_STEPS) || \
     defined(LUFIA2_HAVE_NATIVE_COMMAND_TILE_WINDOWS) || \
     defined(LUFIA2_HAVE_NATIVE_BATTLE_ROW_WINDOWS) || \
     defined(LUFIA2_HAVE_NATIVE_BATTLE_WINDOW_STEPS) || \
@@ -33,8 +35,9 @@
     defined(LUFIA2_HAVE_NATIVE_ACTION_CLEAR_STEPS) || \
     defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_STEPS) || \
     defined(LUFIA2_HAVE_NATIVE_FRAME_DECISIONS)
-static bool NativeOpcodeWindowSupported(const CpuState *cpu, uint32_t entry,
-    unsigned budget, unsigned stack_limit, bool wide_accumulator) {
+// Opt-in spans must not enable HDMA while its beam processing is disabled.
+static bool NativeOpcodeWindowWithDeferredHdmaSupported(const CpuState *cpu, uint32_t entry,
+    unsigned budget, unsigned stack_limit, bool wide_accumulator, bool defer_hdma_init) {
     if (!g_snes || !budget)
         return false;
 #if defined(LUFIA2_HAVE_NATIVE_OPCODE_WINDOW_CONTEXT) && \
@@ -43,7 +46,7 @@ static bool NativeOpcodeWindowSupported(const CpuState *cpu, uint32_t entry,
     !(defined(SNESRECOMP_REVERSE_DEBUG) && SNESRECOMP_REVERSE_DEBUG)
     if (cpu != &g_cpu || !Lufia2DecompOpcodeWindowReady() ||
         budget >= 1364u || !g_snes->apu || !g_snes->dma ||
-        !g_snes->hdmaBeamOff || g_snes->dma->hdmaPendingInit ||
+        !g_snes->hdmaBeamOff || (!defer_hdma_init && g_snes->dma->hdmaPendingInit) ||
         g_snes->vPos == 224u || g_snes->vPos == 261u ||
         snesrecomp_beam_hold_active())
         return false;
@@ -59,7 +62,15 @@ static bool NativeOpcodeWindowSupported(const CpuState *cpu, uint32_t entry,
     (void)entry;
     (void)stack_limit;
     (void)wide_accumulator;
+    (void)defer_hdma_init;
     return false;
 #endif
 }
+
+static bool NativeOpcodeWindowSupported(const CpuState *cpu, uint32_t entry,
+    unsigned budget, unsigned stack_limit, bool wide_accumulator) {
+    return NativeOpcodeWindowWithDeferredHdmaSupported(cpu, entry, budget,
+        stack_limit, wide_accumulator, false);
+}
+
 #endif

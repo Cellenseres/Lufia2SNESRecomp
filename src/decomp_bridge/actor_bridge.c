@@ -3170,6 +3170,12 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 #if defined(LUFIA2_HAVE_NATIVE_ACTION_COPY_SPANS)
 #include "action_copy_clock.inc"
 #endif
+#if defined(LUFIA2_HAVE_NATIVE_ACTION_RECORD_COPY_SPANS)
+#include "action_record_copy_clock.inc"
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_PARTY_INPUT_STEPS)
+#include "party_input_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_TILEMAP_SPANS)
 #include "battle_tilemap_clock.inc"
 #endif
@@ -4514,6 +4520,18 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_BATTLE_PARTY_INPUT_STEPS)
+    if (Lufia2DecompFrameRangeAllows(0x81ccecu, 0x81ccedu, PartyInputHookOwned))
+        interp_bridge_set_pre_opcode_hook(0x81ccecu, ActorBridgePartyInputStep);
+#endif
+#if defined(LUFIA2_HAVE_NATIVE_ACTION_RECORD_COPY_SPANS)
+    static const uint32_t record_copy_entries[] = {0x85cdbbu, 0x85cde5u};
+    for (unsigned i = 0u; i < sizeof record_copy_entries / sizeof record_copy_entries[0]; ++i)
+        if (Lufia2DecompFrameRangeAllows(record_copy_entries[i], record_copy_entries[i] + 1u,
+                ActionRecordCopyHookOwned))
+            interp_bridge_set_pre_opcode_hook(record_copy_entries[i], ActorBridgeActionRecordCopySpan);
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_INPUT_STEPS)
     static const uint32_t command_input_entries[] = {
         0x81cbf1u, 0x81cc07u, 0x81cc1au, 0x81cc26u};

@@ -38,7 +38,7 @@ static void ActorBridgeActionCopySpan(CpuState *cpu, uint32_t entry) {
         bytes = timed_bytes;
     const unsigned reserve = bytes * iteration + 40u;
     if (!bytes || cpu->master_cycles > UINT64_MAX - reserve ||
-        !NativeOpcodeWindowSupported(cpu, entry, reserve, 0x1fffu, false))
+        !NativeOpcodeWindowWithDeferredHdmaSupported(cpu, entry, reserve, 0x1fffu, false, true))
         return;
     uint64_t phase, charged;
     snes_refresh_state_get(&phase, &charged);
@@ -53,8 +53,11 @@ static void ActorBridgeActionCopySpan(CpuState *cpu, uint32_t entry) {
         timing[4u * index + 3u] =
             (FixedSpanOpcode){(uint16_t)(pc + 9u), 2u, cpu->X == index ? 2u : 3u, 0u};
     }
+    Lufia2DecompRomOpcodeSpan fetch;
+    const bool prepared = Lufia2DecompPrepareRomOpcodeSpan(cpu, entry, 11u, &fetch);
     FixedSpanClock clock = {
-        .cpu = cpu, .bank = 0x850000u, .timing = timing, .count = 4u * bytes
+        .cpu = cpu, .bank = 0x850000u, .timing = timing, .count = 4u * bytes,
+        .opcode_span = prepared ? &fetch : NULL
     };
     const Lufia2Memory memory = {FixedSpanRead, FixedSpanWrite, &clock, NULL, NULL};
     Lufia2CpuState state;
