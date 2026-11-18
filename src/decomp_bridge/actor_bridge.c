@@ -3191,6 +3191,9 @@ static bool ActorBridgeTimedStepSupported(const CpuState *cpu, uint32_t entry,
 }
 #include "fixed_span_clock.inc"
 #include "native_opcode_window.inc"
+#if defined(LUFIA2_HAVE_NATIVE_ACTOR_SCENE_VALUE_STEPS)
+#include "actor_scene_value_clock.inc"
+#endif
 #if defined(LUFIA2_HAVE_NATIVE_ACTOR_SCENE_PRESENTATION_STEPS)
 #include "actor_scene_presentation_clock.inc"
 #endif
@@ -4586,6 +4589,14 @@ bool Lufia2DecompFramePollHookIsNative(void (*hook)(CpuState *, uint32_t)) {
 }
 
 void Lufia2DecompInstallFrameReturnHooks(void) {
+#if defined(LUFIA2_HAVE_NATIVE_ACTOR_SCENE_VALUE_STEPS)
+    static const uint32_t scene_value_entries[] = {0x83a92cu, 0x83a961u};
+    for (unsigned i = 0u; i < sizeof scene_value_entries / sizeof scene_value_entries[0]; ++i)
+        if (Lufia2DecompFrameRangeAllows(scene_value_entries[i], scene_value_entries[i] + 1u,
+                SceneValueHookOwned))
+            interp_bridge_set_pre_opcode_hook(scene_value_entries[i], ActorBridgeSceneValueStep);
+#endif
+
 #if defined(LUFIA2_HAVE_NATIVE_ACTOR_SCENE_PRESENTATION_STEPS)
     static const uint32_t scene_presentation_entries[] = {
         0x83a87cu, 0x83a89au, 0x83a8deu, 0x83a90au, 0x83a96fu};
