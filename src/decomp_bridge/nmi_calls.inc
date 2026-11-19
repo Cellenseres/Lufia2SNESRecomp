@@ -5,6 +5,37 @@
 
 extern uint32_t g_interp816_cur_pc;
 
+#if defined(LUFIA2_HAVE_NATIVE_NMI_CHILD_BOUNDARIES)
+static int Lufia2DecompRunNmiTilemapReadback(
+    Interp816 *registers, uint32_t pc, uint8_t opcode) {
+#if defined(SNES_COSIM) || defined(SNESRECOMP_INTERP_PROFILE) || \
+    (defined(SNESRECOMP_REVERSE_DEBUG) && SNESRECOMP_REVERSE_DEBUG)
+    return 0;
+#endif
+    if (opcode != 0xa5u || !registers->mf || registers->xf || !g_snes->cart)
+        return 0;
+
+    const Cart *cart = g_snes->cart;
+    const uint32_t offset = pc & 0x7fffu;
+    if (cart->type != CART_LOROM || !cart->rom || cart->romSize <= offset + 1u ||
+        cart->superfx || cart->cx4 || cart->dsp1 || cart->sdd1 || cart->sa1 ||
+        cart->rom[offset] != opcode)
+        return 0;
+
+    registers->cyclesUsed = 0;
+    (void)registers->read(registers->mem, 0x800000u | registers->pc++);
+    g_interp816_cur_pc = pc;
+    registers->cyclesUsed = 3;
+    const uint8_t operand = registers->read(registers->mem, 0x800000u | registers->pc++);
+    registers->cyclesUsed += (registers->dp & 0xffu) != 0u;
+    const uint8_t value = registers->read(registers->mem, (uint16_t)(registers->dp + operand));
+    registers->a = (registers->a & 0xff00u) | value;
+    registers->n = (value & 0x80u) != 0u;
+    registers->z = value == 0u;
+    return registers->cyclesUsed;
+}
+#endif
+
 static int Lufia2DecompNmiRunCallBoundary(
     Interp816 *registers, uint32_t pc, uint8_t opcode,
     int interrupt_owner, int auto_quiescent, int observed) {
@@ -15,9 +46,10 @@ static int Lufia2DecompNmiRunCallBoundary(
         return 0;
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CHILD_BOUNDARIES)
     if ((pc == 0x8087ccu || pc == 0x8087f0u || pc == 0x808808u ||
-         pc == 0x808702u || pc == 0x80882du) &&
+         pc == 0x80880bu || pc == 0x808702u || pc == 0x80882du) &&
         (observed ||
-         !Lufia2DecompFrameRangeQuiet(pc, pc + (opcode == 0x20u ? 3u : 1u))))
+         !Lufia2DecompFrameRangeQuiet(pc, pc + (opcode == 0x20u ? 3u :
+             opcode == 0xa5u ? 2u : 1u))))
         return 0;
 #else
     (void)observed;
@@ -25,6 +57,10 @@ static int Lufia2DecompNmiRunCallBoundary(
     unsigned cycles;
     switch (pc) {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CHILD_BOUNDARIES)
+    case 0x80880bu:
+        if (!g_snes->inNmi || g_snes->inIrq)
+            return 0;
+        return Lufia2DecompRunNmiTilemapReadback(registers, pc, opcode);
     case 0x8087ccu: case 0x808808u:
         if (!g_snes->inNmi || g_snes->inIrq)
             return 0;
