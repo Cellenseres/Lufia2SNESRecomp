@@ -136,7 +136,11 @@ static bool ActorSlotPhaseClockSupportedWindow(const CpuState *cpu, uint32_t ent
         cpu->master_cycles > UINT64_MAX - reserve ||
         !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1ffcu,
             false, 1363u, reserve) ||
-        !g_snes->hdmaBeamOff || g_snes->dma->hdmaPendingInit)
+        g_snes->dma->hdmaPendingInit)
+        return false;
+    if (!g_snes->hdmaBeamOff &&
+        ((entry != 0x83bba1u && entry != 0x83bba5u && entry != 0x83bbd1u) ||
+         ActorBridgeHdmaMayTransfer()))
         return false;
     const unsigned end_line = g_snes->vPos < 225u ? 225u : 262u;
     if ((end_line - g_snes->vPos) * 1364u - g_snes->hPos < reserve)
