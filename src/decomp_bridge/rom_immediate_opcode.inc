@@ -896,7 +896,17 @@ static LUFIA2_ROM_NOINLINE int Lufia2DecompRunAdditionalRomOpcode(Interp816 *reg
         return Lufia2DecompRunStackOpcode(registers, pc, opcode);
     if (Lufia2DecompIsIndirectDataOpcode(opcode))
         return Lufia2DecompRunIndirectDataOpcode(registers, pc, opcode);
-    return 0;
+    if (opcode != 0x00u || !registers->brkHookEnabled)
+        return 0;
+    unsigned rom_offset;
+    if (!Lufia2DecompPlainRomOpcode(registers, pc, opcode, 1u, &rom_offset))
+        return 0;
+    /* The bridge's BRK marker consumes only the opcode byte. */
+    registers->cyclesUsed = 0u;
+    (void)registers->read(registers->mem, (pc & 0xff0000u) | registers->pc++);
+    g_interp816_cur_pc = pc;
+    registers->cyclesUsed = 7u;
+    return registers->cyclesUsed;
 }
 
 #undef LUFIA2_MEMORY_MODIFY_CASES
