@@ -48,9 +48,11 @@ static bool NmiClockWindowWithDeferredHdma(const CpuState *cpu, bool byte_index,
         if (!allow_line_crossing || g_snes->hPos >= 1364u ||
             g_snes->vPos >= 262u || snesrecomp_beam_hold_active())
             return false;
+        /* The pad step accounts for one HBlank while leaving HDMA unchanged. */
         if (beam_hdma && (!leaves_hdma_unchanged ||
-            (g_snes->vPos < 225u && (before_hdma ||
-                budget >= 1364u - g_snes->hPos + 1024u))))
+            (g_snes->vPos < 225u &&
+                ((before_hdma && first != 0x808770u) ||
+                 budget >= 1364u - g_snes->hPos + 1024u))))
             return false;
         const unsigned next_line = g_snes->vPos < 225u ? 225u : 262u;
         const uint64_t before_edge =
