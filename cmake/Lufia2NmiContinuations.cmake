@@ -1534,7 +1534,18 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                break;\n")
                 endif()
                 if(_sound_frame_boundaries)
-                    list(APPEND _control_sites "pc_before == 0x8098a4u" "pc_before == 0x8099aeu" "pc_before == 0x8099b1u")
+                    list(APPEND _control_sites "pc_before == 0x80972cu"
+                        "pc_before == 0x8098a4u" "pc_before == 0x8099aeu" "pc_before == 0x8099b1u")
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunSoundTableLoopOpcode(Interp816 *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/sound_table_loop_opcodes.inc\"\n")
+                    string(APPEND _native_opcode
+                        "        if (!_cyc && (pc_before == 0x80972bu || (pc_before >= 0x80972fu && pc_before <= 0x809732u)) &&\n"
+                        "            !stop_on_rti && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
+                        "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
+                        "            g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
+                        "            _cyc = Lufia2DecompRunSoundTableLoopOpcode(&in, pc_before, op);\n")
                     string(PREPEND _text
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunSoundCpuReturnOpcode(Interp816 *, uint32_t, uint8_t);\n")
                     string(APPEND _timing_suffix
@@ -1546,6 +1557,9 @@ function(lufia2_add_nmi_continuations target core_root)
                         "            g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
                         "            _cyc = Lufia2DecompRunSoundCpuReturnOpcode(&in, pc_before, op);\n")
                     string(APPEND _control_cases
+                        "            case 0x80972cu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x809886u, false);\n"
+                        "                break;\n"
                         "            case 0x8099aeu:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x809a0au, false);\n"
                         "                break;\n"
