@@ -3,6 +3,13 @@ static int Lufia2DecompRunAotCallSite(Interp816 *registers, uint32_t pc, uint8_t
     (defined(SNESRECOMP_REVERSE_DEBUG) && SNESRECOMP_REVERSE_DEBUG)
     return 0;
 #endif
+    if (opcode == 0x60u || opcode == 0x6bu) {
+        const unsigned bank = pc >> 16;
+        if (bank < 0x80u || bank > 0xbfu || (pc & 0xffffu) < 0x8000u)
+            return 0;
+        return Lufia2DecompRunReturn(registers, pc, opcode, opcode == 0x6bu,
+                                     registers->mf, registers->xf);
+    }
     const uint32_t page = (pc >> LUFIA2_AOT_CALL_SITE_PAGE_BITS) -
                           LUFIA2_AOT_CALL_SITE_FIRST_PAGE;
     const size_t page_count =
@@ -26,12 +33,6 @@ static int Lufia2DecompRunAotCallSite(Interp816 *registers, uint32_t pc, uint8_t
     const uint32_t target = site.target_and_widths & 0xffffffu;
     if (site.pc != pc || !(attributes & (1u << width)))
         return 0;
-    if (attributes & 0x10u) {
-        if (opcode != target)
-            return 0;
-        return Lufia2DecompRunReturn(registers, pc, opcode, opcode == 0x6bu,
-                                     registers->mf, registers->xf);
-    }
     if (opcode == 0x20u && (target >> 16) != (pc >> 16))
         return 0;
     return Lufia2DecompRunDirectCallWithWidths(
