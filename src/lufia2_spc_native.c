@@ -463,7 +463,7 @@ bool Lufia2SpcNativeLoadState(SaveLoadInfo *sli, Apu *apu) {
     s_driver.repeat_command = header.repeat_command;
     s_driver.repeat_arguments = header.repeat_arguments;
     s_loaded_without_state = false;
-    s_resume_idle = false;
+    s_resume_idle = !s_active && s_installed && DriverUploaded(apu);
     s_block_wait_valid = false;
     Bind(apu);
     return true;
