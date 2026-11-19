@@ -1378,7 +1378,7 @@ function(lufia2_add_nmi_continuations target core_root)
                 if("LUFIA2_HAVE_NATIVE_BATTLE_MULTIPLY_WINDOW=1" IN_LIST _definitions)
                     set(_battle_multiply_return TRUE)
                 endif()
-                if(_turn_display_steps OR _actor_record_return OR _battle_multiply_return OR _battle_gauge_steps OR _battle_command_steps OR _divide_bit_spans OR _item_record_steps OR (_battle_status AND _menu_leaves))
+                if(_turn_display_steps OR _actor_record_return OR _battle_multiply_return OR _battle_gauge_steps OR _battle_command_steps OR _divide_bit_spans OR _item_record_steps OR _world_frame_control_steps OR (_battle_status AND _menu_leaves))
                     string(PREPEND _text
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunReturn(Interp816 *, uint32_t, uint8_t, bool, bool, bool);\n")
                     string(APPEND _timing_suffix
@@ -1593,7 +1593,10 @@ function(lufia2_add_nmi_continuations target core_root)
                     list(APPEND _control_sites
                         "pc_before == 0x869276u" "pc_before == 0x869279u" "pc_before == 0x86927cu"
                         "pc_before == 0x86927fu" "pc_before == 0x869285u" "pc_before == 0x869290u"
-                        "pc_before == 0x869293u" "pc_before == 0x869296u" "pc_before == 0x869299u")
+                        "pc_before == 0x869293u" "pc_before == 0x869296u" "pc_before == 0x869299u"
+                        "pc_before == 0x869e1eu" "pc_before == 0x869e26u" "pc_before == 0x869e29u"
+                        "pc_before == 0x869e2cu" "pc_before == 0x869e2fu" "pc_before == 0x869e32u"
+                        "pc_before == 0x869e35u" "pc_before == 0x869e3au")
                     string(APPEND _control_cases
                         "            case 0x869276u:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x869e4fu, false);\n"
@@ -1621,6 +1624,30 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                break;\n"
                         "            case 0x869299u:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86973eu, false);\n"
+                        "                break;\n"
+                        "            case 0x869e1eu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86d37du, false);\n"
+                        "                break;\n"
+                        "            case 0x869e26u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x8694d4u, false);\n"
+                        "                break;\n"
+                        "            case 0x869e29u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86995bu, false);\n"
+                        "                break;\n"
+                        "            case 0x869e2cu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86a7ceu, false);\n"
+                        "                break;\n"
+                        "            case 0x869e2fu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86a791u, false);\n"
+                        "                break;\n"
+                        "            case 0x869e32u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86973eu, false);\n"
+                        "                break;\n"
+                        "            case 0x869e35u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86974fu, false);\n"
+                        "                break;\n"
+                        "            case 0x869e3au:\n"
+                        "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, false, true, false);\n"
                         "                break;\n")
                 endif()
                 if(_battle_status)
