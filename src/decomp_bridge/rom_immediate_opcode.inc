@@ -383,6 +383,12 @@ static int Lufia2DecompRunStackOpcode(Interp816 *registers, uint32_t pc, uint8_t
     return registers->cyclesUsed;
 }
 
+static bool Lufia2DecompIsNmiRomOpcode(uint8_t opcode) {
+    return (opcode & 0x1fu) == 0x10u || opcode == 0xc2u || opcode == 0xe2u ||
+        opcode == 0x80u || opcode == 0x82u || opcode == 0x4cu || opcode == 0x5cu ||
+        Lufia2DecompIsImmediateDataOpcode(opcode) || Lufia2DecompIsRegisterOpcode(opcode);
+}
+
 /* Keeping the dispatch out of line avoids growing the interpreter loop. */
 static LUFIA2_ROM_NOINLINE int Lufia2DecompRunNativeRomControl(Interp816 *registers, uint32_t pc, uint8_t opcode) {
     if ((opcode & 0x1fu) == 0x10u || opcode == 0xc2u || opcode == 0xe2u ||
