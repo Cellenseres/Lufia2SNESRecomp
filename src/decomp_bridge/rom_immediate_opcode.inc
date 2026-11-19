@@ -66,6 +66,26 @@ static const Cart *Lufia2DecompPlainRomOpcode(const Interp816 *registers, uint32
     return cart;
 }
 
+static uint16_t Lufia2DecompReadData(Interp816 *registers, uint32_t low, uint32_t high, bool wide) {
+    if (!wide)
+        return registers->read(registers->mem, low);
+    uint16_t value;
+    if (registers->read_word && registers->read_word(registers->mem, low, high, &value))
+        return value;
+    const uint8_t low_byte = registers->read(registers->mem, low);
+    return low_byte | ((uint16_t)registers->read(registers->mem, high) << 8);
+}
+
+static void Lufia2DecompWriteData(Interp816 *registers, uint32_t low, uint32_t high,
+    uint16_t value, bool wide) {
+    if (wide && registers->write_word &&
+        registers->write_word(registers->mem, low, high, value, false))
+        return;
+    registers->write(registers->mem, low, (uint8_t)value);
+    if (wide)
+        registers->write(registers->mem, high, (uint8_t)(value >> 8));
+}
+
 static int Lufia2DecompRunRomImmediateOpcode(Interp816 *registers, uint32_t pc, uint8_t opcode) {
     const bool changes_status = opcode == 0xc2u || opcode == 0xe2u;
     const bool conditional = (opcode & 0x1fu) == 0x10u;
@@ -95,10 +115,7 @@ static int Lufia2DecompRunRomImmediateOpcode(Interp816 *registers, uint32_t pc, 
         } else {
             const uint32_t low = program_bank | registers->pc++;
             const uint32_t high = program_bank | registers->pc++;
-            if (!registers->read_word || !registers->read_word(registers->mem, low, high, &value)) {
-                const uint8_t low_byte = registers->read(registers->mem, low);
-                value = low_byte | ((uint16_t)registers->read(registers->mem, high) << 8);
-            }
+            value = Lufia2DecompReadData(registers, low, high, true);
         }
         Lufia2DecompApplyOperand(registers, opcode, value, byte_operand);
         return registers->cyclesUsed;
@@ -160,6 +177,7 @@ static bool Lufia2DecompIsWramOpcode(uint8_t opcode) {
     case 0xafu: case 0xbfu: case 0x8fu: case 0x9fu:
     case 0xa6u: case 0xa4u: case 0x86u: case 0x84u:
     case 0xaeu: case 0xacu: case 0x8eu: case 0x8cu:
+    case 0xa7u: case 0xb7u: case 0x87u: case 0x97u:
         return true;
     default:
         return false;
@@ -222,24 +240,46 @@ static int Lufia2DecompRunWramOpcode(Interp816 *registers, uint32_t pc, uint8_t 
         (indexed && !long_address && (crossed_page || (!load && !registers->xf)));
 
     if (load) {
-        uint16_t value;
-        if (!wide) {
-            value = registers->read(registers->mem, low);
-        } else if (!registers->read_word || !registers->read_word(registers->mem, low, high, &value)) {
-            const uint8_t low_byte = registers->read(registers->mem, low);
-            value = low_byte | ((uint16_t)registers->read(registers->mem, high) << 8);
-        }
+        const uint16_t value = Lufia2DecompReadData(registers, low, high, wide);
         Lufia2DecompApplyOperand(registers, data_x ? 0xa2u : data_y ? 0xa0u : 0xa9u, value, !wide);
     } else {
         const bool zero = opcode == 0x64u || opcode == 0x9cu || opcode == 0x9eu;
         const uint16_t value = zero ? 0u : data_x ? registers->x : data_y ? registers->y : registers->a;
-        if (!wide) {
-            registers->write(registers->mem, low, (uint8_t)value);
-        } else if (!registers->write_word ||
-                   !registers->write_word(registers->mem, low, high, value, false)) {
-            registers->write(registers->mem, low, (uint8_t)value);
-            registers->write(registers->mem, high, (uint8_t)(value >> 8));
-        }
+        Lufia2DecompWriteData(registers, low, high, value, wide);
+    }
+    return registers->cyclesUsed;
+}
+
+static bool Lufia2DecompIsLongIndirectOpcode(uint8_t opcode) {
+    return opcode == 0xa7u || opcode == 0xb7u || opcode == 0x87u || opcode == 0x97u;
+}
+
+static int Lufia2DecompRunLongIndirectOpcode(Interp816 *registers, uint32_t pc, uint8_t opcode) {
+    unsigned rom_offset;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 2u, &rom_offset);
+    if (!cart || (uint16_t)(registers->dp + cart->rom[rom_offset + 1u]) > 0x1ffdu)
+        return 0;
+
+    const uint32_t program_bank = pc & 0xff0000u;
+    registers->cyclesUsed = 0;
+    (void)registers->read(registers->mem, program_bank | registers->pc++);
+    g_interp816_cur_pc = pc;
+    registers->cyclesUsed = 6u;
+    const unsigned operand = registers->read(registers->mem, program_bank | registers->pc++);
+    const unsigned pointer = (uint16_t)(registers->dp + operand);
+    registers->cyclesUsed += (registers->dp & 0xffu) != 0u;
+    uint32_t address = Lufia2DecompReadData(registers, pointer, pointer + 1u, true);
+    address |= (uint32_t)registers->read(registers->mem, pointer + 2u) << 16;
+    if (opcode & 0x10u)
+        address = (address + registers->y) & 0xffffffu;
+    const uint32_t high = (address + 1u) & 0xffffffu;
+    const bool wide = !registers->mf;
+    registers->cyclesUsed += wide;
+    if (opcode & 0x20u) {
+        const uint16_t value = Lufia2DecompReadData(registers, address, high, wide);
+        Lufia2DecompApplyOperand(registers, 0xa9u, value, !wide);
+    } else {
+        Lufia2DecompWriteData(registers, address, high, registers->a, wide);
     }
     return registers->cyclesUsed;
 }
@@ -478,8 +518,11 @@ static LUFIA2_ROM_NOINLINE int Lufia2DecompRunNativeRomControl(Interp816 *regist
         opcode == 0x80u || opcode == 0x82u || opcode == 0x4cu || opcode == 0x5cu ||
         Lufia2DecompIsImmediateDataOpcode(opcode))
         return Lufia2DecompRunRomImmediateOpcode(registers, pc, opcode);
-    if (Lufia2DecompIsWramOpcode(opcode))
+    if (Lufia2DecompIsWramOpcode(opcode)) {
+        if (Lufia2DecompIsLongIndirectOpcode(opcode))
+            return Lufia2DecompRunLongIndirectOpcode(registers, pc, opcode);
         return Lufia2DecompRunWramOpcode(registers, pc, opcode);
+    }
     if (Lufia2DecompIsRegisterOpcode(opcode))
         return Lufia2DecompRunRegisterOpcode(registers, pc, opcode);
     if (Lufia2DecompIsStackOpcode(opcode))
