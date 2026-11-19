@@ -48,9 +48,8 @@
     defined(LUFIA2_HAVE_NATIVE_ACTION_CLEAR_STEPS) || \
     defined(LUFIA2_HAVE_NATIVE_BATTLE_TARGET_NAME_STEPS) || \
     defined(LUFIA2_HAVE_NATIVE_FRAME_DECISIONS)
-// Opt-in spans must not enable HDMA while its beam processing is disabled.
-static bool NativeOpcodeWindowWithDeferredHdmaSupported(const CpuState *cpu, uint32_t entry,
-    unsigned budget, unsigned stack_limit, bool wide_accumulator, bool defer_hdma_init) {
+static bool NativeOpcodeWindowTimingSupported(const CpuState *cpu, uint32_t entry,
+    unsigned budget, unsigned stack_limit, bool wide_accumulator) {
     if (!g_snes || !budget)
         return false;
 #if defined(LUFIA2_HAVE_NATIVE_OPCODE_WINDOW_CONTEXT) && \
@@ -59,7 +58,6 @@ static bool NativeOpcodeWindowWithDeferredHdmaSupported(const CpuState *cpu, uin
     !(defined(SNESRECOMP_REVERSE_DEBUG) && SNESRECOMP_REVERSE_DEBUG)
     if (cpu != &g_cpu || !Lufia2DecompOpcodeWindowReady() ||
         budget >= 1364u || !g_snes->apu || !g_snes->dma ||
-        !g_snes->hdmaBeamOff || (!defer_hdma_init && g_snes->dma->hdmaPendingInit) ||
         g_snes->vPos == 224u || g_snes->vPos == 261u ||
         snesrecomp_beam_hold_active())
         return false;
@@ -75,9 +73,16 @@ static bool NativeOpcodeWindowWithDeferredHdmaSupported(const CpuState *cpu, uin
     (void)entry;
     (void)stack_limit;
     (void)wide_accumulator;
-    (void)defer_hdma_init;
     return false;
 #endif
+}
+
+/* Spans that defer HDMA initialization must leave its enable state unchanged. */
+static bool NativeOpcodeWindowWithDeferredHdmaSupported(const CpuState *cpu, uint32_t entry,
+    unsigned budget, unsigned stack_limit, bool wide_accumulator, bool defer_hdma_init) {
+    return g_snes && g_snes->dma && g_snes->hdmaBeamOff &&
+        (defer_hdma_init || !g_snes->dma->hdmaPendingInit) &&
+        NativeOpcodeWindowTimingSupported(cpu, entry, budget, stack_limit, wide_accumulator);
 }
 
 static bool NativeOpcodeWindowSupported(const CpuState *cpu, uint32_t entry,

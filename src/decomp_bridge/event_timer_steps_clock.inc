@@ -93,7 +93,9 @@ static void ActorBridgeEventTimerStep(CpuState *cpu, uint32_t entry) {
         !Lufia2DecompFrameReturnCpuReady() ||
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
         cpu->master_cycles > UINT64_MAX - reserve ||
-        !NativeOpcodeWindowSupported(cpu, entry, reserve, 0x1ffdu, false))
+        !NativeOpcodeWindowTimingSupported(cpu, entry, reserve, 0x1ffdu, false) ||
+        g_snes->dma->hdmaPendingInit ||
+        (!g_snes->hdmaBeamOff && ActorBridgeHdmaMayTransfer()))
         return;
     const uint32_t fence = entry <= 0x80cbbdu   ? 0x80cbf6u
                            : entry <= 0x80cbf9u ? 0x80cc09u

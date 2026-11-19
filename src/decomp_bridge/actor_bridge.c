@@ -3155,7 +3155,8 @@ void Lufia2DecompInstallNmiHooks(void) {
     defined(LUFIA2_HAVE_NATIVE_FRAME_POLL_RUNS) || \
     defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK) || \
     defined(LUFIA2_HAVE_NATIVE_ACTOR_SLOT_PHASES) || \
-    defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK)
+    defined(LUFIA2_HAVE_NATIVE_NMI_RESTORE_CLOCK) || \
+    defined(LUFIA2_HAVE_NATIVE_EVENT_TIMER_STEPS)
 static bool ActorBridgeHdmaMayTransfer(void) {
     const Dma *dma = g_snes ? g_snes->dma : NULL;
     if (!dma || dma->hdmaPendingInit)
