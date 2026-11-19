@@ -33,7 +33,19 @@ def rom_call_target(rom, pc):
     return destination | bank << 16 if opcode == 0x20 else destination
 
 
-def entries(manifest, rom):
+def selected_functions(metadata_path, coverage_path):
+    from decomp_manifest import load_functions
+
+    width_masks = {"M0X0": 1, "M0X1": 2, "M1X0": 4, "M1X1": 8}
+    coverage = json.loads(coverage_path.read_text(encoding="utf-8"))
+    selected = {row["address"] for row in coverage["functions"]
+                if row["selection"] == "selected" and row["status"] == "verified"}
+    return {int(function.address.replace(":", ""), 16): width_masks[function.entry_mx]
+            for function in load_functions(metadata_path)
+            if function.address in selected and function.entry_mx in width_masks}
+
+
+def entries(manifest, rom, semantic_targets=None):
     modes_by_site = defaultdict(int)
     targets_by_site = {}
     for pc, target, accumulator_width, index_width in direct_calls(manifest):
@@ -54,6 +66,11 @@ def entries(manifest, rom):
         if node["disposition"] == "aot_eligible" and key["m"] in (0, 1) and key["x"] in (0, 1):
             native_targets[key["pc24"]] |= 1 << (key["m"] * 2 + key["x"])
 
+    for pc, widths in (semantic_targets or {}).items():
+        native_targets[pc] |= widths
+        if 0x80 <= pc >> 16 <= 0xbf:
+            code_banks.add(pc >> 16)
+
     # C continuations can reach ROM call sites omitted from the static CFG.
     for bank in code_banks:
         for address in range(0x8000, 0x10000):
@@ -72,8 +89,15 @@ def main():
     parser.add_argument("manifest", type=Path)
     parser.add_argument("rom", type=Path)
     parser.add_argument("output", type=Path)
+    parser.add_argument("--decomp-functions", type=Path)
+    parser.add_argument("--decomp-coverage", type=Path)
     args = parser.parse_args()
-    data = entries(json.loads(args.manifest.read_text(encoding="utf-8")), args.rom.read_bytes())
+    if bool(args.decomp_functions) != bool(args.decomp_coverage):
+        parser.error("The decomp function metadata and coverage report are required together")
+    semantic_targets = (selected_functions(args.decomp_functions, args.decomp_coverage)
+                        if args.decomp_functions else None)
+    data = entries(json.loads(args.manifest.read_text(encoding="utf-8")),
+                   args.rom.read_bytes(), semantic_targets)
     lines = ["static const struct Lufia2AotCallSite { uint32_t pc, target_and_widths; } lufia2_aot_call_sites[] = {\n"]
     for pc, target, modes in data:
         lines.append(f"    {{0x{pc:06x}u, 0x{modes:02x}{target:06x}u}},\n")

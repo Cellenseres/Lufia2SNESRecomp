@@ -1366,8 +1366,18 @@ function(lufia2_add_nmi_continuations target core_root)
                     set(_aot_call_script "${CMAKE_SOURCE_DIR}/scripts/aot_call_sites.py")
                     set(_aot_call_table "${CMAKE_BINARY_DIR}/generated/decomp-nmi/aot_call_site_table.inc")
                     set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_aot_call_script}")
-                    execute_process(COMMAND "${Python3_EXECUTABLE}" "${_aot_call_script}"
+                    set(_aot_call_decomp_args)
+                    if(LUFIA2_ENABLE_DECOMP AND NOT LUFIA2_DECOMP_REFERENCE_ONLY)
+                        list(APPEND _aot_call_decomp_args
+                            --decomp-functions "${LUFIA2_DECOMP_RESOLVED_ROOT}/metadata/functions.toml"
+                            --decomp-coverage "${CMAKE_BINARY_DIR}/generated/decomp_coverage.json")
+                        set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+                            "${CMAKE_SOURCE_DIR}/scripts/decomp_manifest.py")
+                    endif()
+                    execute_process(COMMAND "${CMAKE_COMMAND}" -E env "PYTHONDONTWRITEBYTECODE=1"
+                        "${Python3_EXECUTABLE}" "${_aot_call_script}"
                         "${_aot_call_manifest}" "${LUFIA2_ROM}" "${_aot_call_table}"
+                        ${_aot_call_decomp_args}
                         RESULT_VARIABLE _aot_call_result)
                     if(NOT _aot_call_result EQUAL 0)
                         message(FATAL_ERROR "Generating Lufia II AOT call sites failed")
