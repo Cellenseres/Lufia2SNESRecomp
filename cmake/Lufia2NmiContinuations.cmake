@@ -1578,10 +1578,12 @@ function(lufia2_add_nmi_continuations target core_root)
                     string(APPEND _timing_suffix
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/gauge_data_opcodes.inc\"\n")
                     string(APPEND _native_opcode
-                        "        if (!_cyc && (pc_before == 0x81e31eu || pc_before == 0x81e322u ||\n"
+                        "        if (!_cyc && (pc_before == 0x81e31cu || pc_before == 0x81e31eu ||\n"
+                        "            pc_before == 0x81e31fu || pc_before == 0x81e322u ||\n"
                         "            pc_before == 0x81e324u || pc_before == 0x81e326u ||\n"
-                        "            pc_before == 0x81e32eu || pc_before == 0x81e331u ||\n"
-                        "            pc_before == 0x81e333u || pc_before == 0x81e335u) &&\n"
+                        "            pc_before == 0x81e328u || pc_before == 0x81e32eu ||\n"
+                        "            pc_before == 0x81e331u ||\n"
+                        "            pc_before == 0x81e333u || pc_before == 0x81e335u || pc_before == 0x81e337u) &&\n"
                         "            !stop_on_rti && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
                         "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
                         "            g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"

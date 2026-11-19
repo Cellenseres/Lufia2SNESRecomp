@@ -7,21 +7,29 @@ static int Lufia2DecompRunGaugeDataOpcode(Interp816 *registers, uint32_t pc, uin
 #endif
     uint8_t expected_opcode;
     switch (pc) {
+    case 0x81e31cu: expected_opcode = 0xa9u; break;
+    case 0x81e31fu: expected_opcode = 0xabu; break;
     case 0x81e31eu: expected_opcode = 0x48u; break;
     case 0x81e322u:
     case 0x81e326u:
     case 0x81e333u: expected_opcode = 0xa5u; break;
+    case 0x81e328u:
     case 0x81e324u: expected_opcode = 0x85u; break;
     case 0x81e32eu: expected_opcode = 0xc9u; break;
     case 0x81e331u: expected_opcode = 0xf0u; break;
     case 0x81e335u: expected_opcode = 0xd0u; break;
+    case 0x81e337u: expected_opcode = 0xe6u; break;
     default: return 0;
     }
     const bool push = expected_opcode == 0x48u;
     const bool compare = expected_opcode == 0xc9u;
-    const unsigned length = push ? 1u : compare ? 3u : 2u;
+    const bool pull_bank = expected_opcode == 0xabu;
+    const bool load_byte = expected_opcode == 0xa9u;
+    const bool increment = expected_opcode == 0xe6u;
+    const bool accumulator_8_bit = push || pull_bank || load_byte;
+    const unsigned length = push || pull_bank ? 1u : compare ? 3u : 2u;
     if (opcode != expected_opcode || registers->k != 0x81u ||
-        registers->pc != (uint16_t)pc || registers->e || registers->mf != push || registers->xf ||
+        registers->pc != (uint16_t)pc || registers->e || registers->mf != accumulator_8_bit || registers->xf ||
         registers->waiting || registers->stopped || registers->nmiWanted || registers->irqWanted ||
         !g_snes || !g_snes->cart)
         return 0;
@@ -43,6 +51,22 @@ static int Lufia2DecompRunGaugeDataOpcode(Interp816 *registers, uint32_t pc, uin
         return registers->cyclesUsed;
     }
 
+    if (pull_bank || load_byte) {
+        uint8_t value;
+        if (pull_bank) {
+            registers->cyclesUsed = 4;
+            value = registers->read(registers->mem, ++registers->sp);
+            registers->db = value;
+        } else {
+            registers->cyclesUsed = 2;
+            value = registers->read(registers->mem, 0x810000u | registers->pc++);
+            registers->a = (registers->a & 0xff00u) | value;
+        }
+        registers->n = (value & 0x80u) != 0u;
+        registers->z = value == 0u;
+        return registers->cyclesUsed;
+    }
+
     if (opcode == 0xf0u || opcode == 0xd0u) {
         registers->cyclesUsed = 2;
         const int8_t displacement = (int8_t)registers->read(registers->mem, 0x810000u | registers->pc++);
@@ -59,10 +83,12 @@ static int Lufia2DecompRunGaugeDataOpcode(Interp816 *registers, uint32_t pc, uin
         low_address = 0x810000u | registers->pc++;
         high_address = 0x810000u | registers->pc++;
     } else {
+        if (increment)
+            registers->cyclesUsed = 5;
         const uint8_t operand = registers->read(registers->mem, 0x810000u | registers->pc++);
         low_address = (uint16_t)(registers->dp + operand);
         high_address = (uint16_t)(low_address + 1u);
-        registers->cyclesUsed = 4 + ((registers->dp & 0xffu) != 0u);
+        registers->cyclesUsed = (increment ? 7 : 4) + ((registers->dp & 0xffu) != 0u);
     }
 
     if (opcode == 0x85u) {
@@ -81,7 +107,14 @@ static int Lufia2DecompRunGaugeDataOpcode(Interp816 *registers, uint32_t pc, uin
         value = low | ((uint16_t)registers->read(registers->mem, high_address) << 8);
     }
     uint16_t result = value;
-    if (compare) {
+    if (increment) {
+        result = (uint16_t)(value + 1u);
+        if (!registers->write_word ||
+            !registers->write_word(registers->mem, low_address, high_address, result, true)) {
+            registers->write(registers->mem, high_address, (uint8_t)(result >> 8));
+            registers->write(registers->mem, low_address, (uint8_t)result);
+        }
+    } else if (compare) {
         result = (uint16_t)(registers->a - value);
         registers->c = registers->a >= value;
     } else {
