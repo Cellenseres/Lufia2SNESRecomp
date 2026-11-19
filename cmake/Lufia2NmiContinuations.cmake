@@ -1611,6 +1611,18 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                break;\n")
                 endif()
                 if(_world_frame_control_steps)
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunWorldSceneGateOpcode(Interp816 *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/world_scene_gate_opcodes.inc\"\n")
+                    string(APPEND _native_opcode
+                        "        if (!_cyc && (pc_before == 0x869e17u || pc_before == 0x869e19u ||\n"
+                        "            pc_before == 0x869e1cu || pc_before == 0x869e21u ||\n"
+                        "            pc_before == 0x869e24u || pc_before == 0x869e38u) &&\n"
+                        "            !stop_on_rti && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
+                        "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
+                        "            g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
+                        "            _cyc = Lufia2DecompRunWorldSceneGateOpcode(&in, pc_before, op);\n")
                     list(APPEND _control_sites
                         "pc_before == 0x869276u" "pc_before == 0x869279u" "pc_before == 0x86927cu"
                         "pc_before == 0x86927fu" "pc_before == 0x869285u" "pc_before == 0x869290u"
