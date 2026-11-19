@@ -3,8 +3,16 @@ static int Lufia2DecompRunAotCallSite(Interp816 *registers, uint32_t pc, uint8_t
     (defined(SNESRECOMP_REVERSE_DEBUG) && SNESRECOMP_REVERSE_DEBUG)
     return 0;
 #endif
-    size_t first = 0u;
-    size_t end = sizeof lufia2_aot_call_sites / sizeof lufia2_aot_call_sites[0] - 1u;
+    const uint32_t page = (pc >> LUFIA2_AOT_CALL_SITE_PAGE_BITS) -
+                          LUFIA2_AOT_CALL_SITE_FIRST_PAGE;
+    const size_t page_count =
+        sizeof lufia2_aot_call_page_offsets / sizeof lufia2_aot_call_page_offsets[0] - 1u;
+    if (page >= page_count)
+        return 0;
+    size_t first = lufia2_aot_call_page_offsets[page];
+    size_t end = lufia2_aot_call_page_offsets[page + 1u];
+    if (first == end)
+        return 0;
     while (first < end) {
         const size_t middle = first + (end - first) / 2u;
         if (lufia2_aot_call_sites[middle].pc < pc)

@@ -2,6 +2,7 @@
 """Generate native bridge control-flow sites from static AOT metadata."""
 
 import argparse
+from bisect import bisect_left
 from collections import defaultdict
 import json
 from pathlib import Path
@@ -76,6 +77,19 @@ def main():
     for pc, target, modes in data:
         lines.append(f"    {{0x{pc:06x}u, 0x{modes:02x}{target:06x}u}},\n")
     lines.append("    {0u, 0u}\n};\n")
+    page_bits = 12
+    sites = [pc for pc, _, _ in data]
+    first_page = (sites[0] >> page_bits) if sites else 0
+    last_page = (sites[-1] >> page_bits) if sites else 0
+    index_type = "uint16_t" if len(sites) <= 0xffff else "uint32_t"
+    offsets = [bisect_left(sites, page << page_bits)
+               for page in range(first_page, last_page + 2)]
+    lines.append(f"\n#define LUFIA2_AOT_CALL_SITE_PAGE_BITS {page_bits}u\n")
+    lines.append(f"#define LUFIA2_AOT_CALL_SITE_FIRST_PAGE 0x{first_page:x}u\n")
+    lines.append(f"static const {index_type} lufia2_aot_call_page_offsets[] = {{\n")
+    for index in range(0, len(offsets), 12):
+        lines.append("    " + ", ".join(f"{value}u" for value in offsets[index:index + 12]) + ",\n")
+    lines.append("};\n")
     generated = "".join(lines)
     if not args.output.is_file() or args.output.read_text(encoding="utf-8") != generated:
         args.output.write_text(generated, encoding="utf-8")
