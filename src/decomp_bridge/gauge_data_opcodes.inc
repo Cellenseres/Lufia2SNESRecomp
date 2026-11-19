@@ -9,10 +9,12 @@ static int Lufia2DecompRunGaugeDataOpcode(Interp816 *registers, uint32_t pc, uin
     switch (pc) {
     case 0x81e31eu: expected_opcode = 0x48u; break;
     case 0x81e322u:
-    case 0x81e326u: expected_opcode = 0xa5u; break;
+    case 0x81e326u:
+    case 0x81e333u: expected_opcode = 0xa5u; break;
     case 0x81e324u: expected_opcode = 0x85u; break;
     case 0x81e32eu: expected_opcode = 0xc9u; break;
     case 0x81e331u: expected_opcode = 0xf0u; break;
+    case 0x81e335u: expected_opcode = 0xd0u; break;
     default: return 0;
     }
     const bool push = expected_opcode == 0x48u;
@@ -41,10 +43,10 @@ static int Lufia2DecompRunGaugeDataOpcode(Interp816 *registers, uint32_t pc, uin
         return registers->cyclesUsed;
     }
 
-    if (opcode == 0xf0u) {
+    if (opcode == 0xf0u || opcode == 0xd0u) {
         registers->cyclesUsed = 2;
         const int8_t displacement = (int8_t)registers->read(registers->mem, 0x810000u | registers->pc++);
-        if (registers->z) {
+        if (registers->z == (opcode == 0xf0u)) {
             registers->pc = (uint16_t)(registers->pc + displacement);
             ++registers->cyclesUsed;
         }
