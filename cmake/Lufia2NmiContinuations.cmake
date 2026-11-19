@@ -1444,23 +1444,37 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                break;\n")
                 endif()
                 if(_world_frame_control_steps)
-                    list(APPEND _control_sites "pc_before == 0x869279u" "pc_before == 0x86927cu" "pc_before == 0x869293u"
-                        "pc_before == 0x869296u" "pc_before == 0x869299u")
+                    list(APPEND _control_sites
+                        "pc_before == 0x869276u" "pc_before == 0x869279u" "pc_before == 0x86927cu"
+                        "pc_before == 0x86927fu" "pc_before == 0x869285u" "pc_before == 0x869290u"
+                        "pc_before == 0x869293u" "pc_before == 0x869296u" "pc_before == 0x869299u")
                     string(APPEND _control_cases
+                        "            case 0x869276u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x869e4fu, false);\n"
+                        "                break;\n"
                         "            case 0x869279u:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x869c71u, false);\n"
                         "                break;\n"
                         "            case 0x86927cu:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x869adbu, false);\n"
                         "                break;\n"
+                        "            case 0x86927fu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x869758u, false);\n"
+                        "                break;\n"
+                        "            case 0x869285u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x8699bfu, false);\n"
+                        "                break;\n"
+                        "            case 0x869290u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86a7ceu, false);\n"
+                        "                break;\n"
                         "            case 0x869293u:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86a791u, false);\n"
                         "                break;\n"
-                        "            case 0x869299u:\n"
-                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86973eu, false);\n"
-                        "                break;\n"
                         "            case 0x869296u:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86e1b9u, false);\n"
+                        "                break;\n"
+                        "            case 0x869299u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86973eu, false);\n"
                         "                break;\n")
                 endif()
                 if(_battle_status)
