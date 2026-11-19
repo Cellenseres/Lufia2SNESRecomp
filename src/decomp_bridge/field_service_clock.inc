@@ -43,7 +43,8 @@ static bool FieldTickClockSupported(const CpuState *cpu) {
         cpu->master_cycles > UINT64_MAX - FIELD_TICK_CLOCK_RESERVE ||
         !ActorBridgeTimedStepSupportedWindow(cpu, 0x809c72u, 0x1ffcu,
             false, 1363u, FIELD_TICK_CLOCK_RESERVE) ||
-        !g_snes->apu || !g_snes->hdmaBeamOff || g_snes->dma->hdmaPendingInit ||
+        !g_snes->apu || (!g_snes->hdmaBeamOff && ActorBridgeHdmaMayTransfer()) ||
+        g_snes->dma->hdmaPendingInit ||
         g_snes->vPos >= 262u || !g_snes->cart || !g_snes->cart->rom ||
         g_snes->cart->type != CART_LOROM || g_snes->cart->romSize < 0x1cb8u ||
         !Lufia2DecompFrameRangeQuiet(0x809c72u, 0x809cb8u))
