@@ -463,7 +463,7 @@ endif()
 
 if(LUFIA2_ENABLE_NATIVE_SPC)
     include("${CMAKE_SOURCE_DIR}/cmake/Lufia2SpcBootstrap.cmake")
-    lufia2_prepare_spc_bootstrap(SNESRECOMP_RUNNER_SOURCES)
+    lufia2_prepare_spc_bootstrap(SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")
     include("${CMAKE_SOURCE_DIR}/lib/snesrecomp-platform/cmake/SnesRecompPlatformApuClock.cmake")
     snesrecomp_platform_overlay_apu_clock(
         SNESRECOMP_RUNNER_SOURCES "${SNESRECOMP_ROOT}")

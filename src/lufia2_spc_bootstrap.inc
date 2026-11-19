@@ -164,10 +164,12 @@ static unsigned SpcBootstrapStep(Apu *apu) {
     }
 }
 
-static unsigned RunSpcBootstrap(Apu *apu) {
+unsigned Lufia2SpcResumeInstruction(Spc *spc);
+
+static unsigned RunNativeSpcTransfer(Apu *apu) {
     Spc *spc = apu->spc;
     if (SNESRECOMP_SPC_DIAGNOSTICS || SNESRECOMP_TRACE || !s_apu_program ||
-        !apu->romReadable || spc->pc < 0xffc0u || spc->p || spc->stopped)
+        spc->p || spc->stopped)
         return 0u;
 
     static int trace_requested = -1;
@@ -176,7 +178,8 @@ static unsigned RunSpcBootstrap(Apu *apu) {
     if (trace_requested)
         return 0u;
 
-    const unsigned cycles = SpcBootstrapStep(apu);
+    const unsigned cycles = spc->pc < 0xffc0u ? Lufia2SpcResumeInstruction(spc) :
+        apu->romReadable ? SpcBootstrapStep(apu) : 0u;
     if (cycles)
         spc->cyclesUsed = cycles;
     return cycles;
