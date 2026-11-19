@@ -1567,6 +1567,26 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, true, false, false);\n"
                         "                break;\n")
                 endif()
+                set(_battle_width_sites "")
+                if(_battle_command_steps)
+                    list(APPEND _battle_width_sites "pc_before == 0x818b43u" "pc_before == 0x818b49u")
+                endif()
+                if(_battle_gauge_steps)
+                    list(APPEND _battle_width_sites "pc_before == 0x81e320u")
+                endif()
+                if(_battle_width_sites)
+                    list(JOIN _battle_width_sites " || " _battle_width_guard)
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunBattleWidthOpcode(Interp816 *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/battle_width_opcode.inc\"\n")
+                    string(APPEND _native_opcode
+                        "        if (!_cyc && (${_battle_width_guard}) &&\n"
+                        "            !stop_on_rti && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
+                        "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
+                        "            g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
+                        "            _cyc = Lufia2DecompRunBattleWidthOpcode(&in, pc_before, op);\n")
+                endif()
                 set(_menu_opcode_sites "")
                 if(_battle_command_steps)
                     list(APPEND _menu_opcode_sites "pc_before == 0x81cb96u" "pc_before == 0x81cbe7u"
