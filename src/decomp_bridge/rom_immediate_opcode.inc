@@ -727,11 +727,29 @@ static int Lufia2DecompRunStackOpcode(Interp816 *registers, uint32_t pc, uint8_t
     return registers->cyclesUsed;
 }
 
+static int Lufia2DecompRunRomCall(Interp816 *registers, uint32_t pc, uint8_t opcode) {
+    const bool long_call = opcode == 0x22u;
+    const unsigned length = long_call ? 4u : 3u;
+    unsigned offset;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
+    if (!cart || registers->sp < (long_call ? 0x1f03u : 0x1f02u))
+        return 0;
+
+    const uint32_t bank = long_call ? cart->rom[offset + 3u] : pc >> 16;
+    const uint16_t address = cart->rom[offset + 1u] | ((uint16_t)cart->rom[offset + 2u] << 8);
+    if (bank < 0x80u || bank > 0xbfu || address < 0x8000u ||
+        (bank & 0x7fu) * 0x8000u + (address & 0x7fffu) >= cart->romSize)
+        return 0;
+    return Lufia2DecompRunDirectCallWithWidths(registers, pc, opcode, (bank << 16) | address,
+        long_call, registers->mf, registers->xf);
+}
+
 static bool Lufia2DecompIsNmiRomOpcode(uint8_t opcode) {
     return (opcode & 0x1fu) == 0x10u || opcode == 0xc2u || opcode == 0xe2u ||
         opcode == 0x80u || opcode == 0x82u || opcode == 0x4cu || opcode == 0x5cu ||
         Lufia2DecompIsImmediateDataOpcode(opcode) || Lufia2DecompIsRegisterOrStackOpcode(opcode) ||
-        Lufia2DecompIsMemoryOpcode(opcode) || opcode == 0x60u || opcode == 0x6bu;
+        Lufia2DecompIsMemoryOpcode(opcode) || opcode == 0x60u || opcode == 0x6bu ||
+        opcode == 0x20u || opcode == 0x22u;
 }
 
 /* Keeping the dispatch out of line avoids growing the interpreter loop. */
@@ -751,7 +769,10 @@ static LUFIA2_ROM_NOINLINE int Lufia2DecompRunNativeRomControl(Interp816 *regist
         return Lufia2DecompRunRegisterOpcode(registers, pc, opcode);
     if (Lufia2DecompIsStackOpcode(opcode))
         return Lufia2DecompRunStackOpcode(registers, pc, opcode);
-    return Lufia2DecompRunAotCallSite(registers, pc, opcode);
+    const int aot_cycles = Lufia2DecompRunAotCallSite(registers, pc, opcode);
+    if (aot_cycles || (opcode != 0x20u && opcode != 0x22u))
+        return aot_cycles;
+    return Lufia2DecompRunRomCall(registers, pc, opcode);
 }
 
 #undef LUFIA2_MEMORY_MODIFY_CASES

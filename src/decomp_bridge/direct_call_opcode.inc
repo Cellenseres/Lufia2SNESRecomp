@@ -28,8 +28,10 @@ static int Lufia2DecompRunDirectCallWithWidths(
         (long_call && cart->rom[offset + 3u] != (uint8_t)(target >> 16)))
         return 0;
 
+    registers->cyclesUsed = 0u;
     (void)registers->read(registers->mem, (pc & 0xff0000u) | registers->pc++);
     g_interp816_cur_pc = pc;
+    registers->cyclesUsed = long_call ? 8u : 6u;
     for (unsigned i = 1u; i < length; ++i)
         (void)registers->read(registers->mem, (pc & 0xff0000u) | registers->pc++);
 
@@ -44,7 +46,6 @@ static int Lufia2DecompRunDirectCallWithWidths(
     --registers->sp;
     registers->pc = (uint16_t)target;
     registers->k = (uint8_t)(target >> 16);
-    registers->cyclesUsed = long_call ? 8 : 6;
     return registers->cyclesUsed;
 }
 
