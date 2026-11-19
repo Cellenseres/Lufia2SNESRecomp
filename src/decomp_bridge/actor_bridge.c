@@ -4770,7 +4770,7 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
     }
 #endif
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_RESULT_STEPS)
-    static const uint32_t result_phases[] = {0x81de88u, 0x81de93u, 0x81de95u, 0x81dea2u};
+    static const uint32_t result_phases[] = {0x81de88u, 0x81de8eu, 0x81de93u, 0x81de95u, 0x81dea2u};
     for (unsigned index = 0u; index < sizeof(result_phases) / sizeof(result_phases[0]); ++index) {
         const uint32_t entry = result_phases[index];
         if (Lufia2DecompFrameRangeAllows(entry, entry + 1u, ResultPhaseHookOwned))
