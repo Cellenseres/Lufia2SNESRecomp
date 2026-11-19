@@ -1362,7 +1362,7 @@ function(lufia2_add_nmi_continuations target core_root)
                 set(_native_opcode "        int _cyc = Lufia2DecompNmiRunCallBoundary(\n            &in, pc_before, op, stop_on_rti, auto_quiescent,\n            trace || dtrace || wlog_state_sync || s_interp_pctrace);\n")
                 if(_nmi_child_boundaries OR _battle_effect_frame_steps OR _cursor_pixel_spans OR
                    _turn_display_steps OR _save_action_steps OR _battle_upkeep OR
-                   _scene_claim_steps OR _battle_status)
+                   _scene_claim_steps OR _battle_status OR _world_frame_control_steps)
                     string(PREPEND _text
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunDirectCall(Interp816 *, uint32_t, uint8_t, uint32_t, bool);\nstatic int Lufia2DecompRunDirectCallWithWidths(Interp816 *, uint32_t, uint8_t, uint32_t, bool, bool, bool);\n")
                     string(APPEND _timing_suffix
@@ -1433,10 +1433,23 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                break;\n")
                 endif()
                 if(_cursor_pixel_spans)
-                    list(APPEND _control_sites "pc_before == 0x828aafu")
+                    list(APPEND _control_sites "pc_before == 0x828a7eu" "pc_before == 0x828aafu")
                     string(APPEND _control_cases
+                        "            case 0x828a7eu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x828ad8u, false);\n"
+                        "                break;\n"
                         "            case 0x828aafu:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x828ae9u, false);\n"
+                        "                break;\n")
+                endif()
+                if(_world_frame_control_steps)
+                    list(APPEND _control_sites "pc_before == 0x869293u" "pc_before == 0x869299u")
+                    string(APPEND _control_cases
+                        "            case 0x869293u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86a791u, false);\n"
+                        "                break;\n"
+                        "            case 0x869299u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86973eu, false);\n"
                         "                break;\n")
                 endif()
                 if(_battle_status)
