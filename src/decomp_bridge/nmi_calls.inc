@@ -14,7 +14,8 @@ static int Lufia2DecompNmiRunCallBoundary(
         registers->irqWanted || registers->sp < 0x1f02u || registers->sp > 0x1ffcu)
         return 0;
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CHILD_BOUNDARIES)
-    if ((pc == 0x8087f0u || pc == 0x808702u || pc == 0x80882du) &&
+    if ((pc == 0x8087ccu || pc == 0x8087f0u || pc == 0x808808u ||
+         pc == 0x808702u || pc == 0x80882du) &&
         (observed ||
          !Lufia2DecompFrameRangeQuiet(pc, pc + (opcode == 0x20u ? 3u : 1u))))
         return 0;
@@ -24,6 +25,11 @@ static int Lufia2DecompNmiRunCallBoundary(
     unsigned cycles;
     switch (pc) {
 #if defined(LUFIA2_HAVE_NATIVE_NMI_CHILD_BOUNDARIES)
+    case 0x8087ccu: case 0x808808u:
+        if (!g_snes->inNmi || g_snes->inIrq)
+            return 0;
+        return Lufia2DecompRunDirectCall(registers, pc, opcode,
+            pc == 0x808808u ? 0x80882eu : 0x80884fu, false);
     case 0x8087f0u:
 #endif
     case 0x808649u:
