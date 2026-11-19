@@ -2097,7 +2097,8 @@ function(lufia2_add_nmi_continuations target core_root)
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/aot_call_sites.inc\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/rom_immediate_control_opcode.inc\"\n")
                     string(APPEND _native_opcode
-                        "        if (!_cyc && (is_ret || op == 0x20u || op == 0x22u || (op & 0x1fu) == 0x10u || op == 0xc2u || op == 0xe2u) &&\n"
+                        "        if (!_cyc && (is_ret || op == 0x20u || op == 0x22u || (op & 0x1fu) == 0x10u || op == 0xc2u || op == 0xe2u ||\n"
+                        "                      op == 0x80u || op == 0x82u || op == 0x4cu || op == 0x5cu) &&\n"
                         "            !stop_on_rti && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
                         "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
                         "            g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
