@@ -1363,7 +1363,7 @@ function(lufia2_add_nmi_continuations target core_root)
                 if(_nmi_child_boundaries OR _battle_effect_frame_steps OR _cursor_pixel_spans OR
                    _turn_display_steps OR _save_action_steps OR _battle_upkeep OR
                    _scene_claim_steps OR _battle_status OR _world_frame_control_steps OR
-                   _battle_command_steps OR _menu_fade_continuations OR _battle_gauge_steps OR _item_record_steps)
+                   _battle_command_steps OR _menu_fade_continuations OR _battle_gauge_steps OR _item_record_steps OR _menu_leaves OR _field_actor_rebuild_steps)
                     string(PREPEND _text
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunDirectCall(Interp816 *, uint32_t, uint8_t, uint32_t, bool);\nstatic int Lufia2DecompRunDirectCallWithWidths(Interp816 *, uint32_t, uint8_t, uint32_t, bool, bool, bool);\n")
                     string(APPEND _timing_suffix
@@ -1469,9 +1469,65 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, true, false, false);\n"
                         "                break;\n")
                 endif()
-                if(_save_action_steps)
-                    list(APPEND _control_sites "pc_before == 0x82ea3du" "pc_before == 0x82ea54u" "pc_before == 0x82ea7eu")
+                if(_field_actor_rebuild_steps)
+                    list(APPEND _control_sites
+                        "pc_before == 0x83a783u" "pc_before == 0x83a78eu" "pc_before == 0x83a7aeu" "pc_before == 0x83a7b1u")
                     string(APPEND _control_cases
+                        "            case 0x83a783u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCallWithWidths(&in, pc_before, op, 0x83ab4fu, true, true, true);\n"
+                        "                break;\n"
+                        "            case 0x83a78eu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCallWithWidths(&in, pc_before, op, 0x83a9bau, true, true, true);\n"
+                        "                break;\n"
+                        "            case 0x83a7aeu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCallWithWidths(&in, pc_before, op, 0x83aae5u, false, true, true);\n"
+                        "                break;\n"
+                        "            case 0x83a7b1u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCallWithWidths(&in, pc_before, op, 0x848193u, true, false, true);\n"
+                        "                break;\n")
+                endif()
+                if(_menu_leaves)
+                    list(APPEND _control_sites
+                        "pc_before == 0x828b06u" "pc_before == 0x82bd7eu")
+                    string(APPEND _control_cases
+                        "            case 0x828b06u:\n"
+                        "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, false, true, false);\n"
+                        "                break;\n"
+                        "            case 0x82bd7eu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCallWithWidths(&in, pc_before, op, 0x81f194u, true, false, false);\n"
+                        "                break;\n")
+                endif()
+                if(_battle_status AND _menu_leaves)
+                    list(APPEND _control_sites
+                        "pc_before == 0x81e524u" "pc_before == 0x81e53bu" "pc_before == 0x81e541u" "pc_before == 0x81e834u")
+                    string(APPEND _control_cases
+                        "            case 0x81e524u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCallWithWidths(&in, pc_before, op, 0x81e542u, false, false, false);\n"
+                        "                break;\n"
+                        "            case 0x81e53bu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCallWithWidths(&in, pc_before, op, 0x81e542u, false, false, false);\n"
+                        "                break;\n"
+                        "            case 0x81e541u:\n"
+                        "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, false, true, false);\n"
+                        "                break;\n"
+                        "            case 0x81e834u:\n"
+                        "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, false, true, false);\n"
+                        "                break;\n")
+                endif()
+                if(_battle_command_steps)
+                    list(APPEND _control_sites
+                        "pc_before == 0x818b36u")
+                    string(APPEND _control_cases
+                        "            case 0x818b36u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCallWithWidths(&in, pc_before, op, 0x859bdau, true, false, false);\n"
+                        "                break;\n")
+                endif()
+                if(_save_action_steps)
+                    list(APPEND _control_sites "pc_before == 0x82e9dfu" "pc_before == 0x82ea3du" "pc_before == 0x82ea54u" "pc_before == 0x82ea7eu")
+                    string(APPEND _control_cases
+                        "            case 0x82e9dfu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x828b08u, false);\n"
+                        "                break;\n"
                         "            case 0x82ea3du:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x828b08u, false);\n"
                         "                break;\n"
