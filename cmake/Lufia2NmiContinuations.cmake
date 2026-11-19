@@ -2091,7 +2091,7 @@ function(lufia2_add_nmi_continuations target core_root)
                 endif()
                 if(_manifest_calls)
                     string(PREPEND _text
-                        "#include \"interp816.h\"\nstatic bool Lufia2DecompIsImmediateDataOpcode(uint8_t);\nstatic bool Lufia2DecompIsWramOpcode(uint8_t);\nstatic bool Lufia2DecompIsRegisterOrStackOpcode(uint8_t);\nstatic bool Lufia2DecompIsNmiRomOpcode(uint8_t);\nstatic int Lufia2DecompRunNativeRomControl(Interp816 *, uint32_t, uint8_t);\n")
+                        "#include \"interp816.h\"\nstatic bool Lufia2DecompIsImmediateDataOpcode(uint8_t);\nstatic bool Lufia2DecompIsMemoryOpcode(uint8_t);\nstatic bool Lufia2DecompIsRegisterOrStackOpcode(uint8_t);\nstatic bool Lufia2DecompIsNmiRomOpcode(uint8_t);\nstatic int Lufia2DecompRunNativeRomControl(Interp816 *, uint32_t, uint8_t);\n")
                     string(APPEND _timing_suffix
                         "\n#include \"${_aot_call_table}\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/aot_call_sites.inc\"\n"
@@ -2099,7 +2099,7 @@ function(lufia2_add_nmi_continuations target core_root)
                     string(APPEND _native_opcode
                         "        if (!_cyc && (is_ret || op == 0x20u || op == 0x22u || (op & 0x1fu) == 0x10u || op == 0xc2u || op == 0xe2u ||\n"
                         "                      op == 0x80u || op == 0x82u || op == 0x4cu || op == 0x5cu ||\n"
-                        "                      Lufia2DecompIsImmediateDataOpcode(op) || Lufia2DecompIsWramOpcode(op) || Lufia2DecompIsRegisterOrStackOpcode(op)) &&\n"
+                        "                      Lufia2DecompIsImmediateDataOpcode(op) || Lufia2DecompIsMemoryOpcode(op) || Lufia2DecompIsRegisterOrStackOpcode(op)) &&\n"
                         "            !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
                         "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
                         "            g_snes && !g_snes->inIrq && (g_snes->inNmi\n"
