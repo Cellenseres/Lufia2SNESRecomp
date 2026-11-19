@@ -3867,7 +3867,8 @@ static bool ActorBridgeSingleOpcodeSupported(const CpuState *cpu, uint32_t entry
         cpu->master_cycles > UINT64_MAX - budget)
         return false;
     if (!g_snes->hdmaBeamOff &&
-        ((entry >> 12) != 0x809u || ActorBridgeHdmaMayTransfer()))
+        (((entry >> 12) != 0x809u && entry != 0x808084u && entry != 0x808086u) ||
+         ActorBridgeHdmaMayTransfer()))
         return false;
     uint64_t refresh_phase, refresh_clock;
     snes_refresh_state_get(&refresh_phase, &refresh_clock);

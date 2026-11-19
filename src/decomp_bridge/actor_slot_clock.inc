@@ -139,7 +139,8 @@ static bool ActorSlotPhaseClockSupportedWindow(const CpuState *cpu, uint32_t ent
         g_snes->dma->hdmaPendingInit)
         return false;
     if (!g_snes->hdmaBeamOff &&
-        ((entry != 0x83bba1u && entry != 0x83bba5u && entry != 0x83bbd1u) ||
+        ((entry != 0x83bba1u && entry != 0x83bba5u && entry != 0x83bbcfu &&
+          entry != 0x83bbd1u) ||
          ActorBridgeHdmaMayTransfer()))
         return false;
     const unsigned end_line = g_snes->vPos < 225u ? 225u : 262u;
