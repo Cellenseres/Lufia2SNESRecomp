@@ -96,10 +96,17 @@ static bool FieldMapClockSupported(const CpuState *cpu, uint32_t entry, unsigned
             (uint16_t)(rpc - 1u) ||
         (frame_size == 3u && cpu->ram[cpu->S + 3u] != (rpc >> 16)) ||
         !ActorBridgeTimedStepSupportedWindow(cpu, entry, 0x1ffcu, false, 1363u, reserve) ||
-        !g_snes->apu || !g_snes->hdmaBeamOff || g_snes->dma->hdmaPendingInit ||
+        !g_snes->apu || g_snes->dma->hdmaPendingInit ||
         g_snes->vPos >= 262u || !g_snes->cart || !g_snes->cart->rom ||
         g_snes->cart->type != CART_LOROM || g_snes->cart->romSize <= 0x1fb8au)
         return false;
+    if (!g_snes->hdmaBeamOff) {
+        if (entry != 0x83ab4fu)
+            return false;
+        for (unsigned channel = 0u; channel < 8u; ++channel)
+            if (g_snes->dma->channel[channel].hdmaActive)
+                return false;
+    }
     if (entry == 0x83ab4fu) {
         if (cpu->ram[0xa7u] >= 40u ||
             !ActorRecordOffsetsHooksAllow())
