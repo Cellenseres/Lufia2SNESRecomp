@@ -234,7 +234,11 @@ static int Lufia2DecompRunWramOpcode(Interp816 *registers, uint32_t pc, uint8_t 
 
 #define LUFIA2_REGISTER_OPCODE_CASES \
     case 0x0au: case 0x1au: case 0x2au: case 0x3au: case 0x4au: \
-    case 0x6au: case 0x88u: case 0xc8u: case 0xcau: case 0xe8u:
+    case 0x6au: case 0x88u: case 0xc8u: case 0xcau: case 0xe8u: \
+    case 0x18u: case 0x38u: case 0x58u: case 0x78u: case 0xb8u: \
+    case 0xd8u: case 0xf8u: case 0xeau: case 0x8au: case 0x98u: \
+    case 0xa8u: case 0xaau: case 0x9bu: case 0xbbu: case 0xebu: \
+    case 0x1bu: case 0x3bu: case 0x5bu: case 0x7bu: case 0x9au: case 0xbau:
 
 static bool Lufia2DecompIsRegisterOpcode(uint8_t opcode) {
     switch (opcode) {
@@ -253,10 +257,81 @@ static bool Lufia2DecompIsRegisterOpcode(uint8_t opcode) {
 #define LUFIA2_ROM_NOINLINE
 #endif
 
+static bool Lufia2DecompRunTransferOrFlags(Interp816 *registers, uint8_t opcode) {
+    uint8_t destination;
+    uint16_t value;
+    bool byte;
+    switch (opcode) {
+    case 0x18u: case 0x38u:
+        registers->c = opcode == 0x38u;
+        return true;
+    case 0x58u: case 0x78u:
+        registers->i = opcode == 0x78u;
+        return true;
+    case 0xb8u:
+        registers->v = false;
+        return true;
+    case 0xd8u: case 0xf8u:
+        registers->d = opcode == 0xf8u;
+        return true;
+    case 0xeau:
+        return true;
+    case 0xebu:
+        registers->a = (uint16_t)((registers->a >> 8) | (registers->a << 8));
+        registers->n = (registers->a & 0x80u) != 0u;
+        registers->z = (uint8_t)registers->a == 0u;
+        return true;
+    case 0x1bu: case 0x9au:
+        registers->sp = opcode == 0x1bu ? registers->a : registers->x;
+        return true;
+    case 0x5bu:
+        registers->dp = registers->a;
+        registers->n = (registers->dp & 0x8000u) != 0u;
+        registers->z = registers->dp == 0u;
+        return true;
+    case 0x3bu: case 0x7bu:
+        destination = 0xa9u;
+        value = opcode == 0x3bu ? registers->sp : registers->dp;
+        byte = false;
+        break;
+    case 0xbau:
+        destination = 0xa2u;
+        value = registers->sp;
+        byte = registers->xf;
+        break;
+    case 0x8au: case 0x98u:
+        destination = 0xa9u;
+        value = opcode == 0x8au ? registers->x : registers->y;
+        byte = registers->mf;
+        break;
+    case 0xaau: case 0xa8u:
+        destination = opcode == 0xaau ? 0xa2u : 0xa0u;
+        value = registers->a;
+        byte = registers->xf;
+        break;
+    case 0x9bu: case 0xbbu:
+        destination = opcode == 0xbbu ? 0xa2u : 0xa0u;
+        value = opcode == 0xbbu ? registers->y : registers->x;
+        byte = registers->xf;
+        break;
+    default:
+        return false;
+    }
+    Lufia2DecompApplyOperand(registers, destination, byte ? (uint8_t)value : value, byte);
+    return true;
+}
+
 static LUFIA2_ROM_NOINLINE int Lufia2DecompRunRegisterOpcode(Interp816 *registers, uint32_t pc, uint8_t opcode) {
     unsigned offset;
     if (!Lufia2DecompPlainRomOpcode(registers, pc, opcode, 1u, &offset))
         return 0;
+    registers->cyclesUsed = 0;
+    (void)registers->read(registers->mem, (pc & 0xff0000u) | registers->pc++);
+    g_interp816_cur_pc = pc;
+    registers->cyclesUsed = opcode == 0xebu ? 3u : 2u;
+    if (Lufia2DecompRunTransferOrFlags(registers, opcode))
+        return registers->cyclesUsed;
+
     const bool index_x = opcode == 0xe8u || opcode == 0xcau;
     const bool index_y = opcode == 0xc8u || opcode == 0x88u;
     const bool byte = index_x || index_y ? registers->xf : registers->mf;
@@ -264,11 +339,6 @@ static LUFIA2_ROM_NOINLINE int Lufia2DecompRunRegisterOpcode(Interp816 *register
     const uint16_t sign = byte ? 0x80u : 0x8000u;
     uint16_t *destination = index_x ? &registers->x : index_y ? &registers->y : &registers->a;
     const uint16_t value = *destination & mask;
-
-    registers->cyclesUsed = 0;
-    (void)registers->read(registers->mem, (pc & 0xff0000u) | registers->pc++);
-    g_interp816_cur_pc = pc;
-    registers->cyclesUsed = 2u;
 
     uint16_t result = value;
     switch (opcode) {
