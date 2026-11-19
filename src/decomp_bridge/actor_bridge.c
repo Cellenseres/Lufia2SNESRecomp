@@ -3860,9 +3860,12 @@ static bool ActorBridgeSingleOpcodeSupported(const CpuState *cpu, uint32_t entry
                                              unsigned budget) {
     if (ActorBridgeSoundWindowSupported(cpu, entry, 0x1fffu, budget))
         return true;
-    if (!g_snes || !g_snes->apu || !g_snes->hdmaBeamOff ||
+    if (!g_snes || !g_snes->apu ||
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
         cpu->master_cycles > UINT64_MAX - budget)
+        return false;
+    if (!g_snes->hdmaBeamOff &&
+        ((entry >> 12) != 0x809u || ActorBridgeHdmaMayTransfer()))
         return false;
     uint64_t refresh_phase, refresh_clock;
     snes_refresh_state_get(&refresh_phase, &refresh_clock);
