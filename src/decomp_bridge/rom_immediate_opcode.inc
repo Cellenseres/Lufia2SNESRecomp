@@ -214,20 +214,76 @@ static int Lufia2DecompRunWramOpcode(Interp816 *registers, uint32_t pc, uint8_t 
     return registers->cyclesUsed;
 }
 
-/* Keeping the dispatch out of line avoids growing the interpreter loop. */
+static bool Lufia2DecompIsRegisterOpcode(uint8_t opcode) {
+    switch (opcode) {
+    case 0x0au: case 0x1au: case 0x2au: case 0x3au: case 0x4au:
+    case 0x6au: case 0x88u: case 0xc8u: case 0xcau: case 0xe8u:
+        return true;
+    default:
+        return false;
+    }
+}
+
 #if defined(_MSC_VER)
-static __declspec(noinline)
+#define LUFIA2_ROM_NOINLINE __declspec(noinline)
 #elif defined(__GNUC__)
-static __attribute__((noinline))
+#define LUFIA2_ROM_NOINLINE __attribute__((noinline))
 #else
-static
+#define LUFIA2_ROM_NOINLINE
 #endif
-int Lufia2DecompRunNativeRomControl(Interp816 *registers, uint32_t pc, uint8_t opcode) {
+
+static LUFIA2_ROM_NOINLINE int Lufia2DecompRunRegisterOpcode(Interp816 *registers, uint32_t pc, uint8_t opcode) {
+    unsigned offset;
+    if (!Lufia2DecompPlainRomOpcode(registers, pc, opcode, 1u, &offset))
+        return 0;
+    const bool index_x = opcode == 0xe8u || opcode == 0xcau;
+    const bool index_y = opcode == 0xc8u || opcode == 0x88u;
+    const bool byte = index_x || index_y ? registers->xf : registers->mf;
+    const uint16_t mask = byte ? 0xffu : 0xffffu;
+    const uint16_t sign = byte ? 0x80u : 0x8000u;
+    uint16_t *destination = index_x ? &registers->x : index_y ? &registers->y : &registers->a;
+    const uint16_t value = *destination & mask;
+
+    registers->cyclesUsed = 0;
+    (void)registers->read(registers->mem, (pc & 0xff0000u) | registers->pc++);
+    g_interp816_cur_pc = pc;
+    registers->cyclesUsed = 2u;
+
+    uint16_t result = value;
+    switch (opcode) {
+    case 0x1au: case 0xe8u: case 0xc8u:
+        ++result;
+        break;
+    case 0x3au: case 0xcau: case 0x88u:
+        --result;
+        break;
+    case 0x0au: case 0x2au:
+        result = (uint16_t)((value << 1) | (opcode == 0x2au && registers->c));
+        registers->c = (value & sign) != 0u;
+        break;
+    case 0x4au: case 0x6au:
+        result = (uint16_t)((value >> 1) | ((opcode == 0x6au && registers->c) ? sign : 0u));
+        registers->c = (value & 1u) != 0u;
+        break;
+    }
+    result &= mask;
+    *destination = result | (index_x || index_y ? 0u : *destination & ~mask);
+    registers->n = (result & sign) != 0u;
+    registers->z = result == 0u;
+    return registers->cyclesUsed;
+}
+
+/* Keeping the dispatch out of line avoids growing the interpreter loop. */
+static LUFIA2_ROM_NOINLINE int Lufia2DecompRunNativeRomControl(Interp816 *registers, uint32_t pc, uint8_t opcode) {
     if ((opcode & 0x1fu) == 0x10u || opcode == 0xc2u || opcode == 0xe2u ||
         opcode == 0x80u || opcode == 0x82u || opcode == 0x4cu || opcode == 0x5cu ||
         Lufia2DecompIsImmediateDataOpcode(opcode))
         return Lufia2DecompRunRomImmediateOpcode(registers, pc, opcode);
     if (Lufia2DecompIsWramOpcode(opcode))
         return Lufia2DecompRunWramOpcode(registers, pc, opcode);
+    if (Lufia2DecompIsRegisterOpcode(opcode))
+        return Lufia2DecompRunRegisterOpcode(registers, pc, opcode);
     return Lufia2DecompRunAotCallSite(registers, pc, opcode);
 }
+
+#undef LUFIA2_ROM_NOINLINE
