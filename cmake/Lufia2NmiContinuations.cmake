@@ -1360,10 +1360,24 @@ function(lufia2_add_nmi_continuations target core_root)
                     message(FATAL_ERROR "Native NMI calls require reviewed opcode execution")
                 endif()
                 set(_native_opcode "        int _cyc = Lufia2DecompNmiRunCallBoundary(\n            &in, pc_before, op, stop_on_rti, auto_quiescent,\n            trace || dtrace || wlog_state_sync || s_interp_pctrace);\n")
+                set(_manifest_calls FALSE)
+                set(_aot_call_manifest "${LUFIA2_GENERATED_DIR}/program_manifest.json")
+                if(LUFIA2_ENABLE_REVIEWED_AOT AND EXISTS "${_aot_call_manifest}" AND EXISTS "${LUFIA2_ROM}")
+                    set(_aot_call_script "${CMAKE_SOURCE_DIR}/scripts/aot_call_sites.py")
+                    set(_aot_call_table "${CMAKE_BINARY_DIR}/generated/decomp-nmi/aot_call_site_table.inc")
+                    set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS "${_aot_call_script}")
+                    execute_process(COMMAND "${Python3_EXECUTABLE}" "${_aot_call_script}"
+                        "${_aot_call_manifest}" "${LUFIA2_ROM}" "${_aot_call_table}"
+                        RESULT_VARIABLE _aot_call_result)
+                    if(NOT _aot_call_result EQUAL 0)
+                        message(FATAL_ERROR "Generating Lufia II AOT call sites failed")
+                    endif()
+                    set(_manifest_calls TRUE)
+                endif()
                 if(_nmi_child_boundaries OR _battle_effect_frame_steps OR _cursor_pixel_spans OR
                    _turn_display_steps OR _save_action_steps OR _battle_upkeep OR
                    _scene_claim_steps OR _battle_status OR _world_frame_control_steps OR
-                   _battle_command_steps OR _menu_fade_continuations OR _battle_gauge_steps OR _item_record_steps OR _menu_leaves OR _field_actor_rebuild_steps OR _sound_frame_boundaries)
+                   _battle_command_steps OR _menu_fade_continuations OR _battle_gauge_steps OR _item_record_steps OR _menu_leaves OR _field_actor_rebuild_steps OR _sound_frame_boundaries OR _manifest_calls)
                     string(PREPEND _text
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunDirectCall(Interp816 *, uint32_t, uint8_t, uint32_t, bool);\nstatic int Lufia2DecompRunDirectCallWithWidths(Interp816 *, uint32_t, uint8_t, uint32_t, bool, bool, bool);\n")
                     string(APPEND _timing_suffix
@@ -2047,6 +2061,19 @@ function(lufia2_add_nmi_continuations target core_root)
                         "#include \"interp816.h\"\n#include \"cpu_state.h\"\nstatic int Lufia2DecompRunSceneRebuildSpan(Interp816 *, CpuState *, uint32_t, uint8_t);\n")
                     string(APPEND _timing_suffix
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/scene_rebuild_spans.inc\"\n")
+                endif()
+                if(_manifest_calls)
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunAotCallSite(Interp816 *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${_aot_call_table}\"\n"
+                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/aot_call_sites.inc\"\n")
+                    string(APPEND _native_opcode
+                        "        if (!_cyc && (op == 0x20u || op == 0x22u) &&\n"
+                        "            !stop_on_rti && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
+                        "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
+                        "            g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
+                        "            _cyc = Lufia2DecompRunAotCallSite(&in, pc_before, op);\n")
                 endif()
                 string(APPEND _native_opcode "        if (!_cyc)\n            _cyc = interp816_runOpcode(&in);")
                 string(REPLACE "${_original_opcode}" "${_native_opcode}"
