@@ -25,7 +25,10 @@ static bool NmiClockWindowWithDeferredHdma(const CpuState *cpu, bool byte_index,
         return false;
 #endif
     }
-    const bool leaves_hdma_unchanged =
+    const unsigned upload_channel = 6u;
+    const bool prepares_inactive_dma = (first == 0x80870cu || first == 0x80873cu) &&
+        !g_snes->dma->channel[upload_channel].hdmaActive;
+    const bool leaves_hdma_unchanged = prepares_inactive_dma ||
         first == 0x80864cu || first == 0x808653u || first == 0x80865au ||
         first == 0x808664u || first == 0x8086c1u || first == 0x808706u ||
         first == 0x808736u || first == 0x808765u || first == 0x808770u ||
