@@ -221,6 +221,8 @@ static bool Lufia2DecompIsDirectPageOpcode(uint8_t opcode) {
     case 0xa6u: case 0xa4u: case 0x86u: case 0x84u:
     case 0xb5u: case 0x95u: case 0x74u: case 0xb4u: case 0x94u: case 0xb6u: case 0x96u:
     case 0x04u: case 0x14u: case 0xc6u: case 0xd6u: case 0xe6u: case 0xf6u:
+    case 0x06u: case 0x16u: case 0x26u: case 0x36u:
+    case 0x46u: case 0x56u: case 0x66u: case 0x76u:
         return true;
     default:
         return false;
@@ -230,7 +232,11 @@ static bool Lufia2DecompIsDirectPageOpcode(uint8_t opcode) {
 #define LUFIA2_MEMORY_MODIFY_CASES \
     case 0x04u: case 0x14u: case 0x0cu: case 0x1cu: \
     case 0xc6u: case 0xd6u: case 0xceu: case 0xdeu: \
-    case 0xe6u: case 0xf6u: case 0xeeu: case 0xfeu:
+    case 0xe6u: case 0xf6u: case 0xeeu: case 0xfeu: \
+    case 0x06u: case 0x16u: case 0x0eu: case 0x1eu: \
+    case 0x26u: case 0x36u: case 0x2eu: case 0x3eu: \
+    case 0x46u: case 0x56u: case 0x4eu: case 0x5eu: \
+    case 0x66u: case 0x76u: case 0x6eu: case 0x7eu:
 
 static uint8_t Lufia2DecompMemoryArithmeticOperation(uint8_t opcode) {
     const uint8_t group = opcode & 0xe0u;
@@ -315,11 +321,22 @@ static bool Lufia2DecompIsMemoryModifyOpcode(uint8_t opcode) {
 static void Lufia2DecompModifyWram(Interp816 *registers, uint8_t opcode,
     uint32_t low, uint32_t high, bool wide) {
     uint16_t value = Lufia2DecompReadData(registers, low, high, wide);
-    const bool bit_mask = opcode < 0x20u;
+    const bool bit_mask = (opcode & 7u) == 4u;
     const uint16_t width_mask = wide ? 0xffffu : 0xffu;
+    const uint16_t sign = wide ? 0x8000u : 0x80u;
+    const bool rotate_right = (opcode & 0xe0u) == 0x60u;
+    const bool low_bit = (value & 1u) != 0u;
     if (bit_mask) {
         registers->z = (value & registers->a) == 0u;
         value = opcode & 0x10u ? value & ~registers->a : value | registers->a;
+    } else if (opcode < 0x40u) {
+        const bool incoming = (opcode & 0x20u) != 0u && registers->c;
+        registers->c = (value & sign) != 0u;
+        value = (uint16_t)((value << 1) | incoming);
+    } else if (opcode < 0x80u) {
+        value = (value >> 1) | (rotate_right && registers->c ? sign : 0u);
+        if (!rotate_right)
+            registers->c = low_bit;
     } else {
         value = (uint16_t)(value + (opcode & 0x20u ? 1 : -1));
     }
@@ -331,15 +348,18 @@ static void Lufia2DecompModifyWram(Interp816 *registers, uint8_t opcode,
         registers->write(registers->mem, low, (uint8_t)value);
     }
     if (!bit_mask) {
-        registers->n = (value & (wide ? 0x8000u : 0x80u)) != 0u;
+        registers->n = (value & sign) != 0u;
         registers->z = value == 0u;
+        if (rotate_right)
+            registers->c = low_bit;
     }
 }
 
 static LUFIA2_ROM_NOINLINE int Lufia2DecompRunMemoryModifyOpcode(Interp816 *registers,
     uint32_t pc, uint8_t opcode) {
     const bool direct_page = Lufia2DecompIsDirectPageOpcode(opcode);
-    const bool indexed = opcode == 0xd6u || opcode == 0xf6u || opcode == 0xdeu || opcode == 0xfeu;
+    const bool indexed = opcode == 0xd6u || opcode == 0xf6u || opcode == 0xdeu || opcode == 0xfeu ||
+        (opcode < 0x80u && (opcode & 0x17u) == 0x16u);
     const unsigned index = indexed ? registers->x : 0u;
     const unsigned length = direct_page ? 2u : 3u;
     const bool wide = !registers->mf;
