@@ -1602,6 +1602,16 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                break;\n")
                 endif()
                 if(_battle_upkeep)
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunBattleShiftLoopOpcode(Interp816 *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/battle_shift_loop_opcodes.inc\"\n")
+                    string(APPEND _native_opcode
+                        "        if (!_cyc && (pc_before == 0x85ce08u || pc_before == 0x85ce09u || pc_before == 0x85ce0cu) &&\n"
+                        "            !stop_on_rti && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
+                        "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
+                        "            g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
+                        "            _cyc = Lufia2DecompRunBattleShiftLoopOpcode(&in, pc_before, op);\n")
                     list(APPEND _control_sites "pc_before == 0x85ec81u" "pc_before == 0x85ec8bu")
                     string(APPEND _control_cases
                         "            case 0x85ec81u:\n"
