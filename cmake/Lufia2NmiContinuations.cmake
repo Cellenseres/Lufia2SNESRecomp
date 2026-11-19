@@ -1378,7 +1378,7 @@ function(lufia2_add_nmi_continuations target core_root)
                 if("LUFIA2_HAVE_NATIVE_BATTLE_MULTIPLY_WINDOW=1" IN_LIST _definitions)
                     set(_battle_multiply_return TRUE)
                 endif()
-                if(_turn_display_steps OR _actor_record_return OR _battle_multiply_return OR _battle_gauge_steps OR _battle_command_steps)
+                if(_turn_display_steps OR _actor_record_return OR _battle_multiply_return OR _battle_gauge_steps OR _battle_command_steps OR _divide_bit_spans)
                     string(PREPEND _text
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunReturn(Interp816 *, uint32_t, uint8_t, bool, bool, bool);\n")
                     string(APPEND _timing_suffix
@@ -1431,6 +1431,24 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                break;\n"
                         "            case 0x868b27u:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x868b55u, true);\n"
+                        "                break;\n")
+                endif()
+                if(_divide_bit_spans)
+                    list(APPEND _control_sites "pc_before == 0x80844fu")
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunDivideFrameOpcode(Interp816 *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/divide_frame_opcodes.inc\"\n")
+                    string(APPEND _native_opcode
+                        "        if (!_cyc && (pc_before == 0x808378u || pc_before == 0x808379u ||\n"
+                        "            pc_before == 0x80837bu || pc_before == 0x80844eu) &&\n"
+                        "            !stop_on_rti && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
+                        "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
+                        "            g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
+                        "            _cyc = Lufia2DecompRunDivideFrameOpcode(&in, pc_before, op);\n")
+                    string(APPEND _control_cases
+                        "            case 0x80844fu:\n"
+                        "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, true, in.mf, false);\n"
                         "                break;\n")
                 endif()
                 if(_save_action_steps)
