@@ -468,8 +468,8 @@ static int Lufia2DecompRunStackOpcode(Interp816 *registers, uint32_t pc, uint8_t
 static bool Lufia2DecompIsNmiRomOpcode(uint8_t opcode) {
     return (opcode & 0x1fu) == 0x10u || opcode == 0xc2u || opcode == 0xe2u ||
         opcode == 0x80u || opcode == 0x82u || opcode == 0x4cu || opcode == 0x5cu ||
-        Lufia2DecompIsImmediateDataOpcode(opcode) || Lufia2DecompIsRegisterOpcode(opcode) ||
-        Lufia2DecompIsWramOpcode(opcode);
+        Lufia2DecompIsImmediateDataOpcode(opcode) || Lufia2DecompIsRegisterOrStackOpcode(opcode) ||
+        Lufia2DecompIsWramOpcode(opcode) || opcode == 0x60u || opcode == 0x6bu;
 }
 
 /* Keeping the dispatch out of line avoids growing the interpreter loop. */
