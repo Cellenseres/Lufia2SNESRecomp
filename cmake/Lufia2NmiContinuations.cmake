@@ -1413,6 +1413,16 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                break;\n")
                 endif()
                 if(_scene_claim_steps)
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunSceneLoopOpcode(Interp816 *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/scene_loop_opcodes.inc\"\n")
+                    string(APPEND _native_opcode
+                        "        if (!_cyc && (pc_before == 0x83a6c4u || pc_before == 0x83a6c5u) &&\n"
+                        "            auto_quiescent && !stop_on_rti && !n_stop && !trace && !dtrace &&\n"
+                        "            !wlog_state_sync && !s_interp_pctrace && !g_interp_bridge_pc_hook &&\n"
+                        "            !Lufia2NativeObserversActive() && g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
+                        "            _cyc = Lufia2DecompRunSceneLoopOpcode(&in, pc_before, op);\n")
                     list(APPEND _control_sites "pc_before == 0x83a68eu" "pc_before == 0x83a6c1u")
                     string(APPEND _control_cases
                         "            case 0x83a68eu:\n"
