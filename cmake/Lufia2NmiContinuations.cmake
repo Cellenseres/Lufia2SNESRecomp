@@ -1363,7 +1363,7 @@ function(lufia2_add_nmi_continuations target core_root)
                 if(_nmi_child_boundaries OR _battle_effect_frame_steps OR _cursor_pixel_spans OR
                    _turn_display_steps OR _save_action_steps OR _battle_upkeep OR
                    _scene_claim_steps OR _battle_status OR _world_frame_control_steps OR
-                   _battle_command_steps OR _menu_fade_continuations OR _battle_gauge_steps OR _item_record_steps OR _menu_leaves OR _field_actor_rebuild_steps)
+                   _battle_command_steps OR _menu_fade_continuations OR _battle_gauge_steps OR _item_record_steps OR _menu_leaves OR _field_actor_rebuild_steps OR _sound_frame_boundaries)
                     string(PREPEND _text
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunDirectCall(Interp816 *, uint32_t, uint8_t, uint32_t, bool);\nstatic int Lufia2DecompRunDirectCallWithWidths(Interp816 *, uint32_t, uint8_t, uint32_t, bool, bool, bool);\n")
                     string(APPEND _timing_suffix
@@ -1378,7 +1378,7 @@ function(lufia2_add_nmi_continuations target core_root)
                 if("LUFIA2_HAVE_NATIVE_BATTLE_MULTIPLY_WINDOW=1" IN_LIST _definitions)
                     set(_battle_multiply_return TRUE)
                 endif()
-                if(_turn_display_steps OR _actor_record_return OR _battle_multiply_return OR _battle_gauge_steps OR _battle_command_steps OR _divide_bit_spans OR _item_record_steps OR _world_frame_control_steps OR (_battle_status AND _menu_leaves))
+                if(_turn_display_steps OR _actor_record_return OR _battle_multiply_return OR _battle_gauge_steps OR _battle_command_steps OR _divide_bit_spans OR _item_record_steps OR _world_frame_control_steps OR _sound_frame_boundaries OR (_battle_status AND _menu_leaves))
                     string(PREPEND _text
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunReturn(Interp816 *, uint32_t, uint8_t, bool, bool, bool);\n")
                     string(APPEND _timing_suffix
@@ -1531,6 +1531,27 @@ function(lufia2_add_nmi_continuations target core_root)
                     string(APPEND _control_cases
                         "            case 0x818b36u:\n"
                         "                _cyc = Lufia2DecompRunDirectCallWithWidths(&in, pc_before, op, 0x859bdau, true, false, false);\n"
+                        "                break;\n")
+                endif()
+                if(_sound_frame_boundaries)
+                    list(APPEND _control_sites "pc_before == 0x8098a4u" "pc_before == 0x8099aeu" "pc_before == 0x8099b1u")
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunSoundCpuReturnOpcode(Interp816 *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/sound_cpu_return_opcodes.inc\"\n")
+                    string(APPEND _native_opcode
+                        "        if (!_cyc && pc_before >= 0x8098a0u && pc_before <= 0x8098a3u &&\n"
+                        "            !stop_on_rti && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
+                        "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
+                        "            g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
+                        "            _cyc = Lufia2DecompRunSoundCpuReturnOpcode(&in, pc_before, op);\n")
+                    string(APPEND _control_cases
+                        "            case 0x8099aeu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x809a0au, false);\n"
+                        "                break;\n"
+                        "            case 0x8098a4u:\n"
+                        "            case 0x8099b1u:\n"
+                        "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, false, true, false);\n"
                         "                break;\n")
                 endif()
                 if(_save_action_steps)
