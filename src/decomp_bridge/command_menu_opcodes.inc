@@ -42,6 +42,46 @@ static int Lufia2DecompRunMenuOpcode(
         length = 3u;
         expected_operand = 0xea4cu;
         break;
+    case 0x82eb9fu:
+        expected_opcode = 0xc9u;
+        length = 2u;
+        expected_operand = 0x08u;
+        break;
+    case 0x82eba1u:
+        expected_opcode = 0xf0u;
+        length = 2u;
+        expected_operand = 0x36u;
+        break;
+    case 0x82eba3u:
+        expected_opcode = 0xc9u;
+        length = 2u;
+        expected_operand = 0x02u;
+        break;
+    case 0x82eba5u:
+        expected_opcode = 0xf0u;
+        length = 2u;
+        expected_operand = 0x0cu;
+        break;
+    case 0x82eba7u:
+        expected_opcode = 0xc9u;
+        length = 2u;
+        expected_operand = 0x03u;
+        break;
+    case 0x82eba9u:
+        expected_opcode = 0xf0u;
+        length = 2u;
+        expected_operand = 0x3bu;
+        break;
+    case 0x82ebabu:
+        expected_opcode = 0xa9u;
+        length = 2u;
+        expected_operand = 0x00u;
+        break;
+    case 0x82ebadu:
+        expected_opcode = 0x80u;
+        length = 2u;
+        expected_operand = 0xedu;
+        break;
     default:
         return 0;
     }
@@ -62,12 +102,16 @@ static int Lufia2DecompRunMenuOpcode(
         if (cart->rom[offset + i] != (uint8_t)(expected_operand >> (8u * (i - 1u))))
             return 0;
 
+    registers->cyclesUsed = 0;
     (void)registers->read(registers->mem, bank | registers->pc++);
     g_interp816_cur_pc = pc;
     registers->cyclesUsed = opcode == 0x8fu ? 5 : opcode == 0x80u ? 3 : length;
-    if (opcode == 0x80u) {
-        const uint8_t displacement = registers->read(registers->mem, bank | registers->pc++);
-        registers->pc = (uint16_t)(registers->pc + displacement - 256u);
+    if (opcode == 0x80u || opcode == 0xf0u) {
+        const int8_t displacement = (int8_t)registers->read(registers->mem, bank | registers->pc++);
+        if (opcode == 0x80u || registers->z) {
+            registers->pc = (uint16_t)(registers->pc + displacement);
+            registers->cyclesUsed += opcode == 0xf0u;
+        }
         return registers->cyclesUsed;
     }
     if (opcode == 0xa2u) {
@@ -93,6 +137,12 @@ static int Lufia2DecompRunMenuOpcode(
         registers->a = (registers->a & 0xff00u) | operand;
         registers->n = (operand & 0x80u) != 0;
         registers->z = operand == 0u;
+    } else if (opcode == 0xc9u) {
+        const uint8_t accumulator = (uint8_t)registers->a;
+        const uint8_t result = (uint8_t)(accumulator - operand);
+        registers->n = (result & 0x80u) != 0u;
+        registers->z = result == 0u;
+        registers->c = accumulator >= operand;
     } else if (opcode == 0x4cu) {
         registers->pc = (uint16_t)operand;
     } else {

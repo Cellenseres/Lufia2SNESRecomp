@@ -1513,10 +1513,13 @@ function(lufia2_add_nmi_continuations target core_root)
                 endif()
                 if(_menu_leaves)
                     list(APPEND _control_sites
-                        "pc_before == 0x828b06u" "pc_before == 0x82bd7eu")
+                        "pc_before == 0x828b06u" "pc_before == 0x82bd7eu" "pc_before == 0x82eb9cu")
                     string(APPEND _control_cases
                         "            case 0x828b06u:\n"
                         "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, false, true, false);\n"
+                        "                break;\n"
+                        "            case 0x82eb9cu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x828b08u, false);\n"
                         "                break;\n"
                         "            case 0x82bd7eu:\n"
                         "                _cyc = Lufia2DecompRunDirectCallWithWidths(&in, pc_before, op, 0x81f194u, true, false, false);\n"
@@ -1828,6 +1831,10 @@ function(lufia2_add_nmi_continuations target core_root)
                 if(_save_action_steps)
                     list(APPEND _menu_opcode_sites "pc_before == 0x82ea4cu" "pc_before == 0x82ea4eu"
                         "pc_before == 0x82ea81u")
+                endif()
+                if(_menu_leaves)
+                    list(APPEND _menu_opcode_sites
+                        "(pc_before >= 0x82eb9fu && pc_before <= 0x82ebadu && (pc_before & 1u))")
                 endif()
                 if(_menu_opcode_sites)
                     list(JOIN _menu_opcode_sites " || " _menu_opcode_guard)
