@@ -1378,9 +1378,9 @@ function(lufia2_add_nmi_continuations target core_root)
                 if("LUFIA2_HAVE_NATIVE_BATTLE_MULTIPLY_WINDOW=1" IN_LIST _definitions)
                     set(_battle_multiply_return TRUE)
                 endif()
-                if(_turn_display_steps OR _actor_record_return OR _battle_multiply_return OR _battle_gauge_steps)
+                if(_turn_display_steps OR _actor_record_return OR _battle_multiply_return OR _battle_gauge_steps OR _battle_command_steps)
                     string(PREPEND _text
-                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunReturn(Interp816 *, uint32_t, uint8_t, bool, bool);\n")
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunReturn(Interp816 *, uint32_t, uint8_t, bool, bool, bool);\n")
                     string(APPEND _timing_suffix
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/long_return_opcode.inc\"\n")
                 endif()
@@ -1393,28 +1393,28 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                _cyc = Lufia2DecompRunDirectCallWithWidths(&in, pc_before, op, 0x85ecdbu, true, false, false);\n"
                         "                break;\n"
                         "            case 0x859e04u:\n"
-                        "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, true, false);\n"
+                        "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, true, true, false);\n"
                         "                break;\n")
                 endif()
                 if(_actor_record_return)
                     list(APPEND _control_sites "pc_before == 0x83ab60u")
                     string(APPEND _control_cases
                         "            case 0x83ab60u:\n"
-                        "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, true, true);\n"
+                        "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, true, true, true);\n"
                         "                break;\n")
                 endif()
                 if(_battle_multiply_return)
                     list(APPEND _control_sites "pc_before == 0x808377u")
                     string(APPEND _control_cases
                         "            case 0x808377u:\n"
-                        "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, true, false);\n"
+                        "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, true, true, false);\n"
                         "                break;\n")
                 endif()
                 if(_battle_gauge_steps)
                     list(APPEND _control_sites "pc_before == 0x81e38eu")
                     string(APPEND _control_cases
                         "            case 0x81e38eu:\n"
-                        "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, false, false);\n"
+                        "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, false, true, false);\n"
                         "                break;\n")
                 endif()
                 if(_menu_fade_continuations)
@@ -1527,7 +1527,17 @@ function(lufia2_add_nmi_continuations target core_root)
                 endif()
                 if(_battle_command_steps)
                     list(APPEND _control_sites "pc_before == 0x81cbddu" "pc_before == 0x81cbe0u"
-                        "pc_before == 0x81cbe4u" "pc_before == 0x81cbedu")
+                        "pc_before == 0x81cbe4u" "pc_before == 0x81cbedu" "pc_before == 0x859c07u")
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunBattleDisplayOpcode(Interp816 *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/battle_display_opcodes.inc\"\n")
+                    string(APPEND _native_opcode
+                        "        if (!_cyc && pc_before >= 0x859bf5u && pc_before <= 0x859c04u &&\n"
+                        "            !stop_on_rti && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
+                        "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
+                        "            g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
+                        "            _cyc = Lufia2DecompRunBattleDisplayOpcode(&in, pc_before, op);\n")
                     string(APPEND _control_cases
                         "            case 0x81cbddu:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x81be58u, false);\n"
@@ -1540,6 +1550,9 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                break;\n"
                         "            case 0x81cbedu:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x85ec81u, true);\n"
+                        "                break;\n"
+                        "            case 0x859c07u:\n"
+                        "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, true, false, false);\n"
                         "                break;\n")
                 endif()
                 set(_menu_opcode_sites "")
