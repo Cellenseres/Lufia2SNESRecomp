@@ -10,7 +10,7 @@ static bool Lufia2DecompIsImmediateDataOpcode(uint8_t opcode) {
     }
 }
 
-static void Lufia2DecompApplyImmediateData(Interp816 *registers, uint8_t opcode,
+static void Lufia2DecompApplyOperand(Interp816 *registers, uint8_t opcode,
     uint16_t value, bool byte_operand) {
     const uint16_t mask = byte_operand ? 0xffu : 0xffffu;
     const uint16_t accumulator = registers->a & mask;
@@ -41,13 +41,32 @@ static void Lufia2DecompApplyImmediateData(Interp816 *registers, uint8_t opcode,
     registers->n = (result & (byte_operand ? 0x80u : 0x8000u)) != 0u;
 }
 
-static int Lufia2DecompRunRomImmediateOpcode(Interp816 *registers, uint32_t pc, uint8_t opcode) {
+static const Cart *Lufia2DecompPlainRomOpcode(const Interp816 *registers, uint32_t pc,
+    uint8_t opcode, unsigned length, unsigned *rom_offset) {
 #if defined(SNES_COSIM) || defined(SNESRECOMP_INTERP_PROFILE) || \
     (defined(SNESRECOMP_REVERSE_DEBUG) && SNESRECOMP_REVERSE_DEBUG)
-    return 0;
+    return NULL;
 #endif
     const unsigned bank = pc >> 16;
     const unsigned address = pc & 0xffffu;
+    if (bank < 0x80u || bank > 0xbfu ||
+        address < 0x8000u || address + length > 0x10000u || registers->k != bank ||
+        registers->pc != address || registers->e || registers->waiting ||
+        registers->stopped || registers->nmiWanted || registers->irqWanted ||
+        !g_snes || !g_snes->cart)
+        return NULL;
+
+    const Cart *cart = g_snes->cart;
+    *rom_offset = (bank & 0x7fu) * 0x8000u + (address & 0x7fffu);
+    if (cart->type != CART_LOROM || !cart->rom || cart->romSize < *rom_offset + length ||
+        cart->superfx || cart->cx4 || cart->dsp1 || cart->sdd1 || cart->sa1 ||
+        cart->rom[*rom_offset] != opcode)
+        return NULL;
+
+    return cart;
+}
+
+static int Lufia2DecompRunRomImmediateOpcode(Interp816 *registers, uint32_t pc, uint8_t opcode) {
     const bool changes_status = opcode == 0xc2u || opcode == 0xe2u;
     const bool conditional = (opcode & 0x1fu) == 0x10u;
     const bool changes_bank = opcode == 0x5cu;
@@ -56,18 +75,9 @@ static int Lufia2DecompRunRomImmediateOpcode(Interp816 *registers, uint32_t pc, 
     const bool word_operand = changes_bank || opcode == 0x4cu || opcode == 0x82u ||
         (immediate_data && !byte_operand);
     const unsigned length = changes_bank ? 4u : word_operand ? 3u : 2u;
-    if ((!changes_status && !conditional && !immediate_data && !word_operand && opcode != 0x80u) || bank < 0x80u || bank > 0xbfu ||
-        address < 0x8000u || address + length > 0x10000u || registers->k != bank ||
-        registers->pc != address || registers->e || registers->waiting ||
-        registers->stopped || registers->nmiWanted || registers->irqWanted ||
-        !g_snes || !g_snes->cart)
-        return 0;
-
-    const Cart *cart = g_snes->cart;
-    const unsigned offset = (bank & 0x7fu) * 0x8000u + (address & 0x7fffu);
-    if (cart->type != CART_LOROM || !cart->rom || cart->romSize < offset + length ||
-        cart->superfx || cart->cx4 || cart->dsp1 || cart->sdd1 || cart->sa1 ||
-        cart->rom[offset] != opcode)
+    unsigned rom_offset;
+    if ((!changes_status && !conditional && !immediate_data && !word_operand && opcode != 0x80u) ||
+        !Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &rom_offset))
         return 0;
 
     registers->cyclesUsed = 0;
@@ -90,7 +100,7 @@ static int Lufia2DecompRunRomImmediateOpcode(Interp816 *registers, uint32_t pc, 
                 value = low_byte | ((uint16_t)registers->read(registers->mem, high) << 8);
             }
         }
-        Lufia2DecompApplyImmediateData(registers, opcode, value, byte_operand);
+        Lufia2DecompApplyOperand(registers, opcode, value, byte_operand);
         return registers->cyclesUsed;
     }
     registers->cyclesUsed = conditional ? 2u : changes_bank || opcode == 0x82u ? 4u : 3u;
@@ -133,6 +143,52 @@ static int Lufia2DecompRunRomImmediateOpcode(Interp816 *registers, uint32_t pc, 
     return registers->cyclesUsed;
 }
 
+static bool Lufia2DecompIsDirectPageOpcode(uint8_t opcode) {
+    return opcode == 0xa5u || opcode == 0x85u || opcode == 0x64u;
+}
+
+static int Lufia2DecompRunDirectPageOpcode(Interp816 *registers, uint32_t pc, uint8_t opcode) {
+    unsigned offset;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 2u, &offset);
+    if (!cart)
+        return 0;
+    const bool wide = !registers->mf;
+    const uint16_t direct = (uint16_t)(registers->dp + cart->rom[offset + 1u]);
+    if (direct > 0x1fffu - wide)
+        return 0;
+
+    const uint32_t program_bank = pc & 0xff0000u;
+    registers->cyclesUsed = 0;
+    (void)registers->read(registers->mem, program_bank | registers->pc++);
+    g_interp816_cur_pc = pc;
+    registers->cyclesUsed = 3u;
+    const unsigned operand = registers->read(registers->mem, program_bank | registers->pc++);
+    const unsigned low = (uint16_t)(registers->dp + operand);
+    const unsigned high = low + 1u;
+    registers->cyclesUsed += wide + ((registers->dp & 0xffu) != 0u);
+
+    if (opcode == 0xa5u) {
+        uint16_t value;
+        if (!wide) {
+            value = registers->read(registers->mem, low);
+        } else if (!registers->read_word || !registers->read_word(registers->mem, low, high, &value)) {
+            const uint8_t low_byte = registers->read(registers->mem, low);
+            value = low_byte | ((uint16_t)registers->read(registers->mem, high) << 8);
+        }
+        Lufia2DecompApplyOperand(registers, 0xa9u, value, !wide);
+    } else {
+        const uint16_t value = opcode == 0x64u ? 0u : registers->a;
+        if (!wide) {
+            registers->write(registers->mem, low, (uint8_t)value);
+        } else if (!registers->write_word ||
+                   !registers->write_word(registers->mem, low, high, value, false)) {
+            registers->write(registers->mem, low, (uint8_t)value);
+            registers->write(registers->mem, high, (uint8_t)(value >> 8));
+        }
+    }
+    return registers->cyclesUsed;
+}
+
 /* Keeping the dispatch out of line avoids growing the interpreter loop. */
 #if defined(_MSC_VER)
 static __declspec(noinline)
@@ -146,5 +202,7 @@ int Lufia2DecompRunNativeRomControl(Interp816 *registers, uint32_t pc, uint8_t o
         opcode == 0x80u || opcode == 0x82u || opcode == 0x4cu || opcode == 0x5cu ||
         Lufia2DecompIsImmediateDataOpcode(opcode))
         return Lufia2DecompRunRomImmediateOpcode(registers, pc, opcode);
+    if (Lufia2DecompIsDirectPageOpcode(opcode))
+        return Lufia2DecompRunDirectPageOpcode(registers, pc, opcode);
     return Lufia2DecompRunAotCallSite(registers, pc, opcode);
 }
