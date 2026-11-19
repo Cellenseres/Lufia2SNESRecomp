@@ -1363,7 +1363,7 @@ function(lufia2_add_nmi_continuations target core_root)
                 if(_nmi_child_boundaries OR _battle_effect_frame_steps OR _cursor_pixel_spans OR
                    _turn_display_steps OR _save_action_steps OR _battle_upkeep OR
                    _scene_claim_steps OR _battle_status OR _world_frame_control_steps OR
-                   _battle_command_steps OR _menu_fade_continuations)
+                   _battle_command_steps OR _menu_fade_continuations OR _battle_gauge_steps)
                     string(PREPEND _text
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunDirectCall(Interp816 *, uint32_t, uint8_t, uint32_t, bool);\nstatic int Lufia2DecompRunDirectCallWithWidths(Interp816 *, uint32_t, uint8_t, uint32_t, bool, bool, bool);\n")
                     string(APPEND _timing_suffix
@@ -1411,15 +1411,24 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                break;\n")
                 endif()
                 if(_battle_gauge_steps)
-                    list(APPEND _control_sites "pc_before == 0x81e38eu")
+                    list(APPEND _control_sites "pc_before == 0x81e318u" "pc_before == 0x81e32au" "pc_before == 0x81e38eu")
                     string(APPEND _control_cases
+                        "            case 0x81e318u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x80834cu, true);\n"
+                        "                break;\n"
+                        "            case 0x81e32au:\n"
+                        "                _cyc = Lufia2DecompRunDirectCallWithWidths(&in, pc_before, op, 0x808378u, true, false, false);\n"
+                        "                break;\n"
                         "            case 0x81e38eu:\n"
                         "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, false, true, false);\n"
                         "                break;\n")
                 endif()
                 if(_menu_fade_continuations)
-                    list(APPEND _control_sites "pc_before == 0x868b27u")
+                    list(APPEND _control_sites "pc_before == 0x868b27u" "pc_before == 0x868b3du")
                     string(APPEND _control_cases
+                        "            case 0x868b3du:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x868b55u, true);\n"
+                        "                break;\n"
                         "            case 0x868b27u:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x868b55u, true);\n"
                         "                break;\n")
@@ -1527,7 +1536,7 @@ function(lufia2_add_nmi_continuations target core_root)
                 endif()
                 if(_battle_command_steps)
                     list(APPEND _control_sites "pc_before == 0x81cbddu" "pc_before == 0x81cbe0u"
-                        "pc_before == 0x81cbe4u" "pc_before == 0x81cbedu" "pc_before == 0x859c07u")
+                        "pc_before == 0x81cbe4u" "pc_before == 0x81cbedu" "pc_before == 0x859c07u" "pc_before == 0x818b45u")
                     string(PREPEND _text
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunBattleDisplayOpcode(Interp816 *, uint32_t, uint8_t);\n")
                     string(APPEND _timing_suffix
@@ -1550,6 +1559,9 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                break;\n"
                         "            case 0x81cbedu:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x85ec81u, true);\n"
+                        "                break;\n"
+                        "            case 0x818b45u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCallWithWidths(&in, pc_before, op, 0x859bf1u, true, false, false);\n"
                         "                break;\n"
                         "            case 0x859c07u:\n"
                         "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, true, false, false);\n"
