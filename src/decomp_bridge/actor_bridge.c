@@ -112,7 +112,8 @@ static bool BattleCommandInputHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
 static void ActorBridgeBattleWindowStep(CpuState *cpu, uint32_t entry);
 static bool BattleWindowStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
     return hook == ActorBridgeBattleWindowStep && (pc == 0x81e503u || pc == 0x81e527u ||
-        pc == 0x81e52du || pc == 0x81e542u || pc == 0x81e55du);
+        pc == 0x81e52du || pc == 0x81e537u || pc == 0x81e53eu ||
+        pc == 0x81e542u || pc == 0x81e55du);
 }
 #endif
 static RecompReturn ActorBridgeTimedBattleDigits(CpuState *cpu);
@@ -4711,7 +4712,7 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_WINDOW_STEPS)
     static const uint32_t window_step_entries[] = {
-        0x81e503u, 0x81e527u, 0x81e52du, 0x81e542u, 0x81e55du};
+        0x81e503u, 0x81e527u, 0x81e52du, 0x81e537u, 0x81e53eu, 0x81e542u, 0x81e55du};
     for (unsigned i = 0u; i < sizeof(window_step_entries) / sizeof(window_step_entries[0]); ++i) {
         const uint32_t pc = window_step_entries[i];
         if (Lufia2DecompFrameRangeAllows(pc, pc + 1u, BattleWindowStepHookOwned))

@@ -1,6 +1,53 @@
 #include "lufia2/battle_window_steps.h"
 
+static void ActorBridgeBattleWindowEnd(CpuState *cpu, uint32_t entry) {
+    const bool finish = entry == 0x81e53eu;
+    const uint32_t end = finish ? 0x81e541u : 0x81e53bu;
+    const unsigned count = finish ? 2u : 4u;
+    const unsigned reserve = 160u;
+    if (cpu->m_flag || cpu->x_flag || !Lufia2DecompFrameReturnCpuReady() ||
+        cpu->coprocessor_master_cycles != cpu->master_cycles ||
+        cpu->master_cycles > UINT64_MAX - reserve ||
+        !NativeOpcodeWindowSupported(cpu, entry, reserve, 0x1ffeu, true) ||
+        !Lufia2DecompFrameRangeAllows(entry, end, BattleWindowStepHookOwned) ||
+        Lufia2DecompFrameOwnedSpanBudget(entry, end, ActorBridgeBattleWindowStep) < count)
+        return;
+    uint64_t phase, charged;
+    snes_refresh_state_get(&phase, &charged);
+    if (phase >= 1364u || (charged && charged != cpu->master_cycles))
+        return;
+    static const uint8_t increments[] = {0xe8u, 0xe8u, 0xe8u, 0xe8u};
+    static const uint8_t restore_bank[] = {0xe2u, 0x20u, 0xabu};
+    const unsigned offset = (uint16_t)entry;
+    const Cart *cart = g_snes->cart;
+    if (cart->romSize < offset + end - entry ||
+        memcmp(cart->rom + offset, finish ? restore_bank : increments, end - entry))
+        return;
+
+    const FixedSpanOpcode *timing = finish ? battle_window_finish : battle_window_bottom_call;
+    FixedSpanClock clock = {.cpu = cpu, .bank = 0x810000u, .timing = timing, .count = count};
+    if (finish) {
+        cpu->DB = FixedSpanRead(&clock, ++cpu->S);
+        cpu->m_flag = 1u;
+        cpu->_flag_N = (cpu->DB & 0x80u) != 0u;
+        cpu->_flag_Z = cpu->DB == 0u;
+    } else {
+        BeginFixedSpanOpcode(&clock);
+        cpu->X = (uint16_t)(cpu->X + 4u);
+        cpu->_flag_N = (cpu->X & 0x8000u) != 0u;
+        cpu->_flag_Z = cpu->X == 0u;
+    }
+    assert(clock.index == clock.count && !clock.remaining);
+    cpu_mirrors_to_p(cpu);
+    Lufia2DecompFrameReturnComplete(count, clock.progress_mask);
+    interp_bridge_pre_opcode_redirect(end);
+}
+
 static void ActorBridgeBattleWindowStep(CpuState *cpu, uint32_t entry) {
+    if (entry == 0x81e537u || entry == 0x81e53eu) {
+        ActorBridgeBattleWindowEnd(cpu, entry);
+        return;
+    }
     const bool begin = entry == 0x81e503u;
     if (!BattleWindowStepHookOwned(entry, ActorBridgeBattleWindowStep) || cpu != &g_cpu ||
         cpu->PB != 0x81u || cpu->m_flag != begin || cpu->x_flag || cpu->D || cpu->_flag_D ||
