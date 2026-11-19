@@ -148,8 +148,14 @@ static bool Lufia2DecompIsDirectPageOpcode(uint8_t opcode) {
 }
 
 static bool Lufia2DecompIsWramOpcode(uint8_t opcode) {
-    return Lufia2DecompIsDirectPageOpcode(opcode) || opcode == 0xadu ||
-        opcode == 0x8du || opcode == 0x9cu;
+    switch (opcode) {
+    case 0xa5u: case 0x85u: case 0x64u: case 0xadu: case 0x8du: case 0x9cu:
+    case 0xbdu: case 0xb9u: case 0x9du: case 0x99u: case 0x9eu:
+    case 0xafu: case 0xbfu: case 0x8fu: case 0x9fu:
+        return true;
+    default:
+        return false;
+    }
 }
 
 static bool Lufia2DecompIsWramByte(uint32_t address) {
@@ -159,23 +165,33 @@ static bool Lufia2DecompIsWramByte(uint32_t address) {
 }
 
 static uint32_t Lufia2DecompWramOperandAddress(const Interp816 *registers,
-    unsigned operand, bool direct_page) {
+    unsigned operand, bool direct_page, bool long_address, unsigned index) {
     if (direct_page)
         return (uint16_t)(registers->dp + operand);
-    return ((uint32_t)registers->db << 16) | operand;
+    const uint32_t base = long_address ? operand : ((uint32_t)registers->db << 16) | operand;
+    return (base + index) & 0xffffffu;
 }
 
 static int Lufia2DecompRunWramOpcode(Interp816 *registers, uint32_t pc, uint8_t opcode) {
     const bool direct_page = Lufia2DecompIsDirectPageOpcode(opcode);
+    const bool long_address = opcode == 0xafu || opcode == 0xbfu || opcode == 0x8fu || opcode == 0x9fu;
+    const bool index_x = opcode == 0xbdu || opcode == 0x9du || opcode == 0x9eu ||
+        opcode == 0xbfu || opcode == 0x9fu;
+    const bool index_y = opcode == 0xb9u || opcode == 0x99u;
+    const bool indexed = index_x || index_y;
+    const unsigned index = index_x ? registers->x : index_y ? registers->y : 0u;
+    const bool load = opcode == 0xa5u || opcode == 0xadu || opcode == 0xbdu ||
+        opcode == 0xb9u || opcode == 0xafu || opcode == 0xbfu;
+    const unsigned length = direct_page ? 2u : long_address ? 4u : 3u;
     unsigned offset;
-    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, direct_page ? 2u : 3u, &offset);
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
     if (!cart)
         return 0;
     const bool wide = !registers->mf;
-    unsigned operand = cart->rom[offset + 1u];
-    if (!direct_page)
-        operand |= (unsigned)cart->rom[offset + 2u] << 8;
-    const uint32_t address = Lufia2DecompWramOperandAddress(registers, operand, direct_page);
+    unsigned operand = 0u;
+    for (unsigned byte = 1u; byte < length; ++byte)
+        operand |= (unsigned)cart->rom[offset + byte] << (8u * (byte - 1u));
+    const uint32_t address = Lufia2DecompWramOperandAddress(registers, operand, direct_page, long_address, index);
     if (!Lufia2DecompIsWramByte(address) ||
         (wide && !Lufia2DecompIsWramByte((address + 1u) & 0xffffffu)))
         return 0;
@@ -184,15 +200,17 @@ static int Lufia2DecompRunWramOpcode(Interp816 *registers, uint32_t pc, uint8_t 
     registers->cyclesUsed = 0;
     (void)registers->read(registers->mem, program_bank | registers->pc++);
     g_interp816_cur_pc = pc;
-    registers->cyclesUsed = direct_page ? 3u : 4u;
-    operand = registers->read(registers->mem, program_bank | registers->pc++);
-    if (!direct_page)
-        operand |= (unsigned)registers->read(registers->mem, program_bank | registers->pc++) << 8;
-    const uint32_t low = Lufia2DecompWramOperandAddress(registers, operand, direct_page);
+    registers->cyclesUsed = direct_page ? 3u : long_address || (indexed && !load) ? 5u : 4u;
+    operand = 0u;
+    for (unsigned byte = 1u; byte < length; ++byte)
+        operand |= (unsigned)registers->read(registers->mem, program_bank | registers->pc++) << (8u * (byte - 1u));
+    const uint32_t low = Lufia2DecompWramOperandAddress(registers, operand, direct_page, long_address, index);
     const uint32_t high = (low + 1u) & 0xffffffu;
-    registers->cyclesUsed += wide + (direct_page && (registers->dp & 0xffu) != 0u);
+    const bool crossed_page = (operand >> 8) != ((operand + index) >> 8);
+    registers->cyclesUsed += wide + (direct_page && (registers->dp & 0xffu) != 0u) +
+        (indexed && !long_address && (crossed_page || (!load && !registers->xf)));
 
-    if (opcode == 0xa5u || opcode == 0xadu) {
+    if (load) {
         uint16_t value;
         if (!wide) {
             value = registers->read(registers->mem, low);
@@ -202,7 +220,7 @@ static int Lufia2DecompRunWramOpcode(Interp816 *registers, uint32_t pc, uint8_t 
         }
         Lufia2DecompApplyOperand(registers, 0xa9u, value, !wide);
     } else {
-        const uint16_t value = opcode == 0x64u || opcode == 0x9cu ? 0u : registers->a;
+        const uint16_t value = opcode == 0x64u || opcode == 0x9cu || opcode == 0x9eu ? 0u : registers->a;
         if (!wide) {
             registers->write(registers->mem, low, (uint8_t)value);
         } else if (!registers->write_word ||
