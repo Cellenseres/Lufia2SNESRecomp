@@ -1,13 +1,14 @@
 extern uint32_t g_interp816_cur_pc;
 
-static int Lufia2DecompRunRomConditionalBranch(Interp816 *registers, uint32_t pc, uint8_t opcode) {
+static int Lufia2DecompRunRomImmediateControl(Interp816 *registers, uint32_t pc, uint8_t opcode) {
 #if defined(SNES_COSIM) || defined(SNESRECOMP_INTERP_PROFILE) || \
     (defined(SNESRECOMP_REVERSE_DEBUG) && SNESRECOMP_REVERSE_DEBUG)
     return 0;
 #endif
     const unsigned bank = pc >> 16;
     const unsigned address = pc & 0xffffu;
-    if ((opcode & 0x1fu) != 0x10u || bank < 0x80u || bank > 0xbfu ||
+    const bool changes_status = opcode == 0xc2u || opcode == 0xe2u;
+    if ((!changes_status && (opcode & 0x1fu) != 0x10u) || bank < 0x80u || bank > 0xbfu ||
         address < 0x8000u || address == 0xffffu || registers->k != bank ||
         registers->pc != address || registers->e || registers->waiting ||
         registers->stopped || registers->nmiWanted || registers->irqWanted ||
@@ -25,8 +26,13 @@ static int Lufia2DecompRunRomConditionalBranch(Interp816 *registers, uint32_t pc
     const uint32_t program_bank = pc & 0xff0000u;
     (void)registers->read(registers->mem, program_bank | registers->pc++);
     g_interp816_cur_pc = pc;
-    registers->cyclesUsed = 2;
+    registers->cyclesUsed = changes_status ? 3u : 2u;
     const unsigned operand = registers->read(registers->mem, program_bank | registers->pc++);
+    if (changes_status) {
+        const unsigned status = interp816_getFlags(registers);
+        interp816_setFlags(registers, (uint8_t)(opcode == 0xc2u ? status & ~operand : status | operand));
+        return registers->cyclesUsed;
+    }
     bool flag;
     switch (opcode >> 6) {
     case 0u: flag = registers->n; break;
@@ -41,7 +47,6 @@ static int Lufia2DecompRunRomConditionalBranch(Interp816 *registers, uint32_t pc
     }
     return registers->cyclesUsed;
 }
-
 /* Keeping the dispatch out of line avoids growing the interpreter loop. */
 #if defined(_MSC_VER)
 static __declspec(noinline)
@@ -51,7 +56,7 @@ static __attribute__((noinline))
 static
 #endif
 int Lufia2DecompRunNativeRomControl(Interp816 *registers, uint32_t pc, uint8_t opcode) {
-    if ((opcode & 0x1fu) == 0x10u)
-        return Lufia2DecompRunRomConditionalBranch(registers, pc, opcode);
+    if ((opcode & 0x1fu) == 0x10u || opcode == 0xc2u || opcode == 0xe2u)
+        return Lufia2DecompRunRomImmediateControl(registers, pc, opcode);
     return Lufia2DecompRunAotCallSite(registers, pc, opcode);
 }
