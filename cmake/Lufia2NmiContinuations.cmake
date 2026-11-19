@@ -1443,26 +1443,40 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                break;\n")
                 endif()
                 if(_world_frame_control_steps)
-                    list(APPEND _control_sites "pc_before == 0x869293u" "pc_before == 0x869299u")
+                    list(APPEND _control_sites "pc_before == 0x86927cu" "pc_before == 0x869293u"
+                        "pc_before == 0x869296u" "pc_before == 0x869299u")
                     string(APPEND _control_cases
+                        "            case 0x86927cu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x869adbu, false);\n"
+                        "                break;\n"
                         "            case 0x869293u:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86a791u, false);\n"
                         "                break;\n"
                         "            case 0x869299u:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86973eu, false);\n"
+                        "                break;\n"
+                        "            case 0x869296u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x86e1b9u, false);\n"
                         "                break;\n")
                 endif()
                 if(_battle_status)
-                    list(APPEND _control_sites "pc_before == 0x81e532u")
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunBattleStatusBranch(Interp816 *, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/battle_status_branch_opcode.inc\"\n")
+                    list(APPEND _control_sites "pc_before == 0x81e532u" "pc_before == 0x81e535u")
                     string(APPEND _control_cases
                         "            case 0x81e532u:\n"
                         "                _cyc = Lufia2DecompRunDirectCallWithWidths(&in, pc_before, op, 0x81e570u, false, false, false);\n"
+                        "                break;\n"
+                        "            case 0x81e535u:\n"
+                        "                _cyc = Lufia2DecompRunBattleStatusBranch(&in, op);\n"
                         "                break;\n")
                 endif()
                 if(_control_sites)
                     list(JOIN _control_sites " || " _control_guard)
                     string(APPEND _native_opcode
-                        "        if (!_cyc && (is_call || is_ret) && (${_control_guard}) &&\n"
+                        "        if (!_cyc && (is_call || is_ret || op == 0x80u) && (${_control_guard}) &&\n"
                         "            !stop_on_rti && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
                         "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
                         "            g_snes && !g_snes->inNmi && !g_snes->inIrq) {\n"
