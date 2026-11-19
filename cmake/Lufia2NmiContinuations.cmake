@@ -1444,9 +1444,12 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                break;\n")
                 endif()
                 if(_world_frame_control_steps)
-                    list(APPEND _control_sites "pc_before == 0x86927cu" "pc_before == 0x869293u"
+                    list(APPEND _control_sites "pc_before == 0x869279u" "pc_before == 0x86927cu" "pc_before == 0x869293u"
                         "pc_before == 0x869296u" "pc_before == 0x869299u")
                     string(APPEND _control_cases
+                        "            case 0x869279u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x869c71u, false);\n"
+                        "                break;\n"
                         "            case 0x86927cu:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x869adbu, false);\n"
                         "                break;\n"
@@ -1478,15 +1481,16 @@ function(lufia2_add_nmi_continuations target core_root)
                     list(APPEND _control_sites "pc_before == 0x81cbddu" "pc_before == 0x81cbe0u"
                         "pc_before == 0x81cbe4u" "pc_before == 0x81cbedu")
                     string(PREPEND _text
-                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunCommandSpriteRequest(Interp816 *, uint32_t, uint8_t);\n")
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunCommandMenuOpcode(Interp816 *, uint32_t, uint8_t);\n")
                     string(APPEND _timing_suffix
-                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/command_sprite_request_opcode.inc\"\n")
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/command_menu_opcodes.inc\"\n")
                     string(APPEND _native_opcode
-                        "        if (!_cyc && (pc_before == 0x81cbe7u || pc_before == 0x81cbe9u) &&\n"
+                        "        if (!_cyc && (pc_before == 0x81cb96u || pc_before == 0x81cbe7u ||\n"
+                        "            pc_before == 0x81cbe9u || pc_before == 0x81cce2u || pc_before == 0x81cce4u) &&\n"
                         "            !stop_on_rti && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
                         "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
                         "            g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
-                        "            _cyc = Lufia2DecompRunCommandSpriteRequest(&in, pc_before, op);\n")
+                        "            _cyc = Lufia2DecompRunCommandMenuOpcode(&in, pc_before, op);\n")
                     string(APPEND _control_cases
                         "            case 0x81cbddu:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x81be58u, false);\n"
