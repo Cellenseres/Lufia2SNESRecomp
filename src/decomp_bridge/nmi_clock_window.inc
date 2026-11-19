@@ -25,11 +25,12 @@ static bool NmiClockWindowWithDeferredHdma(const CpuState *cpu, bool byte_index,
         return false;
 #endif
     }
-    const unsigned fence = !g_snes->hdmaBeamOff && g_snes->vPos < 225u
-        ? 1024u : 1364u;
+    const bool beam_hdma = !g_snes->hdmaBeamOff &&
+        ((first != 0x808770u && first != 0x8087b2u) || ActorBridgeHdmaMayTransfer());
+    const unsigned fence = beam_hdma && g_snes->vPos < 225u ? 1024u : 1364u;
     if ((unsigned)g_snes->hPos + budget >= fence) {
 #if defined(LUFIA2_HAVE_BEAM_HOLD_QUERY) || defined(SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY)
-        if (!allow_line_crossing || !g_snes->hdmaBeamOff ||
+        if (!allow_line_crossing || beam_hdma ||
             g_snes->hPos >= 1364u || g_snes->vPos >= 262u ||
             snesrecomp_beam_hold_active())
             return false;
