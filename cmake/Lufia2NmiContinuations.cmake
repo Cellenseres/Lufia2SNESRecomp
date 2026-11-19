@@ -1470,6 +1470,17 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                break;\n")
                 endif()
                 if(_field_actor_rebuild_steps)
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunActorLoopWidthOpcode(Interp816 *, uint32_t, uint8_t);\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/actor_loop_width_opcodes.inc\"\n")
+                    string(APPEND _native_opcode
+                        "        if (!_cyc && (pc_before == 0x83a7b5u || pc_before == 0x83a7b7u ||\n"
+                        "            pc_before == 0x83a7c0u || pc_before == 0x83a7c5u || pc_before == 0x83a7c7u) &&\n"
+                        "            !stop_on_rti && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
+                        "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
+                        "            g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
+                        "            _cyc = Lufia2DecompRunActorLoopWidthOpcode(&in, pc_before, op);\n")
                     list(APPEND _control_sites
                         "pc_before == 0x83a783u" "pc_before == 0x83a78eu" "pc_before == 0x83a7aeu" "pc_before == 0x83a7b1u")
                     string(APPEND _control_cases
