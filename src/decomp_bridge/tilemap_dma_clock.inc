@@ -21,14 +21,16 @@ static bool TilemapDmaClockSupported(const CpuState *cpu) {
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
         g_snes->beamMasterLast != cpu->master_cycles ||
         cpu->master_cycles > UINT64_MAX - TILEMAP_DMA_CLOCK_RESERVE ||
-        g_snes->hIrqEnabled || g_snes->vIrqEnabled || !g_snes->hdmaBeamOff ||
+        g_snes->hIrqEnabled || g_snes->vIrqEnabled ||
         g_snes->dma->dmaBusy || g_snes->dma->dmaTimer || g_snes->dma->hdmaPendingInit ||
         g_snes->vPos >= 262u || g_snes->hPos >= 1364u || !g_snes->cart ||
         !g_snes->cart->rom || g_snes->cart->type != CART_LOROM ||
         g_snes->cart->romSize < 0x084fu)
         return false;
     for (unsigned channel = 0u; channel < 8u; ++channel)
-        if (g_snes->dma->channel[channel].dmaActive)
+        if (g_snes->dma->channel[channel].dmaActive ||
+            (!g_snes->hdmaBeamOff && g_snes->vPos < 225u &&
+             g_snes->dma->channel[channel].hdmaActive))
             return false;
     const unsigned end_line = g_snes->vPos < 225u ? 225u : 262u;
     if ((end_line - g_snes->vPos) * 1364u - g_snes->hPos < TILEMAP_DMA_CLOCK_RESERVE)

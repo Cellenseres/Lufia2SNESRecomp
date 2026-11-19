@@ -8,6 +8,16 @@ static bool SceneSlotResetHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
     return (pc == 0x83a692u || pc == 0x83a6a6u) && hook == ActorBridgeSceneSlotReset;
 }
 
+static bool SceneSlotResetTimingSupported(const CpuState *cpu, uint32_t entry, unsigned reserve) {
+    if (!NativeOpcodeWindowTimingSupported(cpu, entry, reserve, 0x1fffu, false) ||
+        g_snes->dma->hdmaPendingInit)
+        return false;
+    if (g_snes->hdmaBeamOff || g_snes->vPos >= 225u)
+        return true;
+    const unsigned next_hblank = g_snes->hPos < 1024u ? 1024u : 1364u + 1024u;
+    return reserve < next_hblank - g_snes->hPos;
+}
+
 static void ActorBridgeSceneSlotReset(CpuState *cpu, uint32_t entry) {
     if (!SceneSlotResetHookOwned(entry, ActorBridgeSceneSlotReset) || cpu != &g_cpu ||
         cpu->PB != 0x83u || cpu->m_flag != 1u || cpu->x_flag != 1u || cpu->D ||
@@ -27,7 +37,7 @@ static void ActorBridgeSceneSlotReset(CpuState *cpu, uint32_t entry) {
         reserve = both ? 576u : first ? 296u : 328u;
         end = first && !both ? 0x83a6a6u : 0x83a6c1u;
         if (cpu->master_cycles > UINT64_MAX - reserve ||
-            !NativeOpcodeWindowSupported(cpu, entry, reserve, 0x1fffu, false) ||
+            !SceneSlotResetTimingSupported(cpu, entry, reserve) ||
             !Lufia2DecompFrameRangeAllows(entry, end, SceneSlotResetHookOwned))
             continue;
         const unsigned budget = both

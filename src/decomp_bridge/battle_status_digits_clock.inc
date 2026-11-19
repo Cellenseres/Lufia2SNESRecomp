@@ -98,8 +98,16 @@ static RecompReturn ActorBridgeTimedStatusDigits(CpuState *cpu) {
     if (end > 0x10000u || !(end <= 0x11u || cpu->Y >= 0x17u) ||
         !(end <= 0xb2u || cpu->Y >= 0xb5u) || !(end <= 0x1efcu || cpu->Y >= 0x2000u) ||
         !Lufia2DecompFrameRangeAllows(0x81e808u, 0x81e835u, DecimalDigitsHookOwned) ||
-        !BattleQuietClockSupported(cpu, entry, 0x81e308u, 2u, false, room))
+        !BattleClockAllows(cpu, entry, 0x81e308u, 2u, false, room, false, NULL))
         return ActorBridgeFallback(cpu, &frame, cpu->PB == 1u ? 0x01e2c8u : entry);
+    if (g_snes->vPos < 225u) {
+        if (g_snes->dma->hdmaPendingInit)
+            return ActorBridgeFallback(cpu, &frame, entry);
+        if (!g_snes->hdmaBeamOff)
+            for (unsigned channel = 0u; channel < 8u; ++channel)
+                if (g_snes->dma->channel[channel].hdmaActive)
+                    return ActorBridgeFallback(cpu, &frame, entry);
+    }
     if (frame.hrv)
         frame.host_return_pc24 = Lufia2DecompFramePairedReturnPc(cpu, entry);
     StatusDigitsClock clock;
