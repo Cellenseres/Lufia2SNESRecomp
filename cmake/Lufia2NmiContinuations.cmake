@@ -2105,7 +2105,7 @@ function(lufia2_add_nmi_continuations target core_root)
                         "            g_snes && !g_snes->inIrq && (g_snes->inNmi\n"
                         "                ? Lufia2DecompIsNmiRomOpcode(op) : (!stop_on_rti ||\n                      (pc_before >= 0x8086b8u && pc_before <= 0x8086beu))))\n"
                         "            _cyc = Lufia2DecompRunNativeRomControl(&in, pc_before, op);\n"
-                        "        if (!_cyc && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n            g_snes && !g_snes->inIrq && !stop_on_rti)\n            _cyc = Lufia2DecompRunAdditionalRomOpcode(&in, pc_before, op);\n")
+                        "        if (!_cyc && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n            g_snes && !g_snes->inIrq && (!stop_on_rti || (g_snes->inNmi && op == 0xf4u)))\n            _cyc = Lufia2DecompRunAdditionalRomOpcode(&in, pc_before, op);\n")
                 endif()
                 string(APPEND _native_opcode "        if (!_cyc)\n            _cyc = interp816_runOpcode(&in);")
                 string(REPLACE "${_original_opcode}" "${_native_opcode}"
