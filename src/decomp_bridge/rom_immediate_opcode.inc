@@ -284,40 +284,12 @@ static bool Lufia2DecompIsWramByte(uint32_t address) {
         ((bank & 0x7fu) < 0x40u && (address & 0xffffu) < 0x2000u);
 }
 
-static bool Lufia2DecompIsLoRomDataByte(const Cart *cart, uint32_t address) {
-    const unsigned bank = address >> 16;
-    const unsigned offset = address & 0x7fffu;
-    return bank >= 0x80u && bank <= 0xbfu && (address & 0x8000u) != 0u &&
-        (bank & 0x7fu) * 0x8000u + offset < cart->romSize;
-}
-
-static LUFIA2_ROM_NOINLINE bool Lufia2DecompCanReadLoRomData(const Cart *cart, uint32_t address, bool wide) {
-    return Lufia2DecompIsLoRomDataByte(cart, address) &&
-        (!wide || Lufia2DecompIsLoRomDataByte(cart, (address + 1u) & 0xffffffu));
-}
-
 static uint32_t Lufia2DecompMemoryOperandAddress(const Interp816 *registers,
     unsigned operand, bool direct_page, bool long_address, unsigned index) {
     if (direct_page)
         return (uint16_t)(registers->dp + operand + index);
     const uint32_t base = long_address ? operand : ((uint32_t)registers->db << 16) | operand;
     return (base + index) & 0xffffffu;
-}
-
-static LUFIA2_ROM_NOINLINE bool Lufia2DecompCanAccessVideoDmaRegister(uint8_t opcode, uint32_t address, bool wide) {
-    const unsigned bank = (address >> 16) & 0x7fu;
-    const unsigned port = address & 0xffffu;
-    if (bank > 0x3fu)
-        return false;
-    if (opcode == 0xadu)
-        return !wide && port == 0x4212u;
-    if (opcode != 0x8du && opcode != 0x8eu && opcode != 0x8cu)
-        return false;
-    if (port >= 0x4360u && port + wide <= 0x4366u)
-        return true;
-    if (port == 0x2102u || port == 0x2116u)
-        return true;
-    return !wide && (port == 0x2100u || port == 0x2121u || port == 0x420bu);
 }
 
 static bool Lufia2DecompIsMemoryModifyOpcode(uint8_t opcode) {
@@ -438,26 +410,16 @@ static int Lufia2DecompRunMemoryOpcode(Interp816 *registers, uint32_t pc, uint8_
         return 0;
     const bool index_data = data_x || data_y || operation == 0xc0u || operation == 0xe0u;
     const bool wide = !(index_data ? registers->xf : registers->mf);
-    unsigned operand = 0u;
-    for (unsigned byte = 1u; byte < length; ++byte)
-        operand |= (unsigned)cart->rom[offset + byte] << (8u * (byte - 1u));
-    const uint32_t address = Lufia2DecompMemoryOperandAddress(registers, operand, direct_page, long_address, index);
-    if ((!Lufia2DecompIsWramByte(address) ||
-         (wide && !Lufia2DecompIsWramByte((address + 1u) & 0xffffffu))) &&
-        !(load && Lufia2DecompCanReadLoRomData(cart, address, wide)) &&
-        !Lufia2DecompCanAccessVideoDmaRegister(opcode, address, wide))
-        return 0;
-
     const uint32_t program_bank = pc & 0xff0000u;
     registers->cyclesUsed = 0;
     (void)registers->read(registers->mem, program_bank | registers->pc++);
     g_interp816_cur_pc = pc;
     registers->cyclesUsed = direct_page ? 3u + indexed : long_address || (indexed && !load) ? 5u : 4u;
-    operand = 0u;
+    unsigned operand = 0u;
     for (unsigned byte = 1u; byte < length; ++byte)
         operand |= (unsigned)registers->read(registers->mem, program_bank | registers->pc++) << (8u * (byte - 1u));
     const uint32_t low = Lufia2DecompMemoryOperandAddress(registers, operand, direct_page, long_address, index);
-    const uint32_t high = (low + 1u) & 0xffffffu;
+    const uint32_t high = (low + 1u) & (direct_page ? 0xffffu : 0xffffffu);
     const bool crossed_page = (operand >> 8) != ((operand + index) >> 8);
     registers->cyclesUsed += wide + (direct_page && (registers->dp & 0xffu) != 0u) +
         (indexed && !direct_page && !long_address && (crossed_page || (!load && !registers->xf)));
