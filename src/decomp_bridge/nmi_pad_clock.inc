@@ -11,9 +11,11 @@ static bool NmiPadStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
 }
 
 static void ActorBridgeNmiPadStep(CpuState *cpu, uint32_t entry) {
+    /* The repeat path uses at most 69 cycles plus one refresh. */
+    const unsigned budget = 640u;
     if (entry != 0x808770u || cpu != &g_cpu || cpu->m_flag || cpu->x_flag ||
         (cpu->X != 0u && cpu->X != 2u) ||
-        !NmiClockWindow(cpu, false, entry, 0x8087a5u, 1024u, 1024u,
+        !NmiClockWindow(cpu, false, entry, 0x8087a5u, budget, budget,
             true, NmiPadStepHookOwned))
         return;
     NmiUploadClock clock = {0};
@@ -25,9 +27,12 @@ static void ActorBridgeNmiPadStep(CpuState *cpu, uint32_t entry) {
     const Lufia2Memory memory = {NmiUploadRead, NmiUploadWrite, &clock, NULL, NULL};
     Lufia2CpuState state;
     ActorBridgeLoad(cpu, &state);
+    const uint64_t start = cpu->master_cycles;
     const Lufia2ExecutionResult result = Lufia2NmiReadPadStep(&memory, &state);
     NmiUploadBeginOpcode(&clock);
     assert(result.flow == LUFIA2_EXECUTION_BOUNDARY);
+    assert(cpu->master_cycles - start <= budget);
+    (void)start;
     assert(!clock.bus.remaining && !clock.word_pending &&
         clock.opcodes <= LUFIA2_NMI_PAD_STEP_OPCODES &&
         (clock.phase == NMI_UPLOAD_PAD_READ || clock.phase == NMI_UPLOAD_RESTORE));
