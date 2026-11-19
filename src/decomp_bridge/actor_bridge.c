@@ -104,7 +104,8 @@ static bool BattleFrameRowHookOwned(uint32_t pc, void (*hook)(CpuState *, uint32
 static void ActorBridgeBattleCommandInputStep(CpuState *cpu, uint32_t entry);
 static bool BattleCommandInputHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
     return hook == ActorBridgeBattleCommandInputStep &&
-        (pc == 0x81cbf1u || pc == 0x81cc07u || pc == 0x81cc1au || pc == 0x81cc26u);
+        (pc == 0x818b34u || pc == 0x818b3au || pc == 0x81cbf1u ||
+         pc == 0x81cc07u || pc == 0x81cc1au || pc == 0x81cc26u);
 }
 #endif
 
@@ -4702,7 +4703,7 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_COMMAND_INPUT_STEPS)
     static const uint32_t command_input_entries[] = {
-        0x81cbf1u, 0x81cc07u, 0x81cc1au, 0x81cc26u};
+        0x818b34u, 0x818b3au, 0x81cbf1u, 0x81cc07u, 0x81cc1au, 0x81cc26u};
     for (unsigned i = 0u; i < sizeof command_input_entries / sizeof *command_input_entries; ++i) {
         const uint32_t entry = command_input_entries[i];
         if (Lufia2DecompFrameRangeAllows(entry, entry + 1u, BattleCommandInputHookOwned))

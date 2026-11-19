@@ -1,6 +1,39 @@
 #include "lufia2/battle_command_steps.h"
 
+static void ActorBridgeBattleCommandWidth(CpuState *cpu, uint32_t entry) {
+    const bool narrow = entry == 0x818b3au;
+    const uint32_t end = entry + 2u;
+    const unsigned reserve = 128u;
+    if (cpu->m_flag == narrow || cpu->x_flag || !Lufia2DecompFrameReturnCpuReady() ||
+        cpu->coprocessor_master_cycles != cpu->master_cycles ||
+        cpu->master_cycles > UINT64_MAX - reserve ||
+        !NativeOpcodeWindowSupported(cpu, entry, reserve, 0x1fffu, true) ||
+        Lufia2DecompFrameOwnedSpanBudget(entry, end, ActorBridgeBattleCommandInputStep) < 1u)
+        return;
+    uint64_t phase, charged;
+    snes_refresh_state_get(&phase, &charged);
+    if (phase >= 1364u || (charged && charged != cpu->master_cycles))
+        return;
+    const unsigned offset = (uint16_t)entry;
+    const Cart *cart = g_snes->cart;
+    if (cart->romSize < offset + 2u ||
+        cart->rom[offset] != (narrow ? 0xe2u : 0xc2u) || cart->rom[offset + 1u] != 0x20u)
+        return;
+
+    const FixedSpanOpcode timing = {(uint16_t)entry, 2u, 3u, 0u};
+    FixedSpanClock clock = {.cpu = cpu, .bank = 0x810000u, .timing = &timing, .count = 1u};
+    BeginFixedSpanOpcode(&clock);
+    cpu->m_flag = narrow;
+    cpu_mirrors_to_p(cpu);
+    Lufia2DecompFrameReturnComplete(1u, clock.progress_mask);
+    interp_bridge_pre_opcode_redirect(end);
+}
+
 static void ActorBridgeBattleCommandInputStep(CpuState *cpu, uint32_t entry) {
+    if (entry == 0x818b34u || entry == 0x818b3au) {
+        ActorBridgeBattleCommandWidth(cpu, entry);
+        return;
+    }
     if (!BattleCommandInputHookOwned(entry, ActorBridgeBattleCommandInputStep) ||
         cpu != &g_cpu || cpu->PB != 0x81u || cpu->m_flag != 1u || cpu->x_flag ||
         cpu->D || cpu->_flag_D || cpu->DB != 0x97u ||
