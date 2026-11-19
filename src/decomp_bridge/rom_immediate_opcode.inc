@@ -232,6 +232,19 @@ static bool Lufia2DecompIsDirectPageOpcode(uint8_t opcode) {
     case 0xc6u: case 0xd6u: case 0xceu: case 0xdeu: \
     case 0xe6u: case 0xf6u: case 0xeeu: case 0xfeu:
 
+static uint8_t Lufia2DecompMemoryArithmeticOperation(uint8_t opcode) {
+    const uint8_t group = opcode & 0xe0u;
+    if (group != 0x60u && group != 0xc0u && group != 0xe0u)
+        return 0u;
+    switch (opcode & 0x1fu) {
+    case 0x05u: case 0x0du: case 0x0fu: case 0x15u:
+    case 0x19u: case 0x1du: case 0x1fu:
+        return group | 0x09u;
+    default:
+        return 0u;
+    }
+}
+
 static bool Lufia2DecompIsMemoryOpcode(uint8_t opcode) {
     switch (opcode) {
     case 0xa5u: case 0x85u: case 0x64u: case 0xadu: case 0x8du: case 0x9cu:
@@ -244,7 +257,7 @@ static bool Lufia2DecompIsMemoryOpcode(uint8_t opcode) {
     case 0xa7u: case 0xb7u: case 0x87u: case 0x97u:
         return true;
     default:
-        return false;
+        return Lufia2DecompMemoryArithmeticOperation(opcode) != 0u;
     }
 }
 
@@ -364,16 +377,21 @@ static LUFIA2_ROM_NOINLINE int Lufia2DecompRunMemoryModifyOpcode(Interp816 *regi
 }
 
 static int Lufia2DecompRunMemoryOpcode(Interp816 *registers, uint32_t pc, uint8_t opcode) {
-    const bool direct_page = Lufia2DecompIsDirectPageOpcode(opcode);
-    const bool long_address = opcode == 0xafu || opcode == 0xbfu || opcode == 0x8fu || opcode == 0x9fu;
+    const uint8_t arithmetic = Lufia2DecompMemoryArithmeticOperation(opcode);
+    const unsigned address_mode = opcode & 0x1fu;
+    const bool direct_page = Lufia2DecompIsDirectPageOpcode(opcode) ||
+        (arithmetic != 0u && (address_mode == 0x05u || address_mode == 0x15u));
+    const bool long_address = opcode == 0xafu || opcode == 0xbfu || opcode == 0x8fu || opcode == 0x9fu ||
+        (arithmetic != 0u && (address_mode == 0x0fu || address_mode == 0x1fu));
     const bool index_x = opcode == 0xbdu || opcode == 0x9du || opcode == 0x9eu ||
         opcode == 0xbfu || opcode == 0x9fu || opcode == 0xb5u || opcode == 0x95u ||
-        opcode == 0x74u || opcode == 0xb4u || opcode == 0x94u || opcode == 0xbcu;
+        opcode == 0x74u || opcode == 0xb4u || opcode == 0x94u || opcode == 0xbcu ||
+        (arithmetic != 0u && (address_mode == 0x15u || address_mode == 0x1du || address_mode == 0x1fu));
     const bool index_y = opcode == 0xb9u || opcode == 0x99u || opcode == 0xb6u ||
-        opcode == 0x96u || opcode == 0xbeu;
+        opcode == 0x96u || opcode == 0xbeu || (arithmetic != 0u && address_mode == 0x19u);
     const bool indexed = index_x || index_y;
     const unsigned index = index_x ? registers->x : index_y ? registers->y : 0u;
-    const bool load = opcode == 0xa5u || opcode == 0xadu || opcode == 0xbdu ||
+    const bool load = arithmetic != 0u || opcode == 0xa5u || opcode == 0xadu || opcode == 0xbdu ||
         opcode == 0xb9u || opcode == 0xafu || opcode == 0xbfu ||
         opcode == 0xa6u || opcode == 0xa4u || opcode == 0xaeu || opcode == 0xacu ||
         opcode == 0xb5u || opcode == 0xb4u || opcode == 0xb6u || opcode == 0xbcu || opcode == 0xbeu;
@@ -413,7 +431,8 @@ static int Lufia2DecompRunMemoryOpcode(Interp816 *registers, uint32_t pc, uint8_
 
     if (load) {
         const uint16_t value = Lufia2DecompReadData(registers, low, high, wide);
-        Lufia2DecompApplyOperand(registers, data_x ? 0xa2u : data_y ? 0xa0u : 0xa9u, value, !wide);
+        Lufia2DecompApplyOperand(registers,
+            arithmetic ? arithmetic : data_x ? 0xa2u : data_y ? 0xa0u : 0xa9u, value, !wide);
     } else {
         const bool zero = opcode == 0x64u || opcode == 0x9cu || opcode == 0x9eu || opcode == 0x74u;
         const uint16_t value = zero ? 0u : data_x ? registers->x : data_y ? registers->y : registers->a;
