@@ -15,30 +15,56 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x40cau:
     case 0x40e0u:
         return SpcResumeAt(spc, 0x03u);
+    case 0x3913u:
+    case 0x3919u:
+    case 0x395cu:
+    case 0x39aau:
+    case 0x3a24u:
+    case 0x3a3bu:
     case 0x3b77u:
     case 0x3b84u:
     case 0x3b92u:
     case 0x3dbdu:
     case 0x3edeu:
+    case 0x3ef6u:
     case 0x3f94u:
     case 0x3fa0u:
     case 0x3facu:
         return SpcResumeAt(spc, 0x04u);
     case 0x0520u:
     case 0x05e8u:
+    case 0x3586u:
+    case 0x3689u:
+    case 0x3cc7u:
+    case 0x3cfbu:
+    case 0x3df5u:
+    case 0x4116u:
+    case 0x42d8u:
         return SpcResumeAt(spc, 0x08u);
+    case 0x0316u:
+    case 0x0320u:
+    case 0x367du:
+    case 0x3b2du:
     case 0x3d01u:
+    case 0x3e05u:
+    case 0x3e0bu:
+    case 0x3e18u:
     case 0x4064u:
         return SpcResumeAt(spc, 0x10u);
     case 0x0388u:
         return SpcResumeAt(spc, 0x13u);
+    case 0x3588u:
     case 0x3d5eu:
         return SpcResumeAt(spc, 0x14u);
     case 0x3d8au:
         return SpcResumeAt(spc, 0x15u);
+    case 0x35f5u:
+        return SpcResumeAt(spc, 0x18u);
     case 0x03b3u:
     case 0x0497u:
     case 0x0498u:
+    case 0x3758u:
+    case 0x38dbu:
     case 0x3a0eu:
     case 0x3d11u:
     case 0x3fc5u:
@@ -49,13 +75,38 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x404au:
     case 0x4052u:
     case 0x4076u:
+    case 0x413cu:
     case 0x414eu:
+    case 0x4224u:
+    case 0x4225u:
+    case 0x42f3u:
+    case 0x42f4u:
+    case 0x42f5u:
+    case 0x4303u:
+    case 0x4304u:
+    case 0x4305u:
         return SpcResumeAt(spc, 0x1cu);
+    case 0x0309u:
+    case 0x0315u:
+    case 0x031fu:
+    case 0x367cu:
     case 0x3d00u:
+    case 0x3e04u:
+    case 0x3e17u:
     case 0x4294u:
+    case 0x4312u:
         return SpcResumeAt(spc, 0x1du);
     case 0x03b5u:
+    case 0x375au:
+    case 0x38ddu:
         return SpcResumeAt(spc, 0x1fu);
+    case 0x0300u:
+        return SpcResumeAt(spc, 0x20u);
+    case 0x3626u:
+    case 0x362cu:
+    case 0x3933u:
+    case 0x3b7du:
+    case 0x3b8au:
     case 0x3b9bu:
     case 0x3d94u:
     case 0x3eccu:
@@ -67,12 +118,34 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x3ec3u:
         return SpcResumeAt(spc, 0x25u);
     case 0x05c5u:
+    case 0x357au:
+    case 0x3584u:
     case 0x35ffu:
     case 0x360du:
+    case 0x361fu:
+    case 0x3647u:
+    case 0x3669u:
+    case 0x366fu:
+    case 0x3678u:
+    case 0x36d2u:
     case 0x36f7u:
+    case 0x37c3u:
+    case 0x395au:
+    case 0x39a2u:
+    case 0x39a8u:
+    case 0x3a1bu:
+    case 0x3a22u:
+    case 0x3b2fu:
+    case 0x3ca5u:
+    case 0x3cb3u:
+    case 0x3cd9u:
+    case 0x3ce7u:
     case 0x3d62u:
     case 0x3dc6u:
     case 0x3deau:
+    case 0x3e0du:
+    case 0x3e37u:
+    case 0x3e4cu:
     case 0x3e91u:
     case 0x3e98u:
     case 0x3ee9u:
@@ -85,16 +158,27 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x40f3u:
     case 0x40fcu:
     case 0x410cu:
+    case 0x413du:
     case 0x4196u:
     case 0x41a3u:
+    case 0x427eu:
+    case 0x4318u:
         return SpcResumeAt(spc, 0x28u);
     case 0x051eu:
+    case 0x3761u:
     case 0x3b59u:
     case 0x3d06u:
     case 0x41cau:
         return SpcResumeAt(spc, 0x2du);
     case 0x05ecu:
     case 0x36c5u:
+    case 0x3731u:
+    case 0x383cu:
+    case 0x3917u:
+    case 0x3a3fu:
+    case 0x3b49u:
+    case 0x3cc4u:
+    case 0x3cf8u:
     case 0x3d36u:
     case 0x4039u:
     case 0x405eu:
@@ -103,25 +187,42 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x4114u:
     case 0x4178u:
     case 0x419fu:
+    case 0x425eu:
         return SpcResumeAt(spc, 0x2fu);
+    case 0x361du:
     case 0x369fu:
     case 0x3702u:
+    case 0x3cc1u:
+    case 0x3cf5u:
+    case 0x3dfeu:
     case 0x4169u:
         return SpcResumeAt(spc, 0x30u);
+    case 0x3955u:
+        return SpcResumeAt(spc, 0x38u);
     case 0x3a10u:
+    case 0x4142u:
         return SpcResumeAt(spc, 0x3cu);
+    case 0x358cu:
+    case 0x35beu:
     case 0x3636u:
     case 0x3d31u:
     case 0x3e1bu:
+    case 0x3e41u:
     case 0x3ea9u:
     case 0x3fd2u:
     case 0x40bau:
     case 0x4187u:
     case 0x41b9u:
+    case 0x4257u:
+    case 0x425du:
+    case 0x4278u:
         return SpcResumeAt(spc, 0x3du);
+    case 0x0312u:
+    case 0x0325u:
     case 0x0385u:
     case 0x0398u:
     case 0x03a3u:
+    case 0x0406u:
     case 0x04a9u:
     case 0x04acu:
     case 0x04b8u:
@@ -133,15 +234,56 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x04d9u:
     case 0x04dfu:
     case 0x04e5u:
+    case 0x05b7u:
+    case 0x3560u:
+    case 0x3596u:
+    case 0x35b4u:
+    case 0x35bau:
+    case 0x35c6u:
+    case 0x35c9u:
+    case 0x35dcu:
+    case 0x35dfu:
+    case 0x35e4u:
     case 0x3611u:
+    case 0x3618u:
+    case 0x3633u:
     case 0x363bu:
     case 0x363eu:
     case 0x3641u:
+    case 0x3654u:
+    case 0x3657u:
+    case 0x365au:
+    case 0x365fu:
+    case 0x3673u:
+    case 0x3683u:
     case 0x36a1u:
     case 0x36bdu:
     case 0x36c2u:
+    case 0x36cfu:
+    case 0x36edu:
+    case 0x36f2u:
     case 0x3710u:
     case 0x3713u:
+    case 0x3721u:
+    case 0x3746u:
+    case 0x375eu:
+    case 0x3777u:
+    case 0x377du:
+    case 0x3786u:
+    case 0x3792u:
+    case 0x37afu:
+    case 0x37bbu:
+    case 0x37cau:
+    case 0x38b7u:
+    case 0x38d4u:
+    case 0x3902u:
+    case 0x391du:
+    case 0x3937u:
+    case 0x3952u:
+    case 0x399bu:
+    case 0x39d8u:
+    case 0x3a45u:
+    case 0x3b07u:
     case 0x3c3eu:
     case 0x3c41u:
     case 0x3c44u:
@@ -149,6 +291,7 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x3c4au:
     case 0x3c4du:
     case 0x3c50u:
+    case 0x3c5du:
     case 0x3d07u:
     case 0x3d51u:
     case 0x3d66u:
@@ -156,9 +299,17 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x3db2u:
     case 0x3db5u:
     case 0x3db8u:
+    case 0x3ddeu:
     case 0x3de5u:
+    case 0x3deeu:
+    case 0x3e25u:
+    case 0x3e28u:
     case 0x3e2cu:
     case 0x3e2fu:
+    case 0x3e3bu:
+    case 0x3e3eu:
+    case 0x3e46u:
+    case 0x3e51u:
     case 0x3ea3u:
     case 0x3ea6u:
     case 0x3eb7u:
@@ -167,37 +318,90 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x42aeu:
     case 0x42c0u:
         return SpcResumeAt(spc, 0x3fu);
+    case 0x0419u:
+        return SpcResumeAt(spc, 0x42u);
+    case 0x362au:
     case 0x3b99u:
     case 0x3d88u:
     case 0x3d8du:
     case 0x4058u:
     case 0x407du:
+    case 0x42f6u:
         return SpcResumeAt(spc, 0x48u);
+    case 0x3754u:
+    case 0x37d3u:
+    case 0x3814u:
+    case 0x3901u:
     case 0x3d98u:
+    case 0x3df9u:
     case 0x404eu:
     case 0x4193u:
     case 0x41bfu:
         return SpcResumeAt(spc, 0x4du);
+    case 0x03fcu:
+        return SpcResumeAt(spc, 0x52u);
     case 0x3c61u:
         return SpcResumeAt(spc, 0x53u);
+    case 0x3cabu:
+    case 0x3cdfu:
     case 0x4085u:
     case 0x41d6u:
         return SpcResumeAt(spc, 0x5cu);
     case 0x03b4u:
     case 0x05d4u:
+    case 0x3759u:
+    case 0x37e4u:
+    case 0x3827u:
+    case 0x38dcu:
     case 0x3d57u:
     case 0x3d9du:
     case 0x3e85u:
     case 0x3fc8u:
     case 0x419eu:
+    case 0x4283u:
+    case 0x4306u:
         return SpcResumeAt(spc, 0x5du);
+    case 0x0403u:
+    case 0x0409u:
+    case 0x0416u:
+    case 0x041du:
+    case 0x0454u:
+    case 0x045bu:
+    case 0x0492u:
     case 0x049bu:
     case 0x04afu:
     case 0x0551u:
     case 0x05ccu:
+    case 0x35c3u:
+    case 0x35f8u:
+    case 0x36ccu:
+    case 0x3773u:
+    case 0x3782u:
+    case 0x378eu:
+    case 0x3797u:
+    case 0x37b7u:
+    case 0x37cfu:
+    case 0x3810u:
+    case 0x3862u:
+    case 0x3868u:
+    case 0x38bau:
+    case 0x38f8u:
+    case 0x3908u:
+    case 0x3922u:
+    case 0x393cu:
+    case 0x3962u:
+    case 0x39b0u:
+    case 0x39e3u:
+    case 0x3a30u:
+    case 0x3a4au:
+    case 0x3aaeu:
+    case 0x3ac4u:
+    case 0x3b0fu:
     case 0x3c9au:
+    case 0x3dafu:
     case 0x3dc1u:
     case 0x3dcau:
+    case 0x3e54u:
     case 0x4020u:
     case 0x4029u:
     case 0x40bfu:
@@ -207,37 +411,66 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
         return SpcResumeAt(spc, 0x5fu);
     case 0x04f2u:
     case 0x050du:
+    case 0x35abu:
     case 0x36a5u:
+    case 0x36d4u:
+    case 0x37e1u:
+    case 0x37f4u:
+    case 0x3824u:
+    case 0x3877u:
+    case 0x39cfu:
     case 0x3b1au:
+    case 0x3b37u:
+    case 0x3b4bu:
+    case 0x3ca0u:
+    case 0x3cacu:
+    case 0x3cd4u:
+    case 0x3ce0u:
     case 0x3d19u:
     case 0x3d74u:
     case 0x3d9au:
     case 0x3fd4u:
     case 0x405bu:
     case 0x4061u:
+    case 0x4134u:
     case 0x415cu:
     case 0x416du:
     case 0x419bu:
     case 0x41b4u:
+    case 0x421au:
+    case 0x4280u:
         return SpcResumeAt(spc, 0x60u);
     case 0x03aau:
     case 0x0518u:
     case 0x05bcu:
     case 0x05cfu:
+    case 0x3e00u:
+    case 0x3e0fu:
     case 0x3e9au:
         return SpcResumeAt(spc, 0x64u);
     case 0x03aeu:
+    case 0x3580u:
+    case 0x36c8u:
+    case 0x382bu:
+    case 0x382fu:
+    case 0x388du:
+    case 0x39c7u:
     case 0x3d3du:
     case 0x3ee2u:
     case 0x3fd8u:
     case 0x4070u:
     case 0x4106u:
+    case 0x4212u:
+    case 0x4251u:
+    case 0x4284u:
         return SpcResumeAt(spc, 0x68u);
     case 0x3e20u:
     case 0x3eb2u:
         return SpcResumeAt(spc, 0x69u);
     case 0x41d7u:
         return SpcResumeAt(spc, 0x6bu);
+    case 0x35b7u:
+    case 0x3b28u:
     case 0x3d50u:
     case 0x3d6fu:
     case 0x41f4u:
@@ -246,9 +479,16 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x0526u:
     case 0x0602u:
     case 0x3644u:
+    case 0x3690u:
     case 0x3720u:
+    case 0x3753u:
+    case 0x38d7u:
+    case 0x39d4u:
     case 0x3a17u:
+    case 0x3b0eu:
+    case 0x3b19u:
     case 0x3b27u:
+    case 0x3b58u:
     case 0x3b73u:
     case 0x3b8eu:
     case 0x3b9fu:
@@ -271,11 +511,18 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x40eeu:
     case 0x41beu:
     case 0x420eu:
+    case 0x4241u:
     case 0x42c3u:
+    case 0x4322u:
         return SpcResumeAt(spc, 0x6fu);
+    case 0x03fau:
+    case 0x041bu:
+        return SpcResumeAt(spc, 0x72u);
     case 0x3c7cu:
     case 0x40cdu:
         return SpcResumeAt(spc, 0x73u);
+    case 0x370bu:
+    case 0x372bu:
     case 0x3d2cu:
         return SpcResumeAt(spc, 0x75u);
     case 0x0372u:
@@ -288,13 +535,23 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x4207u:
         return SpcResumeAt(spc, 0x7au);
     case 0x05e7u:
+    case 0x37d4u:
+    case 0x37e0u:
+    case 0x381cu:
+    case 0x3823u:
+    case 0x39c6u:
     case 0x3d99u:
     case 0x40a7u:
     case 0x40aeu:
     case 0x419au:
+    case 0x4211u:
+    case 0x427du:
         return SpcResumeAt(spc, 0x7du);
+    case 0x3755u:
+    case 0x3c67u:
     case 0x40a8u:
     case 0x417cu:
+    case 0x4216u:
         return SpcResumeAt(spc, 0x80u);
     case 0x04f3u:
     case 0x04feu:
@@ -303,9 +560,21 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x3d7du:
     case 0x405cu:
     case 0x4062u:
+    case 0x4135u:
     case 0x415du:
         return SpcResumeAt(spc, 0x84u);
+    case 0x35acu:
+    case 0x37e2u:
+    case 0x37f5u:
+    case 0x37fdu:
+    case 0x3825u:
+    case 0x3878u:
+    case 0x3882u:
+    case 0x39d0u:
     case 0x3b22u:
+    case 0x3b38u:
+    case 0x3b42u:
+    case 0x3b4cu:
     case 0x3d1au:
     case 0x3d21u:
     case 0x3d9bu:
@@ -313,15 +582,23 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x4162u:
     case 0x419cu:
     case 0x41b5u:
+    case 0x421bu:
+    case 0x4281u:
         return SpcResumeAt(spc, 0x88u);
     case 0x039bu:
     case 0x3dabu:
     case 0x3eaeu:
         return SpcResumeAt(spc, 0x8bu);
     case 0x0365u:
+    case 0x040cu:
     case 0x04bbu:
     case 0x05c2u:
+    case 0x3576u:
+    case 0x3592u:
     case 0x369bu:
+    case 0x3724u:
+    case 0x3889u:
+    case 0x3b29u:
     case 0x3d46u:
     case 0x3e7bu:
     case 0x3f11u:
@@ -329,6 +606,8 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x3fc9u:
     case 0x4191u:
     case 0x41c5u:
+    case 0x426eu:
+    case 0x4307u:
         return SpcResumeAt(spc, 0x8du);
     case 0x035fu:
     case 0x0362u:
@@ -340,6 +619,18 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x0382u:
     case 0x05eeu:
     case 0x05f1u:
+    case 0x356eu:
+    case 0x3571u:
+    case 0x35e7u:
+    case 0x35efu:
+    case 0x35f2u:
+    case 0x364bu:
+    case 0x364eu:
+    case 0x3651u:
+    case 0x3662u:
+    case 0x368bu:
+    case 0x38f1u:
+    case 0x3a29u:
     case 0x3d0au:
     case 0x3d0du:
     case 0x3d25u:
@@ -355,12 +646,35 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x3fbcu:
     case 0x40d3u:
     case 0x40e9u:
+    case 0x4246u:
+    case 0x4249u:
+    case 0x4260u:
+    case 0x4263u:
+    case 0x4266u:
+    case 0x4269u:
+    case 0x4288u:
+    case 0x428bu:
     case 0x4297u:
     case 0x429au:
+    case 0x42c6u:
+    case 0x42cbu:
+    case 0x42d0u:
+    case 0x42dau:
+    case 0x42dfu:
+    case 0x42e7u:
+    case 0x42fdu:
+    case 0x431du:
         return SpcResumeAt(spc, 0x8fu);
+    case 0x36cau:
+    case 0x3911u:
+    case 0x392bu:
+    case 0x39c9u:
+    case 0x3a39u:
     case 0x3d12u:
     case 0x4055u:
     case 0x40a5u:
+    case 0x4139u:
+    case 0x4214u:
         return SpcResumeAt(spc, 0x90u);
     case 0x40e3u:
         return SpcResumeAt(spc, 0x93u);
@@ -368,33 +682,56 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x4174u:
         return SpcResumeAt(spc, 0x94u);
     case 0x36a6u:
+    case 0x36d5u:
+    case 0x3ca1u:
+    case 0x3cadu:
+    case 0x3cd5u:
+    case 0x3ce1u:
         return SpcResumeAt(spc, 0x95u);
     case 0x050eu:
         return SpcResumeAt(spc, 0x98u);
     case 0x3607u:
     case 0x3614u:
+    case 0x3ddau:
     case 0x3de1u:
         return SpcResumeAt(spc, 0x9bu);
     case 0x03b2u:
+    case 0x3817u:
+    case 0x3833u:
+    case 0x3c58u:
         return SpcResumeAt(spc, 0x9cu);
+    case 0x0412u:
     case 0x41c9u:
         return SpcResumeAt(spc, 0x9eu);
+    case 0x39ceu:
     case 0x40abu:
     case 0x40afu:
+    case 0x4219u:
         return SpcResumeAt(spc, 0x9fu);
     case 0x407bu:
     case 0x417du:
     case 0x4183u:
         return SpcResumeAt(spc, 0xa4u);
+    case 0x3c68u:
+        return SpcResumeAt(spc, 0xa5u);
+    case 0x3756u:
     case 0x40a9u:
+    case 0x4217u:
         return SpcResumeAt(spc, 0xa8u);
     case 0x05e5u:
+    case 0x399eu:
     case 0x40b5u:
     case 0x41adu:
+    case 0x422au:
+    case 0x4231u:
+    case 0x4310u:
         return SpcResumeAt(spc, 0xabu);
+    case 0x358eu:
     case 0x41dau:
+    case 0x4279u:
         return SpcResumeAt(spc, 0xadu);
     case 0x0525u:
+    case 0x376du:
     case 0x3b72u:
     case 0x3d10u:
     case 0x4206u:
@@ -402,18 +739,26 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x03b0u:
     case 0x3b7bu:
     case 0x3b88u:
+    case 0x3c6eu:
     case 0x4002u:
     case 0x402eu:
         return SpcResumeAt(spc, 0xb0u);
+    case 0x048eu:
     case 0x0502u:
     case 0x054du:
+    case 0x05b3u:
         return SpcResumeAt(spc, 0xbau);
+    case 0x3872u:
+        return SpcResumeAt(spc, 0xbbu);
     case 0x3d3au:
     case 0x3d4du:
     case 0x400bu:
     case 0x4011u:
     case 0x405au:
+    case 0x42f8u:
         return SpcResumeAt(spc, 0xbcu);
+    case 0x0303u:
+        return SpcResumeAt(spc, 0xbdu);
     case 0x0339u:
     case 0x033bu:
     case 0x033du:
@@ -429,6 +774,8 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x0356u:
     case 0x0358u:
     case 0x038fu:
+    case 0x0452u:
+    case 0x0459u:
     case 0x0499u:
     case 0x04c0u:
     case 0x04c5u:
@@ -443,12 +790,37 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x05eau:
     case 0x05feu:
     case 0x0600u:
+    case 0x35a6u:
+    case 0x35b1u:
+    case 0x35edu:
+    case 0x362eu:
+    case 0x3649u:
+    case 0x3681u:
+    case 0x368eu:
     case 0x3694u:
     case 0x3699u:
+    case 0x381au:
+    case 0x387au:
+    case 0x3884u:
+    case 0x38f4u:
+    case 0x3915u:
+    case 0x391bu:
+    case 0x3935u:
+    case 0x395eu:
+    case 0x39a4u:
+    case 0x39acu:
+    case 0x39c4u:
+    case 0x39d2u:
+    case 0x3a1du:
+    case 0x3a2cu:
+    case 0x3a3du:
+    case 0x3b3du:
+    case 0x3b47u:
     case 0x3b7fu:
     case 0x3b8cu:
     case 0x3b94u:
     case 0x3b9du:
+    case 0x3c59u:
     case 0x3d1cu:
     case 0x3d23u:
     case 0x3d3bu:
@@ -457,11 +829,13 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x3d8fu:
     case 0x3d96u:
     case 0x3dbfu:
+    case 0x3df3u:
     case 0x3e7fu:
     case 0x3e8bu:
     case 0x3ec1u:
     case 0x3edcu:
     case 0x3ee0u:
+    case 0x3ef8u:
     case 0x3f0fu:
     case 0x3f2bu:
     case 0x3f2du:
@@ -479,21 +853,54 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x40b0u:
     case 0x40d6u:
     case 0x40ecu:
+    case 0x4137u:
     case 0x415fu:
     case 0x4164u:
     case 0x41abu:
     case 0x41b1u:
     case 0x41ceu:
+    case 0x420fu:
+    case 0x421du:
+    case 0x422cu:
+    case 0x4233u:
+    case 0x4244u:
+    case 0x4255u:
+    case 0x425bu:
+    case 0x4275u:
     case 0x429fu:
+    case 0x42c9u:
+    case 0x42ceu:
+    case 0x42d3u:
+    case 0x42ddu:
+    case 0x42e5u:
+    case 0x42f9u:
+    case 0x42fbu:
+    case 0x4320u:
         return SpcResumeAt(spc, 0xc4u);
+    case 0x0322u:
     case 0x032au:
     case 0x032fu:
     case 0x0334u:
     case 0x0351u:
     case 0x035cu:
+    case 0x0400u:
+    case 0x0413u:
+    case 0x3565u:
+    case 0x3568u:
+    case 0x356bu:
+    case 0x35cfu:
+    case 0x35d4u:
+    case 0x35d9u:
+    case 0x38eeu:
+    case 0x38feu:
+    case 0x39dbu:
+    case 0x39deu:
     case 0x3a11u:
     case 0x3a14u:
+    case 0x3a26u:
+    case 0x3c6bu:
     case 0x3d43u:
+    case 0x3e4eu:
     case 0x3ec6u:
     case 0x3eceu:
     case 0x3ed6u:
@@ -503,12 +910,20 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x42b3u:
     case 0x42b8u:
     case 0x42bdu:
+    case 0x431au:
         return SpcResumeAt(spc, 0xc5u);
+    case 0x0308u:
+        return SpcResumeAt(spc, 0xc6u);
+    case 0x35bfu:
     case 0x3637u:
+    case 0x390fu:
+    case 0x3929u:
+    case 0x3a37u:
     case 0x3b79u:
     case 0x3b86u:
     case 0x3d32u:
     case 0x3e1cu:
+    case 0x3e42u:
     case 0x3eaau:
     case 0x4000u:
     case 0x402cu:
@@ -521,26 +936,68 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x3fceu:
     case 0x4037u:
     case 0x4078u:
+    case 0x412bu:
     case 0x4150u:
     case 0x4155u:
     case 0x41a7u:
         return SpcResumeAt(spc, 0xcbu);
+    case 0x0301u:
+    case 0x0306u:
+    case 0x030cu:
+    case 0x0318u:
+    case 0x3574u:
+    case 0x3594u:
     case 0x35fbu:
+    case 0x3665u:
     case 0x3c93u:
     case 0x3d28u:
     case 0x3dd0u:
+    case 0x3dfau:
+    case 0x3e07u:
+    case 0x3e33u:
     case 0x3e8du:
     case 0x4018u:
     case 0x40efu:
     case 0x418fu:
     case 0x41c7u:
+    case 0x424cu:
+    case 0x426cu:
+    case 0x428eu:
         return SpcResumeAt(spc, 0xcdu);
+    case 0x375du:
+    case 0x3776u:
+    case 0x3785u:
+    case 0x3791u:
+    case 0x37aeu:
+    case 0x37bau:
+    case 0x37d2u:
+    case 0x380du:
+    case 0x3813u:
+    case 0x3861u:
+    case 0x3865u:
+    case 0x386cu:
+    case 0x38bdu:
+    case 0x38ebu:
+    case 0x38fbu:
+    case 0x3905u:
+    case 0x390bu:
+    case 0x3925u:
+    case 0x3951u:
+    case 0x399au:
+    case 0x39d5u:
+    case 0x3a18u:
+    case 0x3a33u:
+    case 0x3aa6u:
+    case 0x3abcu:
     case 0x3da9u:
+    case 0x3e1au:
     case 0x4054u:
     case 0x41b8u:
     case 0x420du:
         return SpcResumeAt(spc, 0xceu);
     case 0x3a0du:
+    case 0x3cbdu:
+    case 0x3cf1u:
     case 0x400cu:
     case 0x4012u:
     case 0x4036u:
@@ -549,6 +1006,8 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x4077u:
     case 0x40c8u:
     case 0x40deu:
+    case 0x412au:
+    case 0x4133u:
     case 0x414fu:
     case 0x4154u:
     case 0x415bu:
@@ -557,6 +1016,7 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x41fau:
     case 0x4204u:
         return SpcResumeAt(spc, 0xcfu);
+    case 0x030au:
     case 0x0375u:
     case 0x037au:
     case 0x039du:
@@ -570,18 +1030,30 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x05e3u:
     case 0x05f6u:
     case 0x05fau:
+    case 0x3590u:
     case 0x3609u:
     case 0x360fu:
     case 0x3616u:
+    case 0x3621u:
     case 0x3639u:
+    case 0x3671u:
     case 0x36f9u:
+    case 0x3765u:
+    case 0x37c5u:
+    case 0x37deu:
+    case 0x3837u:
+    case 0x388fu:
+    case 0x3c5bu:
     case 0x3c98u:
     case 0x3d34u:
     case 0x3d3fu:
     case 0x3dc8u:
+    case 0x3ddcu:
     case 0x3de3u:
     case 0x3decu:
+    case 0x3e11u:
     case 0x3e1eu:
+    case 0x3e44u:
     case 0x3e9cu:
     case 0x3eacu:
     case 0x3eb0u:
@@ -590,21 +1062,43 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x401eu:
     case 0x40f5u:
     case 0x4108u:
+    case 0x4118u:
     case 0x41bcu:
     case 0x41dcu:
+    case 0x427bu:
+    case 0x4286u:
     case 0x4295u:
+    case 0x42edu:
+    case 0x430eu:
+    case 0x4313u:
         return SpcResumeAt(spc, 0xd0u);
+    case 0x0310u:
+    case 0x357cu:
+    case 0x358au:
+    case 0x359bu:
+    case 0x359fu:
+    case 0x367au:
     case 0x3719u:
     case 0x371eu:
+    case 0x3736u:
+    case 0x373bu:
+    case 0x374cu:
+    case 0x3751u:
+    case 0x38c0u:
+    case 0x3b14u:
     case 0x3d5au:
     case 0x3d60u:
     case 0x3da3u:
     case 0x3da7u:
+    case 0x3df7u:
+    case 0x3e15u:
     case 0x3efeu:
     case 0x3f02u:
     case 0x3f5cu:
     case 0x410eu:
     case 0x4112u:
+    case 0x413fu:
+    case 0x4143u:
     case 0x4170u:
     case 0x4176u:
     case 0x417fu:
@@ -613,6 +1107,7 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x41e4u:
     case 0x4209u:
         return SpcResumeAt(spc, 0xd4u);
+    case 0x031cu:
     case 0x04d6u:
     case 0x04dcu:
     case 0x04e2u:
@@ -621,16 +1116,59 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x04f9u:
     case 0x0506u:
     case 0x050au:
+    case 0x35a3u:
+    case 0x35aeu:
     case 0x36a9u:
     case 0x36aeu:
     case 0x36b4u:
     case 0x36bau:
+    case 0x36d8u:
+    case 0x36deu:
+    case 0x36e4u:
+    case 0x36eau:
+    case 0x3740u:
+    case 0x3767u:
+    case 0x376au:
+    case 0x376eu:
+    case 0x377au:
+    case 0x3789u:
+    case 0x37b2u:
+    case 0x37beu:
+    case 0x37e8u:
+    case 0x37eeu:
+    case 0x37f7u:
+    case 0x37ffu:
+    case 0x3804u:
+    case 0x380au:
+    case 0x3834u:
+    case 0x3839u:
+    case 0x3840u:
+    case 0x386fu:
+    case 0x387cu:
+    case 0x3886u:
+    case 0x38c2u:
+    case 0x38c7u:
+    case 0x38ccu:
+    case 0x38d1u:
+    case 0x3aa9u:
+    case 0x3abfu:
     case 0x3b1du:
     case 0x3b24u:
+    case 0x3b31u:
+    case 0x3b3au:
+    case 0x3b44u:
+    case 0x3b4eu:
+    case 0x3b54u:
     case 0x3b5du:
     case 0x3b63u:
     case 0x3b69u:
     case 0x3b6fu:
+    case 0x3ca7u:
+    case 0x3cb0u:
+    case 0x3cc9u:
+    case 0x3cdbu:
+    case 0x3ce4u:
+    case 0x3cfdu:
     case 0x3d6cu:
     case 0x3d77u:
     case 0x3d7fu:
@@ -661,13 +1199,25 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x3f87u:
     case 0x3f8cu:
     case 0x4014u:
+    case 0x4238u:
+    case 0x423eu:
         return SpcResumeAt(spc, 0xd5u);
+    case 0x3846u:
+    case 0x384cu:
+    case 0x3852u:
+    case 0x3858u:
+    case 0x385eu:
+        return SpcResumeAt(spc, 0xd6u);
     case 0x05d7u:
     case 0x05e0u:
+    case 0x430bu:
         return SpcResumeAt(spc, 0xd7u);
     case 0x41c0u:
+    case 0x4270u:
         return SpcResumeAt(spc, 0xd8u);
+    case 0x0490u:
     case 0x054fu:
+    case 0x05b5u:
     case 0x41ecu:
     case 0x41fdu:
         return SpcResumeAt(spc, 0xdau);
@@ -681,6 +1231,12 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x05c4u:
     case 0x05d3u:
     case 0x3a0fu:
+    case 0x3caau:
+    case 0x3cc3u:
+    case 0x3cc6u:
+    case 0x3cdeu:
+    case 0x3cf7u:
+    case 0x3cfau:
     case 0x3fd3u:
     case 0x4013u:
     case 0x4057u:
@@ -688,12 +1244,15 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x407au:
     case 0x40c9u:
     case 0x40dfu:
+    case 0x4141u:
     case 0x4161u:
     case 0x41b3u:
         return SpcResumeAt(spc, 0xddu);
     case 0x038bu:
     case 0x039fu:
     case 0x03a6u:
+    case 0x0450u:
+    case 0x0457u:
     case 0x0495u:
     case 0x04ebu:
     case 0x04f7u:
@@ -702,6 +1261,11 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x05deu:
     case 0x05f4u:
     case 0x05f8u:
+    case 0x3645u:
+    case 0x383eu:
+    case 0x3958u:
+    case 0x39a0u:
+    case 0x39a6u:
     case 0x3b20u:
     case 0x3c54u:
     case 0x3d04u:
@@ -710,6 +1274,7 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x3d41u:
     case 0x3d86u:
     case 0x3dc4u:
+    case 0x3ef4u:
     case 0x3f08u:
     case 0x3f15u:
     case 0x3f90u:
@@ -719,9 +1284,16 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x416bu:
     case 0x4172u:
     case 0x41e2u:
+    case 0x421fu:
     case 0x4290u:
         return SpcResumeAt(spc, 0xe4u);
+    case 0x35ccu:
+    case 0x35eau:
+    case 0x3686u:
+    case 0x3a1fu:
+    case 0x3c64u:
     case 0x3d69u:
+    case 0x3e49u:
     case 0x3ec9u:
     case 0x3ed1u:
     case 0x3ee6u:
@@ -729,21 +1301,67 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x3fc2u:
     case 0x40c2u:
     case 0x40d8u:
+    case 0x42d5u:
+    case 0x42e2u:
+    case 0x42eau:
+    case 0x4300u:
+    case 0x4315u:
         return SpcResumeAt(spc, 0xe5u);
+    case 0x0304u:
+    case 0x030eu:
+    case 0x031au:
     case 0x0328u:
     case 0x032du:
     case 0x0332u:
     case 0x0337u:
     case 0x0354u:
     case 0x035au:
+    case 0x03feu:
+    case 0x040eu:
     case 0x05bau:
     case 0x05fcu:
+    case 0x3563u:
+    case 0x3599u:
+    case 0x359du:
+    case 0x35b8u:
+    case 0x35d2u:
+    case 0x35d7u:
+    case 0x35e2u:
+    case 0x365du:
+    case 0x367fu:
     case 0x36c0u:
+    case 0x36f0u:
+    case 0x3771u:
+    case 0x3780u:
+    case 0x378cu:
+    case 0x3795u:
+    case 0x37b5u:
+    case 0x37cdu:
+    case 0x3802u:
+    case 0x380eu:
+    case 0x3866u:
+    case 0x386du:
+    case 0x38beu:
+    case 0x38c5u:
+    case 0x38cau:
+    case 0x38cfu:
+    case 0x38f6u:
+    case 0x3906u:
+    case 0x3920u:
+    case 0x393au:
+    case 0x3960u:
+    case 0x39aeu:
+    case 0x39e1u:
+    case 0x3a2eu:
+    case 0x3a48u:
+    case 0x3aacu:
+    case 0x3ac2u:
     case 0x3d58u:
     case 0x3d5cu:
     case 0x3da1u:
     case 0x3da5u:
     case 0x3dbbu:
+    case 0x3e13u:
     case 0x3e9eu:
     case 0x3f00u:
     case 0x3f29u:
@@ -756,12 +1374,15 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x3f77u:
     case 0x3f85u:
     case 0x3f8au:
+    case 0x4242u:
     case 0x429du:
     case 0x42a4u:
     case 0x42acu:
     case 0x42b1u:
     case 0x42b6u:
     case 0x42bbu:
+    case 0x42c4u:
+    case 0x4309u:
         return SpcResumeAt(spc, 0xe8u);
     case 0x0391u:
         return SpcResumeAt(spc, 0xe9u);
@@ -772,10 +1393,13 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
         return SpcResumeAt(spc, 0xebu);
     case 0x3a0au:
     case 0x3ffdu:
+    case 0x4004u:
     case 0x4033u:
     case 0x40c5u:
     case 0x40dbu:
         return SpcResumeAt(spc, 0xecu);
+    case 0x35bdu:
+    case 0x3b57u:
     case 0x3d54u:
     case 0x3d85u:
     case 0x41d3u:
@@ -784,17 +1408,33 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x0394u:
     case 0x03a1u:
     case 0x03a8u:
+    case 0x3582u:
+    case 0x35c1u:
     case 0x3601u:
     case 0x3605u:
+    case 0x3628u:
+    case 0x366bu:
     case 0x36feu:
     case 0x3706u:
+    case 0x370eu:
+    case 0x3729u:
+    case 0x372eu:
+    case 0x37d9u:
+    case 0x3818u:
+    case 0x3821u:
+    case 0x382du:
+    case 0x3831u:
+    case 0x3b0cu:
     case 0x3c56u:
+    case 0x3ccfu:
     case 0x3d2fu:
     case 0x3d64u:
     case 0x3dadu:
     case 0x3dd4u:
     case 0x3dd8u:
+    case 0x3e02u:
     case 0x3e23u:
+    case 0x3e39u:
     case 0x3e89u:
     case 0x3e93u:
     case 0x3eb5u:
@@ -814,17 +1454,29 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x4198u:
     case 0x41a5u:
     case 0x41d4u:
+    case 0x4253u:
     case 0x4292u:
         return SpcResumeAt(spc, 0xf0u);
+    case 0x3578u:
     case 0x35fdu:
     case 0x3603u:
     case 0x360bu:
+    case 0x361bu:
+    case 0x3667u:
+    case 0x366du:
+    case 0x3676u:
     case 0x36f5u:
     case 0x3700u:
     case 0x3704u:
+    case 0x37c1u:
+    case 0x3b0au:
     case 0x3dd2u:
     case 0x3dd6u:
     case 0x3de8u:
+    case 0x3df1u:
+    case 0x3dfcu:
+    case 0x3e09u:
+    case 0x3e35u:
     case 0x3e8fu:
     case 0x3eeeu:
     case 0x3efau:
@@ -836,6 +1488,7 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x40fau:
     case 0x410au:
     case 0x4110u:
+    case 0x4131u:
     case 0x4152u:
     case 0x4159u:
     case 0x417au:
@@ -845,11 +1498,37 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x41a9u:
     case 0x41afu:
         return SpcResumeAt(spc, 0xf4u);
+    case 0x3623u:
+    case 0x3630u:
     case 0x3691u:
     case 0x3696u:
+    case 0x36dbu:
+    case 0x36e1u:
+    case 0x36e7u:
     case 0x36fbu:
+    case 0x3708u:
     case 0x3716u:
     case 0x371bu:
+    case 0x3749u:
+    case 0x374eu:
+    case 0x3762u:
+    case 0x37c7u:
+    case 0x37d6u:
+    case 0x37dbu:
+    case 0x381eu:
+    case 0x3828u:
+    case 0x3843u:
+    case 0x3849u:
+    case 0x384fu:
+    case 0x3855u:
+    case 0x385bu:
+    case 0x3874u:
+    case 0x387fu:
+    case 0x390cu:
+    case 0x3926u:
+    case 0x3a34u:
+    case 0x3b34u:
+    case 0x3b3fu:
     case 0x3b5au:
     case 0x3b60u:
     case 0x3b66u:
@@ -859,6 +1538,13 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x3b8fu:
     case 0x3b96u:
     case 0x3c95u:
+    case 0x3c9du:
+    case 0x3cbau:
+    case 0x3cbeu:
+    case 0x3cccu:
+    case 0x3cd1u:
+    case 0x3ceeu:
+    case 0x3cf2u:
     case 0x3d91u:
     case 0x3e86u:
     case 0x3e95u:
@@ -874,6 +1560,7 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x404fu:
     case 0x406du:
     case 0x4103u:
+    case 0x412du:
     case 0x4145u:
     case 0x414bu:
     case 0x4166u:
@@ -882,14 +1569,50 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x41eeu:
     case 0x41f5u:
     case 0x41ffu:
+    case 0x424eu:
+    case 0x4258u:
         return SpcResumeAt(spc, 0xf5u);
+    case 0x3726u:
+    case 0x3733u:
+    case 0x3738u:
+    case 0x373du:
+    case 0x3743u:
+    case 0x37e5u:
+    case 0x37ebu:
+    case 0x37f1u:
+    case 0x37fau:
+    case 0x3807u:
+    case 0x3cb6u:
+    case 0x3ceau:
     case 0x41cbu:
     case 0x41d0u:
+    case 0x4227u:
+    case 0x422eu:
+    case 0x4235u:
+    case 0x423bu:
+    case 0x4272u:
         return SpcResumeAt(spc, 0xf6u);
+    case 0x357eu:
+    case 0x35a1u:
+    case 0x35a9u:
     case 0x369du:
     case 0x36acu:
     case 0x36b2u:
     case 0x36b8u:
+    case 0x3815u:
+    case 0x388bu:
+    case 0x38d8u:
+    case 0x38ecu:
+    case 0x38fcu:
+    case 0x39c2u:
+    case 0x39d6u:
+    case 0x3a19u:
+    case 0x3aa7u:
+    case 0x3abdu:
+    case 0x3b12u:
+    case 0x3b17u:
+    case 0x3b2bu:
+    case 0x3b52u:
     case 0x3d17u:
     case 0x3d1fu:
     case 0x3d48u:
@@ -899,6 +1622,7 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x3e7du:
     case 0x3e82u:
         return SpcResumeAt(spc, 0xf7u);
+    case 0x0410u:
     case 0x04d1u:
     case 0x41deu:
         return SpcResumeAt(spc, 0xf8u);
@@ -907,7 +1631,9 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x3f26u:
     case 0x40b2u:
     case 0x40b7u:
+    case 0x4221u:
         return SpcResumeAt(spc, 0xfau);
+    case 0x4128u:
     case 0x41e9u:
     case 0x41f1u:
     case 0x41f8u:
@@ -915,9 +1641,17 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
         return SpcResumeAt(spc, 0xfbu);
     case 0x05d9u:
     case 0x05e2u:
+    case 0x358du:
+    case 0x35a8u:
+    case 0x35b3u:
     case 0x36a4u:
     case 0x36b1u:
     case 0x36b7u:
+    case 0x36c7u:
+    case 0x3730u:
+    case 0x38dau:
+    case 0x3b16u:
+    case 0x3b51u:
     case 0x3d1eu:
     case 0x3d4au:
     case 0x3d7au:
@@ -925,13 +1659,26 @@ unsigned Lufia2SpcResumeInstruction(Spc *spc) {
     case 0x3daau:
     case 0x3e81u:
     case 0x3e84u:
+    case 0x413bu:
     case 0x41d9u:
+    case 0x4277u:
+    case 0x430du:
         return SpcResumeAt(spc, 0xfcu);
+    case 0x37d5u:
+    case 0x381du:
+    case 0x3ca4u:
+    case 0x3cb5u:
+    case 0x3cb9u:
+    case 0x3cd8u:
+    case 0x3ce9u:
+    case 0x3cedu:
     case 0x3d16u:
     case 0x3fd7u:
+    case 0x4130u:
     case 0x414au:
     case 0x41b7u:
     case 0x4205u:
+    case 0x4226u:
         return SpcResumeAt(spc, 0xfdu);
     case 0x0367u:
     case 0x3f13u:
