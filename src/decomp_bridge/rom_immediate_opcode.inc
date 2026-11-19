@@ -1,13 +1,58 @@
+#if defined(_MSC_VER)
+#define LUFIA2_ROM_NOINLINE __declspec(noinline)
+#elif defined(__GNUC__)
+#define LUFIA2_ROM_NOINLINE __attribute__((noinline))
+#else
+#define LUFIA2_ROM_NOINLINE
+#endif
+
 extern uint32_t g_interp816_cur_pc;
 
 static bool Lufia2DecompIsImmediateDataOpcode(uint8_t opcode) {
     switch (opcode) {
     case 0xa9u: case 0xa2u: case 0xa0u:
-    case 0xc9u: case 0x29u: case 0x89u:
+    case 0xc9u: case 0xc0u: case 0xe0u:
+    case 0x09u: case 0x29u: case 0x49u: case 0x89u:
+    case 0x69u: case 0xe9u:
         return true;
     default:
         return false;
     }
+}
+
+static LUFIA2_ROM_NOINLINE uint16_t Lufia2DecompAddSubtract(Interp816 *registers, uint16_t accumulator,
+    uint16_t operand, uint16_t mask, unsigned sign, bool subtract) {
+    if (subtract)
+        operand ^= mask;
+
+    int sum = accumulator + operand + registers->c;
+    if (registers->d) {
+        sum = registers->c;
+        for (unsigned shift = 0u; shift < (sign == 0x80u ? 4u : 12u); shift += 4u) {
+            const unsigned digit = 0xfu << shift;
+            const unsigned carry = 0x10u << shift;
+            const unsigned correction = 6u << shift;
+            sum += (accumulator & digit) + (operand & digit);
+            if (subtract) {
+                if (sum < (int)carry)
+                    sum = (unsigned)(sum - (int)correction) & (carry - 1u);
+            } else if (sum > (int)(carry - correction - 1u)) {
+                sum = ((sum + correction) & (carry - 1u)) | carry;
+            }
+        }
+        const unsigned top_digit = sign | (sign >> 1) | (sign >> 2) | (sign >> 3);
+        sum += (accumulator & top_digit) + (operand & top_digit);
+    }
+
+    registers->v = ((accumulator ^ operand) & sign) == 0u &&
+                   ((operand ^ (unsigned)sum) & sign) != 0u;
+    if (registers->d) {
+        const int correction = (int)(sign >> 3) * 6;
+        if (subtract ? sum <= mask : sum > mask - correction)
+            sum += subtract ? -correction : correction;
+    }
+    registers->c = sum > mask;
+    return (uint16_t)sum & mask;
 }
 
 static void Lufia2DecompApplyOperand(Interp816 *registers, uint8_t opcode,
@@ -19,12 +64,21 @@ static void Lufia2DecompApplyOperand(Interp816 *registers, uint8_t opcode,
     case 0x89u:
         registers->z = (accumulator & value) == 0u;
         return;
-    case 0xc9u:
-        registers->c = accumulator >= value;
-        result = (uint16_t)(accumulator - value) & mask;
+    case 0xc9u: case 0xc0u: case 0xe0u: {
+        const uint16_t source = (opcode == 0xe0u ? registers->x :
+            opcode == 0xc0u ? registers->y : accumulator) & mask;
+        registers->c = source >= value;
+        result = (uint16_t)(source - value) & mask;
         break;
-    case 0x29u:
-        result = accumulator & value;
+    }
+    case 0x69u: case 0xe9u:
+        result = Lufia2DecompAddSubtract(registers, accumulator, value, mask,
+            byte_operand ? 0x80u : 0x8000u, opcode == 0xe9u);
+        registers->a = (registers->a & ~mask) | result;
+        break;
+    case 0x09u: case 0x29u: case 0x49u:
+        result = opcode == 0x09u ? accumulator | value :
+            opcode == 0x29u ? accumulator & value : accumulator ^ value;
         registers->a = (registers->a & ~mask) | result;
         break;
     case 0xa9u:
@@ -91,7 +145,8 @@ static int Lufia2DecompRunRomImmediateOpcode(Interp816 *registers, uint32_t pc, 
     const bool conditional = (opcode & 0x1fu) == 0x10u;
     const bool changes_bank = opcode == 0x5cu;
     const bool immediate_data = Lufia2DecompIsImmediateDataOpcode(opcode);
-    const bool byte_operand = opcode == 0xa0u || opcode == 0xa2u ? registers->xf : registers->mf;
+    const bool index_operand = opcode == 0xa0u || opcode == 0xa2u || opcode == 0xc0u || opcode == 0xe0u;
+    const bool byte_operand = index_operand ? registers->xf : registers->mf;
     const bool word_operand = changes_bank || opcode == 0x4cu || opcode == 0x82u ||
         (immediate_data && !byte_operand);
     const unsigned length = changes_bank ? 4u : word_operand ? 3u : 2u;
@@ -308,13 +363,6 @@ static bool Lufia2DecompIsRegisterOpcode(uint8_t opcode) {
     }
 }
 
-#if defined(_MSC_VER)
-#define LUFIA2_ROM_NOINLINE __declspec(noinline)
-#elif defined(__GNUC__)
-#define LUFIA2_ROM_NOINLINE __attribute__((noinline))
-#else
-#define LUFIA2_ROM_NOINLINE
-#endif
 
 static bool Lufia2DecompRunTransferOrFlags(Interp816 *registers, uint8_t opcode) {
     uint8_t destination;
