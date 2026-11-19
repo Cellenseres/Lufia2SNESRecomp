@@ -8,11 +8,23 @@ static int Lufia2DecompRunBattleDisplayOpcode(
 #endif
     bool load;
     switch (pc) {
+    case 0x859bdeu:
+    case 0x859be4u:
+    case 0x859beau:
+    case 0x859c0cu:
+    case 0x859c12u:
+    case 0x859c18u:
     case 0x859bf5u:
     case 0x859bfbu:
     case 0x859c01u:
         load = true;
         break;
+    case 0x859be1u:
+    case 0x859be7u:
+    case 0x859bedu:
+    case 0x859c0fu:
+    case 0x859c15u:
+    case 0x859c1bu:
     case 0x859bf8u:
     case 0x859bfeu:
     case 0x859c04u:

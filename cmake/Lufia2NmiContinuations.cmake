@@ -1572,13 +1572,16 @@ function(lufia2_add_nmi_continuations target core_root)
                 endif()
                 if(_battle_command_steps)
                     list(APPEND _control_sites "pc_before == 0x81cbddu" "pc_before == 0x81cbe0u"
-                        "pc_before == 0x81cbe4u" "pc_before == 0x81cbedu" "pc_before == 0x859c07u" "pc_before == 0x818b45u")
+                        "pc_before == 0x81cbe4u" "pc_before == 0x81cbedu" "pc_before == 0x818b45u"
+                        "pc_before == 0x859bf0u" "pc_before == 0x859c07u" "pc_before == 0x859c1eu")
                     string(PREPEND _text
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunBattleDisplayOpcode(Interp816 *, uint32_t, uint8_t);\n")
                     string(APPEND _timing_suffix
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/battle_display_opcodes.inc\"\n")
                     string(APPEND _native_opcode
-                        "        if (!_cyc && pc_before >= 0x859bf5u && pc_before <= 0x859c04u &&\n"
+                        "        if (!_cyc && ((pc_before >= 0x859bdeu && pc_before <= 0x859bedu) ||\n"
+                        "            (pc_before >= 0x859bf5u && pc_before <= 0x859c04u) ||\n"
+                        "            (pc_before >= 0x859c0cu && pc_before <= 0x859c1bu)) &&\n"
                         "            !stop_on_rti && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
                         "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
                         "            g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
@@ -1599,7 +1602,9 @@ function(lufia2_add_nmi_continuations target core_root)
                         "            case 0x818b45u:\n"
                         "                _cyc = Lufia2DecompRunDirectCallWithWidths(&in, pc_before, op, 0x859bf1u, true, false, false);\n"
                         "                break;\n"
+                        "            case 0x859bf0u:\n"
                         "            case 0x859c07u:\n"
+                        "            case 0x859c1eu:\n"
                         "                _cyc = Lufia2DecompRunReturn(&in, pc_before, op, true, false, false);\n"
                         "                break;\n")
                 endif()
