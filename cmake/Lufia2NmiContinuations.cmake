@@ -1392,7 +1392,7 @@ function(lufia2_add_nmi_continuations target core_root)
                 if("LUFIA2_HAVE_NATIVE_BATTLE_MULTIPLY_WINDOW=1" IN_LIST _definitions)
                     set(_battle_multiply_return TRUE)
                 endif()
-                if(_turn_display_steps OR _actor_record_return OR _battle_multiply_return OR _battle_gauge_steps OR _battle_command_steps OR _divide_bit_spans OR _item_record_steps OR _world_frame_control_steps OR _sound_frame_boundaries OR (_battle_status AND _menu_leaves))
+                if(_turn_display_steps OR _actor_record_return OR _battle_multiply_return OR _battle_gauge_steps OR _battle_command_steps OR _divide_bit_spans OR _item_record_steps OR _world_frame_control_steps OR _sound_frame_boundaries OR _manifest_calls OR (_battle_status AND _menu_leaves))
                     string(PREPEND _text
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunReturn(Interp816 *, uint32_t, uint8_t, bool, bool, bool);\n")
                     string(APPEND _timing_suffix
@@ -2073,7 +2073,13 @@ function(lufia2_add_nmi_continuations target core_root)
                         "            !stop_on_rti && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
                         "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
                         "            g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
-                        "            _cyc = Lufia2DecompRunAotCallSite(&in, pc_before, op);\n")
+                        "            _cyc = Lufia2DecompRunAotCallSite(&in, pc_before, op);\n"
+                        "        if (!_cyc && is_ret) {\n"
+                        "            if (!stop_on_rti && !n_stop && !trace && !dtrace && !wlog_state_sync &&\n"
+                        "                !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
+                        "                g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
+                        "                _cyc = Lufia2DecompRunAotCallSite(&in, pc_before, op);\n"
+                        "        }\n")
                 endif()
                 string(APPEND _native_opcode "        if (!_cyc)\n            _cyc = interp816_runOpcode(&in);")
                 string(REPLACE "${_original_opcode}" "${_native_opcode}"

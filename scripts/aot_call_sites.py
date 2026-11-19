@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate native bridge call sites from exact static AOT demands."""
+"""Generate native bridge control-flow sites from static AOT metadata."""
 
 import argparse
 from collections import defaultdict
@@ -35,6 +35,23 @@ def entries(manifest, rom):
             targets_by_site[pc] = destination
             width = target["m"] * 2 + target["x"]
             modes_by_site[pc] |= 1 << width
+    for key, node in manifest["nodes"].items():
+        mode = manifest["exit_modes"].get(key)
+        pc = node["max_pc24"]
+        if mode is None or pc is None or node["disposition"] != "aot_eligible":
+            continue
+        bank = pc >> 16
+        address = pc & 0xffff
+        if not 0x80 <= bank <= 0xbf or address < 0x8000:
+            continue
+        offset = ((bank & 0x7f) << 15) + (address & 0x7fff)
+        if offset >= len(rom) or rom[offset] not in (0x60, 0x6b):
+            continue
+        if mode["m"] not in (0, 1) or mode["x"] not in (0, 1):
+            continue
+        targets_by_site[pc] = rom[offset]
+        width = mode["m"] * 2 + mode["x"]
+        modes_by_site[pc] |= 0x10 | (1 << width)
     return [(pc, targets_by_site[pc], modes) for pc, modes in sorted(modes_by_site.items())]
 
 

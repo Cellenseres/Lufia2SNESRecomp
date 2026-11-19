@@ -14,9 +14,17 @@ static int Lufia2DecompRunAotCallSite(Interp816 *registers, uint32_t pc, uint8_t
     }
     const struct Lufia2AotCallSite site = lufia2_aot_call_sites[first];
     const unsigned width = (registers->mf ? 2u : 0u) | (registers->xf ? 1u : 0u);
+    const unsigned attributes = site.target_and_widths >> 24;
     const uint32_t target = site.target_and_widths & 0xffffffu;
-    if (site.pc != pc || !((site.target_and_widths >> 24) & (1u << width)) ||
-        (opcode == 0x20u && (target >> 16) != (pc >> 16)))
+    if (site.pc != pc || !(attributes & (1u << width)))
+        return 0;
+    if (attributes & 0x10u) {
+        if (opcode != target)
+            return 0;
+        return Lufia2DecompRunReturn(registers, pc, opcode, opcode == 0x6bu,
+                                     registers->mf, registers->xf);
+    }
+    if (opcode == 0x20u && (target >> 16) != (pc >> 16))
         return 0;
     return Lufia2DecompRunDirectCallWithWidths(
         registers, pc, opcode, target, opcode == 0x22u, registers->mf, registers->xf);
