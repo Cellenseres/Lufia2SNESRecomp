@@ -16,36 +16,54 @@ def direct_calls(manifest):
             target = demand["target"]
             yield demand["site_pc24"], target["pc24"], target["m"], target["x"]
 
-    # The status-roll C spans hand off at these JSLs.
-    random_scale = manifest["nodes"].get("808299:M1X0", {})
-    if random_scale.get("disposition") == "aot_eligible":
-        yield 0x85d409, 0x808299, 1, 0
-        yield 0x85d43b, 0x808299, 1, 0
+
+def rom_call_target(rom, pc):
+    bank = pc >> 16
+    address = pc & 0xffff
+    if not 0x80 <= bank <= 0xbf or address < 0x8000:
+        return None
+    offset = ((bank & 0x7f) << 15) + (address & 0x7fff)
+    opcode = rom[offset] if offset < len(rom) else 0
+    if opcode not in (0x20, 0x22):
+        return None
+    length = 3 if opcode == 0x20 else 4
+    if address + length > 0x10000 or offset + length > len(rom):
+        return None
+    destination = int.from_bytes(rom[offset + 1:offset + length], "little")
+    return destination | bank << 16 if opcode == 0x20 else destination
 
 
 def entries(manifest, rom):
     modes_by_site = defaultdict(int)
     targets_by_site = {}
     for pc, target, accumulator_width, index_width in direct_calls(manifest):
-        bank = pc >> 16
-        address = pc & 0xffff
-        if not 0x80 <= bank <= 0xbf or address < 0x8000:
+        if accumulator_width not in (0, 1) or index_width not in (0, 1):
             continue
-        offset = ((bank & 0x7f) << 15) + (address & 0x7fff)
-        opcode = rom[offset] if offset < len(rom) else 0
-        if opcode not in (0x20, 0x22):
+        if rom_call_target(rom, pc) != target:
             continue
-        length = 3 if opcode == 0x20 else 4
-        if address + length > 0x10000 or offset + length > len(rom):
-            continue
-        destination = int.from_bytes(rom[offset + 1:offset + length], "little")
-        if opcode == 0x20:
-            destination |= bank << 16
-        if destination != target or accumulator_width not in (0, 1) or index_width not in (0, 1):
-            continue
-        targets_by_site[pc] = destination
-        width = accumulator_width * 2 + index_width
-        modes_by_site[pc] |= 1 << width
+        targets_by_site[pc] = target
+        modes_by_site[pc] |= 1 << (accumulator_width * 2 + index_width)
+
+    native_targets = defaultdict(int)
+    code_banks = set()
+    for node in manifest["nodes"].values():
+        key = node["key"]
+        bank = key["pc24"] >> 16
+        if 0x80 <= bank <= 0xbf:
+            code_banks.add(bank)
+        if node["disposition"] == "aot_eligible" and key["m"] in (0, 1) and key["x"] in (0, 1):
+            native_targets[key["pc24"]] |= 1 << (key["m"] * 2 + key["x"])
+
+    # C continuations can reach ROM call sites omitted from the static CFG.
+    for bank in code_banks:
+        for address in range(0x8000, 0x10000):
+            pc = (bank << 16) | address
+            target = rom_call_target(rom, pc)
+            modes = native_targets.get(target, 0)
+            if modes:
+                targets_by_site[pc] = target
+                modes_by_site[pc] |= modes
+
     for key, node in manifest["nodes"].items():
         mode = manifest["exit_modes"].get(key)
         pc = node["max_pc24"]
