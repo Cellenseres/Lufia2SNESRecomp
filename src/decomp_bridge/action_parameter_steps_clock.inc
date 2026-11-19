@@ -76,8 +76,50 @@ static bool ActionParameterAddressIsRam(uint32_t address) {
         ((bank & 0x7fu) < 0x40u && (address & 0xffffu) < 0x2000u);
 }
 
+static void ActorBridgeActionAttributeProbe(CpuState *cpu) {
+    const uint32_t entry = 0x85d33du;
+    const uint32_t fence = 0x85d344u;
+    const unsigned rom_offset = 0x2d33du;
+    const uint8_t expected[] = {0xb7u, 0xb8u, 0xd0u, 0x03u, 0x4cu, 0xedu, 0xd3u};
+    const Cart *cart = g_snes->cart;
+    if (cart->romSize < rom_offset + sizeof expected ||
+        memcmp(cart->rom + rom_offset, expected, sizeof expected) != 0 ||
+        !Lufia2DecompFrameRangeAllows(entry, fence, ActionParameterStepHookOwned) ||
+        Lufia2DecompFrameOwnedSpanBudget(entry, fence, ActorBridgeActionParameterStep) < 3u)
+        return;
+
+    const uint32_t pointer = cpu->ram[0xb8u] | (uint32_t)cpu->ram[0xb9u] << 8 |
+        (uint32_t)cpu->ram[0xbau] << 16;
+    const uint32_t low = (pointer + cpu->Y) & 0xffffffu;
+    const uint32_t high = (low + 1u) & 0xffffffu;
+    if (!ActionParameterAddressIsRam(low) || !ActionParameterAddressIsRam(high))
+        return;
+
+    FixedSpanOpcode timing[] = {
+        {0xd33du, 2u, 7u, 5u}, {0xd33fu, 2u, 2u, 0u}, {0xd341u, 3u, 3u, 0u}
+    };
+    FixedSpanClock clock = {.cpu = cpu, .bank = 0x850000u, .timing = timing, .count = 3u};
+    for (uint32_t address = 0xb8u; address <= 0xbau; ++address)
+        (void)FixedSpanRead(&clock, address);
+    uint16_t value = FixedSpanRead(&clock, low);
+    value |= (uint16_t)FixedSpanRead(&clock, high) << 8;
+
+    if (value) {
+        timing[1].cycles = 3u;
+        clock.count = 2u;
+    }
+    BeginFixedSpanOpcode(&clock);
+    assert(clock.index == clock.count && !clock.remaining);
+    cpu->A = value;
+    cpu->_flag_N = (value & 0x8000u) != 0u;
+    cpu->_flag_Z = value == 0u;
+    cpu_mirrors_to_p(cpu);
+    Lufia2DecompFrameReturnComplete(clock.count, clock.progress_mask);
+    interp_bridge_pre_opcode_redirect(value ? 0x85d344u : 0x85d3edu);
+}
+
 static void ActorBridgeActionParameterStep(CpuState *cpu, uint32_t entry) {
-    const bool wide = entry == 0x85d3edu || entry == 0x85d3fdu || entry == 0x85d63au;
+    const bool wide = entry == 0x85d33du || entry == 0x85d3edu || entry == 0x85d3fdu || entry == 0x85d63au;
     const unsigned limit = entry == 0x85d3fdu ? 0x1ffdu : 0x1fffu;
     const unsigned reserve = 512u;
     if (!ActionParameterStepHookOwned(entry, ActorBridgeActionParameterStep) ||
@@ -107,6 +149,10 @@ static void ActorBridgeActionParameterStep(CpuState *cpu, uint32_t entry) {
     // These CPU/WRAM spans cannot enable HDMA while its beam processing is off.
     if (!NativeOpcodeWindowWithDeferredHdmaSupported(cpu, entry, reserve, limit, true, true))
         return;
+    if (entry == 0x85d33du) {
+        ActorBridgeActionAttributeProbe(cpu);
+        return;
+    }
     const FixedSpanOpcode *timing;
     unsigned count;
     uint32_t next, fence;

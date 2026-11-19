@@ -128,7 +128,7 @@ static bool TargetRecordStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
 static void ActorBridgeActionParameterStep(CpuState *cpu, uint32_t entry);
 static bool ActionParameterStepHookOwned(uint32_t pc, InterpPreOpcodeHook hook) {
     return hook == ActorBridgeActionParameterStep &&
-        (pc == 0x85d3edu || pc == 0x85d3fdu || pc == 0x85d400u ||
+        (pc == 0x85d33du || pc == 0x85d3edu || pc == 0x85d3fdu || pc == 0x85d400u ||
          pc == 0x85d432u || pc == 0x85d63au);
 }
 #endif
@@ -4632,7 +4632,7 @@ void Lufia2DecompInstallFrameReturnHooks(void) {
 
 #if defined(LUFIA2_HAVE_NATIVE_BATTLE_ACTION_PARAMETER_STEPS)
     static const uint32_t action_parameter_entries[] = {
-        0x85d3edu, 0x85d3fdu, 0x85d400u, 0x85d432u, 0x85d63au};
+        0x85d33du, 0x85d3edu, 0x85d3fdu, 0x85d400u, 0x85d432u, 0x85d63au};
     for (unsigned i = 0u; i < sizeof action_parameter_entries / sizeof action_parameter_entries[0]; ++i)
         if (Lufia2DecompFrameRangeAllows(action_parameter_entries[i], action_parameter_entries[i] + 1u,
                 ActionParameterStepHookOwned))
