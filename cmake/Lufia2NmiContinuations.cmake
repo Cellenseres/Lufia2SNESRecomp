@@ -1418,7 +1418,7 @@ function(lufia2_add_nmi_continuations target core_root)
                     string(APPEND _timing_suffix
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/scene_loop_opcodes.inc\"\n")
                     string(APPEND _native_opcode
-                        "        if (!_cyc && (pc_before == 0x83a6c4u || pc_before == 0x83a6c5u) &&\n"
+                        "        if (!_cyc && (pc_before == 0x83a68cu || pc_before == 0x83a6c4u || pc_before == 0x83a6c5u) &&\n"
                         "            auto_quiescent && !stop_on_rti && !n_stop && !trace && !dtrace &&\n"
                         "            !wlog_state_sync && !s_interp_pctrace && !g_interp_bridge_pc_hook &&\n"
                         "            !Lufia2NativeObserversActive() && g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
