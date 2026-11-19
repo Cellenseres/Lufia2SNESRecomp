@@ -25,18 +25,20 @@ static bool NmiClockWindowWithDeferredHdma(const CpuState *cpu, bool byte_index,
         return false;
 #endif
     }
-    const bool joypad_or_scroll = first == 0x808770u || first == 0x8087b2u;
+    const bool leaves_hdma_unchanged = first == 0x808664u || first == 0x8086c1u ||
+        first == 0x808706u || first == 0x808736u || first == 0x808765u ||
+        first == 0x808770u || first == 0x8087b2u;
     const bool beam_hdma = !g_snes->hdmaBeamOff &&
-        (!joypad_or_scroll || ActorBridgeHdmaMayTransfer());
+        (!leaves_hdma_unchanged || ActorBridgeHdmaMayTransfer());
     const bool before_hdma = beam_hdma && g_snes->vPos < 225u &&
-        (!joypad_or_scroll || g_snes->hPos < 1024u);
+        (!leaves_hdma_unchanged || g_snes->hPos < 1024u);
     const unsigned fence = before_hdma ? 1024u : 1364u;
     if ((unsigned)g_snes->hPos + budget >= fence) {
 #if defined(LUFIA2_HAVE_BEAM_HOLD_QUERY) || defined(SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY)
         if (!allow_line_crossing || g_snes->hPos >= 1364u ||
             g_snes->vPos >= 262u || snesrecomp_beam_hold_active())
             return false;
-        if (beam_hdma && (!joypad_or_scroll ||
+        if (beam_hdma && (!leaves_hdma_unchanged ||
             (g_snes->vPos < 225u && (before_hdma ||
                 budget >= 1364u - g_snes->hPos + 1024u))))
             return false;
