@@ -29,14 +29,17 @@ static bool NmiClockWindowWithDeferredHdma(const CpuState *cpu, bool byte_index,
         first == 0x80864cu || first == 0x808653u || first == 0x80865au ||
         first == 0x808664u || first == 0x8086c1u || first == 0x808706u ||
         first == 0x808736u || first == 0x808765u || first == 0x808770u ||
-        first == 0x8087b2u || (first == 0x8087f3u && !cpu->ram[0x81u]) ||
+        first == 0x8087b2u || first == 0x8087c4u || first == 0x8087cfu ||
+        first == 0x8087dau || first == 0x8087e5u ||
+        (first == 0x8087f3u && !cpu->ram[0x81u]) ||
         first == 0x8087fcu || first == 0x808802u || first == 0x80880du ||
         first == 0x808811u || first == 0x80881cu || first == 0x808820u || first == 0x808829u;
     const bool beam_hdma = !g_snes->hdmaBeamOff &&
         (!leaves_hdma_unchanged || ActorBridgeHdmaMayTransfer());
     const bool before_hdma = beam_hdma && g_snes->vPos < 225u &&
         (!leaves_hdma_unchanged || g_snes->hPos < 1024u);
-    const unsigned fence = before_hdma && first != 0x8087b2u ? 1024u : 1364u;
+    const bool clocks_hdma = first == 0x808770u || first == 0x8087b2u;
+    const unsigned fence = before_hdma && !clocks_hdma ? 1024u : 1364u;
     if ((unsigned)g_snes->hPos + budget >= fence) {
 #if defined(LUFIA2_HAVE_BEAM_HOLD_QUERY) || defined(SNESRECOMP_PLATFORM_BEAM_HOLD_QUERY)
         if (!allow_line_crossing || g_snes->hPos >= 1364u ||
