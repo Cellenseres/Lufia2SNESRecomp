@@ -1362,7 +1362,8 @@ function(lufia2_add_nmi_continuations target core_root)
                 set(_native_opcode "        int _cyc = Lufia2DecompNmiRunCallBoundary(\n            &in, pc_before, op, stop_on_rti, auto_quiescent,\n            trace || dtrace || wlog_state_sync || s_interp_pctrace);\n")
                 if(_nmi_child_boundaries OR _battle_effect_frame_steps OR _cursor_pixel_spans OR
                    _turn_display_steps OR _save_action_steps OR _battle_upkeep OR
-                   _scene_claim_steps OR _battle_status OR _world_frame_control_steps)
+                   _scene_claim_steps OR _battle_status OR _world_frame_control_steps OR
+                   _battle_command_steps)
                     string(PREPEND _text
                         "#include \"interp816.h\"\nstatic int Lufia2DecompRunDirectCall(Interp816 *, uint32_t, uint8_t, uint32_t, bool);\nstatic int Lufia2DecompRunDirectCallWithWidths(Interp816 *, uint32_t, uint8_t, uint32_t, bool, bool, bool);\n")
                     string(APPEND _timing_suffix
@@ -1471,6 +1472,23 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                break;\n"
                         "            case 0x81e535u:\n"
                         "                _cyc = Lufia2DecompRunBattleStatusBranch(&in, op);\n"
+                        "                break;\n")
+                endif()
+                if(_battle_command_steps)
+                    list(APPEND _control_sites "pc_before == 0x81cbddu" "pc_before == 0x81cbe0u"
+                        "pc_before == 0x81cbe4u" "pc_before == 0x81cbedu")
+                    string(APPEND _control_cases
+                        "            case 0x81cbddu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x81be58u, false);\n"
+                        "                break;\n"
+                        "            case 0x81cbe0u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x859dd4u, true);\n"
+                        "                break;\n"
+                        "            case 0x81cbe4u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x81d9d0u, false);\n"
+                        "                break;\n"
+                        "            case 0x81cbedu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x85ec81u, true);\n"
                         "                break;\n")
                 endif()
                 if(_control_sites)
