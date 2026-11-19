@@ -238,9 +238,20 @@ static bool Lufia2DecompIsDirectPageOpcode(uint8_t opcode) {
     case 0x46u: case 0x56u: case 0x4eu: case 0x5eu: \
     case 0x66u: case 0x76u: case 0x6eu: case 0x7eu:
 
-static uint8_t Lufia2DecompMemoryArithmeticOperation(uint8_t opcode) {
+static uint8_t Lufia2DecompMemoryReadOperation(uint8_t opcode) {
+    switch (opcode) {
+    case 0xc4u: case 0xccu:
+        return 0xc0u;
+    case 0xe4u: case 0xecu:
+        return 0xe0u;
+    case 0x24u: case 0x34u: case 0x2cu: case 0x3cu:
+        return 0x89u;
+    default:
+        break;
+    }
+
     const uint8_t group = opcode & 0xe0u;
-    if (group != 0x60u && group != 0xc0u && group != 0xe0u)
+    if (group == 0x80u || group == 0xa0u)
         return 0u;
     switch (opcode & 0x1fu) {
     case 0x05u: case 0x0du: case 0x0fu: case 0x15u:
@@ -263,7 +274,7 @@ static bool Lufia2DecompIsMemoryOpcode(uint8_t opcode) {
     case 0xa7u: case 0xb7u: case 0x87u: case 0x97u:
         return true;
     default:
-        return Lufia2DecompMemoryArithmeticOperation(opcode) != 0u;
+        return Lufia2DecompMemoryReadOperation(opcode) != 0u;
     }
 }
 
@@ -397,21 +408,22 @@ static LUFIA2_ROM_NOINLINE int Lufia2DecompRunMemoryModifyOpcode(Interp816 *regi
 }
 
 static int Lufia2DecompRunMemoryOpcode(Interp816 *registers, uint32_t pc, uint8_t opcode) {
-    const uint8_t arithmetic = Lufia2DecompMemoryArithmeticOperation(opcode);
+    const uint8_t operation = Lufia2DecompMemoryReadOperation(opcode);
     const unsigned address_mode = opcode & 0x1fu;
     const bool direct_page = Lufia2DecompIsDirectPageOpcode(opcode) ||
-        (arithmetic != 0u && (address_mode == 0x05u || address_mode == 0x15u));
+        (operation != 0u && (address_mode == 0x05u || address_mode == 0x15u)) ||
+        opcode == 0x24u || opcode == 0x34u || opcode == 0xc4u || opcode == 0xe4u;
     const bool long_address = opcode == 0xafu || opcode == 0xbfu || opcode == 0x8fu || opcode == 0x9fu ||
-        (arithmetic != 0u && (address_mode == 0x0fu || address_mode == 0x1fu));
+        (operation != 0u && (address_mode == 0x0fu || address_mode == 0x1fu));
     const bool index_x = opcode == 0xbdu || opcode == 0x9du || opcode == 0x9eu ||
         opcode == 0xbfu || opcode == 0x9fu || opcode == 0xb5u || opcode == 0x95u ||
-        opcode == 0x74u || opcode == 0xb4u || opcode == 0x94u || opcode == 0xbcu ||
-        (arithmetic != 0u && (address_mode == 0x15u || address_mode == 0x1du || address_mode == 0x1fu));
+        opcode == 0x74u || opcode == 0xb4u || opcode == 0x94u || opcode == 0xbcu || opcode == 0x34u || opcode == 0x3cu ||
+        (operation != 0u && (address_mode == 0x15u || address_mode == 0x1du || address_mode == 0x1fu));
     const bool index_y = opcode == 0xb9u || opcode == 0x99u || opcode == 0xb6u ||
-        opcode == 0x96u || opcode == 0xbeu || (arithmetic != 0u && address_mode == 0x19u);
+        opcode == 0x96u || opcode == 0xbeu || (operation != 0u && address_mode == 0x19u);
     const bool indexed = index_x || index_y;
     const unsigned index = index_x ? registers->x : index_y ? registers->y : 0u;
-    const bool load = arithmetic != 0u || opcode == 0xa5u || opcode == 0xadu || opcode == 0xbdu ||
+    const bool load = operation != 0u || opcode == 0xa5u || opcode == 0xadu || opcode == 0xbdu ||
         opcode == 0xb9u || opcode == 0xafu || opcode == 0xbfu ||
         opcode == 0xa6u || opcode == 0xa4u || opcode == 0xaeu || opcode == 0xacu ||
         opcode == 0xb5u || opcode == 0xb4u || opcode == 0xb6u || opcode == 0xbcu || opcode == 0xbeu;
@@ -424,7 +436,8 @@ static int Lufia2DecompRunMemoryOpcode(Interp816 *registers, uint32_t pc, uint8_
     const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
     if (!cart)
         return 0;
-    const bool wide = !(data_x || data_y ? registers->xf : registers->mf);
+    const bool index_data = data_x || data_y || operation == 0xc0u || operation == 0xe0u;
+    const bool wide = !(index_data ? registers->xf : registers->mf);
     unsigned operand = 0u;
     for (unsigned byte = 1u; byte < length; ++byte)
         operand |= (unsigned)cart->rom[offset + byte] << (8u * (byte - 1u));
@@ -451,8 +464,13 @@ static int Lufia2DecompRunMemoryOpcode(Interp816 *registers, uint32_t pc, uint8_
 
     if (load) {
         const uint16_t value = Lufia2DecompReadData(registers, low, high, wide);
+        if (operation == 0x89u) {
+            const uint16_t sign = wide ? 0x8000u : 0x80u;
+            registers->n = (value & sign) != 0u;
+            registers->v = (value & (sign >> 1)) != 0u;
+        }
         Lufia2DecompApplyOperand(registers,
-            arithmetic ? arithmetic : data_x ? 0xa2u : data_y ? 0xa0u : 0xa9u, value, !wide);
+            operation ? operation : data_x ? 0xa2u : data_y ? 0xa0u : 0xa9u, value, !wide);
     } else {
         const bool zero = opcode == 0x64u || opcode == 0x9cu || opcode == 0x9eu || opcode == 0x74u;
         const uint16_t value = zero ? 0u : data_x ? registers->x : data_y ? registers->y : registers->a;
