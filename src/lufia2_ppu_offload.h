@@ -23,6 +23,14 @@ bool Lufia2PpuOffloadEnd(Lufia2PpuOffload *context);
  * for longer use. Capture does not execute the guest or queue GPU work.
  * PrepareOverlays is required before Submit, or Fallback on any failure. */
 const SnesRecompPpuFrame *Lufia2PpuOffloadEndCapture(Lufia2PpuOffload *context);
+/* Optional non-remapped battle split. Stage joins selection and owns every
+ * raw picture/palette/OAM/row input before the guest resumes. Returns 0 without
+ * ending recording when ineligible; -1 means recording ended and Fallback is
+ * required; 1 permits FreezeBattleCapture on an exclusive renderer helper.
+ * The frame is not public until that freeze succeeds. No next Begin, reset,
+ * destruction, raster walk or other rendering may occur before helper join. */
+int Lufia2PpuOffloadStageBattleCapture(Lufia2PpuOffload *context);
+const SnesRecompPpuFrame *Lufia2PpuOffloadFreezeBattleCapture(Lufia2PpuOffload *context);
 bool Lufia2PpuOffloadPrepareOverlays(Lufia2PpuOffload *context,
     const SnesRecompPpuJobImage *images, uint16_t image_count,
     const SnesRecompPpuOverlay *overlays, uint16_t overlay_count);
@@ -50,6 +58,12 @@ bool Lufia2PpuOffloadFreezeResolvedSources(Lufia2PpuOffload *context,
     const SnesRecompPpuJobImage *images, uint16_t image_count,
     const SnesRecompPpuOverlay *overlays, uint16_t overlay_count,
     const SnesRecompPpuSource *sources, uint16_t source_count);
+/* Caller certifies unchanged art/source/overlay payload after its own cache
+ * hit. The context additionally checks the last resolved producer's unique
+ * frame owner, so an intervening menu/intro cannot reuse a battle payload.
+ * False requires the ordinary freeze; no previous output is presented. */
+bool Lufia2PpuOffloadRebindResolvedSources(Lufia2PpuOffload *context,
+    const SnesRecompPpuFrame *resolved_frame);
 /* Consumer-resolved overlays, in their original postprocessing order. Source
  * art is copied before submission; no guest callbacks or destination readback.
  * On rejection the caller uses Fallback and its ordinary CPU postprocessing.

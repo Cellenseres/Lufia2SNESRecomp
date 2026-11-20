@@ -24,6 +24,8 @@ enum {
     /* How far past the cell layers the blockset marker may sit. */
     LUFIA2_BLOCKSET_SEARCH_BYTES = 8192,
     LUFIA2_NATIVE_WIDTH = 256,
+    /* Fill reach kept inside the native view; covers interpolated scroll. */
+    LUFIA2_NATIVE_FILL_GUARD = 32,
     LUFIA2_NATIVE_SAMPLE_X = 16,
     LUFIA2_NATIVE_SAMPLE_Y = 8,
     LUFIA2_NATIVE_MIN_SAMPLES = 64,
@@ -171,6 +173,23 @@ static int32_t s_held_camera_y;
 static bool s_last_camera_valid;
 static int32_t s_last_camera_x;
 static int32_t s_last_camera_y;
+
+/* The cell tables change only when the game reveals or retraces rooms. A
+   byte-identical copy of the last scan lets a frame reuse its results. */
+typedef struct CellScanKey {
+    uint16_t cell_base[2];
+    uint16_t width[2];
+    uint16_t height[2];
+    uint32_t bytes[2];
+} CellScanKey;
+static uint8_t *s_scan_words;
+static size_t s_scan_capacity;
+static CellScanKey s_scan_key;
+static bool s_scan_copied;
+static bool s_scan_valid;
+static Lufia2HiddenCells s_scan_cells;
+static bool s_shown_differ_known;
+static bool s_shown_differ;
 
 static uint16_t Read16(const uint8_t *data) {
     return (uint16_t)(data[0] | ((uint16_t)data[1] << 8));
@@ -376,9 +395,74 @@ static void TintGameCell(
         tiles[tile] ^= tint;
 }
 
-static void CountHiddenCells(
+static uint32_t ShownCellCount(const Lufia2FieldCellView *view);
+
+/* Covers both the slot's own cells and the shown-cell comparison, which
+   walks slot 0's dimensions in either slot. */
+static uint32_t CellScanBytes(const Lufia2FieldCellView *view, unsigned slot) {
+    uint32_t count =
+        (uint32_t)(view->width[slot] & 0xffu) * (view->height[slot] & 0xffu);
+    const uint32_t shown = ShownCellCount(view);
+    if (shown > count)
+        count = shown;
+    const uint32_t room = LUFIA2_BANK_SIZE - view->cell_base[slot];
+    return count * 2u < room ? count * 2u : room;
+}
+
+/* Word-wise; the C library compares these tables a byte at a time. */
+static bool SameBytes(const uint8_t *a, const uint8_t *b, uint32_t bytes) {
+    uint32_t i = 0;
+    for (; i + 16u <= bytes; i += 16u) {
+        uint32_t x[4], y[4];
+        memcpy(x, a + i, sizeof x);
+        memcpy(y, b + i, sizeof y);
+        if ((x[0] ^ y[0]) | (x[1] ^ y[1]) | (x[2] ^ y[2]) | (x[3] ^ y[3]))
+            return false;
+    }
+    return !memcmp(a + i, b + i, bytes - i);
+}
+
+/* True when both tables hold the same bytes as at the last scan. Otherwise
+   the copy is refreshed and cached results are dropped. */
+static bool CellTablesUnchanged(const Lufia2FieldCellView *view) {
+    CellScanKey key;
+    memset(&key, 0, sizeof key);
+    for (unsigned slot = 0; slot < 2; slot++) {
+        key.cell_base[slot] = view->cell_base[slot];
+        key.width[slot] = view->width[slot];
+        key.height[slot] = view->height[slot];
+        key.bytes[slot] = CellScanBytes(view, slot);
+    }
+    const uint8_t *bank = g_ram + LUFIA2_BANK_SIZE;
+    if (s_scan_valid && !memcmp(&key, &s_scan_key, sizeof key) &&
+        SameBytes(s_scan_words, bank + key.cell_base[0], key.bytes[0]) &&
+        SameBytes(s_scan_words + key.bytes[0], bank + key.cell_base[1], key.bytes[1]))
+        return true;
+    s_scan_valid = s_scan_copied = false;
+    s_shown_differ_known = false;
+    const size_t need = (size_t)key.bytes[0] + key.bytes[1];
+    if (need > s_scan_capacity) {
+        uint8_t *grown = realloc(s_scan_words, need);
+        if (!grown)
+            return false;
+        s_scan_words = grown;
+        s_scan_capacity = need;
+    }
+    memcpy(s_scan_words, bank + key.cell_base[0], key.bytes[0]);
+    memcpy(s_scan_words + key.bytes[0], bank + key.cell_base[1], key.bytes[1]);
+    s_scan_key = key;
+    s_scan_copied = true;
+    return false;
+}
+
+/* Returns whether the tables were unchanged since the previous call. */
+static bool CountHiddenCells(
     const Lufia2FieldCellView *view,
     Lufia2HiddenCells *cells) {
+    if (CellTablesUnchanged(view)) {
+        *cells = s_scan_cells;
+        return true;
+    }
     memset(cells, 0, sizeof(*cells));
     uint32_t hash = 2166136261u;
     for (unsigned slot = 0; slot < 2; slot++) {
@@ -397,6 +481,9 @@ static void CountHiddenCells(
         }
     }
     cells->hash = hash;
+    s_scan_cells = *cells;
+    s_scan_valid = s_scan_copied;
+    return false;
 }
 
 static bool ResolveBlockCell(
@@ -877,6 +964,12 @@ static void FillWideViewport(
         const uint32_t tile_x1 = range.tile_x1;
         const uint32_t tile_y0 = range.tile_y0;
         const uint32_t tile_y1 = range.tile_y1;
+        /* Native chunks read live VRAM, never the shadow. A column entering
+           the margins is forced again in that frame before it is drawn. */
+        const uint32_t native_x0 =
+            (origin_x + LUFIA2_NATIVE_FILL_GUARD + 7u) / LUFIA2_TILE_SIZE;
+        const uint32_t native_x1 =
+            (origin_x + LUFIA2_NATIVE_WIDTH - LUFIA2_NATIVE_FILL_GUARD) / LUFIA2_TILE_SIZE;
         int32_t bias_x = 0;
         int32_t bias_y = 0;
         LayerScrollBias(ppu, bg, &bias_x, &bias_y);
@@ -893,6 +986,10 @@ static void FillWideViewport(
             if (rows > tile_y1 - tile_y)
                 rows = tile_y1 - tile_y;
             for (uint32_t tile_x = tile_x0; tile_x < tile_x1;) {
+                if (tile_x >= native_x0 && tile_x < native_x1) {
+                    tile_x = native_x1;
+                    continue;
+                }
                 const int32_t map_x = (int32_t)tile_x + delta_x;
                 const unsigned sub_x = (uint32_t)map_x & 1u;
                 uint32_t columns = 2u - sub_x;
@@ -1209,6 +1306,7 @@ static void LatchShownCells(const Lufia2FieldCellView *live, uint64_t signature)
     s_shown_pending = false;
     s_shown_frames = 0;
     s_camera_held = false;
+    s_shown_differ_known = false;
 }
 
 static bool ShownCellsDiffer(const Lufia2FieldCellView *live) {
@@ -1285,7 +1383,7 @@ static bool NativeShowsLiveCells(
 }
 
 /* Adopt a retrace once VRAM holds it, or the screen allows. */
-static void SyncShownCells(const Ppu *ppu, uint64_t signature) {
+static void SyncShownCells(const Ppu *ppu, uint64_t signature, bool cells_unchanged) {
     Lufia2FieldCellView live;
     OpenCellView(&live);
     if (!s_shown_valid || signature != s_shown_signature ||
@@ -1293,7 +1391,11 @@ static void SyncShownCells(const Ppu *ppu, uint64_t signature) {
         LatchShownCells(&live, signature);
         return;
     }
-    if (!ShownCellsDiffer(&live)) {
+    if (!cells_unchanged || !s_shown_differ_known) {
+        s_shown_differ = ShownCellsDiffer(&live);
+        s_shown_differ_known = true;
+    }
+    if (!s_shown_differ) {
         s_shown_pending = false;
         s_camera_held = false;
         return;
@@ -1424,7 +1526,7 @@ static Lufia2MapWidescreenResult PrepareGameDrivenMap(
     }
 
     Lufia2HiddenCells cells;
-    CountHiddenCells(&view, &cells);
+    const bool cells_unchanged = CountHiddenCells(&view, &cells);
     ReportHiddenCells(ppu, map, &view, &cells);
     const bool hides = cells.hidden[0] + cells.hidden[1] != 0;
     if (!hides && signature == s_rejected_map_signature)
@@ -1459,7 +1561,7 @@ static Lufia2MapWidescreenResult PrepareGameDrivenMap(
         return RejectMap(signature, "closed area");
     }
 
-    SyncShownCells(ppu, signature);
+    SyncShownCells(ppu, signature, cells_unchanged);
     const Lufia2MapWidescreenResult result = AdoptSource(ppu, map, paint);
     s_game_driven = true;
     s_game_hides = hides;

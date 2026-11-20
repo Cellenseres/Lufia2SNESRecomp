@@ -51,6 +51,9 @@ void Lufia2BattleUiCompose(uint8_t *pixels, unsigned width,
 /* Completed unscaled cards, in draw order. Borrowed until Begin/Record/Init.
  * Preview export keeps the CPU composition path. No allocation or I/O. */
 bool Lufia2BattleUiReadCards(Lufia2BattleUiCardView *view);
+bool Lufia2BattleUiCacheKey(uint8_t layout[LUFIA2_BATTLE_UI_LAYOUT_BYTES]);
+bool Lufia2BattleUiReuseEmpty(void);
+bool Lufia2BattleUiReuseCards(const uint32_t *pixels,unsigned top);
 void Lufia2BattleUiReset(void);
 
 #endif

@@ -1,6 +1,7 @@
 /* Converts the live per-line PPU history into a portable frame capture. */
 
 #include "lufia2_runtime.h"
+#include "lufia2_battle_effects.h"
 
 #include <stddef.h>
 #include <string.h>
@@ -55,6 +56,14 @@ static void CaptureBandFromRegs(SnesPpuRasterBand *band,
     _Static_assert(SNES_PPU_REG_BLOCK_BYTES == PPU_SAVESTATE_REGS_SIZE,
                    "portable register block must match Ppu snapshot");
     memcpy(band->regs, regs, SNES_PPU_REG_BLOCK_BYTES);
+    /* The serial renderer suppresses a cleared battle-effect map until its
+     * queued upload reaches VRAM. Export that same visibility decision in the
+     * immutable raster, without writing live PPU registers or guest memory. */
+    if(Lufia2BattleEffectsPlaneCleared(p,2u)) {
+        p->screenEnabled[0]&=(uint8_t)~4u;p->screenEnabled[1]&=(uint8_t)~4u;
+        band->regs[PPU_RAW_OFFSET(screenEnabled)]&=(uint8_t)~4u;
+        band->regs[PPU_RAW_OFFSET(screenEnabled)+1u]&=(uint8_t)~4u;
+    }
     band->bg_mode = (uint8_t)PPU_mode(p);
     band->bg3_priority = PPU_bg3priority(p) != 0;
     band->main_enable = p->screenEnabled[0];

@@ -7,6 +7,9 @@ typedef struct Lufia2BattlePpuJob Lufia2BattlePpuJob;
 enum { LUFIA2_BATTLE_JOB_IMAGES=3, LUFIA2_BATTLE_JOB_OVERLAYS=32 };
 Lufia2BattlePpuJob *Lufia2BattlePpuJobCreate(void);
 void Lufia2BattlePpuJobDestroy(Lufia2BattlePpuJob *context);
+bool Lufia2BattlePpuJobReused(const Lufia2BattlePpuJob *context);
+/* Cache-only diagnostic bits; no renderer admission or guest flags. */
+uint32_t Lufia2BattlePpuJobCacheReject(const Lufia2BattlePpuJob *context);
 const SnesRecompPpuFrame *Lufia2BattlePpuJobFrame(const Lufia2BattlePpuJob *context);
 /* Pure pixels from an immutable capture. Guest execution, HDMA and primary
  * sprite qualification are never repeated. Alternate HUD views qualify only
@@ -23,6 +26,11 @@ SnesRecompPpuResult Lufia2BattlePpuJobPrepare(Lufia2BattlePpuJob *context,
 bool Lufia2BattlePpuJobSubmit(Lufia2BattlePpuJob *context,
     struct Lufia2PpuOffload *offload,const struct Ppu *live,
     const SnesRecompPpuFrame *frame);
+/* Own the final host policy for asynchronous preparation. The destination is
+ * persistent private storage, not a live PPU. Disabled scratch/VRAM is omitted:
+ * only PrepareRecordedRows/Freeze may consume it, with an owned pixel capture.
+ * Rejects borrowed render views. No guest state or status is advanced. */
+bool Lufia2BattlePpuJobSnapshotPolicy(struct Ppu *destination,const struct Ppu *live);
 /* Submit in two steps: Freeze here, then Lufia2PpuOffloadPrepareFrozen
  * and the presenter submit; Refused when those decline. */
 bool Lufia2BattlePpuJobFreeze(Lufia2BattlePpuJob *context,

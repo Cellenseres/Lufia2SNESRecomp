@@ -6,6 +6,12 @@
 #include "snesrecomp_platform/snes_obj_ranges.h"
 #include "lufia2_ppu_obj_capture.h"
 
+/* Private synchronous source view, never a guest/captured/GPU-frame flag.
+ * Keep the original window coordinates and colour context; only unused
+ * margin pixels of an isolated 256-pixel UI source are omitted. Row caches
+ * include renderFlags, so a narrow source cannot populate a full-row hit. */
+#define LUFIA2_PPU_RENDER_NATIVE_SOURCE (UINT32_C(1) << 31)
+
 extern bool lufia2_ppu_host_costs_enabled;
 void Lufia2PpuHostConfigure(void);
 

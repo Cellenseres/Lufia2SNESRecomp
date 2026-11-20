@@ -56,6 +56,9 @@ typedef struct Lufia2PpuRowCache {
     bool checked, frame_disabled, memory_valid, pending;
     Lufia2PpuRowPolicy shared_policy;
     bool policy_checked, policy_valid, policy_bound;
+#if defined(LUFIA2_PPU_CAPTURE_DIAGNOSTICS)
+    uint32_t trace_reason; /* Diagnostic only; absent from timed builds. */
+#endif
     uint64_t hits, misses;
 } Lufia2PpuRowCache;
 
@@ -98,6 +101,9 @@ static inline bool Lufia2PpuRowCacheReadViewInputs(Lufia2PpuRowCache *cache,
     const uint16_t *vram,unsigned main_screen) {
     if (!cache) return false;
     cache->pending = false;
+#if defined(LUFIA2_PPU_CAPTURE_DIAGNOSTICS)
+    cache->trace_reason=1u;
+#endif
     /* Full-span rows are completely written. Narrower draws leave retained
      * scratch pixels outside their live span and cannot use this cache. */
     if (!ppu || !row || !line || line > LUFIA2_PPU_CACHE_ROWS ||
@@ -107,6 +113,9 @@ static inline bool Lufia2PpuRowCacheReadViewInputs(Lufia2PpuRowCache *cache,
         ppu->extraRightCur != ppu->extraLeftRight || ppu->wsMode2CaptureLayer ||
         ppu->mode7Hd.pixels || cache->frame_disabled) return false;
     if(!vram) return false;
+#if defined(LUFIA2_PPU_CAPTURE_DIAGNOSTICS)
+    cache->trace_reason=(cache->valid[line-1u]&(1u<<pass))?0u:2u;
+#endif
     if (!cache->checked) {
         if (!cache->memory_valid || cache->width != width) {
             memset(cache->valid, 0, sizeof cache->valid);
@@ -131,6 +140,9 @@ static inline bool Lufia2PpuRowCacheReadViewInputs(Lufia2PpuRowCache *cache,
         cache->frame_disabled = true;
         return false;
     }
+#if defined(LUFIA2_PPU_CAPTURE_DIAGNOSTICS)
+    if(!(cache->valid[line-1u]&(1u<<pass)))cache->trace_reason|=4u;
+#endif
     const unsigned y = line - 1u;
     Lufia2PpuRowKey *key=cache->keys+y;
     /* Compare borrowed inputs directly. An unchanged row needs neither a
@@ -143,6 +155,9 @@ static inline bool Lufia2PpuRowCacheReadViewInputs(Lufia2PpuRowCache *cache,
         !snesrecomp_u8_equal(key->half_brightness,ppu->brightnessMultHalf,sizeof key->half_brightness) ||
         !snesrecomp_u8_equal(key->mosaic,ppu->mosaicModulo,sizeof key->mosaic) ||
         (!cache->policy_bound && !snesrecomp_u8_equal(key->policy_tail,&ppu->wsLayerClamp,sizeof key->policy_tail))) {
+#if defined(LUFIA2_PPU_CAPTURE_DIAGNOSTICS)
+        cache->trace_reason|=8u;
+#endif
         memcpy(key->policy_head,&ppu->extraLeftCur,sizeof key->policy_head);
         if(!cache->policy_bound) memcpy(key->policy_tail,&ppu->wsLayerClamp,sizeof key->policy_tail);
         memcpy(key->brightness,ppu->brightnessMult,sizeof key->brightness);
@@ -162,6 +177,9 @@ static inline bool Lufia2PpuRowCacheReadViewInputs(Lufia2PpuRowCache *cache,
     if(layers!=255u) registers[offsetof(Ppu,screenEnabled)-offsetof(Ppu,inidisp)]&=
         (uint8_t)(0xf0u | layers);
     if(!snesrecomp_u8_equal(cache->registers[pass][y],registers,sizeof registers)) {
+#if defined(LUFIA2_PPU_CAPTURE_DIAGNOSTICS)
+        cache->trace_reason|=16u;
+#endif
         memcpy(cache->registers[pass][y],registers,sizeof registers);
         cache->valid[y]&=(uint8_t)~bit;
     }
@@ -193,6 +211,9 @@ static inline bool Lufia2PpuRowCacheReadViewInputs(Lufia2PpuRowCache *cache,
         if ((cache->palette_blocks[pass][y] & (1u << block)) &&
             !snesrecomp_u16_equal(cache->palettes[pass][y] + block * 16u,
                                   ppu->cgram + block * 16u, 16)) {
+#if defined(LUFIA2_PPU_CAPTURE_DIAGNOSTICS)
+            cache->trace_reason|=32u;
+#endif
             cache->valid[y] &= (uint8_t)~bit;
             break;
         }

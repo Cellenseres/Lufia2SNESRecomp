@@ -579,24 +579,12 @@ static bool Lufia2DecompFramePollClockedEdges(CpuState *cpu, uint32_t entry) {
     const unsigned opcodes = pairs * 2u;
     while (opcode < opcodes) {
         unsigned chunk = opcodes - opcode;
-        uint64_t refresh_phase, refresh_clock;
-        snes_refresh_state_get(&refresh_phase, &refresh_clock);
-        /* Each span ends at the same original opcode which crosses a device
-         * edge. Real refresh/beam/APU handlers execute there, never later.
+        /* Refresh and beam walks are split-invariant without IRQ/HDMA.
          * Reserve 128 clocks per 128 opcode slots. For at most 1024 slots,
          * raw clocks plus this reserve span fewer than 20 refresh periods;
          * their maximum 800 clocks fit within the 1024-clock reserve. */
-        const uint64_t edges[] = {
-            1364u - refresh_phase,
-            (g_snes->vPos < 225u && g_snes->hPos < 1024u ?
-                1024u : 1364u) - g_snes->hPos
-        };
         const uint32_t first_master = opcode & 1u ?
             branch_master : compare_master;
-        for (unsigned edge = 0u; edge < 2u; ++edge) {
-            const uint64_t need = edges[edge];
-            chunk = Lufia2DecompFramePollEdgeChunk(need, pair_master, first_master, chunk);
-        }
         /* Auto-pad's start-of-vblank latch occurs before the first walk. */
         if (g_snes->autoJoyRead && g_snes->vPos == 225u && !g_snes->hPos)
             chunk = 1u;

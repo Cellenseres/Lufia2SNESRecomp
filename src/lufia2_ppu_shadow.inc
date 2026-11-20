@@ -12,20 +12,32 @@ bool Lufia2PpuResolveShadowLine(Ppu *ppu, unsigned line, unsigned layer,
     unsigned row = PPU_bgTilemapAdr(ppu, layer) + ((sy >> 3 & 31u) << 5);
     if ((sy & 256u) && PPU_bgTilemapHigher(ppu, layer))
         row += PPU_bgTilemapWider(ppu, layer) ? 2048u : 1024u;
+    PpuWindows resolved;
+    bool have_resolved = false;
     for (unsigned sub = 0; sub < 2; ++sub) {
         if (!IS_SCREEN_ENABLED(ppu, sub, layer)) continue;
         PpuWindows window;
         if (IS_SCREEN_WINDOWED(ppu, sub, layer))
             PpuWindows_Calc(&window, ppu, layer, (int)line);
         else PpuWindows_Clear(&window, ppu, layer, (int)line);
+        /* The subscreen often shows the same spans; they select the same
+         * entries, which the main pass has already written. */
+        if (have_resolved && window.nr == resolved.nr && window.bits == resolved.bits &&
+            !memcmp(window.edges, resolved.edges, (window.nr + 1u) * sizeof window.edges[0]))
+            continue;
+        resolved = window;
+        have_resolved = true;
         for (unsigned span = 0; span < window.nr; ++span) {
             if (window.bits & (1u << span)) continue;
             for (int screen_x = window.edges[span]; screen_x < window.edges[span + 1];) {
                 const unsigned sx = (unsigned)(screen_x + ppu->hScroll[layer]);
                 const unsigned address = (row + (sx >> 3 & 31u) +
                     ((sx & 256u) && PPU_bgTilemapWider(ppu, layer) ? 1024u : 0u)) & 32767u;
-                const uint16_t entry = WsShadowTile((int)layer, screen_x, sy,
-                    ppu->hScroll[layer], (uint16_t)address, PpuRenderVram(ppu)[address]);
+                /* WsShadowTile returns the VRAM entry for any whole native chunk. */
+                const uint16_t entry = screen_x >= 0 && screen_x + 8 <= 256
+                    ? PpuRenderVram(ppu)[address]
+                    : WsShadowTile((int)layer, screen_x, sy,
+                        ppu->hScroll[layer], (uint16_t)address, PpuRenderVram(ppu)[address]);
                 const unsigned cell = ((sy >> 3 & 63u) * 64u) + (sx >> 3 & 63u);
                 uint8_t *packed = map + cell * 4u;
                 /* A window, raster scroll or world phase can select different
@@ -46,6 +58,26 @@ bool Lufia2PpuResolveShadowLine(Ppu *ppu, unsigned line, unsigned layer,
     return true;
 }
 
+/* Field by field: runs on every recorded line, and the C library compares
+ * these bytes one at a time. */
+static bool ShadowRowKeyMatches(const Lufia2PpuShadowRowKey *a,
+    const Lufia2PpuShadowRowKey *b, const uint8_t *regs) {
+    if (a->native_row != b->native_row || a->history_row != b->history_row ||
+        a->world_row != b->world_row || a->world_x != b->world_x ||
+        a->world_y != b->world_y || a->scroll_y != b->scroll_y ||
+        a->extra_left != b->extra_left || a->extra_right != b->extra_right ||
+        a->margin_left != b->margin_left || a->margin_right != b->margin_right ||
+        a->expand_layers != b->expand_layers || a->expand_windows != b->expand_windows)
+        return false;
+    for (unsigned i = 0; i < sizeof a->regs; i += 4u) {
+        uint32_t x, y;
+        memcpy(&x, a->regs + i, sizeof x);
+        memcpy(&y, regs + i, sizeof y);
+        if (x != y)
+            return false;
+    }
+    return true;
+}
 bool Lufia2PpuResolveShadowLineCached(Ppu *ppu, unsigned line, unsigned layer,
     uint8_t *map, uint8_t *known, Lufia2PpuShadowMemo *memo) {
     if (!memo || !ppu || !map || !known || !line || line > 224 || layer >= 2)
@@ -61,11 +93,9 @@ bool Lufia2PpuResolveShadowLineCached(Ppu *ppu, unsigned line, unsigned layer,
     return Lufia2PpuResolveShadowLine(ppu, line, layer, map, known);
 #else
     Lufia2PpuShadowRowKey key;
-    memset(&key, 0, sizeof key);
     const uint32_t sy = line + ppu->vScroll[layer];
     const uint32_t scroll_y = WsShadowScrollY((int)layer);
     const uint32_t relative = (sy - scroll_y) & 0x3ffu;
-    memcpy(key.regs, &ppu->inidisp, sizeof key.regs);
     key.native_row = sy >> 3;
     /* Both shadow-history variants are certified. Scrolls latched before an
      * IRQ need not agree with this line's PPU scroll; their row boundaries
@@ -81,10 +111,11 @@ bool Lufia2PpuResolveShadowLineCached(Ppu *ppu, unsigned line, unsigned layer,
     key.margin_right = PpuWidescreenLayerExtra(ppu, layer, (int)line, ppu->extraRightCur);
     key.expand_layers = ppu->wsWindowExpandLayers;
     key.expand_windows = ppu->wsWindowExpandWindows;
-    if (memo->valid && !memcmp(&memo->key, &key, sizeof key)) {
+    if (memo->valid && ShadowRowKeyMatches(&memo->key, &key, (const uint8_t *)&ppu->inidisp)) {
         ++memo->reused;
         return true;
     }
+    memcpy(key.regs, &ppu->inidisp, sizeof key.regs);
     const bool ok = Lufia2PpuResolveShadowLine(ppu, line, layer, map, known);
     memo->valid = ok;
     if (ok) { memo->key = key; ++memo->resolved; }

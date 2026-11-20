@@ -5,6 +5,7 @@
 #include "lufia2_ppu_elastic_certificate.h"
 #include "lufia2_ppu_obj_capture.h"
 #include "lufia2_ppu_obj_defer.h"
+#include "lufia2_ppu_obj_pixels.h"
 #include "lufia2_ppu_host.h"
 #include "lufia2_ppu_timeline.h"
 #include "lufia2_ppu_render_clone.h"
@@ -14,7 +15,7 @@
 #include <stdlib.h>
 #include <stddef.h>
 #include <string.h>
-#if defined(LUFIA2_PPU_CAPTURE_DIAGNOSTICS)
+#if defined(LUFIA2_PPU_CAPTURE_DIAGNOSTICS) || defined(LUFIA2_PPU_JOB_TRACE)
 #include <stdio.h>
 #include "snesrecomp_platform/snes_ppu_trace.h"
 #endif
@@ -22,7 +23,10 @@
 struct Lufia2PpuOffload {
     SnesRecompPresenter *presenter;
     SnesRecompPpuFrame *frame;
+    uint64_t resolved_payload_owner;
     SnesRecompPpuFrame *captured_frame;
+    SnesPpuFrameCapture pending_battle_capture;
+    bool battle_capture_pending;
     SnesRecompPpuJob *job;
     SnesRecompPpuFrame *graphics_frame;
     SnesRecompPpuJob *primitive_job;
@@ -48,6 +52,10 @@ struct Lufia2PpuOffload {
     };
     uint8_t has_sprites[LUFIA2_PPU_VISIBLE_LINES], mosaic_start[LUFIA2_PPU_VISIBLE_LINES];
     unsigned width, extra, lines;
+    uint8_t obj_rows_valid[LUFIA2_PPU_VISIBLE_LINES];
+    uint32_t obj_rows_reused, obj_rows_generated;
+    /* Recording serial and the serial at which each obj_pixels row was packed. */
+    uint64_t obj_serial, obj_row_serials[LUFIA2_PPU_VISIBLE_LINES];
     uint16_t palettes[LUFIA2_PPU_VISIBLE_LINES][SNES_PPU_CGRAM_ENTRIES];
     bool record_palettes;
     uint8_t shadow_maps[2][SNESRECOMP_PPU_RESOLVED_MAP_BYTES];
@@ -68,9 +76,9 @@ struct Lufia2PpuOffload {
 /* One game timeline records at a time; GPU ownership stays in the presenter. */
 static Lufia2PpuOffload *s_recording;
 bool lufia2_ppu_offload_recording;
-static void SetRecording(Lufia2PpuOffload *context) {
-    /* Every exit from recording joins the sprite helper first. */
-    Lufia2PpuObjDeferStop();
+static void SetRecordingDetached(Lufia2PpuOffload *context, bool detach) {
+    /* Exits join the sprite helper; a detached exit leaves it to the consumer. */
+    if (!detach || !Lufia2PpuObjDeferDetach()) Lufia2PpuObjDeferStop();
     if(s_recording && lufia2_ppu_obj_capture==&s_recording->selected_obj)
         Lufia2PpuObjCaptureBind(NULL,NULL);
     s_recording = context;
@@ -81,6 +89,7 @@ static void SetRecording(Lufia2PpuOffload *context) {
         Lufia2PpuObjCaptureBind(&context->selected_obj,context->live);
     }
 }
+static void SetRecording(Lufia2PpuOffload *context) { SetRecordingDetached(context, false); }
 
 Lufia2PpuOffload *Lufia2PpuOffloadCreate(SnesRecompPresenter *presenter) {
     if (!presenter || !snesrecomp_presenter_ppu_capabilities(presenter)) return NULL;
@@ -168,6 +177,8 @@ bool Lufia2PpuOffloadBegin(Lufia2PpuOffload *c, Ppu *p,
     if (!c || !p || s_recording || c->prepared || c->deferred) return false;
     snesrecomp_presenter_ppu_begin_frame(c->presenter);
     c->capture_us = c->fallback_us = 0;
+    c->obj_rows_reused = c->obj_rows_generated = 0;
+    ++c->obj_serial;
     c->captured_frame = NULL;
     c->timing_valid = 0;
     c->result = SNESRECOMP_PPU_UNSUPPORTED;
@@ -214,8 +225,14 @@ bool Lufia2PpuOffloadBegin(Lufia2PpuOffload *c, Ppu *p,
     Lufia2PpuCopyRange(&c->reference,p,0,begin);
     Lufia2PpuCopyRange(&c->reference,p,end,sizeof(*p)-end);
     if(!Lufia2PpuElasticPrepare(&c->elastic,&c->reference)) return false;
+    const bool battle = Lufia2BattleEffectsActive(p);
+    /* Menus reuse this storage for qualified slivers. Geometry or clipping
+     * policy changes must not reuse an earlier packed row certificate. */
+    if (menu || c->width != width || c->extra != extra || c->battle != battle)
+        memset(c->obj_rows_valid, 0, sizeof c->obj_rows_valid);
     c->live = p; c->width = width; c->extra = extra; c->lines = 0;
-    c->battle = Lufia2BattleEffectsActive(p);
+    c->battle_capture_pending=false;
+    c->battle = battle;
     c->battle_policy_epoch = 0;
     if (c->battle) Lufia2BattleEffectsCapturePixelPolicy(&c->battle_policy);
     c->record_palettes = (Lufia2PpuPendingRasterMemoryFlags() & SNES_PPU_RASTER_MEMORY_CGRAM) != 0;
@@ -241,9 +258,13 @@ bool Lufia2PpuOffloadBegin(Lufia2PpuOffload *c, Ppu *p,
             memset(c->shadow_known[layer], 0, sizeof c->shadow_known[layer]);
         }
     SetRecording(c);
-    if (!menu && !c->battle && !c->indexed_pixels && !c->primitive_menu &&
+    if (!menu && !c->indexed_pixels && !c->primitive_menu &&
         lufia2_ppu_host_costs_enabled) {
-        const Lufia2PpuObjDeferTarget target = {c->objects, c->obj_pixels, width, extra};
+        const Lufia2PpuObjDeferTarget target = {.objects=c->objects,.obj_pixels=c->obj_pixels,
+            .width=width,.extra=extra,.battle_masks=c->battle?c->battle_sprite_rows:NULL,
+            .valid_rows=c->obj_rows_valid,.has_rows=c->has_sprites,
+            .reused_rows=&c->obj_rows_reused,.generated_rows=&c->obj_rows_generated,
+            .row_serials=c->obj_row_serials,.serial=c->obj_serial};
         Lufia2PpuObjDeferStart(p, &target);
     }
     return true;
@@ -263,12 +284,17 @@ bool Lufia2PpuOffloadRecordLine(Ppu *p, unsigned line) {
         c->result=SNESRECOMP_PPU_INCOMPLETE_LAYOUT;
         c->unsupported=SNES_PPU_UNSUPPORTED_LAYOUT_POLICY;return false;
     }
+    bool check_elastic = true;
     if (c->battle) {
         const uint32_t epoch = Lufia2PpuTimelineReadOnlyEpoch();
         /* The captured WRAM policy is immutable until guest code runs again.
          * Check its full bytes at the interval's first row, after every IRQ,
          * and on every standalone draw without an ownership certificate. */
-        if (!epoch || epoch != c->battle_policy_epoch) {
+        /* HDMA writes SNES registers, not the host's elastic mapping arrays.
+         * Their writer is guest/host policy code, which is excluded by this
+         * same read-only interval and resumes only after a new IRQ token. */
+        check_elastic = !epoch || epoch != c->battle_policy_epoch;
+        if (check_elastic) {
             if (!Lufia2BattleEffectsPixelPolicyMatches(&c->battle_policy)) {
                 Lufia2PpuOffloadFallback(c);
                 c->result = SNESRECOMP_PPU_INCOMPLETE_LAYOUT;
@@ -280,7 +306,7 @@ bool Lufia2PpuOffloadRecordLine(Ppu *p, unsigned line) {
     }
     /* Until policy histories are recorded, a mid-frame host remap change
      * retains serial drawing. Already recorded lines used the entry policy. */
-    if (!Lufia2PpuElasticEqual(&c->elastic,&c->reference,p)) {
+    if (check_elastic && !Lufia2PpuElasticEqual(&c->elastic,&c->reference,p)) {
         Lufia2PpuOffloadFallback(c);
         c->result=SNESRECOMP_PPU_INCOMPLETE_LAYOUT;
         c->unsupported=SNES_PPU_UNSUPPORTED_LAYOUT_POLICY;
@@ -295,24 +321,35 @@ bool Lufia2PpuOffloadRecordLine(Ppu *p, unsigned line) {
             return false;
         }
     const unsigned y = line - 1;
-    if (c->battle) Lufia2BattleEffectsCaptureSpriteRow(c->battle_sprite_rows[y]);
+    const bool *sprite_mask = c->battle ? Lufia2BattleEffectsSpriteRow() : NULL;
     /* Partial-frame fallback must not depend on the runtime's end-of-frame
      * history-valid flag. Copy only when palette changes were anticipated. */
     if (c->record_palettes) memcpy(c->palettes[y], p->cgram, sizeof c->palettes[y]);
 #if defined(LUFIA2_OBJ_DEFER_CHECK)
     /* Serial row stays authoritative; the helper row is compared. */
-    if (Lufia2PpuObjDeferTakeLine(y)) Lufia2PpuObjDeferCheck(y, p->lineHasSprites, &p->objBuffer);
+    if (Lufia2PpuObjDeferTakeLine(y)) Lufia2PpuObjDeferCheck(y, p->lineHasSprites, &p->objBuffer, sprite_mask);
 #else
     /* The helper writes this row's objects and obj_pixels. */
     if (Lufia2PpuObjDeferTakeLine(y)) {
-        c->has_sprites[y] = p->lineHasSprites;
+        /* Preserve the preceding row certificate until its pixel worker has
+         * compared it. The worker publishes has/valid together with pixels;
+         * recording/fallback joins it before consuming any of these arrays. */
         c->mosaic_start[y] = p->mosaicStartLine;
         Lufia2PpuObjDeferPublish(y, p->lineHasSprites);
         ++c->lines;
         return true;
     }
 #endif
+    const unsigned offset = kPpuExtraLeftRight - c->extra;
+    const bool reused = !c->menu && Lufia2PpuObjRowMatches(
+        c->obj_rows_valid[y], c->has_sprites[y], c->objects[y].data + offset,
+        c->battle ? c->battle_sprite_rows[y] + offset : NULL,
+        p->lineHasSprites, p->objBuffer.data + offset,
+        c->battle ? sprite_mask + offset : NULL, c->width, c->extra);
+    /* Keep the complete native row for partial CPU fallback, even on a hit.
+     * Transparent scratch outside the canvas is not part of the packed key. */
     if (p->lineHasSprites) c->objects[y] = p->objBuffer;
+    if (c->battle) Lufia2BattleEffectsCaptureSpriteRow(c->battle_sprite_rows[y]);
     if(c->primitive_menu && p->lineHasSprites) {
         /* All centre OAM slots were qualified into this overlay in original
          * OAM order. Never merge them by BG priority or qualify them again. */
@@ -328,22 +365,15 @@ bool Lufia2PpuOffloadRecordLine(Ppu *p, unsigned line) {
         if(!Lufia2MenuUiRecordIndexedLine(p,line)) {Lufia2PpuOffloadFallback(c);return false;}
         ++c->lines;return true;
     }
-    if (!p->lineHasSprites) {
-        memset(c->obj_pixels + y * c->width, 0, c->width * sizeof(uint16_t));
-        ++c->lines;
-        return !c->menu || c->indexed_pixels;
+    if (reused) ++c->obj_rows_reused;
+    else {
+        Lufia2PpuObjPackRow(c->obj_pixels + y * c->width,
+            c->primitive_menu ? c->objects[y].data + offset : p->objBuffer.data + offset,
+            p->lineHasSprites, c->battle ? sprite_mask + offset : NULL, c->width, c->extra);
+        c->obj_row_serials[y] = c->obj_serial;
+        ++c->obj_rows_generated;
     }
-    for (unsigned x = 0; x < c->width; ++x) {
-        uint16_t native = c->primitive_menu?c->objects[y].data[(int)x-(int)c->extra+kPpuExtraLeftRight]:
-            p->objBuffer.data[(int)x - (int)c->extra + kPpuExtraLeftRight];
-        /* Native battle OBJ composition rejects ordinary sprites outside the
-         * centre. The prepared GPU row must use that same qualified mask. */
-        if (c->battle && (x < c->extra || x >= c->extra + 256u) &&
-            !c->battle_sprite_rows[y][(int)x - (int)c->extra + kPpuExtraLeftRight]) native = 0;
-        c->obj_pixels[y * c->width + x] = (native & 255u) && p->lineHasSprites ?
-            (uint16_t)((native & 255u) | (((native >> 12) - 2u) / 4u << 8) |
-                       (((native >> 8) & 15u) == 4u ? 0x400u : 0u) | 0x800u) : 0;
-    }
+    c->obj_rows_valid[y] = !c->menu;
     ++c->lines;
     /* Indexed menus defer both BG indices and RGB; compatibility menus still
      * record their original indices. Sprite qualification remains once. */
@@ -359,6 +389,63 @@ bool Lufia2PpuOffloadEndWithOverlays(Lufia2PpuOffload *c,
     const SnesRecompPpuOverlay *overlays, uint16_t overlay_count) {
     return Lufia2PpuOffloadEndCapture(c) &&
         Lufia2PpuOffloadPrepareOverlays(c, images, image_count, overlays, overlay_count);
+}
+
+/* Only the non-remapped battle path has an already owned entry picture.
+ * Any VRAM/OAM mutation ends recording BEFORE the write. Palette histories
+ * are copied at each authoritative row; post-last-row palettes are retained
+ * separately as the original capture's base palette. */
+int Lufia2PpuOffloadStageBattleCapture(Lufia2PpuOffload *c) {
+    if(!c || !c->deferred || s_recording!=c || !c->battle || c->menu ||
+        c->indexed_pixels || c->primitive_menu || c->shadow_mask ||
+        c->reference.renderVram || c->battle_capture_pending) return 0;
+#if defined(LUFIA2_PPU_JOB_TRACE)
+    const uint64_t join_begin=snesrecomp_now_us();
+#endif
+    /* The battle preparer runs after the sprite helper on the same core. */
+    SetRecordingDetached(NULL, true);
+    const uint64_t begin=snesrecomp_now_us();
+    c->timing_valid|=SNESRECOMP_PPU_TIME_CAPTURE;
+    SnesPpuFrameCapture *cap=&c->pending_battle_capture;
+    if(c->lines!=LUFIA2_PPU_VISIBLE_LINES ||
+        !Lufia2CapturePpuFrame(cap,c->width,c->extra) ||
+        (cap->cgram_lines && !c->record_palettes)) {
+        c->result=SNESRECOMP_PPU_INVALID;
+        c->capture_us=snesrecomp_now_us()-begin;return -1;
+    }
+#if defined(LUFIA2_PPU_JOB_TRACE)
+    const uint64_t raster_end=snesrecomp_now_us();
+#endif
+    /* No raw pointer to the live PPU or global raster scratch survives. The
+     * first two memory planes are unchanged for the entire admitted capture;
+     * use their existing private entry copy rather than copying them again. */
+    cap->vram=c->reference.vram;cap->oam=c->reference.oam;
+    cap->high_oam=c->reference.highOam;
+    if(c->record_palettes) memcpy(c->reference.cgram,c->live->cgram,sizeof c->reference.cgram);
+    cap->cgram=c->reference.cgram;
+    cap->cgram_lines=cap->cgram_lines?c->palettes[0]:NULL;
+    cap->cgram_line_count=cap->cgram_lines?LUFIA2_PPU_VISIBLE_LINES:0;
+    memcpy(c->menu_bands,cap->bands,cap->band_count*sizeof *cap->bands);
+    cap->bands=c->menu_bands;
+    cap->obj_pixels=c->obj_pixels;cap->obj_pitch=(uint16_t)c->width;
+    c->captured_frame=NULL;c->battle_capture_pending=true;
+    c->capture_us=snesrecomp_now_us()-begin;
+#if defined(LUFIA2_PPU_JOB_TRACE)
+    fprintf(stderr,"Battle stage us: obj_join=%llu raster=%llu owned=%llu\n",
+        (unsigned long long)(begin-join_begin),(unsigned long long)(raster_end-begin),
+        (unsigned long long)(c->capture_us-(raster_end-begin)));
+#endif
+    return 1;
+}
+
+const SnesRecompPpuFrame *Lufia2PpuOffloadFreezeBattleCapture(Lufia2PpuOffload *c) {
+    if(!c || !c->battle_capture_pending || !c->deferred || s_recording==c || c->prepared) return NULL;
+    c->battle_capture_pending=false;
+    const uint64_t begin=snesrecomp_now_us();
+    c->result=snesrecomp_ppu_frame_freeze(c->frame,&c->pending_battle_capture,NULL,++c->sequence);
+    c->capture_us+=snesrecomp_now_us()-begin;
+    if(c->result!=SNESRECOMP_PPU_OK) return NULL;
+    c->captured_frame=c->frame;return c->frame;
 }
 
 const SnesRecompPpuFrame *Lufia2PpuOffloadEndCapture(Lufia2PpuOffload *c) {
@@ -395,7 +482,10 @@ const SnesRecompPpuFrame *Lufia2PpuOffloadEndCapture(Lufia2PpuOffload *c) {
             .line_priority=c->qualified_objects.priorities,.line_capacity=LUFIA2_PPU_VISIBLE_LINES,
             .range_over=c->live->rangeOver,.time_over=c->live->timeOver};
         authority=&qualified;cap.obj_pixels=NULL;cap.obj_pitch=0;
-    } else {cap.obj_pixels=c->obj_pixels;cap.obj_pitch=c->width;}
+    } else {
+        cap.obj_pixels=c->obj_pixels;cap.obj_pitch=c->width;
+        cap.obj_row_serials=c->obj_row_serials;cap.obj_serial=c->obj_serial;
+    }
     const uint64_t sequence=++c->sequence;
     if(c->primitive_menu) {
         c->result=snesrecomp_ppu_frame_freeze(c->graphics_frame,&cap,authority,sequence);
@@ -431,6 +521,7 @@ bool Lufia2PpuOffloadPrepareOverlays(Lufia2PpuOffload *c,
 bool Lufia2PpuOffloadMenuBase(const Lufia2PpuOffload *c) {return c && c->deferred && c->menu;}
 bool Lufia2PpuOffloadMenuPrimitives(const Lufia2PpuOffload *c) {return c && c->primitive_menu;}
 bool Lufia2PpuOffloadFreezeMenu(Lufia2PpuOffload *c) {
+    if(c)c->resolved_payload_owner=0;
     if(c) {c->frozen_job=NULL;c->frozen_frame=NULL;}
     if(!c || !c->deferred || !c->menu || (!c->job && !c->primitive_job && !c->indexed_job) || !c->captured_frame || c->prepared ||
         s_recording==c) return false;
@@ -466,7 +557,7 @@ bool Lufia2PpuOffloadPrepareFrozen(Lufia2PpuOffload *c) {
     if(!c || (!c->frozen_job && !c->frozen_frame)) return false;
     c->result=c->frozen_job?snesrecomp_presenter_ppu_prepare_job(c->presenter,c->frozen_job):
         snesrecomp_presenter_ppu_prepare(c->presenter,c->frozen_frame);
-#if defined(LUFIA2_PPU_CAPTURE_DIAGNOSTICS)
+#if defined(LUFIA2_PPU_CAPTURE_DIAGNOSTICS) || defined(LUFIA2_PPU_JOB_TRACE)
     /* Optional immutable replay evidence. Enabled only for diagnostic runs;
      * these IO-bearing frames are never used for performance acceptance. */
     static bool dumped_ok, dumped_rejected;
@@ -499,6 +590,12 @@ bool Lufia2PpuOffloadPrepareFrozen(Lufia2PpuOffload *c) {
     if (root && *root && v && (v->source_count || v->overlay_count)) {
         const bool ok = c->result == SNESRECOMP_PPU_OK;
         bool *done = ok ? &dumped_ok : &dumped_rejected;
+        if(ok && sequence<=128u) {
+            char path[512];
+            const int n=snprintf(path,sizeof path,"%s/battle-job-%04lu.sppu",root,(unsigned long)sequence);
+            if(n>0 && (size_t)n<sizeof path)
+                snesrecomp_ppu_trace_write_job(path,c->frozen_job,sequence,1u,SNES_PPU_SUPPORTED);
+        }
         if (!*done) {
             char path[512];
             int n = snprintf(path, sizeof path, "%s/%s-job.sppu", root,
@@ -536,7 +633,7 @@ bool Lufia2PpuOffloadFreezeResolvedSources(Lufia2PpuOffload *c,const SnesRecompP
     const SnesRecompPpuJobImage *images,uint16_t image_count,
     const SnesRecompPpuOverlay *overlays,uint16_t overlay_count,
     const SnesRecompPpuSource *sources,uint16_t source_count) {
-    if(c) {c->frozen_job=NULL;c->frozen_frame=NULL;}
+    if(c) {c->frozen_job=NULL;c->frozen_frame=NULL;c->resolved_payload_owner=0;}
     if (!c || !c->deferred || !c->captured_frame || c->prepared || s_recording == c) return false;
     const uint64_t begin = snesrecomp_now_us();
     const SnesRecompPpuFrame *frame = resolved;
@@ -553,8 +650,24 @@ bool Lufia2PpuOffloadFreezeResolvedSources(Lufia2PpuOffload *c,const SnesRecompP
         c->result = SNESRECOMP_PPU_RESOURCE_LIMIT;
         return false;
     }
-    if (overlay_count || source_count) c->frozen_job = c->job;
-    else c->frozen_frame = frame;
+    if (overlay_count || source_count) {
+        c->frozen_job = c->job;
+        c->resolved_payload_owner=snesrecomp_ppu_frame_versions(frame)->owner;
+    } else c->frozen_frame = frame;
+    return true;
+}
+
+bool Lufia2PpuOffloadRebindResolvedSources(Lufia2PpuOffload *c,const SnesRecompPpuFrame *frame) {
+    if(!c || !c->deferred || !c->captured_frame || c->prepared || s_recording==c || !c->job)
+        return false;
+    c->frozen_job=NULL;c->frozen_frame=NULL;
+    const SnesRecompPpuFrameVersions *v=snesrecomp_ppu_frame_versions(frame);
+    if(!v || !c->resolved_payload_owner || v->owner!=c->resolved_payload_owner) return false;
+    const uint64_t begin=snesrecomp_now_us();
+    c->result=snesrecomp_ppu_job_rebind(c->job,frame,c->sequence);
+    c->capture_us+=snesrecomp_now_us()-begin;
+    if(c->result!=SNESRECOMP_PPU_OK)return false;
+    c->frozen_job=c->job;c->frozen_frame=NULL;
     return true;
 }
 
@@ -566,6 +679,7 @@ const Lufia2BattleEffectsPixelPolicy *Lufia2PpuOffloadBattlePolicy(
 
 void Lufia2PpuOffloadFallback(Lufia2PpuOffload *c) {
     if (!c || !c->deferred) return;
+    c->battle_capture_pending=false;
     if (s_recording == c) SetRecording(NULL);
     if (c->prepared) snesrecomp_presenter_ppu_cancel(c->presenter);
     c->prepared = false;
@@ -649,6 +763,7 @@ void Lufia2PpuOffloadStats(const Lufia2PpuOffload *c, SnesRecompPpuStats *out) {
     snesrecomp_presenter_ppu_stats(c ? c->presenter : NULL, out);
     if (!c) { out->unsupported = SNES_PPU_UNSUPPORTED_BACKEND; return; }
     out->capture_us = c->capture_us; out->fallback_us = c->fallback_us;
+    out->obj_rows_reused = c->obj_rows_reused; out->obj_rows_generated = c->obj_rows_generated;
     out->timing_valid |= c->timing_valid;
     out->last_result = c->result;
     if (c->unsupported) out->unsupported = c->unsupported;

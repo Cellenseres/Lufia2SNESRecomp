@@ -200,6 +200,23 @@ bool Lufia2BattleUiReadCards(Lufia2BattleUiCardView *view) {
     *view=next;return true;
 }
 
+bool Lufia2BattleUiCacheKey(uint8_t layout[LUFIA2_BATTLE_UI_LAYOUT_BYTES]) {
+    if(!layout || !s_active || !s_capturing || !s_layout_resident || s_preview_path[0]) return false;
+    memcpy(layout,s_layout_bytes,sizeof s_layout_bytes);return true;
+}
+bool Lufia2BattleUiReuseEmpty(void) {
+    uint8_t key[LUFIA2_BATTLE_UI_LAYOUT_BYTES];
+    if(!Lufia2BattleUiCacheKey(key)) return false;
+    Lufia2BattleUiReset();return true;
+}
+bool Lufia2BattleUiReuseCards(const uint32_t *pixels,unsigned top) {
+    uint8_t key[LUFIA2_BATTLE_UI_LAYOUT_BYTES];
+    if(!pixels || s_height<LUFIA2_BATTLE_UI_CARD_HEIGHT || top>s_height-LUFIA2_BATTLE_UI_CARD_HEIGHT || !Lufia2BattleUiCacheKey(key)) return false;
+    memcpy(s_cards,pixels,sizeof s_cards);
+    s_top=top;s_rows=(UINT64_C(1)<<LUFIA2_BATTLE_UI_CARD_HEIGHT)-1u;
+    s_capturing=false;s_ready=true;return true;
+}
+
 void Lufia2BattleUiCompose(uint8_t *pixels, unsigned width,
                           unsigned height, bool authoritative) {
     if (!pixels || !s_ready || !s_active || width != s_width || height != s_height)

@@ -1,6 +1,7 @@
 /* Sample battle art before sprites and colour math. */
 #include "lufia2_battle_effects.h"
 #include "lufia2_ppu_render_clone.h"
+#include "lufia2_ppu_battle_scene.h"
 #include "lufia2_ppu_host.h"
 #if defined(LUFIA2_NATIVE_PPU_TIMELINE)
 #include "lufia2_ppu_timeline.h"
@@ -73,23 +74,66 @@ typedef struct EffectActorList {
     uint32_t rows[256][2];
 } EffectActorList;
 static EffectActorList s_actor_primary,s_actor_replay;
+#if defined(LUFIA2_PPU_HUD_TRACE)
+#include <stdio.h>
+#include "snesrecomp_platform/task.h"
+/* Diagnostic-only, synchronous GPU job preparation. Never guest timing. */
+static uint64_t s_hud_costs[6];
+#endif
 static Lufia2BattleEffectsSceneRecorder *s_gpu_scene;
 static void *s_gpu_scene_context;
+static bool s_gpu_scene_scoped;
 bool Lufia2BattleEffectsBeginGpuScene(Lufia2BattleEffectsSceneRecorder *recorder,void *context) {
     if(!recorder || s_gpu_scene) return false;
-    s_gpu_scene=recorder;s_gpu_scene_context=context;return true;
+#if defined(LUFIA2_PPU_HUD_TRACE)
+    memset(s_hud_costs,0,sizeof s_hud_costs);
+#endif
+    s_gpu_scene=recorder;s_gpu_scene_context=context;s_gpu_scene_scoped=false;return true;
 }
-void Lufia2BattleEffectsEndGpuScene(void) {s_gpu_scene=NULL;s_gpu_scene_context=NULL;}
+bool Lufia2BattleEffectsBeginGpuSceneScoped(Lufia2BattleEffectsSceneRecorder *recorder,void *context) {
+    if(!Lufia2BattleEffectsBeginGpuScene(recorder,context))return false;
+    s_gpu_scene_scoped=true;return true;
+}
+void Lufia2BattleEffectsEndGpuScene(void) {
+#if defined(LUFIA2_PPU_HUD_TRACE)
+    fprintf(stderr,"Battle HUD us: clone=%llu layout=%llu party=%llu scene=%llu source=%llu calls=%llu\n",
+        (unsigned long long)s_hud_costs[0],(unsigned long long)s_hud_costs[1],
+        (unsigned long long)s_hud_costs[2],(unsigned long long)s_hud_costs[3],
+        (unsigned long long)s_hud_costs[4],(unsigned long long)s_hud_costs[5]);
+#endif
+    s_gpu_scene=NULL;s_gpu_scene_context=NULL;s_gpu_scene_scoped=false;
+}
 static Lufia2BattleEffectsPixelPolicy s_cached_pixel_policy;
 static bool s_cached_pixel_policy_valid;
 static void InvalidatePixelRows(bool preserve_scene);
-static bool PixelPoliciesEqual(const Lufia2BattleEffectsPixelPolicy *a,
+bool Lufia2BattleEffectsPixelPoliciesEqual(const Lufia2BattleEffectsPixelPolicy *a,
     const Lufia2BattleEffectsPixelPolicy *b) {
     if(a->scripts!=b->scripts) return false;
     return !a->scripts || (a->selector==b->selector &&
         snesrecomp_u8_equal(a->groups,b->groups,sizeof a->groups) &&
         snesrecomp_u8_equal(a->oam,b->oam,sizeof a->oam) &&
         snesrecomp_u8_equal(a->actors,b->actors,sizeof a->actors));
+}
+/* Only these actor bytes are consulted by OrderedEffectActors,
+ * EffectActorRow and SpriteMargins. VM timers and script continuation bytes
+ * cannot affect the already qualified OBJ plane or this pure pixel replay. */
+bool Lufia2BattleEffectsPixelRenderPoliciesEqual(
+    const Lufia2BattleEffectsPixelPolicy *a,const Lufia2BattleEffectsPixelPolicy *b) {
+    /* Pixel predicates consume script presence, never the active count.
+     * Raw capture/guest policy equality above deliberately remains exact. */
+    if(!!a->scripts!=!!b->scripts) return false;
+    if(!a->scripts) return true;
+    if(a->selector!=b->selector ||
+        !snesrecomp_u8_equal(a->groups,b->groups,sizeof a->groups) ||
+        !snesrecomp_u8_equal(a->oam,b->oam,sizeof a->oam)) return false;
+    for(unsigned i=0;i<EFFECT_ACTOR_COUNT;++i) {
+        const uint8_t *x=a->actors+i*EFFECT_ACTOR_STRIDE,*y=b->actors+i*EFFECT_ACTOR_STRIDE;
+        if(x[ACTOR_ACTIVE]!=y[ACTOR_ACTIVE] || x[ACTOR_VISIBLE]!=y[ACTOR_VISIBLE]) return false;
+        if(x[ACTOR_ACTIVE] && x[ACTOR_VISIBLE] &&
+            (!snesrecomp_u8_equal(x+ACTOR_BASE_X,y+ACTOR_BASE_X,8u) ||
+             !snesrecomp_u8_equal(x+ACTOR_TILE,y+ACTOR_TILE,5u))) return false;
+    }
+    return true;
 }
 static const uint8_t *PixelRam(unsigned address) {
     if (!s_pixel_policy) return g_ram + address;
@@ -120,10 +164,10 @@ const Lufia2BattleEffectsPixelPolicy *Lufia2BattleEffectsBindPixelPolicy(
     const Lufia2BattleEffectsPixelPolicy *p) {
     const Lufia2BattleEffectsPixelPolicy *previous = s_pixel_policy;
     if (p && (!s_cached_pixel_policy_valid ||
-        !PixelPoliciesEqual(p, &s_cached_pixel_policy))) {
+        !Lufia2BattleEffectsPixelPoliciesEqual(p, &s_cached_pixel_policy))) {
         /* Qualified rows certify their resulting OBJ pixels separately. */
         const bool preserve_scene=s_cached_pixel_policy_valid &&
-            s_cached_pixel_policy.scripts==p->scripts;
+            !!s_cached_pixel_policy.scripts==!!p->scripts;
         InvalidatePixelRows(preserve_scene);
         s_cached_pixel_policy = *p;
         s_cached_pixel_policy_valid = true;
@@ -153,6 +197,7 @@ static unsigned s_center_left;
 static unsigned s_center_right;
 static uint8_t s_background;
 static bool s_loaded;
+static uint64_t s_art_generation;
 static bool s_active;
 static bool s_effect_clear_pending;
 static bool s_uniform_palette;
@@ -171,8 +216,15 @@ static uint8_t s_hud_kind[224];
 static uint8_t s_hud_registers[224][PPU_SAVESTATE_REGS_SIZE];
 static uint8_t s_hud_layers[224][256];
 static bool s_hud_drawing;
+static bool s_gpu_party_only;
+static bool s_gpu_party_scoped;
 static Lufia2PpuRowCache *s_hud_rows[2];
 static bool s_hud_rows_attempted[2];
+/* A completed direct-card source has BG2/BG3 only. Its own row certificate
+ * still checks VRAM/CGRAM/registers/windows, but actor VM timers and OAM
+ * metadata cannot change it. Unknown or scene passes remain dependent. */
+static uint8_t s_hud_actor_independent[2][224];
+static uint8_t s_hud_script_independent[2][224];
 static const Lufia2PpuRowPolicy *s_row_policy;
 static Lufia2BattleEffectsLineRenderer *s_hud_renderer;
 static Lufia2PpuRowCache *s_scene_rows;
@@ -193,10 +245,13 @@ const Lufia2PpuRowPolicy *Lufia2BattleEffectsBindRowPolicy(const Lufia2PpuRowPol
     return previous;
 }
 static void InvalidatePixelRows(bool preserve_scene) {
-    for (unsigned i = 0; i < 2; ++i)
-        if (s_hud_rows[i]) memset(s_hud_rows[i]->valid, 0, sizeof s_hud_rows[i]->valid);
+    for (unsigned i = 0; i < 2; ++i) if (s_hud_rows[i])
+        for(unsigned y=0;y<224;++y)
+            if(!(preserve_scene?s_hud_actor_independent[i][y]:
+                s_hud_script_independent[i][y])) s_hud_rows[i]->valid[y]=0;
     if (s_scene_rows && !preserve_scene) memset(s_scene_rows->valid, 0, sizeof s_scene_rows->valid);
 }
+
 static struct {
     bool ready;
     unsigned left, right;
@@ -215,6 +270,7 @@ void Lufia2BattleEffectsInit(const uint8_t *rom, size_t size) {
     s_title_certified=false;
     s_palettes_valid = false;
     s_loaded = false;
+    if(s_art_generation!=UINT64_MAX) ++s_art_generation;
     if (!rom || size < 0xbfd40u + 25u * 4u)
         return;
     for (unsigned id = 0; id < 25; ++id) {
@@ -285,9 +341,16 @@ static bool LoadArt(uint8_t id, unsigned width, unsigned height) {
         free(palette);
         return false;
     }
+    /* Neighbouring art pixels mostly share a colour. */
+    unsigned last_colour = UINT32_MAX;
+    uint8_t last_nearest = 0;
     if (s_palettes_valid)
-        for (size_t i = 0; i < (size_t)width * height; ++i)
-            if(art[i]>>24) palette[i] = NearestPalette(ArtColour(art[i]), id);
+        for (size_t i = 0; i < (size_t)width * height; ++i) {
+            if (!(art[i] >> 24)) continue;
+            const unsigned colour = ArtColour(art[i]);
+            if (colour != last_colour) { last_nearest = NearestPalette(colour, id); last_colour = colour; }
+            palette[i] = last_nearest;
+        }
     free(s_art);
     free(s_art_palette);
     free(s_gpu_uniform_art);s_gpu_uniform_art=NULL;s_gpu_uniform_valid=false;s_gpu_row_valid=false;
@@ -299,6 +362,7 @@ static bool LoadArt(uint8_t id, unsigned width, unsigned height) {
     s_center_right = asset.center_x + asset.center_width;
     s_background = id;
     s_loaded = true;
+    if(s_art_generation!=UINT64_MAX) ++s_art_generation;
     for (unsigned i = 0; i < 2; ++i)
         if (s_hud_rows[i]) memset(s_hud_rows[i]->valid, 0, sizeof s_hud_rows[i]->valid);
     if (s_scene_rows) memset(s_scene_rows->valid, 0, sizeof s_scene_rows->valid);
@@ -342,6 +406,7 @@ bool Lufia2BattleEffectsPrepare(Ppu *ppu, bool wide,
 void Lufia2BattleEffectsRestartPixels(unsigned width, unsigned height) {
     s_actor_primary.valid=s_actor_replay.valid=false;
     s_scene_valid = false;
+    s_gpu_party_only = false;
     s_title.ready = false;
     memset(s_hud_pending, 0, sizeof s_hud_pending);
     s_hud_pending_begin=224;s_hud_pending_end=0;
@@ -380,8 +445,14 @@ bool Lufia2BattleEffectsBackground(const Ppu *ppu) {
 }
 bool Lufia2BattleEffectsGpuCompatible(const Ppu *ppu) {
     return Lufia2BattleEffectsActive(ppu) &&
-        !s_effect_clear_pending && !ppu->widescreenLineEnhancer && !ppu->renderVram &&
+        !ppu->widescreenLineEnhancer && !ppu->renderVram &&
         !(ppu->mosaic&15u) && !ppu->wsMode2CaptureLayer && !ppu->mode7Hd.pixels;
+}
+uint64_t Lufia2BattleEffectsArtGeneration(const Ppu *ppu) {
+    /* Cleanup frames have their own resolved raster policy, but are not yet
+     * admitted to the CPU preparation caches. */
+    return Lufia2BattleEffectsGpuCompatible(ppu) && !s_effect_clear_pending && s_loaded && s_art_generation!=UINT64_MAX ?
+        s_art_generation : 0;
 }
 bool Lufia2BattleEffectsGpuArt(const Ppu *ppu,SnesRecompPpuJobImage *image,
     unsigned *center_left,unsigned *center_right) {
@@ -493,6 +564,15 @@ void Lufia2BattleEffectsSpritePixel(int x, bool effect) {
         s_sprite_pixels[at] = effect;
 }
 
+const bool *Lufia2BattleEffectsSpriteRow(void) {
+    return s_sprite_pixels;
+}
+const bool *Lufia2BattleEffectsVisibleSpriteRow(const Ppu *ppu) {
+    static const bool hidden[kPpuBufWidth];
+    return Lufia2BattleEffectsActive(ppu) && *PixelRam(BATTLE_EFFECT_SCRIPTS) ?
+        s_sprite_pixels : hidden;
+}
+
 bool Lufia2BattleEffectsSpriteVisible(const Ppu *ppu, int x) {
     if (x >= 0 && x < 256)
         return true;
@@ -551,7 +631,8 @@ static const uint32_t *EffectActorRow(EffectActorList *list,const Ppu *ppu,
     return list->rows[line];
 }
 
-bool Lufia2BattleEffectsSpriteMargins(Ppu *ppu, const uint16_t *vram, unsigned line) {
+bool Lufia2BattleEffectsSpriteMarginsWithWriter(Ppu *ppu, const uint16_t *vram,
+    unsigned line, const Lufia2BattleEffectsMarginWriter *writer) {
     if (!Lufia2BattleEffectsActive(ppu) || !*PixelRam(BATTLE_EFFECT_SCRIPTS))
         return false;
     static const uint8_t sizes[8][2] = {
@@ -583,7 +664,9 @@ bool Lufia2BattleEffectsSpriteMargins(Ppu *ppu, const uint16_t *vram, unsigned l
             if (row < 0 || row >= (int)height)
                 continue;
             if (!cleared) {
-                for (int x = -(int)ppu->extraLeftCur; x < 256 + ppu->extraRightCur; ++x)
+                if (writer) writer->clear_effects(writer->context,
+                    -(int)ppu->extraLeftCur, 256 + ppu->extraRightCur);
+                else for (int x = -(int)ppu->extraLeftCur; x < 256 + ppu->extraRightCur; ++x)
                     if ((x < 0 || x >= 256) && s_sprite_pixels[x + kPpuExtraLeftRight]) {
                         ppu->objBuffer.data[x + kPpuExtraLeftRight] = 0x0500;
                         s_sprite_pixels[x + kPpuExtraLeftRight] = false;
@@ -616,12 +699,21 @@ bool Lufia2BattleEffectsSpriteMargins(Ppu *ppu, const uint16_t *vram, unsigned l
                 const unsigned pixel = (bits & 1u) | ((bits >> 7) & 2u) |
                     ((bits >> 14) & 4u) | ((bits >> 21) & 8u);
                 if (!pixel) continue;
-                ppu->objBuffer.data[at] = (uint16_t)((priority << 8) | palette | pixel);
-                s_sprite_pixels[at] = occupied[at] = true;
+                const uint16_t native = (uint16_t)((priority << 8) | palette | pixel);
+                if (writer) writer->pixel(writer->context, x, native);
+                else {
+                    ppu->objBuffer.data[at] = native;
+                    s_sprite_pixels[at] = true;
+                }
+                occupied[at] = true;
                 drew = true;
             }
         }
     return drew;
+}
+
+bool Lufia2BattleEffectsSpriteMargins(Ppu *ppu, const uint16_t *vram, unsigned line) {
+    return Lufia2BattleEffectsSpriteMarginsWithWriter(ppu, vram, line, NULL);
 }
 
 static unsigned HudTile(const Ppu *ppu, unsigned line, unsigned x) {
@@ -756,6 +848,23 @@ static bool TitleLine(const Ppu *ppu, unsigned line) {
     return true;
 }
 
+/* Whole immutable jobs can omit priority-index generation when no row can
+ * consume a relocated title or party scene. This is deliberately conservative:
+ * a complete party-frame template or title corners retain the ordinary path.
+ * Pending/saved scene consumers cannot borrow this certificate. */
+bool Lufia2BattleEffectsGpuHudMayRelocateLine(const Ppu *ppu,unsigned line) {
+    if(!s_gpu_scene || s_scene_valid || s_title.ready || s_hud_pending_begin<s_hud_pending_end ||
+        !ppu || !line || line>224u) return true;
+    if(PPU_forcedBlank(ppu) || !(ppu->screenEnabled[0]&2u) ||
+        PPU_bgTilemapAdr(ppu,1)!=HUD_TILEMAP || PPU_bgTileAdr(ppu,1)!=HUD_GRAPHICS ||
+        PPU_bigTiles(ppu,1)) return false;
+    if(PartyLine(ppu,line)) return true;
+    const unsigned row=((line+ppu->vScroll[1])&511u)>>3;
+    return row>=28u && row<=31u && !(ppu->hScroll[1]&511u) &&
+        ppu->vram[TITLE_TILEMAP]==TITLE_CORNER &&
+        ppu->vram[TITLE_TILEMAP+31u]==(TITLE_CORNER|0x4000u);
+}
+
 static int TitleSource(const Ppu *ppu, unsigned line, unsigned x, unsigned blank) {
     if (x < s_title.left || x >= s_title.right) return -1;
     if (x < s_title.left + 8u) return (int)(x - s_title.left);
@@ -842,7 +951,12 @@ static bool RowsRecorded(const Ppu *ppu) {
      * The next immutable preparation must establish its certificate afresh. */
     if (!s_pixel_policy) s_cached_pixel_policy_valid = false;
     if (getenv("LUFIA2_BATTLE_CACHE_REFERENCE") || getenv("LUFIA2_PPU_HOST_REFERENCE") ||
-        (*PixelRam(BATTLE_EFFECT_SCRIPTS) && !s_pixel_policy) || s_effect_clear_pending ||
+        (*PixelRam(BATTLE_EFFECT_SCRIPTS) && !s_pixel_policy) ||
+        /* A pending BG3 clear cannot affect an isolated BG2-only card source.
+         * Keep the ordinary clear barrier for scenes, BG3 and all other views. */
+        (s_effect_clear_pending && !(s_gpu_party_only &&
+            (ppu->renderFlags&LUFIA2_PPU_RENDER_NATIVE_SOURCE) &&
+            !((ppu->screenEnabled[0]|ppu->screenEnabled[1])&~2u))) ||
         ppu->widescreenLineEnhancer || ppu->wsMode2CaptureLayer || ppu->mode7Hd.pixels ||
         256u + 2u * ppu->extraLeftRight > LUFIA2_PPU_CACHE_WIDTH) return false;
     for (unsigned bg = 0; bg < 4; ++bg) if (WsShadowLayerActive(bg)) return false;
@@ -965,10 +1079,31 @@ static void DrawHudSource(Ppu *ppu, unsigned line, unsigned pass,
     Lufia2PpuRowCacheBindPolicy(cache,s_row_policy);
     /* Only the resulting RGB row is reused. HUD extraction, guest sprite
      * evaluation, live layout and ownership callbacks still execute. */
-    if (!Lufia2PpuRowCacheReadInputs(cache, ppu, line, 0, row, width,
-        (screens & 16u) != 0, screens & 7u, screens & 1u ? 12u : 0u)) {
+    bool certified=Lufia2PpuRowCacheReadInputs(cache, ppu, line, 0, row, width,
+        (screens & 16u) != 0, screens & 7u, screens & 1u ? 12u : 0u);
+#if defined(LUFIA2_PPU_CAPTURE_DIAGNOSTICS)
+    static unsigned row_reports;
+    if(!certified && !pass && line==177u && row_reports<80u) {
+        ++row_reports;
+        fprintf(stderr,"Battle HUD row miss: line=%u reason=%lx scripts=%u independent=%u cache=%u flags=%lx screens=%u\n",
+            line,(unsigned long)(cache?cache->trace_reason:0),s_pixel_policy?s_pixel_policy->scripts:0,
+            s_hud_actor_independent[pass][line-1u],cache!=NULL,(unsigned long)ppu->renderFlags,screens);
+    }
+#endif
+    if (!certified) {
         draw(ppu, line);
+        certified=cache && cache->pending;
         Lufia2PpuRowCacheStore(cache, row);
+    }
+    if(cache && line && line<=224u) {
+        const bool independent=certified && !pass && s_gpu_party_only && !(screens&~6u);
+        s_hud_actor_independent[pass][line-1u]=(uint8_t)independent;
+        /* The script gate only modifies BG3 effect maps. Unrelated BG2/3
+         * sources retain their exact VRAM/palette/register/window certificate
+         * even when the script gate changes, without borrowing an old scene. */
+        const unsigned bg3_map=PPU_bgTilemapAdr(ppu,2);
+        s_hud_script_independent[pass][line-1u]=(uint8_t)(independent &&
+            (!(screens&4u) || bg3_map<0x0800u || bg3_map>0x1400u));
     }
 }
 
@@ -1005,14 +1140,60 @@ static bool CaptureParty(Ppu *ppu, unsigned line, const uint32_t original[256],
         !getenv("LUFIA2_PPU_HOST_REFERENCE");
     const uint32_t *row=original;
     if(!identical) {
-        Lufia2PpuLineClone(&ui,ppu);
-        ui.renderBuffer=(uint8_t *)frame;
-        ui.renderPitch=(256u+2u*ui.extraLeftRight)*4u;
-        ui.screenEnabled[0]&=6u;ui.screenEnabled[1]&=6u;
-        ui.widescreenLineEnhancer=NULL;
-        memset(ui.overlayRenderBuffer,0,sizeof ui.overlayRenderBuffer);
-        s_hud_drawing=true;DrawHudSource(&ui,line,0,draw);s_hud_drawing=false;
-        row=frame+(line-1u)*(256u+2u*ui.extraLeftRight)+ui.extraLeftRight;
+        bool scoped=s_gpu_party_scoped && s_gpu_party_only &&
+            lufia2_ppu_host_costs_enabled && !ppu->wsMode2CaptureLayer &&
+            !ppu->mode7Hd.pixels && !ppu->widescreenLineEnhancer;
+#if SNESRECOMP_TRACE
+        scoped=false;
+#endif
+        for(unsigned i=0;scoped && i<kPpuOverlaySource_Count;++i)
+            if(ppu->overlayRenderBuffer[i] || ppu->overlayCaptures[i].flags)scoped=false;
+        Ppu *view=scoped?ppu:&ui;
+        if(!scoped)Lufia2PpuLineClone(view,ppu);
+        uint8_t *saved_buffer=view->renderBuffer;
+        const uint32_t saved_pitch=view->renderPitch,saved_flags=view->renderFlags;
+        const uint8_t main=view->screenEnabled[0],sub=view->screenEnabled[1];
+        view->renderBuffer=(uint8_t *)frame;
+        view->renderPitch=(256u+2u*view->extraLeftRight)*4u;
+        view->screenEnabled[0]&=6u;view->screenEnabled[1]&=6u;
+#if !SNESRECOMP_TRACE
+        if(s_gpu_party_only && lufia2_ppu_host_costs_enabled)
+            view->renderFlags|=LUFIA2_PPU_RENDER_NATIVE_SOURCE;
+#endif
+        view->widescreenLineEnhancer=NULL;
+        memset(view->overlayRenderBuffer,0,sizeof view->overlayRenderBuffer);
+#if defined(LUFIA2_PPU_CAPTURE_DIAGNOSTICS)
+        static Ppu scoped_source_reference;
+        if(scoped)Lufia2PpuLineClone(&scoped_source_reference,view);
+#endif
+#if defined(LUFIA2_PPU_HUD_TRACE)
+        const uint64_t source_begin=snesrecomp_now_us();
+#endif
+        s_hud_drawing=true;DrawHudSource(view,line,0,draw);s_hud_drawing=false;
+#if defined(LUFIA2_PPU_HUD_TRACE)
+        s_hud_costs[4]+=snesrecomp_now_us()-source_begin;
+#endif
+#if defined(LUFIA2_PPU_CAPTURE_DIAGNOSTICS)
+        if(scoped) {
+            /* Debug-only proof of the actual callback contract. BG/overlay
+             * scratch is disposable; qualified OBJ, policies and all captured
+             * metadata must remain byte-exact before restoring the view. */
+            const size_t starts[]={0,offsetof(Ppu,wsMode2Bg1Palette)+sizeof view->wsMode2Bg1Palette,
+                offsetof(Ppu,objBuffer),offsetof(Ppu,overlayCaptures),offsetof(Ppu,vram)+sizeof view->vram};
+            const size_t ends[]={offsetof(Ppu,wsMode2Capture),offsetof(Ppu,bgBuffers),
+                offsetof(Ppu,objBuffer)+sizeof view->objBuffer,offsetof(Ppu,vram),sizeof *view};
+            for(unsigned i=0;i<5;++i)if(memcmp((const uint8_t*)view+starts[i],
+                (const uint8_t*)&scoped_source_reference+starts[i],ends[i]-starts[i])) {
+                fprintf(stderr,"Scoped battle source changed metadata: line=%u range=%u\n",line,i);
+                abort();
+            }
+        }
+#endif
+        row=frame+(line-1u)*(256u+2u*view->extraLeftRight)+view->extraLeftRight;
+        if(scoped) {
+            view->renderBuffer=saved_buffer;view->renderPitch=saved_pitch;
+            view->renderFlags=saved_flags;view->screenEnabled[0]=main;view->screenEnabled[1]=sub;
+        }
     }
     uint32_t cards[4][64];
     if(!geometry->cards_valid) return false;
@@ -1032,35 +1213,89 @@ static bool CaptureParty(Ppu *ppu, unsigned line, const uint32_t original[256],
     return true;
 }
 
-static void DrawHudOverlay(Ppu *ppu, unsigned line, const uint8_t *hud_registers,
+static bool DrawHudOverlay(Ppu *ppu, unsigned line, const uint8_t *hud_registers,
                            Lufia2BattleEffectsLineRenderer *draw) {
-    static Ppu scene;
+    static Ppu clone;
+    Ppu *scene=&clone;
+    Lufia2PpuBattleSceneState saved;
     uint32_t centre[256];
     uint8_t *destination = ppu->renderBuffer + (line - 1u) * ppu->renderPitch;
     const unsigned centre_at = ppu->extraLeftRight;
-    Lufia2PpuLineClone(&scene, ppu);
-    if (hud_registers) memcpy(&scene.inidisp, hud_registers, PPU_SAVESTATE_REGS_SIZE);
+#if defined(LUFIA2_PPU_HUD_TRACE)
+    uint64_t phase=snesrecomp_now_us();++s_hud_costs[5];
+#endif
     const bool party = s_hud_kind[line - 1u] == HUD_PARTY;
-    const HudScanline *scan=CachedHudScanline(&scene,line);
-    const HudGeometry *geometry=CachedHudGeometry(&scene,line,scan);
+    bool borrowed=party && !hud_registers && s_gpu_party_only && s_gpu_party_scoped &&
+        s_gpu_scene_scoped && lufia2_ppu_host_costs_enabled && !ppu->wsMode2CaptureLayer &&
+        !ppu->mode7Hd.pixels && !ppu->widescreenLineEnhancer;
+#if SNESRECOMP_TRACE
+    borrowed=false;
+#endif
+    for(unsigned i=0;borrowed && i<kPpuOverlaySource_Count;++i)
+        if(ppu->overlayRenderBuffer[i] || ppu->overlayCaptures[i].flags)borrowed=false;
+#if defined(LUFIA2_PPU_CAPTURE_DIAGNOSTICS)
+    static Ppu borrowed_reference;
+    const bool validate_borrow=borrowed;
+    if(borrowed)memcpy(&borrowed_reference,ppu,sizeof *ppu);
+#endif
+    if(borrowed){Lufia2PpuBattleSceneBegin(&saved,ppu);scene=ppu;}
+    else Lufia2PpuLineClone(scene,ppu);
+#if defined(LUFIA2_PPU_HUD_TRACE)
+    s_hud_costs[0]+=snesrecomp_now_us()-phase;phase=snesrecomp_now_us();
+#endif
+    if (hud_registers) memcpy((uint8_t *)scene+offsetof(Ppu,inidisp), hud_registers, PPU_SAVESTATE_REGS_SIZE);
+    const HudScanline *scan=CachedHudScanline(scene,line);
+    const HudGeometry *geometry=CachedHudGeometry(scene,line,scan);
     const int16_t *sources=geometry->sources;
     memcpy(centre, destination + centre_at * 4u, sizeof centre);
-    const bool modern_party = party && CaptureParty(&scene,line,centre,geometry,!hud_registers,draw);
-    const uint16_t scroll_x = scene.hScroll[0], scroll_y = scene.vScroll[0];
-    memcpy(&scene.inidisp, s_scene_registers, sizeof s_scene_registers);
+#if defined(LUFIA2_PPU_HUD_TRACE)
+    s_hud_costs[1]+=snesrecomp_now_us()-phase;phase=snesrecomp_now_us();
+#endif
+    const bool modern_party = party && CaptureParty(scene,line,centre,geometry,!hud_registers && !s_gpu_party_only,draw);
+#if defined(LUFIA2_PPU_HUD_TRACE)
+    s_hud_costs[2]+=snesrecomp_now_us()-phase;phase=snesrecomp_now_us();
+#endif
+    const uint16_t scroll_x = scene->hScroll[0], scroll_y = scene->vScroll[0];
+    memcpy((uint8_t *)scene+offsetof(Ppu,inidisp), s_scene_registers, sizeof s_scene_registers);
     /* BG1 keeps scrolling beneath both HUD bands. */
-    scene.hScroll[0] = scroll_x;
-    scene.vScroll[0] = scroll_y;
-    scene.screenEnabled[0] &= ~2u;
-    scene.screenEnabled[1] &= ~2u;
-    scene.widescreenLineEnhancer = NULL;
-    memset(scene.overlayRenderBuffer, 0, sizeof scene.overlayRenderBuffer);
+    scene->hScroll[0] = scroll_x;
+    scene->vScroll[0] = scroll_y;
+    scene->screenEnabled[0] &= ~2u;
+    scene->screenEnabled[1] &= ~2u;
+    scene->widescreenLineEnhancer = NULL;
+    memset(scene->overlayRenderBuffer, 0, sizeof scene->overlayRenderBuffer);
     s_hud_drawing = true;
-    const bool gpu_scene=s_gpu_scene && s_gpu_scene(s_gpu_scene_context,&scene,line);
+    const bool gpu_scene=s_gpu_scene && s_gpu_scene(s_gpu_scene_context,scene,line);
     if(gpu_scene) memset(destination,0,(256u+2u*ppu->extraLeftRight)*sizeof(uint32_t));
-    else DrawHudSource(&scene, line, 1, draw);
+    else {
+        /* A refusing recorder must not expose a modified borrowed PPU to the
+         * unrestricted fallback callback. Materialize the SAME alternate
+         * scene, restore its owner, then run the old isolated renderer once. */
+        if(borrowed) {
+            Lufia2PpuLineClone(&clone,scene);
+            Lufia2PpuBattleSceneEnd(ppu,&saved);scene=&clone;borrowed=false;
+        }
+        DrawHudSource(scene,line,1,draw);
+    }
     s_hud_drawing = false;
-    if (modern_party) return;
+    if(borrowed)Lufia2PpuBattleSceneEnd(ppu,&saved);
+#if defined(LUFIA2_PPU_CAPTURE_DIAGNOSTICS)
+    if(validate_borrow) {
+        /* The real recorder/source callback must satisfy the scoped API even
+         * on rejection. Only BG and overlay scratch may differ afterwards. */
+        const size_t starts[]={0,offsetof(Ppu,objBuffer),offsetof(Ppu,overlayCaptures)};
+        const size_t ends[]={offsetof(Ppu,bgBuffers),offsetof(Ppu,objBuffer)+sizeof ppu->objBuffer,sizeof *ppu};
+        for(unsigned i=0;i<3;++i)if(memcmp((const uint8_t *)ppu+starts[i],
+            (const uint8_t *)&borrowed_reference+starts[i],ends[i]-starts[i])) {
+            fprintf(stderr,"Borrowed battle scene changed metadata: line=%u range=%u\n",line,i);
+            abort();
+        }
+    }
+#endif
+#if defined(LUFIA2_PPU_HUD_TRACE)
+    s_hud_costs[3]+=snesrecomp_now_us()-phase;
+#endif
+    if (modern_party) return gpu_scene;
     /* Keep the frames; reveal scenery outside them. */
     for (unsigned x = 0; x < 256; ++x) {
         const int source = sources[x];
@@ -1076,6 +1311,33 @@ static void DrawHudOverlay(Ppu *ppu, unsigned line, const uint8_t *hud_registers
             memcpy(destination + (centre_at + x) * 4u,&pixel,4);
         }
     }
+    return false;
+}
+
+int Lufia2BattleEffectsGpuPartyLine(Ppu *ppu,unsigned line,
+    Lufia2BattleEffectsLineRenderer *draw) {
+    if(!s_gpu_scene || !s_scene_valid || !Lufia2BattleUiActive() ||
+        !Lufia2BattleEffectsGpuCompatible(ppu) || !line || line>224u ||
+        !PartyLine(ppu,line)) return 0;
+    /* The primary RGB row would be discarded when completed modern cards
+     * and their owned GPU scene replace it. Render only the isolated BG2/3
+     * card source. Its placeholder original is never eligible for a partial
+     * UI fallback: the caller must refuse the job unless all cards finish. */
+    s_hud_kind[line-1u]=HUD_PARTY;
+    uint8_t *row=ppu->renderBuffer+(line-1u)*ppu->renderPitch;
+    memset(row+ppu->extraLeftRight*4u,0,256u*sizeof(uint32_t));
+    s_gpu_party_only=true;
+    const bool complete=DrawHudOverlay(ppu,line,NULL,draw);
+    s_gpu_party_only=false;
+    return complete?1:-1;
+}
+
+int Lufia2BattleEffectsGpuPartyLineScoped(Ppu *ppu,unsigned line,
+    Lufia2BattleEffectsLineRenderer *draw) {
+    if(s_gpu_party_scoped)return -1;
+    s_gpu_party_scoped=true;
+    const int result=Lufia2BattleEffectsGpuPartyLine(ppu,line,draw);
+    s_gpu_party_scoped=false;return result;
 }
 
 void Lufia2BattleEffectsHudLine(Ppu *ppu, unsigned line,
