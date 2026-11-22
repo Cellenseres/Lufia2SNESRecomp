@@ -53,11 +53,6 @@ option(LUFIA2_ENABLE_DMA_HOST_FASTFORWARD
 option(LUFIA2_ENABLE_DMA_DIRECT_SOURCE_READ
     "Direct side-effect-free WRAM/LoROM DMA source reads" ON)
 
-# Only cfg entries whose 65816 call/return contract was reviewed belong here.
-# This deliberately does not consume a runtime coverage JSON/JSONL file.
-option(LUFIA2_ENABLE_REVIEWED_AOT
-    "Compile reviewed Lufia II CFG roots without profile promotion" ON)
-
 option(LUFIA2_ENABLE_BRIDGE_AUDIT "Sampled desktop bridge phase diagnosis" OFF)
 if(LUFIA2_ENABLE_BRIDGE_AUDIT AND (VITA OR NOT LUFIA2_ENABLE_NATIVE_WAIT))
     message(FATAL_ERROR "BridgeAudit requires desktop NativeWait; it does not enable the native runtime mode")

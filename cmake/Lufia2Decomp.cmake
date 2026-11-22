@@ -1,5 +1,10 @@
 include_guard(GLOBAL)
 
+# Only cfg entries whose 65816 call/return contract was reviewed belong here.
+# This deliberately does not consume a runtime coverage JSON/JSONL file.
+option(LUFIA2_ENABLE_REVIEWED_AOT
+    "Compile reviewed Lufia II CFG roots without profile promotion" ON)
+
 option(LUFIA2_ENABLE_DECOMP
     "Enable verified standalone-decomp replacements when available" ON)
 set(LUFIA2_DECOMP_ROOT "" CACHE PATH
