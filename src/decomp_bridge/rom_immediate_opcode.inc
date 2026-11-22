@@ -395,6 +395,7 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target) {
         return true;
 
     switch (target) {
+    case 0x81918fu: case 0x819198u: case 0x8191adu: case 0x8191b7u:
     case 0x8192beu: case 0x8194cau:
     case 0x8194ebu: case 0x819500u: case 0x819515u: case 0x81952au:
     case 0x81953fu: case 0x819553u: case 0x819567u: case 0x81957bu:
