@@ -799,10 +799,13 @@ static int Lufia2DecompRunRomCall(Interp816 *registers, uint32_t pc, uint8_t opc
 
     const uint32_t bank = long_call ? cart->rom[offset + 3u] : pc >> 16;
     const uint16_t address = cart->rom[offset + 1u] | ((uint16_t)cart->rom[offset + 2u] << 8);
-    if (bank < 0x80u || bank > 0xbfu || address < 0x8000u ||
-        (bank & 0x7fu) * 0x8000u + (address & 0x7fffu) >= cart->romSize)
+    const uint32_t target = (bank << 16) | address;
+    const bool wram_subroutine = !long_call && Lufia2DecompIsWramByte(target);
+    if (!wram_subroutine &&
+        (bank < 0x80u || bank > 0xbfu || address < 0x8000u ||
+         (bank & 0x7fu) * 0x8000u + (address & 0x7fffu) >= cart->romSize))
         return 0;
-    return Lufia2DecompRunDirectCallWithWidths(registers, pc, opcode, (bank << 16) | address,
+    return Lufia2DecompRunDirectCallWithWidths(registers, pc, opcode, target,
         long_call, registers->mf, registers->xf);
 }
 
