@@ -391,8 +391,16 @@ static bool Lufia2DecompIsRamBlockMove(uint32_t pc) {
 }
 
 static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target) {
-    if (Lufia2DecompIsRamBlockMove(target) || target == 0x8192beu || target == 0x8194cau)
+    if (Lufia2DecompIsRamBlockMove(target))
         return true;
+
+    switch (target) {
+    case 0x8192beu: case 0x8194cau:
+    case 0x8194ebu: case 0x819500u: case 0x819515u: case 0x81952au:
+        return true;
+    default:
+        break;
+    }
 
     /* HDMA commands depend on the beam position even inside their callees. */
     switch (site) {
