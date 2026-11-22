@@ -400,17 +400,19 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target) {
     case 0x81953fu: case 0x819553u: case 0x819567u: case 0x81957bu:
     case 0x81963au: case 0x819653u:
     case 0x81968au: case 0x8196c6u:
+    case 0x8196f6u: case 0x8196fau:
     case 0x8196feu: case 0x819738u: case 0x81976bu: case 0x8197a5u:
         return true;
     default:
         break;
     }
 
-    /* HDMA commands depend on the beam position even inside their callees. */
+    /* Video commands need the original bus timing in their callees too. */
     switch (site) {
     case 0x85adb2u: case 0x85ae39u: case 0x85aebcu: case 0x85af2fu:
     case 0x85afb1u: case 0x85b029u: case 0x85b094u: case 0x85b0fcu:
     case 0x85b10cu: case 0x85b16eu: case 0x85b175u:
+    case 0x8196f6u: case 0x8196fau:
         return true;
     default:
         return false;
