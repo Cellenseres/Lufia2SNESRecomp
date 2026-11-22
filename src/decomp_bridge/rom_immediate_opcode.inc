@@ -390,6 +390,21 @@ static bool Lufia2DecompIsRamBlockMove(uint32_t pc) {
     return pc == 0x83057du || pc == 0x86057du;
 }
 
+static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target) {
+    if (Lufia2DecompIsRamBlockMove(target) || target == 0x8192beu)
+        return true;
+
+    /* HDMA commands depend on the beam position even inside their callees. */
+    switch (site) {
+    case 0x85adb2u: case 0x85ae39u: case 0x85aebcu: case 0x85af2fu:
+    case 0x85afb1u: case 0x85b029u: case 0x85b094u: case 0x85b0fcu:
+    case 0x85b10cu: case 0x85b16eu: case 0x85b175u:
+        return true;
+    default:
+        return false;
+    }
+}
+
 static LUFIA2_ROM_NOINLINE int Lufia2DecompRunBlockMove(Interp816 *registers, uint32_t pc, uint8_t opcode) {
 #if defined(SNES_COSIM) || defined(SNESRECOMP_INTERP_PROFILE) || \
     (defined(SNESRECOMP_REVERSE_DEBUG) && SNESRECOMP_REVERSE_DEBUG)

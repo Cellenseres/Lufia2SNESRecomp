@@ -2090,17 +2090,17 @@ function(lufia2_add_nmi_continuations target core_root)
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/scene_rebuild_spans.inc\"\n")
                 endif()
                 if(_manifest_calls)
-                    # The mutable MVN stub must retain per-instruction bus timing.
+                    # The RAM copy and HDMA command dispatcher need per-instruction bus timing.
                     set(_paired_body "            if (bounce_ok && has_body) {")
                     string(FIND "${_text}" "${_paired_body}" _paired_body_offset)
                     if(_paired_body_offset EQUAL -1)
-                        message(FATAL_ERROR "Native RAM block moves require the reviewed AOT bounce")
+                        message(FATAL_ERROR "Timed RAM and HDMA execution requires the reviewed AOT bounce")
                     endif()
                     string(REPLACE "${_paired_body}"
-                        "            if (bounce_ok && has_body && !Lufia2DecompIsRamBlockMove(target)) {"
+                        "            if (bounce_ok && has_body && !Lufia2DecompNeedsTimedCall(pc_before, target)) {"
                         _text "${_text}")
                     string(PREPEND _text
-                        "#include \"interp816.h\"\nstatic bool Lufia2DecompIsImmediateDataOpcode(uint8_t);\nstatic bool Lufia2DecompIsMemoryOpcode(uint8_t);\nstatic bool Lufia2DecompIsRegisterOrStackOpcode(uint8_t);\nstatic bool Lufia2DecompIsNmiRomOpcode(uint8_t);\nstatic bool Lufia2DecompIsRamBlockMove(uint32_t);\nstatic int Lufia2DecompRunNativeRomControl(Interp816 *, uint32_t, uint8_t);\nstatic int Lufia2DecompRunAdditionalRomOpcode(Interp816 *, uint32_t, uint8_t);\n")
+                        "#include \"interp816.h\"\nstatic bool Lufia2DecompIsImmediateDataOpcode(uint8_t);\nstatic bool Lufia2DecompIsMemoryOpcode(uint8_t);\nstatic bool Lufia2DecompIsRegisterOrStackOpcode(uint8_t);\nstatic bool Lufia2DecompIsNmiRomOpcode(uint8_t);\nstatic bool Lufia2DecompNeedsTimedCall(uint32_t, uint32_t);\nstatic int Lufia2DecompRunNativeRomControl(Interp816 *, uint32_t, uint8_t);\nstatic int Lufia2DecompRunAdditionalRomOpcode(Interp816 *, uint32_t, uint8_t);\n")
                     string(APPEND _timing_suffix
                         "\n#include \"${_aot_call_table}\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/aot_call_sites.inc\"\n"
