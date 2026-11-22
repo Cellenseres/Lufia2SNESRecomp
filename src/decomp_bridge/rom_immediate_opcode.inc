@@ -386,13 +386,37 @@ static LUFIA2_ROM_NOINLINE int Lufia2DecompRunMemoryModifyOpcode(Interp816 *regi
     return registers->cyclesUsed;
 }
 
+static bool Lufia2DecompIsRamBlockMove(uint32_t pc) {
+    return pc == 0x83057du || pc == 0x86057du;
+}
+
 static LUFIA2_ROM_NOINLINE int Lufia2DecompRunBlockMove(Interp816 *registers, uint32_t pc, uint8_t opcode) {
+#if defined(SNES_COSIM) || defined(SNESRECOMP_INTERP_PROFILE) || \
+    (defined(SNESRECOMP_REVERSE_DEBUG) && SNESRECOMP_REVERSE_DEBUG)
+    return 0;
+#endif
     unsigned offset;
     const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 3u, &offset);
-    if (!cart)
-        return 0;
-    const uint32_t destination = ((uint32_t)cart->rom[offset + 1u] << 16) | registers->y;
-    const uint32_t source = ((uint32_t)cart->rom[offset + 2u] << 16) | registers->x;
+    const uint8_t *operands;
+    if (cart) {
+        operands = cart->rom + offset + 1u;
+    } else {
+        const CpuState *cpu = registers->mem;
+        if (!Lufia2DecompIsRamBlockMove(pc) || opcode != 0x54u ||
+            registers->k != (pc >> 16) || registers->pc != (uint16_t)pc ||
+            registers->e || registers->waiting || registers->stopped ||
+            registers->nmiWanted || registers->irqWanted ||
+            !cpu || !cpu->ram || cpu->ram[(uint16_t)pc] != opcode ||
+            !g_snes || !g_snes->cart)
+            return 0;
+        cart = g_snes->cart;
+        if (cart->type != CART_LOROM || cart->superfx || cart->cx4 ||
+            cart->dsp1 || cart->sdd1 || cart->sa1)
+            return 0;
+        operands = cpu->ram + (uint16_t)pc + 1u;
+    }
+    const uint32_t destination = ((uint32_t)operands[0] << 16) | registers->y;
+    const uint32_t source = ((uint32_t)operands[1] << 16) | registers->x;
     if (!Lufia2DecompIsWramByte(destination) ||
         (!Lufia2DecompIsWramByte(source) && !Lufia2DecompIsLoRomDataByte(cart, source)))
         return 0;
