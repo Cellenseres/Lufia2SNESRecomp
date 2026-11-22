@@ -5,7 +5,9 @@ static int Lufia2DecompRunAotCallSite(Interp816 *registers, uint32_t pc, uint8_t
 #endif
     if (opcode == 0x60u || opcode == 0x6bu) {
         const unsigned bank = pc >> 16;
-        if (bank < 0x80u || bank > 0xbfu || (pc & 0xffffu) < 0x8000u)
+        const unsigned address = (uint16_t)pc;
+        if (bank < 0x80u || bank > 0xbfu ||
+            (address < 0x8000u && (opcode != 0x60u || address >= 0x2000u)))
             return 0;
         return Lufia2DecompRunReturn(registers, pc, opcode, opcode == 0x6bu,
                                      registers->mf, registers->xf);

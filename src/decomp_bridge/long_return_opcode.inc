@@ -16,11 +16,21 @@ static int Lufia2DecompRunReturn(
         return 0;
 
     const Cart *cart = g_snes->cart;
-    const uint32_t offset = ((pc >> 16) & 0x7fu) * 0x8000u + (pc & 0x7fffu);
-    if (cart->type != CART_LOROM || !cart->rom || cart->romSize <= offset ||
-        cart->superfx || cart->cx4 || cart->dsp1 || cart->sdd1 || cart->sa1 ||
-        cart->rom[offset] != opcode)
+    if (cart->type != CART_LOROM || !cart->rom ||
+        cart->superfx || cart->cx4 || cart->dsp1 || cart->sdd1 || cart->sa1)
         return 0;
+    const uint16_t address = (uint16_t)pc;
+    if (address >= 0x8000u) {
+        const uint32_t offset = ((pc >> 16) & 0x7fu) * 0x8000u + (address & 0x7fffu);
+        if (cart->romSize <= offset || cart->rom[offset] != opcode)
+            return 0;
+    } else {
+        const CpuState *cpu = registers->mem;
+        const unsigned bank = pc >> 16;
+        if (long_return || address >= 0x2000u || bank < 0x80u || bank > 0xbfu ||
+            !cpu || !cpu->ram || cpu->ram[address] != opcode)
+            return 0;
+    }
 
     registers->cyclesUsed = 0;
     (void)registers->read(registers->mem, (pc & 0xff0000u) | registers->pc++);
