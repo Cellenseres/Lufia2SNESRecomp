@@ -771,6 +771,28 @@ static int Lufia2DecompRunBattleRecordSearch(Interp816 *registers, CpuState *cpu
 
 static int Lufia2DecompRunPaletteBrightnessFrame(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
                                                 uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+    const bool skip_to_finish = pc == 0x81b3c9u;
+    const bool widen = pc == 0x81b3d3u;
+    const bool narrow = pc == 0x81b3f1u;
+    if (skip_to_finish || widen || narrow) {
+        if (opcode != (skip_to_finish ? 0x80u : widen ? 0xc2u : 0xe2u) ||
+            registers->e || registers->mf == narrow || registers->xf ||
+            registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
+            BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 3u)
+            return 0;
+        unsigned offset;
+        const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 2u, &offset);
+        if (!cart || cart->rom[offset + 1u] != (skip_to_finish ? 0x28u : 0x20u))
+            return 0;
+        Lufia2SpanFetch(registers, pc, 2u, false);
+        if (!skip_to_finish)
+            registers->mf = narrow;
+        registers->pc = skip_to_finish ? 0xb3f3u : (uint16_t)(pc + 2u);
+        registers->cyclesUsed = 3u;
+        Lufia2SpanAccountInstruction(cpu, 3u);
+        *tail_steps = -1;
+        return 3;
+    }
     const bool finish = pc == 0x81b3f3u;
     if ((!finish && pc != 0x81b396u) || opcode != (finish ? 0xa9u : 0x7bu) ||
         registers->e || !registers->mf || registers->xf || registers->dp ||
