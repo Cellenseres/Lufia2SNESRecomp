@@ -59,8 +59,27 @@ static SpriteSlotScanResult Lufia2DecompRunSpriteSlotScan(Interp816 *registers, 
         result.instructions += 2u;
         registers->pc = (uint16_t)(pc + 5u);
         registers->cyclesUsed = branch_cycles;
-        if (active)
+        if (active) {
+            if (registers->sp >= 0x1f02u && registers->sp <= 0x1fffu) {
+                const uint64_t write_epoch = g_interp_bridge_write_epoch;
+                Lufia2SpanFetch(registers, pc + 5u, 3u, true);
+                const uint16_t return_address = (uint16_t)(pc + 7u);
+                registers->write(registers->mem, registers->sp--, (uint8_t)(return_address >> 8));
+                registers->write(registers->mem, registers->sp--, (uint8_t)return_address);
+                registers->pc = animation ? 0x8b87u : 0x8c1fu;
+                registers->cyclesUsed = 6u;
+                Lufia2SpanAccountInstruction(cpu, 6u);
+                result.cycles += 6u;
+                ++result.instructions;
+                if (auto_quiescent && (write_epoch != g_interp_bridge_write_epoch ||
+                                       dynamic_epoch != s_interp_dynamic_progress_epoch)) {
+                    bridge_apu_flush(cpu);
+                    result.progress = true;
+                    result.instructions = 1u;
+                }
+            }
             break;
+        }
 
         Lufia2SpanFetch(registers, pc + 8u, 1u, true);
         ++registers->x;

@@ -2635,6 +2635,7 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                if (span.progress) {\n"
                         "                    steps = 0;\n"
                         "                    progress_dynamic_epoch = s_interp_dynamic_progress_epoch;\n"
+                        "                    progress_write_epoch = g_interp_bridge_write_epoch;\n"
                         "                }\n"
                         "                steps += span.instructions - 1u;\n"
                         "            }\n"
