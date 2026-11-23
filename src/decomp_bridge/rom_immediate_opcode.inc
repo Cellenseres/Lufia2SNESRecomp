@@ -495,6 +495,21 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
         site == 0x869c65u)
         return true;
 
+    if (site == 0x869aebu || site == 0x869aeeu || site == 0x869af1u)
+        return true;
+
+    if (site == 0x86d39cu || site == 0x86d32du || site == 0x86d33du) {
+        const CpuState *cpu = registers->mem;
+        if (cpu && cpu->ram && !registers->e &&
+            registers->sp >= 0x1f00u && registers->sp <= 0x1ff9u) {
+            const uint8_t *frames = cpu->ram + registers->sp + 3u;
+            const uint8_t return_low = site == 0x86d39cu ? 0xf0u : 0xf3u;
+            if (frames[0] == return_low && frames[1] == 0x9au &&
+                frames[2] == 0x7eu && frames[3] == 0x92u)
+                return true;
+        }
+    }
+
     if (site == 0x869b24u || site == 0x869b2cu)
         return true;
 

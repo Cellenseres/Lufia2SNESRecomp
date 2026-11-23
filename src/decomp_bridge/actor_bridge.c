@@ -15585,6 +15585,12 @@ RecompReturn Lufia2DecompBridge_869ADB(CpuState *cpu) {
         const ActorBridgeFrame frame = {cpu->S,cpu->host_return_valid,0xffffffffu};
         return ActorBridgeFallback(cpu,&frame,0x869adbu);
     }
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+    if (cpu->ram && (cpu->ram[0x46u] & 0x40u)) {
+        const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
+        return ActorBridgeFallback(cpu, &frame, 0x869adbu);
+    }
+#endif
     return ActorBridgeBattleEntry(cpu,0x869adbu,NULL,
         Lufia2WorldMapMaybeOpenMenu,2u,BATTLE_BRIDGE_ANY_WIDTH,0,0x86,0);
 }
