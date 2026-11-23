@@ -1,16 +1,21 @@
 static int MenuGlyphRow(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
-                           uint64_t dynamic_epoch, uint64_t write_epoch) {
+                           uint64_t dynamic_epoch, uint64_t write_epoch, long room, long *tail_steps) {
     const uint32_t remaining = ((uint32_t)registers->db << 16) | 0x0566u;
+    const uint64_t budget = BufferSpanCycleBudget(cpu, s_lle_master_deadline);
     if (pc != 0x8088ddu || opcode != 0xceu || registers->e || !registers->mf ||
         registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
         !Lufia2DecompIsWramByte(remaining) ||
-        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 9u)
+        budget < 9u)
         return 0;
 
     unsigned offset;
     const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 5u, &offset);
     if (!cart || memcmp(cart->rom + offset + 1u, "\x66\x05\xd0\x06", 4u))
         return 0;
+
+    const bool can_return = room >= 4 && budget >= 18u &&
+        registers->sp >= 0x1f00u && registers->sp <= 0x1ffdu &&
+        offset + 11u < cart->romSize && cart->rom[offset + 11u] == 0x60u;
 
     Lufia2SpanFetch(registers, pc, 3u, false);
     Lufia2DecompModifyWram(registers, 0xceu, remaining, remaining + 1u, false);
@@ -21,7 +26,29 @@ static int MenuGlyphRow(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_
     registers->pc = registers->z ? 0x88e2u : 0x88e8u;
     registers->cyclesUsed = registers->z ? 2u : 3u;
     Lufia2SpanAccountInstruction(cpu, registers->cyclesUsed);
-    return 6u + registers->cyclesUsed;
+    *tail_steps = 1;
+    if (registers->z || !can_return)
+        return 6u + registers->cyclesUsed;
+
+    Lufia2SpanFetch(registers, 0x8088e8u, 1u, true);
+    uint16_t target = registers->read(registers->mem, ++registers->sp);
+    target |= (uint16_t)registers->read(registers->mem, ++registers->sp) << 8;
+    registers->pc = (uint16_t)(target + 1u);
+    registers->cyclesUsed = 6u;
+    Lufia2SpanAccountInstruction(cpu, 6u);
+    *tail_steps = dynamic_epoch != s_interp_dynamic_progress_epoch ? 0 : 2;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+    if (registers->pc != 0x88b7u || offset < 38u ||
+        memcmp(cart->rom + offset - 38u, "\x80\xf4", 2u))
+        return 15;
+
+    Lufia2SpanFetch(registers, 0x8088b7u, 2u, true);
+    registers->pc = 0x88adu;
+    registers->cyclesUsed = 3u;
+    Lufia2SpanAccountInstruction(cpu, 3u);
+    ++*tail_steps;
+    return 18;
 }
 
 static int MenuDecimalDigitFill(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
@@ -152,8 +179,7 @@ static int Lufia2DecompRunRenderPrep(Interp816 *registers, CpuState *cpu,
     switch (pc) {
     case 0x8088ddu:
         if (room >= 2) {
-            *tail_steps = 1;
-            return MenuGlyphRow(registers, cpu, pc, opcode, dynamic_epoch, write_epoch);
+            return MenuGlyphRow(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, room, tail_steps);
         }
         break;
     case 0x8089fau:

@@ -134,10 +134,80 @@ static int SpriteTimer(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t
     return 7u + registers->cyclesUsed;
 }
 
+static int RunMenuRawGlyphFlow(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+                                uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+    const bool save_cursor = pc == 0x8088b9u;
+    const bool raw_glyph = pc == 0x8088d5u;
+    if ((!save_cursor && !raw_glyph && pc != 0x8088d7u) ||
+        opcode != (save_cursor ? 0x8eu : raw_glyph ? 0x38u : 0xebu) ||
+        registers->e || !registers->mf || (save_cursor && registers->xf) ||
+        registers->sp < 0x1f02u || registers->sp > (save_cursor ? 0x1fffu : 0x1ffdu) ||
+        registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (raw_glyph ? 8u : 11u))
+        return 0;
+
+    unsigned offset;
+    const unsigned length = save_cursor ? 6u : raw_glyph ? 2u : 3u;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
+    const char *signature = save_cursor ? "\x75\x05\x20\xc8\x88" : raw_glyph ? "\x60" : "\x18\x60";
+    if (!cart || memcmp(cart->rom + offset + 1u, signature, length - 1u))
+        return 0;
+
+    if (save_cursor) {
+        const uint32_t destination = ((uint32_t)registers->db << 16) | 0x0575u;
+        if (!Lufia2DecompIsWramByte(destination))
+            return 0;
+
+        Lufia2SpanFetch(registers, pc, 3u, false);
+        Lufia2DecompWriteData(registers, destination, destination + 1u, registers->x, true);
+        Lufia2SpanAccountInstruction(cpu, 5u);
+        const bool cursor_progress = dynamic_epoch != s_interp_dynamic_progress_epoch ||
+            write_epoch != g_interp_bridge_write_epoch;
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+        Lufia2SpanFetch(registers, pc + 3u, 3u, true);
+        registers->write(registers->mem, registers->sp--, 0x88u);
+        registers->write(registers->mem, registers->sp--, 0xbeu);
+        registers->pc = 0x88c8u;
+        registers->cyclesUsed = 6u;
+        Lufia2SpanAccountInstruction(cpu, 6u);
+        const bool push_progress = dynamic_epoch != s_interp_dynamic_progress_epoch ||
+            write_epoch != g_interp_bridge_write_epoch;
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+        *tail_steps = push_progress ? 0 : cursor_progress ? 1 : -1;
+        return 11;
+    }
+
+    if (!raw_glyph) {
+        Lufia2SpanFetch(registers, pc, 1u, false);
+        MenuGlyphExchangeBytes(registers);
+        Lufia2SpanAccountInstruction(cpu, 3u);
+    }
+
+    Lufia2SpanFetch(registers, pc + !raw_glyph, 1u, !raw_glyph);
+    registers->c = raw_glyph;
+    Lufia2SpanAccountInstruction(cpu, 2u);
+
+    Lufia2SpanFetch(registers, pc + length - 1u, 1u, true);
+    uint16_t return_address = registers->read(registers->mem, ++registers->sp);
+    return_address |= (uint16_t)registers->read(registers->mem, ++registers->sp) << 8;
+    registers->pc = (uint16_t)(return_address + 1u);
+    registers->cyclesUsed = 6u;
+    Lufia2SpanAccountInstruction(cpu, 6u);
+    *tail_steps = dynamic_epoch != s_interp_dynamic_progress_epoch ? 0 : raw_glyph ? -1 : -2;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+    return raw_glyph ? 8u : 11u;
+}
+
 static int Lufia2DecompRunMenuControl(Interp816 *registers, CpuState *cpu,
                                       uint32_t pc, uint8_t opcode, uint64_t dynamic_epoch,
                                       uint64_t write_epoch, long room, long *tail_steps) {
     switch (pc) {
+    case 0x8088b9u:
+    case 0x8088d5u:
+        if (room >= 2)
+            return RunMenuRawGlyphFlow(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, tail_steps);
+        break;
     case 0x8088bfu:
         if (room >= 6)
             return MenuStringControl(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, tail_steps);
@@ -145,6 +215,11 @@ static int Lufia2DecompRunMenuControl(Interp816 *registers, CpuState *cpu,
     case 0x8088c8u:
     case 0x8088ceu:
     case 0x8088d7u:
+        if (pc == 0x8088d7u && room >= 3) {
+            const int cycles = RunMenuRawGlyphFlow(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, tail_steps);
+            if (cycles)
+                return cycles;
+        }
         if (room >= (pc == 0x8088c8u ? 3 : 2))
             return MenuStringRawCheck(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, tail_steps);
         break;
