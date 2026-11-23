@@ -87,6 +87,7 @@ static int Lufia2DecompRunBattleEffectDispatchReturn(Interp816 *registers, CpuSt
         pc == 0x81957au || pc == 0x81958eu ||
         pc == 0x81a128u || pc == 0x81a161u || pc == 0x81a6c5u ||
         pc == 0x818faau || pc == 0x818fc4u || pc == 0x81b3f7u ||
+        pc == 0x81a04du || pc == 0x81a061u || pc == 0x85aeb0u || pc == 0x85a76du ||
         pc == 0x81986du || pc == 0x819967u || pc == 0x85ab52u || pc == 0x85ab5au ||
         pc == 0x8194ffu || pc == 0x819514u || pc == 0x819529u || pc == 0x81953eu || pc == 0x81a6f1u || pc == 0x85b1cdu;
     if ((!pull && pc != 0x818c59u && !repeat_return) || opcode != (pull_y ? 0x7au : pull_index ? 0xfau : 0x60u) ||
@@ -533,18 +534,27 @@ static int Lufia2DecompRunBattleEffectPackedFields(Interp816 *registers, CpuStat
 
 static int Lufia2DecompRunBattleEffectDisplacementSetup(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
                                              uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+    if (pc == 0x81a04du || pc == 0x81a061u)
+        return Lufia2DecompRunBattleEffectDispatchReturn(registers, cpu, pc, opcode,
+            dynamic_epoch, write_epoch, tail_steps);
+    const bool angle_offset = pc == 0x81a03au || pc == 0x81a04eu;
     const bool add_direction = pc == 0x81a0f4u;
-    if ((!add_direction && pc != 0x81a69au && pc != 0x81a6c6u) || opcode != 0xa9u || registers->e || !registers->mf || registers->xf ||
-        registers->dp || registers->y > 0xffdcu || registers->sp < 0x1f01u || registers->sp > 0x1fffu ||
+    const unsigned length = angle_offset ? 19u : add_direction ? 12u : 15u;
+    if ((!angle_offset && !add_direction && pc != 0x81a69au && pc != 0x81a6c6u) || opcode != 0xa9u || registers->e || !registers->mf || registers->xf ||
+        registers->dp || (!angle_offset && registers->y > 0xffdcu) || registers->sp < 0x1f01u || registers->sp > 0x1fffu ||
         !cpu->ram || cpu->ram != g_snes->ram || registers->waiting || registers->stopped ||
         registers->irqWanted || registers->nmiWanted ||
-        !Lufia2DecompFrameRangeQuiet(pc, pc + (add_direction ? 12u : 15u)) ||
-        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (add_direction ? 25u : 29u))
+        !Lufia2DecompFrameRangeQuiet(pc, pc + length) ||
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (angle_offset ? 41u : add_direction ? 25u : 29u))
         return 0;
 
     unsigned offset;
-    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, add_direction ? 12u : 15u, &offset);
-    if (!cart || (add_direction ? memcmp(cart->rom + offset + 1u,
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
+    const char *angle_signature = pc == 0x81a03au ?
+        "\x7e\x48\xab\xa7\xc3\x18\x79\x24\x00\x99\x23\x00\xc2\x20\xe6\xc3\xe2\x20" :
+        "\x7e\x48\xab\xa7\xc3\x18\x79\x23\x00\x99\x23\x00\xc2\x20\xe6\xc3\xe2\x20";
+    if (!cart || (angle_offset ? memcmp(cart->rom + offset + 1u, angle_signature, 18u) :
+        add_direction ? memcmp(cart->rom + offset + 1u,
         "\x7e\x48\xab\xa7\xc3\x18\x79\x23\x00\x85\x54", 11u) :
         memcmp(cart->rom + offset + 1u,
         "\x7e\x48\xab\xa7\xc3\x85\x5a\x64\x5b\xb9\x23\x00\x85\x54", 14u)))
@@ -584,26 +594,46 @@ static int Lufia2DecompRunBattleEffectDisplacementSetup(Interp816 *registers, Cp
         progress = 4;
     Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
-    if (add_direction) {
+    if (add_direction || angle_offset) {
+        const unsigned field = pc == 0x81a03au ? 0x24u : 0x23u;
         Lufia2SpanFetch(registers, pc + 6u, 1u, true);
         registers->c = false;
         Lufia2SpanAccountInstruction(cpu, 2u);
         Lufia2SpanFetch(registers, pc + 7u, 3u, true);
-        const uint8_t direction = registers->read(registers->mem, 0x7e0023u + registers->y);
+        const uint8_t direction = registers->read(registers->mem, 0x7e0000u + field + registers->y);
         Lufia2DecompApplyOperand(registers, 0x69u, direction, true);
-        const unsigned read_cycles = 4u + (registers->y >= 0xddu);
+        const unsigned read_cycles = 4u + (registers->y >= 0x100u - field);
         Lufia2SpanAccountInstruction(cpu, read_cycles);
         if (dynamic_epoch != s_interp_dynamic_progress_epoch)
             progress = 6;
         Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
-        Lufia2SpanFetch(registers, pc + 10u, 2u, true);
-        registers->write(registers->mem, 0x54u, (uint8_t)registers->a);
-        registers->pc = 0xa100u;
-        registers->cyclesUsed = 3u;
-        Lufia2SpanAccountInstruction(cpu, 3u);
+        Lufia2SpanFetch(registers, pc + 10u, angle_offset ? 3u : 2u, true);
+        registers->write(registers->mem, angle_offset ? 0x7e0023u + registers->y : 0x54u,
+            (uint8_t)registers->a);
+        registers->cyclesUsed = angle_offset ? 6u : 3u;
+        Lufia2SpanAccountInstruction(cpu, registers->cyclesUsed);
         if (dynamic_epoch != s_interp_dynamic_progress_epoch || write_epoch != g_interp_bridge_write_epoch)
             progress = 7;
         Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+        if (angle_offset) {
+            Lufia2SpanFetch(registers, pc + 13u, 2u, true);
+            registers->mf = false;
+            Lufia2SpanAccountInstruction(cpu, 3u);
+            Lufia2SpanFetch(registers, pc + 15u, 2u, true);
+            Lufia2DecompModifyWram(registers, 0xe6u, 0xc3u, 0xc4u, true);
+            Lufia2SpanAccountInstruction(cpu, 7u);
+            if (dynamic_epoch != s_interp_dynamic_progress_epoch || write_epoch != g_interp_bridge_write_epoch)
+                progress = 9;
+            Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+            Lufia2SpanFetch(registers, pc + 17u, 2u, true);
+            registers->mf = true;
+            registers->pc = (uint16_t)(pc + 19u);
+            registers->cyclesUsed = 3u;
+            Lufia2SpanAccountInstruction(cpu, 3u);
+            *tail_steps = progress ? 10 - progress : -9;
+            return 36u + read_cycles;
+        }
+        registers->pc = 0xa100u;
         *tail_steps = progress ? 7 - progress : -6;
         return 20u + read_cycles;
     }

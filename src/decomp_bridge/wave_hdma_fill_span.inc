@@ -24,6 +24,9 @@ static void WaveFrameProgress(CpuState *cpu, uint64_t *dynamic_epoch,
 static int Lufia2DecompRunWaveFrame(Interp816 *registers, CpuState *cpu,
                                    uint32_t pc, uint8_t opcode, uint64_t dynamic_epoch,
                                    uint64_t write_epoch, long *tail_steps) {
+    if (pc == 0x85aeb0u || pc == 0x85a76du)
+        return Lufia2DecompRunBattleEffectDispatchReturn(registers, cpu, pc, opcode,
+            dynamic_epoch, write_epoch, tail_steps);
     const bool begin = pc == 0x85ae68u || pc == 0x85ade1u;
     if ((!begin && pc != 0x85ae94u) || opcode != (begin ? 0x8bu : 0xfau) ||
         registers->e || !registers->mf || registers->xf || registers->dp ||
