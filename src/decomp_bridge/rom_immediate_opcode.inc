@@ -462,6 +462,17 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
         site == 0x8082d7u || site == 0x80eca8u || site == 0x80ecacu || site == 0x80ecc0u)
         return true;
 
+    if (site == 0x8eb019u || site == 0x838637u || site == 0x83863au ||
+        (site >= 0x83863eu && site <= 0x83866du) ||
+        site == 0x83b154u || site == 0x80efafu || site == 0x80f058u ||
+        site == 0x80f24bu || site == 0x80f2e5u || site == 0x83a770u ||
+        site == 0x83a78eu || site == 0x83a9c3u || site == 0x83a9c7u ||
+        site == 0x83aa5fu || site == 0x83aa6eu || site == 0x83aa77u ||
+        site == 0x83a7aeu || site == 0x83a7b1u || site == 0x838e6cu ||
+        site == 0x80f4e0u || site == 0x80f72cu || site == 0x80ee30u ||
+        site == 0x80ee75u || site == 0x83a461u || site == 0x83a4fau || site == 0x83a4fdu)
+        return true;
+
     if (site == 0x8eb026u || site == 0x80e72du)
         return true;
 
