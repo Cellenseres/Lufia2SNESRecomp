@@ -1,15 +1,6 @@
-static void SpriteOamFetch(Interp816 *registers, uint32_t pc, unsigned length, bool probe) {
-    if (probe)
-        SpriteOamProbeOpcode(registers, pc);
-    (void)registers->read(registers->mem, pc);
-    g_interp816_cur_pc = pc;
-    for (unsigned i = 1; i < length; ++i)
-        (void)registers->read(registers->mem, pc + i);
-}
-
 static void SpriteOamClearStore(Interp816 *registers, CpuState *cpu,
                                 uint32_t pc, uint16_t value, bool auto_quiescent, bool probe) {
-    SpriteOamFetch(registers, pc, 3u, probe);
+    Lufia2SpanFetch(registers, pc, 3u, probe);
     const uint32_t address = ((uint32_t)registers->db << 16) | (0x0100u + registers->x);
     Lufia2DecompWriteData(registers, address, address + 1u, value, true);
     Lufia2SpanAccountInstruction(cpu, 7u);
@@ -22,12 +13,12 @@ static unsigned SpriteOamClearStep(Interp816 *registers, CpuState *cpu,
     unsigned cycles = 0;
     if (!high_table) {
         SpriteOamClearStore(registers, cpu, pc, registers->a, auto_quiescent, probe);
-        SpriteOamFetch(registers, pc + 3u, 1u, true);
+        Lufia2SpanFetch(registers, pc + 3u, 1u, true);
         ++registers->x;
         registers->n = (registers->x & 0x8000u) != 0;
         registers->z = registers->x == 0;
         Lufia2SpanAccountInstruction(cpu, 2u);
-        SpriteOamFetch(registers, pc + 4u, 1u, true);
+        Lufia2SpanFetch(registers, pc + 4u, 1u, true);
         ++registers->x;
         registers->n = (registers->x & 0x8000u) != 0;
         registers->z = registers->x == 0;
@@ -37,22 +28,22 @@ static unsigned SpriteOamClearStep(Interp816 *registers, CpuState *cpu,
     }
 
     SpriteOamClearStore(registers, cpu, pc, 0u, auto_quiescent, !high_table || probe);
-    SpriteOamFetch(registers, pc + 3u, 1u, true);
+    Lufia2SpanFetch(registers, pc + 3u, 1u, true);
     ++registers->x;
     registers->n = (registers->x & 0x8000u) != 0;
     registers->z = registers->x == 0;
     Lufia2SpanAccountInstruction(cpu, 2u);
-    SpriteOamFetch(registers, pc + 4u, 1u, true);
+    Lufia2SpanFetch(registers, pc + 4u, 1u, true);
     ++registers->x;
     registers->n = (registers->x & 0x8000u) != 0;
     registers->z = registers->x == 0;
     Lufia2SpanAccountInstruction(cpu, 2u);
-    SpriteOamFetch(registers, pc + 5u, 1u, true);
+    Lufia2SpanFetch(registers, pc + 5u, 1u, true);
     --registers->y;
     registers->n = (registers->y & 0x8000u) != 0;
     registers->z = registers->y == 0;
     Lufia2SpanAccountInstruction(cpu, 2u);
-    SpriteOamFetch(registers, pc + 6u, 2u, true);
+    Lufia2SpanFetch(registers, pc + 6u, 2u, true);
     registers->cyclesUsed = registers->z ? 2u : 3u;
     registers->pc = registers->z ? (uint16_t)(pc + 8u)
                                  : (uint16_t)(pc - (high_table ? 0u : 5u));

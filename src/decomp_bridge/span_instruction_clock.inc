@@ -9,3 +9,19 @@ static void Lufia2SpanAccountInstruction(CpuState *cpu, unsigned cycles) {
     s_interp_bus_cycles = 0u;
     s_interp_bus_timing_active = 1;
 }
+
+/* Preserve the bridge lookup read without charging it to guest time. */
+static void Lufia2SpanProbeOpcode(Interp816 *registers, uint32_t pc) {
+    s_interp_bus_timing_active = 0;
+    (void)registers->read(registers->mem, pc);
+    s_interp_bus_timing_active = 1;
+}
+
+static void Lufia2SpanFetch(Interp816 *registers, uint32_t pc, unsigned length, bool probe) {
+    if (probe)
+        Lufia2SpanProbeOpcode(registers, pc);
+    (void)registers->read(registers->mem, pc);
+    g_interp816_cur_pc = pc;
+    for (unsigned i = 1; i < length; ++i)
+        (void)registers->read(registers->mem, pc + i);
+}

@@ -1,12 +1,5 @@
 #include "buffer_span_bus.h"
 
-/* Preserve the bridge lookup read without charging it to guest time. */
-static void SpriteOamProbeOpcode(Interp816 *registers, uint32_t pc) {
-    s_interp_bus_timing_active = 0;
-    (void)registers->read(registers->mem, pc);
-    s_interp_bus_timing_active = 1;
-}
-
 static int Lufia2DecompRunSpriteOamRotateSpan(Interp816 *registers, CpuState *cpu,
                                  uint32_t pc, uint8_t opcode, bool auto_quiescent) {
     if (pc != 0x868cbfu || opcode != 0x2au || registers->e ||
@@ -36,7 +29,7 @@ static int Lufia2DecompRunSpriteOamRotateSpan(Interp816 *registers, CpuState *cp
         registers->z = registers->a == 0;
         Lufia2SpanAccountInstruction(cpu, 2u);
 
-        SpriteOamProbeOpcode(registers, pc + 1u);
+        Lufia2SpanProbeOpcode(registers, pc + 1u);
         (void)registers->read(registers->mem, pc + 1u);
         g_interp816_cur_pc = pc + 1u;
         (void)registers->read(registers->mem, pc + 2u);
@@ -45,7 +38,7 @@ static int Lufia2DecompRunSpriteOamRotateSpan(Interp816 *registers, CpuState *cp
         if (auto_quiescent)
             bridge_apu_flush(cpu);
 
-        SpriteOamProbeOpcode(registers, pc + 3u);
+        Lufia2SpanProbeOpcode(registers, pc + 3u);
         (void)registers->read(registers->mem, pc + 3u);
         g_interp816_cur_pc = pc + 3u;
         (void)registers->read(registers->mem, pc + 4u);
@@ -56,7 +49,7 @@ static int Lufia2DecompRunSpriteOamRotateSpan(Interp816 *registers, CpuState *cp
         if (registers->z)
             break;
         if (iteration + 1u < count)
-            SpriteOamProbeOpcode(registers, pc);
+            Lufia2SpanProbeOpcode(registers, pc);
     }
     return (int)cycles;
 }

@@ -37,7 +37,7 @@ static SpriteSlotScanResult Lufia2DecompRunSpriteSlotScan(Interp816 *registers, 
         return result;
 
     for (unsigned record = 0; record < count; ++record) {
-        SpriteOamFetch(registers, pc, 3u, record != 0u);
+        Lufia2SpanFetch(registers, pc, 3u, record != 0u);
         const unsigned address = 0x11d8u + registers->x;
         const uint8_t active = registers->read(registers->mem,
             ((uint32_t)registers->db << 16) | address);
@@ -52,7 +52,7 @@ static SpriteSlotScanResult Lufia2DecompRunSpriteSlotScan(Interp816 *registers, 
             result.progress = true;
             result.instructions = 0;
         }
-        SpriteOamFetch(registers, pc + 3u, 2u, true);
+        Lufia2SpanFetch(registers, pc + 3u, 2u, true);
         const unsigned branch_cycles = active ? 2u : 3u;
         Lufia2SpanAccountInstruction(cpu, branch_cycles);
         result.cycles += load_cycles + branch_cycles;
@@ -62,18 +62,18 @@ static SpriteSlotScanResult Lufia2DecompRunSpriteSlotScan(Interp816 *registers, 
         if (active)
             break;
 
-        SpriteOamFetch(registers, pc + 8u, 1u, true);
+        Lufia2SpanFetch(registers, pc + 8u, 1u, true);
         ++registers->x;
         registers->z = registers->x == 0;
         registers->n = false;
         Lufia2SpanAccountInstruction(cpu, 2u);
         const unsigned compare_cycles = animation ? 2u : 3u;
-        SpriteOamFetch(registers, pc + 9u, compare_cycles, true);
+        Lufia2SpanFetch(registers, pc + 9u, compare_cycles, true);
         registers->c = registers->x >= limit;
         registers->z = registers->x == limit;
         registers->n = registers->x < limit;
         Lufia2SpanAccountInstruction(cpu, compare_cycles);
-        SpriteOamFetch(registers, pc + length - 2u, 2u, true);
+        Lufia2SpanFetch(registers, pc + length - 2u, 2u, true);
         registers->pc = (uint16_t)(registers->z ? pc + length : pc);
         registers->cyclesUsed = registers->z ? 2u : 3u;
         Lufia2SpanAccountInstruction(cpu, registers->cyclesUsed);
