@@ -1,4 +1,4 @@
-static void Lufia2CursorPixelAccountInstruction(CpuState *cpu, unsigned cycles) {
+static void Lufia2SpanAccountInstruction(CpuState *cpu, unsigned cycles) {
     s_interp_bus_timing_active = 0;
     const unsigned internal = cycles > s_interp_bus_cycles
         ? cycles - s_interp_bus_cycles : 0u;

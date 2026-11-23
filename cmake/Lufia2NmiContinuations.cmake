@@ -2067,19 +2067,23 @@ function(lufia2_add_nmi_continuations target core_root)
                         "            !wlog_state_sync && !s_interp_pctrace && !g_interp_bridge_pc_hook &&\n"
                         "            !Lufia2NativeObserversActive() && g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
                         "            _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x828afau, false);\n")
-                    string(PREPEND _native_opcode "        int _lufia2_cursor_accounted = 0;\n")
-                    string(APPEND _native_opcode "        if (!_cyc && !n_stop && (!yield_pc || auto_quiescent) &&\n            (!g_snes || (!g_snes->hIrqEnabled && !g_snes->vIrqEnabled &&\n             (!g_snes->nmiEnabled || s_lle_master_deadline)))) {\n            _cyc = Lufia2DecompRunCursorPixelSpan(&in, cpu, pc_before, op, Lufia2CursorPixelAccountInstruction);\n            _lufia2_cursor_accounted = _cyc != 0;\n        }\n")
+                    string(APPEND _native_opcode "        if (!_cyc && !n_stop && (!yield_pc || auto_quiescent) &&\n            (!g_snes || (!g_snes->hIrqEnabled && !g_snes->vIrqEnabled &&\n             (!g_snes->nmiEnabled || s_lle_master_deadline)))) {\n            _cyc = Lufia2DecompRunCursorPixelSpan(&in, cpu, pc_before, op, Lufia2SpanAccountInstruction);\n            _lufia2_span_accounted = _cyc != 0;\n        }\n")
                     string(PREPEND _text
-                        "#include \"interp816.h\"\n#include \"cpu_state.h\"\nstatic void Lufia2CursorPixelAccountInstruction(CpuState *, unsigned);\nstatic int Lufia2DecompRunCursorPixelSpan(Interp816 *, CpuState *, uint32_t, uint8_t, void (*)(CpuState *, unsigned));\n")
+                        "#include \"interp816.h\"\n#include \"cpu_state.h\"\nstatic void Lufia2SpanAccountInstruction(CpuState *, unsigned);\nstatic int Lufia2DecompRunCursorPixelSpan(Interp816 *, CpuState *, uint32_t, uint8_t, void (*)(CpuState *, unsigned));\n")
                     string(APPEND _timing_suffix
-                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/cursor_pixel_spans.inc\"\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/cursor_pixel_clock.inc\"\n")
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/cursor_pixel_spans.inc\"\n")
+                endif()
+                if(_cursor_pixel_spans OR _manifest_calls)
+                    string(PREPEND _native_opcode "        int _lufia2_span_accounted = 0;\n")
+                    string(APPEND _timing_suffix
+                        "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/span_instruction_clock.inc\"\n")
                     set(_clock_block "        {\n            unsigned _internal = (unsigned)_cyc > s_interp_bus_cycles")
                     string(FIND "${_text}" "${_clock_block}" _clock_offset)
                     if(_clock_offset EQUAL -1)
-                        message(FATAL_ERROR "Cursor pixels require the reviewed instruction clock")
+                        message(FATAL_ERROR "Native spans require the reviewed instruction clock")
                     endif()
                     string(REPLACE "${_clock_block}"
-                        "        if (!_lufia2_cursor_accounted) {\n            unsigned _internal = (unsigned)_cyc > s_interp_bus_cycles"
+                        "        if (!_lufia2_span_accounted) {\n            unsigned _internal = (unsigned)_cyc > s_interp_bus_cycles"
                         _text "${_text}")
                 endif()
                 if(_scene_rebuild_spans)
@@ -2104,7 +2108,25 @@ function(lufia2_add_nmi_continuations target core_root)
                     string(APPEND _timing_suffix
                         "\n#include \"${_aot_call_table}\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/aot_call_sites.inc\"\n"
-                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/rom_immediate_opcode.inc\"\n")
+                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/rom_immediate_opcode.inc\"\n"
+                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/sprite_oam_rotate_span.inc\"\n")
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\n#include \"cpu_state.h\"\nstatic int Lufia2DecompRunSpriteOamRotateSpan(Interp816 *, CpuState *, uint32_t, uint8_t, bool);\n")
+                    string(APPEND _native_opcode
+                        "        if (!_cyc && pc_before == 0x868cbfu && !n_stop &&\n"
+                        "            (!yield_pc || auto_quiescent) && !stop_on_rti && !trace && !dtrace &&\n"
+                        "            !wlog_state_sync && !s_interp_pctrace && !g_interp_bridge_pc_hook &&\n"
+                        "            !Lufia2NativeObserversActive() && g_snes && !g_snes->inNmi && !g_snes->inIrq &&\n"
+                        "            !g_snes->hIrqEnabled && !g_snes->vIrqEnabled &&\n"
+                        "            (!g_snes->nmiEnabled || s_lle_master_deadline)) {\n"
+                        "            _cyc = Lufia2DecompRunSpriteOamRotateSpan(&in, cpu, pc_before, op, auto_quiescent);\n"
+                        "            _lufia2_span_accounted = _cyc != 0;\n"
+                        "            if (_cyc && auto_quiescent) {\n"
+                        "                progress_write_epoch = g_interp_bridge_write_epoch;\n"
+                        "                progress_dynamic_epoch = s_interp_dynamic_progress_epoch;\n"
+                        "                steps = 1;\n"
+                        "            }\n"
+                        "        }\n")
                     string(APPEND _native_opcode
                         "        if (!_cyc && (is_ret || op == 0x20u || op == 0x22u || (op & 0x1fu) == 0x10u || op == 0xc2u || op == 0xe2u ||\n"
                         "                      op == 0x80u || op == 0x82u || op == 0x4cu || op == 0x5cu ||\n"
