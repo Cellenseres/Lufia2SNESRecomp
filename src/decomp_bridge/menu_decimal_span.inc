@@ -983,21 +983,31 @@ static int Lufia2DecompRunMenuNumberRead(Interp816 *registers, CpuState *cpu, ui
 
 static int Lufia2DecompRunMenuDecimalTrim(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
                                uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
-    if (pc != 0x808956u || opcode != 0xb9u || registers->e || !registers->mf || registers->xf ||
-        registers->y >= 7u || registers->waiting || registers->stopped ||
+    const bool initialize = pc == 0x808953u;
+    if ((!initialize && pc != 0x808956u) || opcode != (initialize ? 0xa0u : 0xb9u) ||
+        registers->e || !registers->mf || registers->xf ||
+        (!initialize && registers->y >= 7u) || registers->waiting || registers->stopped ||
         registers->irqWanted || registers->nmiWanted ||
         !Lufia2DecompIsWramByte(((uint32_t)registers->db << 16) | 0x056du) ||
-        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 24u)
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (initialize ? 27u : 24u))
         return 0;
 
     unsigned offset;
-    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 18u, &offset);
-    if (!cart || memcmp(cart->rom + offset + 1u,
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, initialize ? 21u : 18u, &offset);
+    if (!cart || (initialize && memcmp(cart->rom + offset + 1u, "\x00\x00\xb9", 3u)) ||
+        memcmp(cart->rom + offset + (initialize ? 4u : 1u),
         "\x67\x05\xc9\x30\xd0\x0b\xa9\x20\x99\x67\x05\xc8\xc0\x07\x00\xd0\xee", 17u))
         return 0;
 
+    const unsigned setup_cycles = initialize ? 3u : 0u;
+    if (initialize) {
+        Lufia2SpanFetch(registers, pc, 3u, false);
+        Lufia2DecompApplyOperand(registers, 0xa0u, 0u, false);
+        Lufia2SpanAccountInstruction(cpu, setup_cycles);
+        pc += 3u;
+    }
     const uint32_t digit_address = (((uint32_t)registers->db << 16) | 0x0567u) + registers->y;
-    Lufia2SpanFetch(registers, pc, 3u, false);
+    Lufia2SpanFetch(registers, pc, 3u, initialize);
     const uint8_t digit = registers->read(registers->mem, digit_address);
     Lufia2DecompApplyOperand(registers, 0xa9u, digit, true);
     Lufia2SpanAccountInstruction(cpu, 4u);
@@ -1013,8 +1023,8 @@ static int Lufia2DecompRunMenuDecimalTrim(Interp816 *registers, CpuState *cpu, u
         registers->pc = 0x8968u;
         registers->cyclesUsed = 3u;
         Lufia2SpanAccountInstruction(cpu, 3u);
-        *tail_steps = progress ? 2 : -2;
-        return 9;
+        *tail_steps = progress ? 2 : initialize ? -3 : -2;
+        return setup_cycles + 9u;
     }
     Lufia2SpanAccountInstruction(cpu, 2u);
 
@@ -1040,7 +1050,7 @@ static int Lufia2DecompRunMenuDecimalTrim(Interp816 *registers, CpuState *cpu, u
     registers->cyclesUsed = registers->z ? 2u : 3u;
     Lufia2SpanAccountInstruction(cpu, registers->cyclesUsed);
     *tail_steps = 3;
-    return 21u + registers->cyclesUsed;
+    return setup_cycles + 21u + registers->cyclesUsed;
 }
 
 static int FinishMenuNumberSign(Interp816 *registers, CpuState *cpu, unsigned cycles, bool return_now,
