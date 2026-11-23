@@ -2110,10 +2110,30 @@ function(lufia2_add_nmi_continuations target core_root)
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/aot_call_sites.inc\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/rom_immediate_opcode.inc\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/sprite_oam_rotate_span.inc\"\n"
-                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/sprite_oam_clear_span.inc\"\n")
+                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/sprite_oam_clear_span.inc\"\n"
+                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/sprite_slot_scan_span.inc\"\n")
                     string(PREPEND _text
-                        "#include \"interp816.h\"\n#include \"cpu_state.h\"\nstatic int Lufia2DecompRunSpriteOamRotateSpan(Interp816 *, CpuState *, uint32_t, uint8_t, bool);\nstatic int Lufia2DecompRunSpriteOamClearSpan(Interp816 *, CpuState *, uint32_t, uint8_t, bool);\n")
+                        "#include \"interp816.h\"\n#include \"cpu_state.h\"\nstatic int Lufia2DecompRunSpriteOamRotateSpan(Interp816 *, CpuState *, uint32_t, uint8_t, bool);\nstatic int Lufia2DecompRunSpriteOamClearSpan(Interp816 *, CpuState *, uint32_t, uint8_t, bool);\ntypedef struct SpriteSlotScanResult {\n    unsigned cycles;\n    unsigned instructions;\n    bool progress;\n} SpriteSlotScanResult;\n\nstatic SpriteSlotScanResult Lufia2DecompRunSpriteSlotScan(Interp816 *, CpuState *, uint32_t, uint8_t, unsigned, bool, uint64_t);\n")
                     string(APPEND _native_opcode
+                        "        if (!_cyc && (pc_before == 0x868b77u || pc_before == 0x868bffu ||\n"
+                        "                      pc_before == 0x868c10u) && !n_stop && !stop_on_rti &&\n"
+                        "            (!yield_pc || auto_quiescent) && !trace && !dtrace && !wlog_state_sync &&\n"
+                        "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
+                        "            g_snes && !g_snes->inNmi && !g_snes->inIrq && !g_snes->hIrqEnabled &&\n"
+                        "            !g_snes->vIrqEnabled && (!g_snes->nmiEnabled || s_lle_master_deadline)) {\n"
+                        "            const SpriteSlotScanResult span = Lufia2DecompRunSpriteSlotScan(\n"
+                        "                &in, cpu, pc_before, op, (unsigned)(step_cap - steps),\n"
+                        "                auto_quiescent, progress_dynamic_epoch);\n"
+                        "            if (span.instructions) {\n"
+                        "                _cyc = (int)span.cycles;\n"
+                        "                _lufia2_span_accounted = 1;\n"
+                        "                if (span.progress) {\n"
+                        "                    steps = 0;\n"
+                        "                    progress_dynamic_epoch = s_interp_dynamic_progress_epoch;\n"
+                        "                }\n"
+                        "                steps += span.instructions - 1u;\n"
+                        "            }\n"
+                        "        }\n"
                         "        if (!_cyc && (pc_before == 0x868cbfu || pc_before == 0x868bdau ||\n"
                         "                      pc_before == 0x868beau) && !n_stop &&\n"
                         "            (!yield_pc || auto_quiescent) && !stop_on_rti && !trace && !dtrace &&\n"
