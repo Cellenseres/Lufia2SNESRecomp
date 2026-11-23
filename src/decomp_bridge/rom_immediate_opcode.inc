@@ -435,6 +435,21 @@ static bool Lufia2DecompDisplayTimedCall(uint32_t site, const Interp816 *registe
            caller == 0x819601u || caller == 0x819633u;
 }
 
+/* The guest return remains on the stack across menu waits and snapshot loads. */
+static bool Lufia2DecompFieldMenuNeedsTimedCall(const Interp816 *registers) {
+    const CpuState *cpu = registers->mem;
+    if (!cpu || !cpu->ram || registers->e || !g_snes ||
+        g_snes->inNmi || g_snes->inIrq ||
+        registers->sp < 0x1c00u || registers->sp > 0x1ffcu)
+        return false;
+
+    for (unsigned slot = registers->sp + 1u; slot <= 0x1ffdu; ++slot) {
+        if (Lufia2DecompStackLongReturn(cpu->ram + slot) == 0x8eb014u)
+            return true;
+    }
+    return false;
+}
+
 static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
                                       const Interp816 *registers) {
     if (target == 0x80e566u ||
@@ -523,7 +538,7 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
     case 0x8199ecu: case 0x8199f2u: case 0x819a2eu: case 0x819a34u:
         return true;
     default:
-        return false;
+        return Lufia2DecompFieldMenuNeedsTimedCall(registers);
     }
 }
 
