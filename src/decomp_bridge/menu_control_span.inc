@@ -2332,3 +2332,42 @@ static int Lufia2DecompRunMenuSlideTick(Interp816 *registers, CpuState *cpu, uin
     *tail_steps = counter_progress ? 1 : -1;
     return 5u + registers->cyclesUsed;
 }
+
+static int Lufia2DecompRunMenuSlideRestart(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+                                uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+    if (pc != 0x828afeu || opcode != 0xa9u || registers->e || !registers->mf ||
+        registers->dp || registers->sp < 0x1f03u || registers->sp > 0x1fffu ||
+        registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 13u)
+        return 0;
+
+    unsigned offset;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 8u, &offset);
+    if (!cart || memcmp(cart->rom + offset + 1u, "\x10\x85\xed\x22\x55\x8b\x86", 7u))
+        return 0;
+
+    Lufia2SpanFetch(registers, pc, 2u, false);
+    Lufia2DecompApplyOperand(registers, 0xa9u, 0x10u, true);
+    Lufia2SpanAccountInstruction(cpu, 2u);
+
+    Lufia2SpanFetch(registers, pc + 2u, 2u, true);
+    registers->write(registers->mem, 0xedu, 0x10u);
+    Lufia2SpanAccountInstruction(cpu, 3u);
+    const bool restart_progress = dynamic_epoch != s_interp_dynamic_progress_epoch ||
+        write_epoch != g_interp_bridge_write_epoch;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+    Lufia2SpanFetch(registers, pc + 4u, 4u, true);
+    registers->write(registers->mem, registers->sp--, registers->k);
+    registers->write(registers->mem, registers->sp--, 0x8bu);
+    registers->write(registers->mem, registers->sp--, 0x05u);
+    registers->k = 0x86u;
+    registers->pc = 0x8b55u;
+    registers->cyclesUsed = 8u;
+    Lufia2SpanAccountInstruction(cpu, 8u);
+    const bool call_progress = dynamic_epoch != s_interp_dynamic_progress_epoch ||
+        write_epoch != g_interp_bridge_write_epoch;
+    *tail_steps = call_progress ? 0 : restart_progress ? 1 : -2;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+    return 13;
+}
