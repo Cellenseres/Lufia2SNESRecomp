@@ -15578,6 +15578,10 @@ RecompReturn Lufia2DecompBridge_869B30(CpuState *cpu) {
         Lufia2WorldMapApplyMenuReturnTransition,2u,BATTLE_BRIDGE_ANY_WIDTH,0,0x86,0);
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+static RecompReturn ActorBridgeTimedWorldMenuIdle(CpuState *cpu);
+#endif
+
 RecompReturn Lufia2DecompBridge_869ADB(CpuState *cpu) {
     if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->x_flag ||
         cpu->PB != 0x86u || cpu->DB != 0x86u || cpu->D ||
@@ -15590,9 +15594,11 @@ RecompReturn Lufia2DecompBridge_869ADB(CpuState *cpu) {
         const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid, UINT32_MAX};
         return ActorBridgeFallback(cpu, &frame, 0x869adbu);
     }
-#endif
+    return ActorBridgeTimedWorldMenuIdle(cpu);
+#else
     return ActorBridgeBattleEntry(cpu,0x869adbu,NULL,
         Lufia2WorldMapMaybeOpenMenu,2u,BATTLE_BRIDGE_ANY_WIDTH,0,0x86,0);
+#endif
 }
 
 RecompReturn Lufia2DecompBridge_86919E(CpuState *cpu) {
@@ -19521,7 +19527,39 @@ RecompReturn Lufia2DecompBridge_82BCC4(CpuState *cpu) {
 }
 
 #if defined(LUFIA2_HAVE_NATIVE_FRAME_RETURNS)
+#include "common_rtl.h"
 #include "party_swap_clock.inc"
+
+static RecompReturn ActorBridgeTimedWorldMenuIdle(CpuState *cpu) {
+    const uint32_t entry = 0x869adbu;
+    const uint32_t return_site = 0x869b2fu;
+    const ActorBridgeFrame frame = {cpu->S, cpu->host_return_valid,
+        cpu->host_return_valid == 2u && cpu->ram &&
+            cpu->ram[cpu->S + 1u] == 0x7eu && cpu->ram[cpu->S + 2u] == 0x92u
+            ? 0x86927fu : UINT32_MAX};
+    /* Fixed timing keeps the bridge's relative APU catch-up order. */
+    if (!rtl_apu_extended_frame_timing() || frame.host_return_pc24 == UINT32_MAX ||
+        !Lufia2DecompFrameReturnCpuReady() ||
+        !ActorBridgeSoundWindowSupported(cpu, entry, 0x1ffcu, 144u) ||
+        !Lufia2DecompFrameRangeQuiet(entry, 0x869ae1u) ||
+        !Lufia2DecompFrameRangeQuiet(return_site, return_site + 1u))
+        return ActorBridgeFallback(cpu, &frame, entry);
+
+    static const FixedSpanOpcode timing[] = {
+        {0x9adbu, 2u, 3u, 1u}, {0x9addu, 2u, 2u, 0u}, {0x9adfu, 2u, 3u, 0u}
+    };
+    FixedSpanClock clock = {
+        .cpu = cpu, .bank = 0x860000u, .timing = timing,
+        .count = sizeof(timing) / sizeof(timing[0])
+    };
+    const uint8_t input = FixedSpanRead(&clock, 0x46u);
+    cpu->A = (uint16_t)((cpu->A & 0xff00u) | input);
+    cpu->_flag_N = (input & 0x80u) != 0u;
+    cpu->_flag_Z = 1u;
+    cpu_mirrors_to_p(cpu);
+    BeginFixedSpanOpcode(&clock);
+    return ReturnTimedMenuCall(cpu, &frame, return_site);
+}
 #if defined(LUFIA2_HAVE_NATIVE_FIELD_MAP_CLOCK)
 #include "field_map_clock.inc"
 #if defined(LUFIA2_HAVE_NATIVE_PLAYER_CONTINUATIONS)
