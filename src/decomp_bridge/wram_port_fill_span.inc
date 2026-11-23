@@ -4,7 +4,8 @@ static int Lufia2DecompRunWramPortFill(Interp816 *registers, CpuState *cpu, uint
     if ((pc != 0x858d42u && pc != 0x858a51u) || opcode != 0x9cu || registers->e || !registers->mf ||
         registers->xf || registers->db != (larger_fill ? 0x81u : 0x85u) || registers->dp ||
         registers->waiting || registers->stopped || registers->irqWanted ||
-        registers->nmiWanted || !registers->y || registers->y > (larger_fill ? 0x02a0u : 0x0200u))
+        registers->nmiWanted || !registers->y || registers->y > (larger_fill ? 0x02a0u : 0x0200u) ||
+        !Lufia2DecompFrameRangeQuiet(pc, pc + 9u))
         return 0;
 
     unsigned offset;
