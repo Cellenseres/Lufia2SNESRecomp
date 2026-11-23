@@ -344,3 +344,45 @@ static int Lufia2DecompRunSpriteFrameCall(Interp816 *registers, CpuState *cpu, u
     Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
     return wait_call ? 11 : 8;
 }
+
+static int Lufia2DecompRunSpriteAnimateBoundary(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+                                      uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+    const bool entering = pc == 0x868b73u;
+    if ((!entering && pc != 0x868b84u) || opcode != (entering ? 0xe2u : 0xc2u) ||
+        registers->e || !registers->mf ||
+        (!entering && (registers->sp < 0x1f00u || registers->sp > 0x1ffcu)) ||
+        registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (entering ? 5u : 9u))
+        return 0;
+
+    unsigned offset;
+    const unsigned length = entering ? 4u : 3u;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
+    if (!cart || memcmp(cart->rom + offset + 1u, entering ? "\x10\xa2\x00" : "\x10\x6b", length - 1u))
+        return 0;
+
+    Lufia2SpanFetch(registers, pc, 2u, false);
+    const uint8_t status = interp816_getFlags(registers);
+    interp816_setFlags(registers, entering ? status | 0x10u : status & ~0x10u);
+    Lufia2SpanAccountInstruction(cpu, 3u);
+    if (entering) {
+        Lufia2SpanFetch(registers, pc + 2u, 2u, true);
+        Lufia2DecompApplyOperand(registers, 0xa2u, 0u, true);
+        registers->pc = 0x8b77u;
+        registers->cyclesUsed = 2u;
+        Lufia2SpanAccountInstruction(cpu, 2u);
+        *tail_steps = -1;
+        return 5;
+    }
+
+    Lufia2SpanFetch(registers, pc + 2u, 1u, true);
+    uint16_t address = registers->read(registers->mem, ++registers->sp);
+    address |= (uint16_t)registers->read(registers->mem, ++registers->sp) << 8;
+    registers->k = registers->read(registers->mem, ++registers->sp);
+    registers->pc = (uint16_t)(address + 1u);
+    registers->cyclesUsed = 6u;
+    Lufia2SpanAccountInstruction(cpu, 6u);
+    *tail_steps = dynamic_epoch != s_interp_dynamic_progress_epoch ? 0 : -1;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+    return 9;
+}
