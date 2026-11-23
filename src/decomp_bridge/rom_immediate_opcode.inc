@@ -478,8 +478,17 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
 
     if ((target == 0x83b82fu && registers->mf && !registers->xf) ||
         site == 0x83b847u || site == 0x80b417u || site == 0x80b41cu ||
-        site == 0x83fa1bu || site == 0x8eb000u)
+        site == 0x83fa1bu || site == 0x8eb000u || site == 0x8eb02fu)
         return true;
+
+    /* Skip the child JSR frames and saved registers to find the menu return. */
+    if (site == 0x83afddu || site == 0x83aee4u || site == 0x83aee7u) {
+        const CpuState *cpu = registers->mem;
+        const unsigned offset = site == 0x83afddu ? 4u : 8u;
+        if (cpu && cpu->ram && !registers->e && registers->sp <= 0x1ffdu - offset &&
+            Lufia2DecompStackLongReturn(cpu->ram + registers->sp + offset) == 0x8eb032u)
+            return true;
+    }
 
     if (target == 0x80f734u || target == 0x80f81cu || Lufia2DecompIsRamBlockMove(target))
         return true;
