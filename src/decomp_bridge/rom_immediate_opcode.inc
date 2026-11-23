@@ -584,8 +584,10 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
     case 0x819664u: case 0x81968au: case 0x8196c6u:
     case 0x8196f6u: case 0x8196fau:
     case 0x8196feu: case 0x819738u: case 0x81976bu: case 0x8197a5u:
+    case 0x819935u:
     case 0x819999u: case 0x8199a5u: case 0x8199b0u:
     case 0x8199d0u: case 0x819a12u: case 0x819ab1u: case 0x819ba3u:
+    case 0x819df6u:
     case 0x81a12au: case 0x81a35eu: case 0x81a3e9u:
     case 0x81a40bu: case 0x81a588u: case 0x81a598u:
     case 0x81a69au: case 0x81a6c6u: case 0x81a770u:
@@ -611,6 +613,39 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
                 caller == 0x81a6d8u || caller == 0x81a782u)
                 return true;
         }
+    }
+
+    if (site == 0x819963u || site == 0x819e02u)
+        return true;
+
+    if (site == 0x81b3bbu || site == 0x81b3e1u) {
+        const CpuState *cpu = registers->mem;
+        if (cpu && cpu->ram && !registers->e &&
+            registers->sp >= 0x1f00u && registers->sp <= 0x1ffbu) {
+            const uint8_t *caller = cpu->ram + registers->sp + 3u;
+            if (caller[0] == 0x65u && caller[1] == 0x99u)
+                return true;
+        }
+    }
+
+    switch (site) {
+    case 0x858a6cu: case 0x858a70u: case 0x858a74u: case 0x858a7du:
+    case 0x858a9eu: case 0x858aa2u: case 0x858aa6u: case 0x858aaau:
+    case 0x858ba4u: case 0x858c18u: case 0x858db0u: case 0x81bd47u: {
+        const CpuState *cpu = registers->mem;
+        if (!cpu || !cpu->ram || registers->e || registers->sp < 0x1f00u)
+            break;
+        for (unsigned address = (unsigned)registers->sp + 1u; address <= 0x1ff9u; ++address) {
+            const uint8_t *caller = cpu->ram + address;
+            if (Lufia2DecompStackLongReturn(caller) == 0x819e05u &&
+                ((caller[5] == 0xa6u && caller[6] == 0x8au) ||
+                 (caller[5] == 0x17u && caller[6] == 0x8bu)))
+                return true;
+        }
+        break;
+    }
+    default:
+        break;
     }
 
     /* Video commands need the original bus timing in their callees too. */
