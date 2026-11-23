@@ -587,7 +587,7 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
     case 0x819935u:
     case 0x819999u: case 0x8199a5u: case 0x8199b0u:
     case 0x8199d0u: case 0x819a12u: case 0x819ab1u: case 0x819af7u:
-    case 0x819ba3u: case 0x819bacu:
+    case 0x819b7eu: case 0x819ba3u: case 0x819bacu:
     case 0x819df6u:
     case 0x81a12au: case 0x81a1ccu: case 0x81a1ffu:
     case 0x81a35eu: case 0x81a3e9u:
@@ -623,7 +623,8 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
         }
     }
 
-    if (site == 0x819963u || site == 0x819e02u)
+    if (site == 0x819963u || site == 0x819b8au || site == 0x819b99u ||
+        site == 0x819b9du || site == 0x819e02u)
         return true;
 
     if (site == 0x81b3bbu || site == 0x81b3e1u) {
@@ -637,15 +638,18 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
     }
 
     switch (site) {
-    case 0x858a6cu: case 0x858a70u: case 0x858a74u: case 0x858a7du:
+    case 0x858a64u: case 0x858a68u: case 0x858a6cu: case 0x858a70u:
+    case 0x858a74u: case 0x858a7du: case 0x858a96u: case 0x858a9au:
     case 0x858a9eu: case 0x858aa2u: case 0x858aa6u: case 0x858aaau:
-    case 0x858ba4u: case 0x858c18u: case 0x858db0u: case 0x81bd47u: {
+    case 0x858ba4u: case 0x858c18u: case 0x858c1eu: case 0x858d02u:
+    case 0x858d08u: case 0x858db0u: case 0x81bd47u: case 0x81bdc8u: {
         const CpuState *cpu = registers->mem;
         if (!cpu || !cpu->ram || registers->e || registers->sp < 0x1f00u)
             break;
         for (unsigned address = (unsigned)registers->sp + 1u; address <= 0x1ff9u; ++address) {
             const uint8_t *caller = cpu->ram + address;
-            if (Lufia2DecompStackLongReturn(caller) == 0x819e05u &&
+            const uint32_t return_pc = Lufia2DecompStackLongReturn(caller);
+            if ((return_pc == 0x819b8du || return_pc == 0x819e05u) &&
                 ((caller[5] == 0xa6u && caller[6] == 0x8au) ||
                  (caller[5] == 0x17u && caller[6] == 0x8bu)))
                 return true;
@@ -681,6 +685,14 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
                           : dispatch[-3] == 0x4fu && dispatch[-2] == 0x8fu))
                 return true;
         }
+    }
+
+    if (site == 0x85ec81u || site == 0x85ec8bu || site == 0x85919cu) {
+        const CpuState *cpu = registers->mem;
+        if (cpu && cpu->ram && !registers->e && registers->sp >= 0x1f00u)
+            for (unsigned address = (unsigned)registers->sp + 1u; address <= 0x1ffdu; ++address)
+                if (Lufia2DecompStackLongReturn(cpu->ram + address) == 0x819ba0u)
+                    return true;
     }
 
     /* Video commands need the original bus timing in their callees too. */
