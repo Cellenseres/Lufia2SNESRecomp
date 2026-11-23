@@ -47,7 +47,7 @@ static void SpriteOverlayWrite(void *context, uint32_t address, uint8_t value) {
 }
 
 static unsigned SpriteOverlayReserve(const SpriteOverlayPlan *plan) {
-    const unsigned master = 8u * (plan->count ? 27u + 42u * plan->count : 7u);
+    const unsigned master = 8u * plan->cycles;
     return master + 80u * (master / 1284u + 2u);
 }
 
@@ -81,7 +81,7 @@ static void ActorBridgeSpriteOverlays(CpuState *cpu, uint32_t entry) {
     if (entry != 0x81b680u || !SpriteOverlayWindowSupported(cpu, 0u))
         return;
     SpriteOverlayPlan plan;
-    if (!PlanDisabledSpriteOverlays(cpu->ram, &plan) ||
+    if (!PlanSpriteOverlays(cpu->ram, &plan) ||
         !Lufia2DecompFrameRangeAllows(entry, 0x81b700u, SpriteOverlayHookOwned) ||
         Lufia2DecompFrameSpanBudget(entry, 0x81b700u,
             ActorBridgeSpriteOverlays) < plan.opcode_count)
