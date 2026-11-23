@@ -2,10 +2,11 @@ static int Lufia2DecompRunForwardBlockMove(Interp816 *registers, CpuState *cpu, 
                                   uint64_t dynamic_epoch, uint64_t write_epoch, long room, long *tail_steps) {
     const bool palette = pc == 0x869150u;
     const bool capsule = pc == 0x82d038u || pc == 0x82d04fu;
-    const uint8_t source_bank = capsule ? 0x7eu : palette ? 0x97u : 0x9bu;
+    const bool menu_graphics = pc == 0x8690ccu || pc == 0x8690dfu || pc == 0x8690f2u || pc == 0x869105u || pc == 0x869118u;
+    const uint8_t source_bank = capsule ? 0x7eu : menu_graphics ? 0x9fu : palette ? 0x97u : 0x9bu;
     const uint8_t destination_bank = capsule ? 0x7eu : 0u;
     const unsigned destination_end = capsule ? 0x10000u : 0x2000u;
-    if ((!palette && !capsule && pc != 0x80f351u) || opcode != 0x54u ||
+    if ((!palette && !capsule && !menu_graphics && pc != 0x80f351u) || opcode != 0x54u ||
         registers->e || registers->xf || registers->mf ||
         (!capsule && registers->x < 0x8000u) || registers->y >= destination_end || room <= 0 ||
         registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted)
@@ -17,7 +18,7 @@ static int Lufia2DecompRunForwardBlockMove(Interp816 *registers, CpuState *cpu, 
         return 0;
 
     const uint64_t time_budget = BufferSpanCycleBudget(cpu, s_lle_master_deadline) / 7u;
-    const unsigned max_bytes = palette || capsule ? 32u : 8u;
+    const unsigned max_bytes = palette || capsule || menu_graphics ? 32u : 8u;
     unsigned count = (unsigned long)room < max_bytes ? (unsigned)room : max_bytes;
     if (count > time_budget)
         count = (unsigned)time_budget;
