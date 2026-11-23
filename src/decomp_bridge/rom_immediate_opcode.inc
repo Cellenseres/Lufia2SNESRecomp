@@ -586,6 +586,7 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
     case 0x8196feu: case 0x819738u: case 0x81976bu: case 0x8197a5u:
     case 0x819999u: case 0x8199a5u: case 0x8199b0u:
     case 0x8199d0u: case 0x819a12u: case 0x819ab1u: case 0x819ba3u:
+    case 0x81a40bu:
         return true;
     default:
         break;
