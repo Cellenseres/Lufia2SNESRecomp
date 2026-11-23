@@ -548,3 +548,87 @@ static int Lufia2DecompRunSpriteAnimationFinish(Interp816 *registers, CpuState *
     *tail_steps = progress ? trailing : -trailing;
     return 10;
 }
+
+static int Lufia2DecompRunSpriteAnimationSlotSeed(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+                                      uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+    const bool load_script = pc == 0x868b8du;
+    const uint32_t bank = (uint32_t)registers->db << 16;
+    const uint32_t slot_frame = bank | (0x1448u + registers->x);
+    if ((!load_script && pc != 0x868ba1u) || opcode != 0xbdu || registers->e ||
+        !registers->mf || !registers->xf || registers->dp || registers->x >= 48u ||
+        !Lufia2DecompIsWramByte(slot_frame) || registers->waiting || registers->stopped ||
+        registers->irqWanted || registers->nmiWanted ||
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (load_script ? 42u : 8u))
+        return 0;
+    unsigned offset;
+    const unsigned length = load_script ? 25u : 5u;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
+    const char *signature = load_script ? "\xc8\x12\x85\x5d\xbd\xf8\x12\x85\x5e\xbd\x38\x12"
+        "\x85\x5f\x85\x62\xfe\x48\x14\xbd\x48\x14\x0a\xa8" : "\x48\x14\x0a\xa8";
+    if (!cart || memcmp(cart->rom + offset + 1u, signature, length - 1u))
+        return 0;
+
+    unsigned cycles = 0;
+    long progress = 0;
+    if (load_script) {
+        static const uint16_t script_field[] = {0x12c8u, 0x12f8u, 0x1238u};
+        for (unsigned byte = 0; byte < 3u; ++byte) {
+            const uint32_t site = pc + 5u * byte;
+            const uint32_t source = script_field[byte] + registers->x;
+            Lufia2SpanFetch(registers, site, 3u, byte != 0u);
+            const uint8_t value = registers->read(registers->mem, bank | source);
+            Lufia2DecompApplyOperand(registers, 0xa9u, value, true);
+            const unsigned load_cycles = 4u + ((source >> 8) != (script_field[byte] >> 8));
+            Lufia2SpanAccountInstruction(cpu, load_cycles);
+            cycles += load_cycles;
+            if (dynamic_epoch != s_interp_dynamic_progress_epoch)
+                progress = 1u + 2u * byte;
+            Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+            Lufia2SpanFetch(registers, site + 3u, 2u, true);
+            registers->write(registers->mem, 0x5du + byte, value);
+            Lufia2SpanAccountInstruction(cpu, 3u);
+            cycles += 3u;
+            if (dynamic_epoch != s_interp_dynamic_progress_epoch || write_epoch != g_interp_bridge_write_epoch)
+                progress = 2u + 2u * byte;
+            Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+        }
+        Lufia2SpanFetch(registers, 0x868b9cu, 2u, true);
+        registers->write(registers->mem, 0x62u, (uint8_t)registers->a);
+        Lufia2SpanAccountInstruction(cpu, 3u);
+        cycles += 3u;
+        if (dynamic_epoch != s_interp_dynamic_progress_epoch || write_epoch != g_interp_bridge_write_epoch)
+            progress = 7;
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+        Lufia2SpanFetch(registers, 0x868b9eu, 3u, true);
+        Lufia2DecompModifyWram(registers, 0xfeu, slot_frame, slot_frame + 1u, false);
+        Lufia2SpanAccountInstruction(cpu, 7u);
+        cycles += 7u;
+        if (dynamic_epoch != s_interp_dynamic_progress_epoch || write_epoch != g_interp_bridge_write_epoch)
+            progress = 8;
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+    }
+
+    Lufia2SpanFetch(registers, 0x868ba1u, 3u, load_script);
+    const uint8_t frame = registers->read(registers->mem, slot_frame);
+    Lufia2DecompApplyOperand(registers, 0xa9u, frame, true);
+    Lufia2SpanAccountInstruction(cpu, 4u);
+    if (dynamic_epoch != s_interp_dynamic_progress_epoch)
+        progress = load_script ? 9 : 1;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+    Lufia2SpanFetch(registers, 0x868ba4u, 1u, true);
+    registers->c = (frame & 0x80u) != 0u;
+    Lufia2DecompApplyOperand(registers, 0xa9u, (uint8_t)(frame << 1), true);
+    Lufia2SpanAccountInstruction(cpu, 2u);
+
+    Lufia2SpanFetch(registers, 0x868ba5u, 1u, true);
+    Lufia2DecompApplyOperand(registers, 0xa0u, (uint8_t)registers->a, true);
+    registers->pc = 0x8ba6u;
+    registers->cyclesUsed = 2u;
+    Lufia2SpanAccountInstruction(cpu, 2u);
+    const long executed = load_script ? 11 : 3;
+    *tail_steps = progress ? executed - progress : 1 - executed;
+    return cycles + 8u;
+}
