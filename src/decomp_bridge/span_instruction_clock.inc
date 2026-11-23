@@ -25,3 +25,13 @@ static void Lufia2SpanFetch(Interp816 *registers, uint32_t pc, unsigned length, 
     for (unsigned i = 1; i < length; ++i)
         (void)registers->read(registers->mem, pc + i);
 }
+
+static void Lufia2SpanSyncProgress(CpuState *cpu, uint64_t *dynamic_epoch,
+                                   uint64_t *write_epoch) {
+    if (*dynamic_epoch != s_interp_dynamic_progress_epoch ||
+        *write_epoch != g_interp_bridge_write_epoch) {
+        *dynamic_epoch = s_interp_dynamic_progress_epoch;
+        *write_epoch = g_interp_bridge_write_epoch;
+        bridge_apu_flush(cpu);
+    }
+}

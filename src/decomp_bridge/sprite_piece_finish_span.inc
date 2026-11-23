@@ -17,7 +17,7 @@ static int SpritePieceEdge(Interp816 *registers, CpuState *cpu,
     const uint16_t index = Lufia2DecompReadData(registers, 0x54u, 0x55u, true);
     Lufia2DecompApplyOperand(registers, 0xa9u, index, false);
     Lufia2SpanAccountInstruction(cpu, 4u);
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     Lufia2SpanFetch(registers, pc + 2u, 3u, true);
     Lufia2DecompApplyOperand(registers, 0x29u, 0x0fu, false);
@@ -30,7 +30,7 @@ static int SpritePieceEdge(Interp816 *registers, CpuState *cpu,
     Lufia2SpanFetch(registers, pc + 6u, 2u, true);
     Lufia2DecompWriteData(registers, 0x65u, 0x66u, registers->a, true);
     Lufia2SpanAccountInstruction(cpu, 4u);
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     Lufia2SpanFetch(registers, pc + 8u, 2u, true);
     registers->mf = true;
@@ -41,7 +41,7 @@ static int SpritePieceEdge(Interp816 *registers, CpuState *cpu,
     Lufia2DecompApplyOperand(registers, 0xa9u, horizontal_offset, true);
     Lufia2SpanAccountInstruction(cpu, 3u);
     const bool progress = dynamic_epoch != s_interp_dynamic_progress_epoch;
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     Lufia2SpanFetch(registers, pc + 12u, 2u, true);
     Lufia2DecompApplyOperand(registers, 0x29u, 0x80u, true);
@@ -86,7 +86,7 @@ static int SpritePieceCarry(Interp816 *registers, CpuState *cpu,
         const uint8_t delta = registers->read(registers->mem, 0x59u);
         Lufia2DecompApplyOperand(registers, 0xa9u, delta, true);
         Lufia2SpanAccountInstruction(cpu, 3u);
-        SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
         if (dynamic_epoch != initial_epoch)
             last_progress = 1u;
 
@@ -108,14 +108,14 @@ static int SpritePieceCarry(Interp816 *registers, CpuState *cpu,
         Lufia2SpanAccountInstruction(cpu, 4u);
         if (dynamic_epoch != s_interp_dynamic_progress_epoch)
             last_progress = 5u;
-        SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
         pc += 9u;
     } else {
         Lufia2SpanFetch(registers, pc, 3u, false);
         const uint8_t coordinate = registers->read(registers->mem, x_low);
         Lufia2DecompApplyOperand(registers, 0xa9u, coordinate, true);
         Lufia2SpanAccountInstruction(cpu, 4u);
-        SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
         if (dynamic_epoch != initial_epoch)
             last_progress = 1u;
 
@@ -129,7 +129,7 @@ static int SpritePieceCarry(Interp816 *registers, CpuState *cpu,
         Lufia2SpanAccountInstruction(cpu, 3u);
         if (dynamic_epoch != s_interp_dynamic_progress_epoch)
             last_progress = 3u;
-        SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
         pc += 6u;
     }
 
@@ -139,7 +139,7 @@ static int SpritePieceCarry(Interp816 *registers, CpuState *cpu,
     Lufia2SpanAccountInstruction(cpu, 4u);
     if (dynamic_epoch != s_interp_dynamic_progress_epoch)
         last_progress = negative_offset ? 6u : 4u;
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     Lufia2SpanFetch(registers, pc + 3u, 2u, true);
     Lufia2DecompApplyOperand(registers, negative_offset ? 0x69u : 0xe9u, 0u, true);
@@ -198,7 +198,7 @@ static int SpritePiecePack(Interp816 *registers, CpuState *cpu,
     Lufia2DecompApplyOperand(registers, 0x09u, size, false);
     Lufia2SpanAccountInstruction(cpu, 4u);
     const bool progress = dynamic_epoch != s_interp_dynamic_progress_epoch;
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     Lufia2SpanFetch(registers, pc + 8u, 1u, true);
     registers->c = false;
@@ -233,20 +233,20 @@ static int SpritePieceCommit(Interp816 *registers, CpuState *cpu,
     const uint16_t previous_bits = Lufia2DecompReadData(registers, 0x63u, 0x64u, true);
     Lufia2DecompApplyOperand(registers, 0x09u, previous_bits, false);
     Lufia2SpanAccountInstruction(cpu, 4u);
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     Lufia2SpanFetch(registers, pc + 2u, 3u, true);
     const uint32_t oam = ((uint32_t)registers->db << 16) | (0x100u + registers->y);
     Lufia2DecompWriteData(registers, oam, oam + 1u, registers->a, true);
     const unsigned store_cycles = 7u;
     Lufia2SpanAccountInstruction(cpu, store_cycles);
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     for (unsigned offset = 5u; offset < 9u; offset += 2u) {
         Lufia2SpanFetch(registers, pc + offset, 2u, true);
         Lufia2DecompModifyWram(registers, 0xe6u, 0x54u, 0x55u, true);
         Lufia2SpanAccountInstruction(cpu, 7u);
-        SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
     }
 
     registers->pc = (uint16_t)(pc + 9u);
@@ -289,7 +289,7 @@ static int SpritePieceNext(Interp816 *registers, CpuState *cpu,
     Lufia2DecompApplyOperand(registers, 0xa0u, index, false);
     Lufia2SpanAccountInstruction(cpu, 5u);
     const bool stack_progress = dynamic_epoch != s_interp_dynamic_progress_epoch;
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     Lufia2SpanFetch(registers, pc + 3u, 2u, true);
     uint32_t source = Lufia2DecompReadData(registers, 0x5du, 0x5eu, true);
@@ -298,7 +298,7 @@ static int SpritePieceNext(Interp816 *registers, CpuState *cpu,
     Lufia2DecompApplyOperand(registers, 0xa9u, next_byte, true);
     Lufia2SpanAccountInstruction(cpu, 6u);
     const bool data_progress = dynamic_epoch != s_interp_dynamic_progress_epoch;
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     Lufia2SpanFetch(registers, pc + 5u, 2u, true);
     Lufia2DecompApplyOperand(registers, 0xc9u, 0xffu, true);

@@ -38,7 +38,7 @@ static int Lufia2DecompRunSpritePieceTile(Interp816 *registers, CpuState *cpu,
     const uint16_t tile_attributes = Lufia2DecompReadData(registers, low, (low + 1u) & 0xffffffu, true);
     Lufia2DecompApplyOperand(registers, 0xa9u, tile_attributes, false);
     Lufia2SpanAccountInstruction(cpu, 7u);
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     for (unsigned offset = 4u; offset < 6u; ++offset) {
         Lufia2SpanFetch(registers, pc + offset, 1u, true);
@@ -50,20 +50,20 @@ static int Lufia2DecompRunSpritePieceTile(Interp816 *registers, CpuState *cpu,
     registers->write(registers->mem, registers->sp--, (uint8_t)(registers->y >> 8));
     registers->write(registers->mem, registers->sp--, (uint8_t)registers->y);
     Lufia2SpanAccountInstruction(cpu, 4u);
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     Lufia2SpanFetch(registers, pc + 7u, 2u, true);
     const uint16_t destination = Lufia2DecompReadData(registers, 0x5au, 0x5bu, true);
     Lufia2DecompApplyOperand(registers, 0xa0u, destination, false);
     Lufia2SpanAccountInstruction(cpu, 4u);
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     Lufia2SpanFetch(registers, pc + 9u, 3u, true);
     const uint32_t oam = ((uint32_t)registers->db << 16) | (0x100u + destination);
     Lufia2DecompWriteData(registers, oam, oam + 1u, tile_attributes, true);
     const unsigned store_cycles = 7u;
     Lufia2SpanAccountInstruction(cpu, store_cycles);
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     for (unsigned offset = 12u; offset < 14u; ++offset) {
         Lufia2SpanFetch(registers, pc + offset, 1u, true);
@@ -76,7 +76,7 @@ static int Lufia2DecompRunSpritePieceTile(Interp816 *registers, CpuState *cpu,
     registers->pc = (uint16_t)(pc + 16u);
     registers->cyclesUsed = 4u;
     Lufia2SpanAccountInstruction(cpu, 4u);
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
     return 30u + store_cycles;
 }
 
@@ -109,7 +109,7 @@ static int Lufia2DecompRunSpritePieceHighWord(Interp816 *registers, CpuState *cp
     const uint16_t index = Lufia2DecompReadData(registers, 0x54u, 0x55u, true);
     Lufia2DecompApplyOperand(registers, 0xa9u, index, false);
     Lufia2SpanAccountInstruction(cpu, 4u);
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     for (unsigned offset = 2u; offset < 5u; ++offset) {
         Lufia2SpanFetch(registers, pc + offset, 1u, true);
@@ -139,13 +139,13 @@ static int Lufia2DecompRunSpritePieceHighWord(Interp816 *registers, CpuState *cp
     const uint16_t high_word = Lufia2DecompReadData(registers, oam, oam + 1u, true);
     Lufia2DecompApplyOperand(registers, 0xa9u, high_word, false);
     Lufia2SpanAccountInstruction(cpu, 6u);
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     Lufia2SpanFetch(registers, pc + 16u, 2u, true);
     Lufia2DecompWriteData(registers, 0x63u, 0x64u, high_word, true);
     registers->pc = (uint16_t)(pc + 18u);
     registers->cyclesUsed = 4u;
     Lufia2SpanAccountInstruction(cpu, 4u);
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
     return 33;
 }

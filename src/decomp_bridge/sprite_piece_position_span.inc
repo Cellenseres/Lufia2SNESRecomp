@@ -1,13 +1,3 @@
-static void SpritePositionProgress(CpuState *cpu, uint64_t *dynamic_epoch,
-                                   uint64_t *write_epoch) {
-    if (*dynamic_epoch != s_interp_dynamic_progress_epoch ||
-        *write_epoch != g_interp_bridge_write_epoch) {
-        *dynamic_epoch = s_interp_dynamic_progress_epoch;
-        *write_epoch = g_interp_bridge_write_epoch;
-        bridge_apu_flush(cpu);
-    }
-}
-
 static int Lufia2DecompRunSpritePiecePosition(Interp816 *registers, CpuState *cpu,
                                             uint32_t pc, uint8_t opcode, uint64_t dynamic_epoch,
                                             uint64_t write_epoch, long *tail_steps) {
@@ -34,13 +24,13 @@ static int Lufia2DecompRunSpritePiecePosition(Interp816 *registers, CpuState *cp
     registers->write(registers->mem, registers->sp--, (uint8_t)(registers->y >> 8));
     registers->write(registers->mem, registers->sp--, (uint8_t)registers->y);
     Lufia2SpanAccountInstruction(cpu, 4u);
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     Lufia2SpanFetch(registers, pc + 1u, 2u, true);
     const uint16_t destination = Lufia2DecompReadData(registers, 0x5au, 0x5bu, true);
     Lufia2DecompApplyOperand(registers, 0xa0u, destination, false);
     Lufia2SpanAccountInstruction(cpu, 4u);
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     unsigned cycles = 8u;
     const uint32_t bank = (uint32_t)registers->db << 16;
@@ -53,7 +43,7 @@ static int Lufia2DecompRunSpritePiecePosition(Interp816 *registers, CpuState *cp
         const uint8_t actor_position = registers->read(registers->mem, bank | coordinate);
         Lufia2DecompApplyOperand(registers, 0xa9u, actor_position, true);
         Lufia2SpanAccountInstruction(cpu, load_cycles);
-        SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
         Lufia2SpanFetch(registers, instruction + 3u, 1u, true);
         registers->c = true;
@@ -63,13 +53,13 @@ static int Lufia2DecompRunSpritePiecePosition(Interp816 *registers, CpuState *cp
         const uint8_t piece_offset = registers->read(registers->mem, 0x59u - axis);
         Lufia2DecompApplyOperand(registers, 0xe9u, piece_offset, true);
         Lufia2SpanAccountInstruction(cpu, 3u);
-        SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
         const unsigned store_cycles = 6u;
         Lufia2SpanFetch(registers, instruction + 6u, 3u, true);
         registers->write(registers->mem, bank | (0x100u + registers->y), (uint8_t)registers->a);
         Lufia2SpanAccountInstruction(cpu, store_cycles);
-        SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
         Lufia2SpanFetch(registers, instruction + 9u, 1u, true);
         Lufia2DecompApplyOperand(registers, 0xa0u, (uint16_t)(registers->y + 1u), false);
@@ -86,7 +76,7 @@ static int Lufia2DecompRunSpritePiecePosition(Interp816 *registers, CpuState *cp
     Lufia2SpanFetch(registers, pc + 24u, 2u, true);
     Lufia2DecompWriteData(registers, 0x5au, 0x5bu, registers->y, true);
     Lufia2SpanAccountInstruction(cpu, 4u);
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
 
     Lufia2SpanFetch(registers, pc + 26u, 1u, true);
     uint16_t source_index = registers->read(registers->mem, ++registers->sp);
@@ -96,6 +86,6 @@ static int Lufia2DecompRunSpritePiecePosition(Interp816 *registers, CpuState *cp
     registers->cyclesUsed = 5u;
     Lufia2SpanAccountInstruction(cpu, 5u);
     *tail_steps = dynamic_epoch != s_interp_dynamic_progress_epoch ? 0 : 1;
-    SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
     return cycles + 9u;
 }
