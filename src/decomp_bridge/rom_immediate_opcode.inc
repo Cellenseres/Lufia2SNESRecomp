@@ -490,7 +490,9 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
         return true;
 
     if (site == 0x8eb026u || site == 0x80e72du || site == 0x869b08u ||
-        site == 0x869b0cu || site == 0x869b13u)
+        site == 0x869b0cu || site == 0x869b13u || site == 0x869b29u ||
+        site == 0x869c52u || site == 0x869f14u || site == 0x869c5cu ||
+        site == 0x869c65u)
         return true;
 
     if ((target == 0x83b82fu && registers->mf && !registers->xf) ||
