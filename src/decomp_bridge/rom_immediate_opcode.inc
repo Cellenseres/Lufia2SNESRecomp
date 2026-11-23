@@ -457,6 +457,11 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
         site == 0x83e1ccu || site == 0x83f234u)
         return true;
 
+    if (target == 0x839e31u || (site >= 0x839013u && site <= 0x839f3eu) ||
+        (site >= 0x83b5d3u && site <= 0x83b66du) ||
+        site == 0x8082d7u || site == 0x80eca8u || site == 0x80ecacu || site == 0x80ecc0u)
+        return true;
+
     if (target == 0x80f734u || target == 0x80f81cu || Lufia2DecompIsRamBlockMove(target))
         return true;
 
