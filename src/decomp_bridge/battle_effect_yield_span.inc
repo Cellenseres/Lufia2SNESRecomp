@@ -88,7 +88,7 @@ static int Lufia2DecompRunBattleEffectDispatchReturn(Interp816 *registers, CpuSt
         pc == 0x81a128u || pc == 0x81a161u || pc == 0x81a6c5u ||
         pc == 0x818faau || pc == 0x818fc4u || pc == 0x81b3f7u ||
         pc == 0x81986du || pc == 0x819967u || pc == 0x85ab52u || pc == 0x85ab5au ||
-        pc == 0x8194ffu || pc == 0x819514u || pc == 0x819529u || pc == 0x81953eu || pc == 0x81a6f1u;
+        pc == 0x8194ffu || pc == 0x819514u || pc == 0x819529u || pc == 0x81953eu || pc == 0x81a6f1u || pc == 0x85b1cdu;
     if ((!pull && pc != 0x818c59u && !repeat_return) || opcode != (pull_y ? 0x7au : pull_index ? 0xfau : 0x60u) ||
         registers->e || (pull && registers->xf) ||
         registers->sp < 0x1f00u || registers->sp > 0x1ffdu ||
