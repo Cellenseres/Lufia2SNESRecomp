@@ -586,11 +586,13 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
     case 0x8196feu: case 0x819738u: case 0x81976bu: case 0x8197a5u:
     case 0x819935u:
     case 0x819999u: case 0x8199a5u: case 0x8199b0u:
-    case 0x8199d0u: case 0x819a12u: case 0x819ab1u: case 0x819ba3u:
+    case 0x8199d0u: case 0x819a12u: case 0x819ab1u: case 0x819af7u:
+    case 0x819ba3u:
     case 0x819df6u:
     case 0x81a12au: case 0x81a35eu: case 0x81a3e9u:
     case 0x81a40bu: case 0x81a588u: case 0x81a598u:
-    case 0x81a69au: case 0x81a6c6u: case 0x81a770u:
+    case 0x81a605u: case 0x81a619u: case 0x81a69au:
+    case 0x81a6c6u: case 0x81a71cu: case 0x81a770u:
         return true;
     default:
         break;
@@ -600,7 +602,8 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
         Lufia2DecompDisplayTimedCall(site, registers))
         return true;
 
-    if (site == 0x81a5aau || site == 0x81a6a9u || site == 0x81a6d5u || site == 0x81a77fu)
+    if (site == 0x81a5aau || site == 0x81a6a9u || site == 0x81a6d5u ||
+        site == 0x81a72bu || site == 0x81a77fu)
         return true;
 
     if (site == 0x85ddb0u || site == 0x85dde6u) {
@@ -610,7 +613,7 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
             registers->sp >= 0x1f00u && registers->sp <= 0x1ff7u) {
             const uint32_t caller = Lufia2DecompStackLongReturn(cpu->ram + registers->sp + 6u);
             if (caller == 0x81a5adu || caller == 0x81a6acu ||
-                caller == 0x81a6d8u || caller == 0x81a782u)
+                caller == 0x81a6d8u || caller == 0x81a72eu || caller == 0x81a782u)
                 return true;
         }
     }
