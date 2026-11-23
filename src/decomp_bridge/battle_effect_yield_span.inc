@@ -82,7 +82,8 @@ static int Lufia2DecompRunBattleEffectDispatchReturn(Interp816 *registers, CpuSt
     const bool pull_index = pc == 0x818c58u;
     const unsigned cycles = pull_index ? 5u : 6u;
     const bool repeat_return = pc == 0x819552u || pc == 0x819566u ||
-        pc == 0x81957au || pc == 0x81958eu;
+        pc == 0x81957au || pc == 0x81958eu ||
+        pc == 0x81a128u || pc == 0x81a161u || pc == 0x81a6c5u;
     if ((!pull_index && pc != 0x818c59u && !repeat_return) || opcode != (pull_index ? 0xfau : 0x60u) ||
         registers->e || (pull_index && registers->xf) ||
         registers->sp < 0x1f00u || registers->sp > 0x1ffdu ||

@@ -3391,7 +3391,7 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                steps = tail_steps < 0 ? steps - tail_steps : tail_steps;\n"
                         "            }\n"
                         "        }\n"
-                        "        if (!_cyc && (pc_before == 0x818c58u || pc_before == 0x818c59u || pc_before == 0x819552u || pc_before == 0x819566u || pc_before == 0x81957au || pc_before == 0x81958eu) && auto_quiescent && !n_stop &&\n"
+                        "        if (!_cyc && (pc_before == 0x818c58u || pc_before == 0x818c59u || pc_before == 0x819552u || pc_before == 0x819566u || pc_before == 0x81957au || pc_before == 0x81958eu || pc_before == 0x81a128u || pc_before == 0x81a161u || pc_before == 0x81a6c5u) && auto_quiescent && !n_stop &&\n"
                         "            !stop_on_rti && !trace && !dtrace && !wlog_state_sync && !s_interp_pctrace &&\n"
                         "            !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() && g_snes &&\n"
                         "            !g_snes->inNmi && !g_snes->inIrq && !g_snes->hIrqEnabled &&\n"
