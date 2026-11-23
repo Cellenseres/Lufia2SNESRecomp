@@ -494,3 +494,236 @@ static int Lufia2DecompRunMenuNumberSign(Interp816 *registers, CpuState *cpu, ui
     *tail_steps = 2;
     return 18;
 }
+
+static int RunMenuDecimalMinus(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+                                uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+    const bool check_sign = pc == 0x808968u;
+    const bool search = pc == 0x80896fu;
+    if ((!check_sign && !search && pc != 0x808979u) ||
+        opcode != (check_sign ? 0xa5u : search ? 0xb9u : 0xa9u) ||
+        registers->e || !registers->mf || registers->xf || registers->dp || registers->db != 0x7eu ||
+        registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
+        (search && registers->y > 7u) ||
+        (!check_sign && !search && registers->y > 7u && registers->y != 0xffffu) ||
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (search ? 13u : 8u))
+        return 0;
+
+    unsigned offset;
+    const unsigned length = check_sign ? 7u : search ? 10u : 5u;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
+    const char *signature = check_sign ? "\x55\xf0\x12\xa0\x07\x00" :
+        search ? "\x67\x05\xc9\x20\xf0\x03\x88\x10\xf6" : "\x2d\x99\x67\x05";
+    if (!cart || memcmp(cart->rom + offset + 1u, signature, length - 1u))
+        return 0;
+
+    if (!check_sign && !search) {
+        Lufia2SpanFetch(registers, pc, 2u, false);
+        Lufia2DecompApplyOperand(registers, 0xa9u, 0x2du, true);
+        Lufia2SpanAccountInstruction(cpu, 2u);
+
+        Lufia2SpanFetch(registers, pc + 2u, 3u, true);
+        registers->write(registers->mem, 0x7e0567u + registers->y, 0x2du);
+        registers->pc = 0x897eu;
+        registers->cyclesUsed = 6u;
+        Lufia2SpanAccountInstruction(cpu, 6u);
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+        *tail_steps = 0;
+        return 8;
+    }
+
+    Lufia2SpanFetch(registers, pc, check_sign ? 2u : 3u, false);
+    const uint8_t value = registers->read(registers->mem, check_sign ? 0x55u : 0x7e0567u + registers->y);
+    Lufia2DecompApplyOperand(registers, 0xa9u, value, true);
+    Lufia2SpanAccountInstruction(cpu, check_sign ? 3u : 4u);
+    const bool progress = dynamic_epoch != s_interp_dynamic_progress_epoch;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+    if (check_sign) {
+        Lufia2SpanFetch(registers, pc + 2u, 2u, true);
+        if (registers->z) {
+            registers->pc = 0x897eu;
+            registers->cyclesUsed = 3u;
+            Lufia2SpanAccountInstruction(cpu, 3u);
+            *tail_steps = progress ? 1 : -1;
+            return 6;
+        }
+        Lufia2SpanAccountInstruction(cpu, 2u);
+
+        Lufia2SpanFetch(registers, pc + 4u, 3u, true);
+        Lufia2DecompApplyOperand(registers, 0xa0u, 7u, false);
+        registers->pc = 0x896fu;
+        registers->cyclesUsed = 3u;
+        Lufia2SpanAccountInstruction(cpu, 3u);
+        *tail_steps = progress ? 2 : -2;
+        return 8;
+    }
+
+    Lufia2SpanFetch(registers, pc + 3u, 2u, true);
+    Lufia2DecompApplyOperand(registers, 0xc9u, 0x20u, true);
+    Lufia2SpanAccountInstruction(cpu, 2u);
+
+    Lufia2SpanFetch(registers, pc + 5u, 2u, true);
+    if (registers->z) {
+        registers->pc = 0x8979u;
+        registers->cyclesUsed = 3u;
+        Lufia2SpanAccountInstruction(cpu, 3u);
+        *tail_steps = progress ? 2 : -2;
+        return 9;
+    }
+    Lufia2SpanAccountInstruction(cpu, 2u);
+
+    Lufia2SpanFetch(registers, pc + 7u, 1u, true);
+    Lufia2DecompApplyOperand(registers, 0xa0u, (uint16_t)(registers->y - 1u), false);
+    Lufia2SpanAccountInstruction(cpu, 2u);
+
+    Lufia2SpanFetch(registers, pc + 8u, 2u, true);
+    registers->pc = registers->n ? 0x8979u : 0x896fu;
+    registers->cyclesUsed = registers->n ? 2u : 3u;
+    Lufia2SpanAccountInstruction(cpu, registers->cyclesUsed);
+    *tail_steps = progress ? 4 : -4;
+    return 10u + registers->cyclesUsed;
+}
+
+static void MenuDecimalStoreCursor(Interp816 *registers, CpuState *cpu, bool fetch_opcode,
+                                   uint64_t dynamic_epoch, uint64_t write_epoch) {
+    Lufia2SpanFetch(registers, 0x80899fu, 2u, fetch_opcode);
+    Lufia2DecompWriteData(registers, 0x60u, 0x61u, registers->x, true);
+    Lufia2SpanAccountInstruction(cpu, 4u);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+    Lufia2SpanFetch(registers, 0x8089a1u, 2u, true);
+    registers->write(registers->mem, 0x62u, 0u);
+    registers->pc = 0x89a3u;
+    registers->cyclesUsed = 3u;
+    Lufia2SpanAccountInstruction(cpu, 3u);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+}
+
+static int RunMenuDecimalCursor(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+                                 uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+    const bool select_format = pc == 0x80897eu;
+    const bool skip_blank = pc == 0x808988u;
+    const bool store_cursor = pc == 0x80899fu;
+    if ((!select_format && !skip_blank && !store_cursor && pc != 0x808991u) ||
+        opcode != (select_format ? 0xadu : skip_blank ? 0xb5u : store_cursor ? 0x86u : 0xa9u) ||
+        registers->e || !registers->mf || registers->xf || registers->dp ||
+        registers->db != 0x7eu || registers->waiting || registers->stopped ||
+        registers->irqWanted || registers->nmiWanted ||
+        (skip_blank && (registers->x < 0x0567u || registers->x > 0x056eu)) ||
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (select_format ? 11u : skip_blank ? 13u : store_cursor ? 7u : 28u))
+        return 0;
+
+    unsigned offset;
+    const unsigned length = select_format ? 10u : skip_blank ? 9u : store_cursor ? 4u : 18u;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
+    const char *signature = select_format ? "\x7b\x05\x29\x10\xf0\x0c\xa2\x67\x05" :
+        skip_blank ? "\x00\xc9\x20\xd0\x11\xe8\x80\xf7" :
+        store_cursor ? "\x60\x64\x62" :
+        "\x00\xeb\xa5\x54\xc2\x20\x18\x69\x67\x05\xaa\xe2\x20\x86\x60\x64\x62";
+    if (!cart || memcmp(cart->rom + offset + 1u, signature, length - 1u))
+        return 0;
+
+    if (store_cursor) {
+        MenuDecimalStoreCursor(registers, cpu, false, dynamic_epoch, write_epoch);
+        *tail_steps = 0;
+        return 7;
+    }
+
+    if (select_format || skip_blank) {
+        Lufia2SpanFetch(registers, pc, select_format ? 3u : 2u, false);
+        const uint8_t value = registers->read(registers->mem, select_format ? 0x7e057bu : registers->x);
+        Lufia2DecompApplyOperand(registers, 0xa9u, value, true);
+        Lufia2SpanAccountInstruction(cpu, 4u);
+        const bool progress = dynamic_epoch != s_interp_dynamic_progress_epoch;
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+        const unsigned branch = select_format ? 5u : 4u;
+        Lufia2SpanFetch(registers, pc + branch - 2u, 2u, true);
+        Lufia2DecompApplyOperand(registers, select_format ? 0x29u : 0xc9u,
+                                select_format ? 0x10u : 0x20u, true);
+        Lufia2SpanAccountInstruction(cpu, 2u);
+
+        Lufia2SpanFetch(registers, pc + branch, 2u, true);
+        const bool taken = select_format ? registers->z : !registers->z;
+        Lufia2SpanAccountInstruction(cpu, taken ? 3u : 2u);
+        if (taken) {
+            registers->pc = select_format ? 0x8991u : 0x899fu;
+            registers->cyclesUsed = 3u;
+            *tail_steps = progress ? 2 : -2;
+            return 9;
+        }
+        if (select_format) {
+            Lufia2SpanFetch(registers, pc + 7u, 3u, true);
+            Lufia2DecompApplyOperand(registers, 0xa2u, 0x0567u, false);
+            registers->pc = 0x8988u;
+            registers->cyclesUsed = 3u;
+            Lufia2SpanAccountInstruction(cpu, 3u);
+            *tail_steps = progress ? 3 : -3;
+            return 11;
+        }
+
+        Lufia2SpanFetch(registers, pc + 6u, 1u, true);
+        Lufia2DecompApplyOperand(registers, 0xa2u, (uint16_t)(registers->x + 1u), false);
+        Lufia2SpanAccountInstruction(cpu, 2u);
+        Lufia2SpanFetch(registers, pc + 7u, 2u, true);
+        registers->pc = 0x8988u;
+        registers->cyclesUsed = 3u;
+        Lufia2SpanAccountInstruction(cpu, 3u);
+        *tail_steps = progress ? 4 : -4;
+        return 13;
+    }
+
+    Lufia2SpanFetch(registers, pc, 2u, false);
+    Lufia2DecompApplyOperand(registers, 0xa9u, 0u, true);
+    Lufia2SpanAccountInstruction(cpu, 2u);
+
+    Lufia2SpanFetch(registers, pc + 2u, 1u, true);
+    MenuGlyphExchangeBytes(registers);
+    Lufia2SpanAccountInstruction(cpu, 3u);
+
+    Lufia2SpanFetch(registers, pc + 3u, 2u, true);
+    const uint8_t digit_offset = registers->read(registers->mem, 0x54u);
+    Lufia2DecompApplyOperand(registers, 0xa9u, digit_offset, true);
+    Lufia2SpanAccountInstruction(cpu, 3u);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+    Lufia2SpanFetch(registers, pc + 5u, 2u, true);
+    registers->mf = false;
+    Lufia2SpanAccountInstruction(cpu, 3u);
+
+    Lufia2SpanFetch(registers, pc + 7u, 1u, true);
+    registers->c = false;
+    Lufia2SpanAccountInstruction(cpu, 2u);
+
+    Lufia2SpanFetch(registers, pc + 8u, 3u, true);
+    Lufia2DecompApplyOperand(registers, 0x69u, 0x0567u, false);
+    Lufia2SpanAccountInstruction(cpu, 3u);
+
+    Lufia2SpanFetch(registers, pc + 11u, 1u, true);
+    Lufia2DecompApplyOperand(registers, 0xa2u, registers->a, false);
+    Lufia2SpanAccountInstruction(cpu, 2u);
+
+    Lufia2SpanFetch(registers, pc + 12u, 2u, true);
+    registers->mf = true;
+    Lufia2SpanAccountInstruction(cpu, 3u);
+
+    MenuDecimalStoreCursor(registers, cpu, true, dynamic_epoch, write_epoch);
+    *tail_steps = 0;
+    return 28;
+}
+
+static int Lufia2DecompRunMenuDecimalOutput(Interp816 *registers, CpuState *cpu,
+                                           uint32_t pc, uint8_t opcode, uint64_t dynamic_epoch,
+                                           uint64_t write_epoch, long room, long *tail_steps) {
+    if (pc < 0x80897eu) {
+        const long instructions = pc == 0x80896fu ? 5 : pc == 0x808968u ? 3 : 2;
+        return room >= instructions
+            ? RunMenuDecimalMinus(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, tail_steps)
+            : 0;
+    }
+
+    const long instructions = pc == 0x808991u ? 10 : pc == 0x808988u ? 5 : pc == 0x80897eu ? 4 : 2;
+    return room >= instructions
+        ? RunMenuDecimalCursor(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, tail_steps)
+        : 0;
+}
