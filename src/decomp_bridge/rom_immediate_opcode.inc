@@ -495,34 +495,47 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
         site == 0x869c65u)
         return true;
 
-    if (site == 0x869b2cu)
+    if (site == 0x869b24u || site == 0x869b2cu)
         return true;
 
     switch (site) {
-    case 0x80be1au: case 0x80be20u: case 0x8692a1u: case 0x8692a4u:
-    case 0x8692b2u: case 0x8692b5u: case 0x8692b8u: case 0x8692c4u:
-    case 0x8692c7u: case 0x8692cau: case 0x8692cdu: case 0x8692d0u:
-    case 0x86995bu: case 0x86a45eu: case 0x86ac73u:
+    case 0x80954bu: case 0x80954eu: case 0x80be1au: case 0x80be20u:
+    case 0x8692a1u: case 0x8692a4u: case 0x8692b2u: case 0x8692b5u:
+    case 0x8692b8u: case 0x8692c4u: case 0x8692c7u: case 0x8692cau:
+    case 0x8692cdu: case 0x8692d0u: case 0x869748u: case 0x86995bu:
+    case 0x869b30u: case 0x869b35u: case 0x869b3au: case 0x869b3fu:
+    case 0x869b42u: case 0x869b45u: case 0x869b48u: case 0x869b4du:
+    case 0x869b50u: case 0x869b53u: case 0x869b56u: case 0x869b62u:
+    case 0x869b65u: case 0x869b68u: case 0x869b6bu: case 0x869b6eu:
+    case 0x869b73u: case 0x869b78u: case 0x869b84u: case 0x869b87u:
+    case 0x869b8au: case 0x869b95u: case 0x869ba0u: case 0x869ba3u:
+    case 0x869ba9u: case 0x869bb2u: case 0x869bb5u: case 0x869bb8u:
+    case 0x869bc1u: case 0x869bd7u: case 0x869c07u: case 0x869c0fu:
+    case 0x869c2du: case 0x86a2b5u: case 0x86a45eu: case 0x86ac73u:
     case 0x86ac76u: case 0x86ace4u: case 0x86ada7u: case 0x86adb0u:
     case 0x86adeau: case 0x86ae5cu: case 0x86cbbfu: case 0x86cc63u:
     case 0x86cc66u: case 0x86cc70u: case 0x86cc79u: case 0x86cc8du:
     case 0x86cce4u: case 0x86cce7u: case 0x86cceau: case 0x86ccedu:
-    case 0x86ccf8u: case 0x86cd0du: case 0x86cd22u: case 0x86cd26u:
-    case 0x86cd3cu: case 0x86cd41u: case 0x86cd4au: case 0x86cd52u:
-    case 0x86cd58u: case 0x86cd5bu: case 0x86cd5eu: case 0x86d34au:
-    case 0x86d356u: case 0x86d359u: case 0x86d39cu: case 0x86e1b9u:
+    case 0x86ccf0u: case 0x86ccf8u: case 0x86cd0du: case 0x86cd22u:
+    case 0x86cd26u: case 0x86cd3cu: case 0x86cd41u: case 0x86cd4au:
+    case 0x86cd52u: case 0x86cd58u: case 0x86cd5bu: case 0x86cd5eu:
+    case 0x86d34au: case 0x86d356u: case 0x86d359u: case 0x86d378u:
+    case 0x86d39cu: case 0x86d39fu: case 0x86e140u: case 0x86e1b9u:
     case 0x86e1bcu: case 0x86e1f5u: case 0x86e1ffu: case 0x86e202u:
     case 0x86e26bu: case 0x86e287u: case 0x86e3b9u: case 0x86e3ceu:
-    case 0x86e3dbu: case 0x86e3feu: case 0x86e413u: case 0x86e4dbu:
-    case 0x86e5b4u: case 0x86e5b7u: case 0x86e5ceu: {
-        /* The restore and menu JSR frames distinguish this from map entry. */
+    case 0x86e3dbu: case 0x86e3feu: case 0x86e413u: case 0x86e418u:
+    case 0x86e4dbu: case 0x86e5b4u: case 0x86e5b7u: case 0x86e5ceu: {
+        /* The menu return and its caller distinguish these calls from map entry. */
         const CpuState *cpu = registers->mem;
         if (!cpu || !cpu->ram || registers->e || registers->sp < 0x1f00u)
             break;
-        const uint8_t restore_frames[] = {0x2eu, 0x9bu, 0x7eu, 0x92u};
-        for (unsigned address = (unsigned)registers->sp + 1u; address <= 0x1ffcu; ++address)
-            if (memcmp(cpu->ram + address, restore_frames, sizeof(restore_frames)) == 0)
+        const uint8_t menu_frames[] = {0x9bu, 0x7eu, 0x92u};
+        for (unsigned address = (unsigned)registers->sp + 1u; address <= 0x1ffcu; ++address) {
+            const uint8_t return_low = cpu->ram[address];
+            if ((return_low == 0x26u || return_low == 0x2eu) &&
+                memcmp(cpu->ram + address + 1u, menu_frames, sizeof(menu_frames)) == 0)
                 return true;
+        }
         break;
     }
     default:
