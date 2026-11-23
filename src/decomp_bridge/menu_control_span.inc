@@ -2305,3 +2305,30 @@ static int Lufia2DecompRunMenuRecolorRedraw(Interp816 *registers, CpuState *cpu,
     Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
     return 16;
 }
+
+static int Lufia2DecompRunMenuSlideTick(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+                            uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+    if (pc != 0x828afau || opcode != 0xc6u || registers->e || !registers->mf ||
+        registers->dp || registers->waiting || registers->stopped || registers->irqWanted ||
+        registers->nmiWanted || BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 8u)
+        return 0;
+
+    unsigned offset;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 4u, &offset);
+    if (!cart || memcmp(cart->rom + offset + 1u, "\xed\xd0\x08", 3u))
+        return 0;
+
+    Lufia2SpanFetch(registers, pc, 2u, false);
+    Lufia2DecompModifyWram(registers, 0xc6u, 0xedu, 0xeeu, false);
+    Lufia2SpanAccountInstruction(cpu, 5u);
+    const bool counter_progress = dynamic_epoch != s_interp_dynamic_progress_epoch ||
+        write_epoch != g_interp_bridge_write_epoch;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+    Lufia2SpanFetch(registers, pc + 2u, 2u, true);
+    registers->pc = registers->z ? 0x8afeu : 0x8b06u;
+    registers->cyclesUsed = registers->z ? 2u : 3u;
+    Lufia2SpanAccountInstruction(cpu, registers->cyclesUsed);
+    *tail_steps = counter_progress ? 1 : -1;
+    return 5u + registers->cyclesUsed;
+}
