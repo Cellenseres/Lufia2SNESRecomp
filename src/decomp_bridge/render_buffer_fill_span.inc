@@ -100,3 +100,51 @@ static int Lufia2DecompRunMenuTileClear(Interp816 *registers, CpuState *cpu, uin
     }
     return (int)cycles;
 }
+
+static int Lufia2DecompRunMenuTileBlock(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+                            uint64_t dynamic_epoch, uint64_t write_epoch) {
+    if (pc != 0x8280b3u || opcode != 0x9fu || registers->e || registers->mf || registers->xf ||
+        registers->y < 1u || registers->y > 4u || registers->waiting || registers->stopped ||
+        registers->irqWanted || registers->nmiWanted)
+        return 0;
+
+    const uint64_t room = BufferSpanCycleBudget(cpu, s_lle_master_deadline) / 17u;
+    const unsigned count = room < registers->y ? (unsigned)room : registers->y;
+    if (!count)
+        return 0;
+
+    unsigned offset;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 10u, &offset);
+    if (!cart || memcmp(cart->rom + offset + 1u, "\x00\x28\x7e\xe8\xe8\x1a\x88\xd0\xf6", 9u))
+        return 0;
+
+    unsigned cycles = 0;
+    for (unsigned tile = 0; tile < count; ++tile) {
+        Lufia2SpanFetch(registers, pc, 4u, tile != 0u);
+        const uint32_t destination = 0x7e2800u + registers->x;
+        Lufia2DecompWriteData(registers, destination, destination + 1u, registers->a, true);
+        Lufia2SpanAccountInstruction(cpu, 6u);
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+        for (unsigned offset = 4u; offset < 6u; ++offset) {
+            Lufia2SpanFetch(registers, pc + offset, 1u, true);
+            Lufia2DecompApplyOperand(registers, 0xa2u, (uint16_t)(registers->x + 1u), false);
+            Lufia2SpanAccountInstruction(cpu, 2u);
+        }
+
+        Lufia2SpanFetch(registers, pc + 6u, 1u, true);
+        Lufia2DecompApplyOperand(registers, 0xa9u, (uint16_t)(registers->a + 1u), false);
+        Lufia2SpanAccountInstruction(cpu, 2u);
+
+        Lufia2SpanFetch(registers, pc + 7u, 1u, true);
+        Lufia2DecompApplyOperand(registers, 0xa0u, (uint16_t)(registers->y - 1u), false);
+        Lufia2SpanAccountInstruction(cpu, 2u);
+
+        Lufia2SpanFetch(registers, pc + 8u, 2u, true);
+        registers->pc = registers->z ? 0x80bdu : 0x80b3u;
+        registers->cyclesUsed = registers->z ? 2u : 3u;
+        Lufia2SpanAccountInstruction(cpu, registers->cyclesUsed);
+        cycles += 14u + registers->cyclesUsed;
+    }
+    return (int)cycles;
+}
