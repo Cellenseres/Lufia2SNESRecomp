@@ -6,7 +6,7 @@ static int Lufia2DecompRunSpritePieceTile(Interp816 *registers, CpuState *cpu,
         registers->irqWanted || registers->nmiWanted || !cpu->ram ||
         registers->sp < 0x1f02u || registers->sp > 0x1fffu ||
         !Lufia2DecompIsWramByte(((uint32_t)registers->db << 16) | 0x300u) ||
-        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 38u)
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 37u)
         return 0;
 
     const unsigned oam_index = cpu->ram[0x5au] | ((unsigned)cpu->ram[0x5bu] << 8);
@@ -61,7 +61,7 @@ static int Lufia2DecompRunSpritePieceTile(Interp816 *registers, CpuState *cpu,
     Lufia2SpanFetch(registers, pc + 9u, 3u, true);
     const uint32_t oam = ((uint32_t)registers->db << 16) | (0x100u + destination);
     Lufia2DecompWriteData(registers, oam, oam + 1u, tile_attributes, true);
-    const unsigned store_cycles = 7u + (destination >= 0x100u);
+    const unsigned store_cycles = 7u;
     Lufia2SpanAccountInstruction(cpu, store_cycles);
     SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
 

@@ -16,7 +16,7 @@ static int Lufia2DecompRunSpritePiecePosition(Interp816 *registers, CpuState *cp
         registers->irqWanted || registers->nmiWanted || !cpu->ram ||
         registers->sp < 0x1f02u || registers->sp > 0x1fffu || registers->x >= 48u ||
         !Lufia2DecompIsWramByte(((uint32_t)registers->db << 16) | 0x1417u) ||
-        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 56u)
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 54u)
         return 0;
 
     const unsigned oam_index = cpu->ram[0x5au] | ((unsigned)cpu->ram[0x5bu] << 8);
@@ -65,7 +65,7 @@ static int Lufia2DecompRunSpritePiecePosition(Interp816 *registers, CpuState *cp
         Lufia2SpanAccountInstruction(cpu, 3u);
         SpritePositionProgress(cpu, &dynamic_epoch, &write_epoch);
 
-        const unsigned store_cycles = 6u + (registers->y >= 0x100u);
+        const unsigned store_cycles = 6u;
         Lufia2SpanFetch(registers, instruction + 6u, 3u, true);
         registers->write(registers->mem, bank | (0x100u + registers->y), (uint8_t)registers->a);
         Lufia2SpanAccountInstruction(cpu, store_cycles);
