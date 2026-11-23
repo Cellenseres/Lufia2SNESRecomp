@@ -78,22 +78,22 @@ static int FieldAttributeLookup(Interp816 *registers, CpuState *cpu, uint32_t pc
 
 static int FieldAttributeClass(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
                                   uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
-    const bool solid = pc == 0x80edffu;
-    if ((!solid && pc != 0x80ee05u) || opcode != (solid ? 0xa9u : 0xc9u) ||
+    const bool high_class_bits = pc == 0x80edffu;
+    if ((!high_class_bits && pc != 0x80ee05u) || opcode != (high_class_bits ? 0xa9u : 0xc9u) ||
         registers->e || !registers->mf || registers->dp || registers->waiting || registers->stopped ||
         registers->irqWanted || registers->nmiWanted ||
-        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (solid ? 8u : 17u))
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (high_class_bits ? 8u : 17u))
         return 0;
 
     unsigned offset;
-    const unsigned length = solid ? 6u : 18u;
+    const unsigned length = high_class_bits ? 6u : 18u;
     const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
-    const char *signature = solid ? "\x08\x85\x56\x80\x12" :
+    const char *signature = high_class_bits ? "\x08\x85\x56\x80\x12" :
         "\x08\xf0\x0a\xc9\x09\xf0\x02\x80\x08\xa9\x80\x80\x02\xa9\x02\x85\x56";
     if (!cart || memcmp(cart->rom + offset + 1u, signature, length - 1u))
         return 0;
 
-    if (solid) {
+    if (high_class_bits) {
         Lufia2SpanFetch(registers, pc, 2u, false);
         Lufia2DecompApplyOperand(registers, 0xa9u, 8u, true);
         Lufia2SpanAccountInstruction(cpu, 2u);
@@ -115,11 +115,11 @@ static int FieldAttributeClass(Interp816 *registers, CpuState *cpu, uint32_t pc,
     Lufia2DecompApplyOperand(registers, 0xc9u, 8u, true);
     Lufia2SpanAccountInstruction(cpu, 2u);
     Lufia2SpanFetch(registers, pc + 2u, 2u, true);
-    const bool ladder = registers->z;
-    unsigned cycles = ladder ? 5u : 4u;
-    Lufia2SpanAccountInstruction(cpu, ladder ? 3u : 2u);
+    const bool class_eight = registers->z;
+    unsigned cycles = class_eight ? 5u : 4u;
+    Lufia2SpanAccountInstruction(cpu, class_eight ? 3u : 2u);
 
-    if (!ladder) {
+    if (!class_eight) {
         Lufia2SpanFetch(registers, pc + 4u, 2u, true);
         Lufia2DecompApplyOperand(registers, 0xc9u, 9u, true);
         Lufia2SpanAccountInstruction(cpu, 2u);
@@ -137,11 +137,11 @@ static int FieldAttributeClass(Interp816 *registers, CpuState *cpu, uint32_t pc,
         cycles += 5u;
     }
 
-    const uint8_t bits = ladder ? 2u : 0x80u;
-    Lufia2SpanFetch(registers, ladder ? 0x80ee13u : 0x80ee0fu, 2u, true);
+    const uint8_t bits = class_eight ? 2u : 0x80u;
+    Lufia2SpanFetch(registers, class_eight ? 0x80ee13u : 0x80ee0fu, 2u, true);
     Lufia2DecompApplyOperand(registers, 0xa9u, bits, true);
     Lufia2SpanAccountInstruction(cpu, 2u);
-    if (!ladder) {
+    if (!class_eight) {
         Lufia2SpanFetch(registers, 0x80ee11u, 2u, true);
         Lufia2SpanAccountInstruction(cpu, 3u);
         cycles += 3u;
@@ -157,21 +157,42 @@ static int FieldAttributeClass(Interp816 *registers, CpuState *cpu, uint32_t pc,
     return cycles + 5u;
 }
 
-static int FieldAttributeCell(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+static int FieldAttributeWrite(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
                                  uint64_t dynamic_epoch, uint64_t write_epoch) {
-    if (pc != 0x80ee18u || opcode != 0xbfu || registers->e || !registers->mf || registers->xf ||
-        registers->dp || registers->db != 0x7eu || registers->x == 0xffffu || registers->y >= 0xc000u ||
+    const bool restore_cursor = pc == 0x80ee17u;
+    if ((!restore_cursor && pc != 0x80ee18u) || opcode != (restore_cursor ? 0x7au : 0xbfu) || registers->e || !registers->mf || registers->xf ||
+        registers->dp || registers->db != 0x7eu || registers->x == 0xffffu ||
         registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
-        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 34u)
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (restore_cursor ? 39u : 34u))
+        return 0;
+
+    if (restore_cursor && (!cpu->ram || registers->sp < 0x1f00u || registers->sp > 0x1ffdu))
+        return 0;
+    unsigned cursor = registers->y;
+    if (restore_cursor)
+        cursor = cpu->ram[registers->sp + 1u] | ((unsigned)cpu->ram[registers->sp + 2u] << 8);
+    if (cursor >= 0xc000u)
         return 0;
 
     unsigned offset;
-    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 20u, &offset);
-    if (!cart || memcmp(cart->rom + offset + 1u,
-        "\x01\x00\x7f\x29\x0c\x0a\x0a\x05\x56\x99\x00\x40\xc8\xe8\xe8\xc6\x54\xd0\xbe", 19u))
+    const unsigned length = restore_cursor ? 21u : 20u;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
+    const char *signature = restore_cursor ?
+        "\xbf\x01\x00\x7f\x29\x0c\x0a\x0a\x05\x56\x99\x00\x40\xc8\xe8\xe8\xc6\x54\xd0\xbe" :
+        "\x01\x00\x7f\x29\x0c\x0a\x0a\x05\x56\x99\x00\x40\xc8\xe8\xe8\xc6\x54\xd0\xbe";
+    if (!cart || memcmp(cart->rom + offset + 1u, signature, length - 1u))
         return 0;
 
-    Lufia2SpanFetch(registers, pc, 4u, false);
+    if (restore_cursor) {
+        Lufia2SpanFetch(registers, pc++, 1u, false);
+        uint16_t y = registers->read(registers->mem, ++registers->sp);
+        y |= (uint16_t)registers->read(registers->mem, ++registers->sp) << 8;
+        Lufia2DecompApplyOperand(registers, 0xa0u, y, false);
+        Lufia2SpanAccountInstruction(cpu, 5u);
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+    }
+
+    Lufia2SpanFetch(registers, pc, 4u, restore_cursor);
     const uint8_t source = registers->read(registers->mem, 0x7f0001u + registers->x);
     Lufia2DecompApplyOperand(registers, 0xa9u, source, true);
     Lufia2SpanAccountInstruction(cpu, 5u);
@@ -219,7 +240,32 @@ static int FieldAttributeCell(Interp816 *registers, CpuState *cpu, uint32_t pc, 
     registers->pc = registers->z ? 0xee2cu : 0xedeau;
     registers->cyclesUsed = registers->z ? 2u : 3u;
     Lufia2SpanAccountInstruction(cpu, registers->cyclesUsed);
-    return 31u + registers->cyclesUsed;
+    return (restore_cursor ? 36u : 31u) + registers->cyclesUsed;
+}
+
+static int FieldAttributeCount(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+                                  uint64_t dynamic_epoch, uint64_t write_epoch) {
+    if (pc != 0x80ee2cu || opcode != 0xc6u || registers->e || !registers->mf ||
+        registers->dp || registers->waiting || registers->stopped ||
+        registers->irqWanted || registers->nmiWanted ||
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 8u)
+        return 0;
+
+    unsigned offset;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 4u, &offset);
+    if (!cart || memcmp(cart->rom + offset + 1u, "\x55\xd0\xba", 3u))
+        return 0;
+
+    Lufia2SpanFetch(registers, pc, 2u, false);
+    Lufia2DecompModifyWram(registers, 0xc6u, 0x55u, 0x56u, false);
+    Lufia2SpanAccountInstruction(cpu, 5u);
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+    Lufia2SpanFetch(registers, pc + 2u, 2u, true);
+    registers->pc = registers->z ? 0xee30u : 0xedeau;
+    registers->cyclesUsed = registers->z ? 2u : 3u;
+    Lufia2SpanAccountInstruction(cpu, registers->cyclesUsed);
+    return 5u + registers->cyclesUsed;
 }
 
 static int Lufia2DecompRunFieldAttribute(Interp816 *registers, CpuState *cpu,
@@ -235,10 +281,17 @@ static int Lufia2DecompRunFieldAttribute(Interp816 *registers, CpuState *cpu,
         if (room >= (pc == 0x80edffu ? 3 : 7))
             return FieldAttributeClass(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, tail_steps);
         break;
+    case 0x80ee17u:
     case 0x80ee18u:
-        if (room >= 11) {
+        if (room >= (pc == 0x80ee17u ? 12 : 11)) {
             *tail_steps = 1;
-            return FieldAttributeCell(registers, cpu, pc, opcode, dynamic_epoch, write_epoch);
+            return FieldAttributeWrite(registers, cpu, pc, opcode, dynamic_epoch, write_epoch);
+        }
+        break;
+    case 0x80ee2cu:
+        if (room >= 2) {
+            *tail_steps = 1;
+            return FieldAttributeCount(registers, cpu, pc, opcode, dynamic_epoch, write_epoch);
         }
         break;
     }
