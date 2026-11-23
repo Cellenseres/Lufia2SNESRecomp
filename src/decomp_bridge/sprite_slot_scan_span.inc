@@ -82,3 +82,38 @@ static SpriteSlotScanResult Lufia2DecompRunSpriteSlotScan(Interp816 *registers, 
     }
     return result;
 }
+
+static int Lufia2DecompRunSpriteSlotAdvance(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode) {
+    const bool animation = pc == 0x868b7fu;
+    const bool low_slots = pc == 0x868c18u;
+    if ((!animation && !low_slots && pc != 0x868c07u) || opcode != 0xe8u ||
+        registers->e || registers->xf != animation || registers->waiting || registers->stopped ||
+        registers->irqWanted || registers->nmiWanted ||
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (animation ? 7u : 8u))
+        return 0;
+
+    const unsigned length = animation ? 5u : 6u;
+    const unsigned limit = low_slots ? 12u : 48u;
+    unsigned offset;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
+    const char *signature = animation ? "\xe0\x30\xd0\xf3" :
+        low_slots ? "\xe0\x0c\x00\xd0\xf2" : "\xe0\x30\x00\xd0\xf2";
+    if (!cart || memcmp(cart->rom + offset + 1u, signature, length - 1u))
+        return 0;
+
+    Lufia2SpanFetch(registers, pc, 1u, false);
+    const uint16_t next = (uint16_t)(registers->x + 1u);
+    Lufia2DecompApplyOperand(registers, 0xa2u, animation ? (uint8_t)next : next, animation);
+    Lufia2SpanAccountInstruction(cpu, 2u);
+
+    const unsigned compare_cycles = animation ? 2u : 3u;
+    Lufia2SpanFetch(registers, pc + 1u, compare_cycles, true);
+    Lufia2DecompApplyOperand(registers, 0xe0u, limit, animation);
+    Lufia2SpanAccountInstruction(cpu, compare_cycles);
+
+    Lufia2SpanFetch(registers, pc + length - 2u, 2u, true);
+    registers->pc = (uint16_t)(registers->z ? pc + length : pc - 8u);
+    registers->cyclesUsed = registers->z ? 2u : 3u;
+    Lufia2SpanAccountInstruction(cpu, registers->cyclesUsed);
+    return 2u + compare_cycles + registers->cyclesUsed;
+}
