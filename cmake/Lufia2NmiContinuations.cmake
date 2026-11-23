@@ -2167,6 +2167,15 @@ function(lufia2_add_nmi_continuations target core_root)
                         "\n#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/scene_rebuild_spans.inc\"\n")
                 endif()
                 if(_manifest_calls)
+                    string(PREPEND _text
+                        "#include \"interp816.h\"\nstatic int Lufia2DecompRunEffectSlotCursorOpcode(Interp816 *, uint32_t, uint8_t);\n")
+                    string(APPEND _native_opcode
+                        "        if (!_cyc && ((pc_before >= 0x818aaau && pc_before < 0x818ab4u) ||\n"
+                        "            (pc_before >= 0x818b1bu && pc_before < 0x818b25u)) && auto_quiescent && !n_stop &&\n"
+                        "            !stop_on_rti && !trace && !dtrace && !wlog_state_sync && !s_interp_pctrace &&\n"
+                        "            !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() && g_snes &&\n"
+                        "            !g_snes->inNmi && !g_snes->inIrq)\n"
+                        "            _cyc = Lufia2DecompRunEffectSlotCursorOpcode(&in, pc_before, op);\n")
                     # The RAM copy and HDMA command dispatcher need per-instruction bus timing.
                     set(_paired_body "            if (bounce_ok && has_body) {")
                     string(FIND "${_text}" "${_paired_body}" _paired_body_offset)
@@ -2182,6 +2191,7 @@ function(lufia2_add_nmi_continuations target core_root)
                         "\n#include \"${_aot_call_table}\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/aot_call_sites.inc\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/rom_immediate_opcode.inc\"\n"
+                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/effect_slot_cursor_opcode.inc\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/sprite_oam_rotate_span.inc\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/sprite_oam_clear_span.inc\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/battle_sprite_tile_span.inc\"\n"
