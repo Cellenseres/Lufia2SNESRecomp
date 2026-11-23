@@ -378,7 +378,7 @@ static int Lufia2DecompRunMenuStringFinish(Interp816 *registers, CpuState *cpu, 
 }
 
 static int Lufia2DecompRunMenuConditionalCommand(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
-                                 uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+                                 uint64_t dynamic_epoch, uint64_t write_epoch, long room, long *tail_steps) {
     if (pc != 0x808bfdu || opcode != 0xb7u || registers->e || !registers->mf || registers->xf ||
         registers->dp || registers->db != 0x7eu || !cpu->ram ||
         registers->sp < 0x1f01u || registers->sp > 0x1fffu ||
@@ -461,7 +461,28 @@ static int Lufia2DecompRunMenuConditionalCommand(Interp816 *registers, CpuState 
     Lufia2SpanAccountInstruction(cpu, 6u);
     *tail_steps = dynamic_epoch != s_interp_dynamic_progress_epoch ? 0 : stack_progress ? 4 : 7;
     Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
-    return 38;
+    const uint16_t call_site = registers->pc;
+    if (room < 13 || registers->sp < 0x1f02u ||
+        (call_site != 0x8c19u && call_site != 0x8c3eu && call_site != 0x8c4eu) ||
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 6u)
+        return 38;
+
+    const unsigned call_offset = offset + call_site - (uint16_t)pc;
+    if (call_offset + 3u > cart->romSize || memcmp(cart->rom + call_offset, "\x20\x9e\x8c", 3u))
+        return 38;
+
+    Lufia2SpanFetch(registers, 0x800000u | call_site, 3u, true);
+    registers->write(registers->mem, registers->sp--, (uint8_t)((call_site + 2u) >> 8));
+    registers->write(registers->mem, registers->sp--, (uint8_t)(call_site + 2u));
+    registers->pc = 0x8c9eu;
+    registers->cyclesUsed = 6u;
+    Lufia2SpanAccountInstruction(cpu, 6u);
+    if (dynamic_epoch != s_interp_dynamic_progress_epoch || write_epoch != g_interp_bridge_write_epoch)
+        *tail_steps = 0;
+    else
+        ++*tail_steps;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+    return 44;
 }
 
 static int Lufia2DecompRunMenuGlyphCall(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,

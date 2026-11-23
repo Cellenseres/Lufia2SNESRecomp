@@ -236,8 +236,22 @@ static int MenuBranchOffset(Interp816 *registers, CpuState *cpu, uint32_t pc, ui
     return 54;
 }
 
-static int MenuBranchFinish(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+static int MenuBranchReturn(Interp816 *registers, CpuState *cpu, int cycles, bool can_return,
                                 uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+    if (!can_return)
+        return cycles;
+
+    Lufia2SpanNearReturn(registers, cpu, 0x808cfbu);
+    if (dynamic_epoch != s_interp_dynamic_progress_epoch)
+        *tail_steps = 0;
+    else
+        *tail_steps += *tail_steps < 0 ? -1 : 1;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+    return cycles + 6;
+}
+
+static int MenuBranchFinish(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+                                uint64_t dynamic_epoch, uint64_t write_epoch, long room, long *tail_steps) {
     const bool mask_words = pc == 0x808cf0u;
     if ((!mask_words && pc != 0x808cddu) || opcode != 0xadu ||
         registers->e || !registers->mf || registers->dp || registers->db != 0x7eu ||
@@ -252,6 +266,10 @@ static int MenuBranchFinish(Interp816 *registers, CpuState *cpu, uint32_t pc, ui
         "\x7b\x05\x89\x40\xd0\x0c\x89\x20\xf0\x08\xc2\x20\xb2\x56\x85\x56\xe2\x20";
     if (!cart || memcmp(cart->rom + offset + 1u, signature, length - 1u))
         return 0;
+
+    const bool can_return = mask_words && room >= 6 && registers->sp >= 0x1f00u &&
+        registers->sp <= 0x1ffdu && BufferSpanCycleBudget(cpu, s_lle_master_deadline) >= 20u &&
+        offset + length < cart->romSize && cart->rom[offset + length] == 0x60u;
 
     Lufia2SpanFetch(registers, pc, 3u, false);
     const uint8_t format = registers->read(registers->mem, 0x7e057bu);
@@ -270,7 +288,7 @@ static int MenuBranchFinish(Interp816 *registers, CpuState *cpu, uint32_t pc, ui
         registers->cyclesUsed = 3u;
         Lufia2SpanAccountInstruction(cpu, 3u);
         *tail_steps = progress ? 2 : -2;
-        return 9;
+        return MenuBranchReturn(registers, cpu, 9, can_return, dynamic_epoch, write_epoch, tail_steps);
     }
     Lufia2SpanAccountInstruction(cpu, 2u);
 
@@ -284,7 +302,7 @@ static int MenuBranchFinish(Interp816 *registers, CpuState *cpu, uint32_t pc, ui
         registers->pc = 0x8cfbu;
         registers->cyclesUsed = 3u;
         *tail_steps = 0;
-        return 14;
+        return MenuBranchReturn(registers, cpu, 14, can_return, dynamic_epoch, write_epoch, tail_steps);
     }
 
     Lufia2SpanFetch(registers, pc + 7u, 2u, true);
@@ -345,7 +363,7 @@ static int Lufia2DecompRunMenuBranch(Interp816 *registers, CpuState *cpu,
     case 0x808cddu:
     case 0x808cf0u:
         if (room >= (pc == 0x808cddu ? 9 : 5))
-            return MenuBranchFinish(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, tail_steps);
+            return MenuBranchFinish(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, room, tail_steps);
         break;
     }
     return 0;
