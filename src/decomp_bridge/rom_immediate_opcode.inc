@@ -495,6 +495,40 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
         site == 0x869c65u)
         return true;
 
+    if (site == 0x869b2cu)
+        return true;
+
+    switch (site) {
+    case 0x80be1au: case 0x80be20u: case 0x8692a1u: case 0x8692a4u:
+    case 0x8692b2u: case 0x8692b5u: case 0x8692b8u: case 0x8692c4u:
+    case 0x8692c7u: case 0x8692cau: case 0x8692cdu: case 0x8692d0u:
+    case 0x86995bu: case 0x86a45eu: case 0x86ac73u:
+    case 0x86ac76u: case 0x86ace4u: case 0x86ada7u: case 0x86adb0u:
+    case 0x86adeau: case 0x86ae5cu: case 0x86cbbfu: case 0x86cc63u:
+    case 0x86cc66u: case 0x86cc70u: case 0x86cc79u: case 0x86cc8du:
+    case 0x86cce4u: case 0x86cce7u: case 0x86cceau: case 0x86ccedu:
+    case 0x86ccf8u: case 0x86cd0du: case 0x86cd22u: case 0x86cd26u:
+    case 0x86cd3cu: case 0x86cd41u: case 0x86cd4au: case 0x86cd52u:
+    case 0x86cd58u: case 0x86cd5bu: case 0x86cd5eu: case 0x86d34au:
+    case 0x86d356u: case 0x86d359u: case 0x86d39cu: case 0x86e1b9u:
+    case 0x86e1bcu: case 0x86e1f5u: case 0x86e1ffu: case 0x86e202u:
+    case 0x86e26bu: case 0x86e287u: case 0x86e3b9u: case 0x86e3ceu:
+    case 0x86e3dbu: case 0x86e3feu: case 0x86e413u: case 0x86e4dbu:
+    case 0x86e5b4u: case 0x86e5b7u: case 0x86e5ceu: {
+        /* The restore and menu JSR frames distinguish this from map entry. */
+        const CpuState *cpu = registers->mem;
+        if (!cpu || !cpu->ram || registers->e || registers->sp < 0x1f00u)
+            break;
+        const uint8_t restore_frames[] = {0x2eu, 0x9bu, 0x7eu, 0x92u};
+        for (unsigned address = (unsigned)registers->sp + 1u; address <= 0x1ffcu; ++address)
+            if (memcmp(cpu->ram + address, restore_frames, sizeof(restore_frames)) == 0)
+                return true;
+        break;
+    }
+    default:
+        break;
+    }
+
     if ((target == 0x83b82fu && registers->mf && !registers->xf) ||
         site == 0x83b847u || site == 0x80b417u || site == 0x80b41cu ||
         site == 0x83fa1bu || site == 0x8eb000u || site == 0x8eb02fu)
