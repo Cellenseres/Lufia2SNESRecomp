@@ -596,7 +596,7 @@ static int Lufia2DecompRunBattleTilemapReturn(Interp816 *registers, CpuState *cp
     const bool publish_count = pc == 0x858c22u;
     const bool copy_count = pc == 0x858c90u;
     const uint32_t bank = (uint32_t)registers->db << 16;
-    if ((!copy_count && !publish_count && pc != 0x858bbeu && pc != 0x858c96u && pc != 0x858dc3u && pc != 0x858c25u) ||
+    if ((!copy_count && !publish_count && pc != 0x858bbeu && pc != 0x858c96u && pc != 0x858dc3u && pc != 0x858c25u && pc != 0x8588f0u) ||
         opcode != (copy_count ? 0xadu : publish_count ? 0x8du : 0xabu) || registers->e ||
         ((copy_count || publish_count) && (!registers->mf || !Lufia2DecompIsWramByte(bank + 0x15d2u))) ||
         registers->sp < 0x1f00u || registers->sp > 0x1ffbu ||

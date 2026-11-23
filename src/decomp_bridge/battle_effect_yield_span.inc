@@ -79,8 +79,8 @@ static int Lufia2DecompRunBattleEffectYield(Interp816 *registers, CpuState *cpu,
 
 static int Lufia2DecompRunBattleEffectDispatchReturn(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
                                           uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
-    const bool pull_index = pc == 0x818c58u;
-    const bool pull_y = pc == 0x81986cu || pc == 0x819966u;
+    const bool pull_index = pc == 0x818c58u || pc == 0x8588f2u;
+    const bool pull_y = pc == 0x81986cu || pc == 0x819966u || pc == 0x858db4u;
     const bool pull = pull_index || pull_y;
     const unsigned cycles = pull ? 5u : 6u;
     const bool repeat_return = pc == 0x819552u || pc == 0x819566u ||
