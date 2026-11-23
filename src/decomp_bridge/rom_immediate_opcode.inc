@@ -584,7 +584,9 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
     case 0x819664u: case 0x81968au: case 0x8196c6u:
     case 0x8196f6u: case 0x8196fau:
     case 0x8196feu: case 0x819738u: case 0x81976bu: case 0x8197a5u:
-    case 0x81920fu: case 0x819393u: case 0x81940eu:
+    case 0x8191f2u: case 0x81920fu: case 0x819393u: case 0x81940eu:
+    case 0x81986eu: case 0x819976u: case 0x819bbeu: case 0x819c76u:
+    case 0x819d0bu: case 0x819d1fu: case 0x819dc9u: case 0x819e22u:
     case 0x819853u: case 0x819935u: case 0x819968u: case 0x819b56u:
     case 0x819cccu: case 0x819e13u: case 0x819f8bu:
     case 0x819999u: case 0x8199a5u: case 0x8199b0u:
@@ -630,7 +632,8 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
     case 0x819456u: case 0x819466u: case 0x819869u: case 0x819969u:
     case 0x81996cu:
     case 0x819970u: case 0x819b73u: case 0x819cf0u: case 0x819d00u:
-    case 0x819e16u: case 0x819f8fu: case 0x819f9fu:
+    case 0x819d18u: case 0x819debu: case 0x819e16u: case 0x819e9du:
+    case 0x819eeau: case 0x819ef9u: case 0x819f8fu: case 0x819f9fu:
         return true;
     default:
         break;
@@ -757,6 +760,23 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
     }
     default:
         break;
+    }
+
+    if (site == 0x8190dfu || site == 0x819f3au) {
+        const CpuState *cpu = registers->mem;
+        const unsigned dispatch_offset = site == 0x8190dfu ? 3u : 11u;
+        if (cpu && cpu->ram && !registers->e && registers->sp >= 0x1f00u &&
+            registers->sp <= 0x1ffeu - dispatch_offset) {
+            const uint8_t *dispatch = cpu->ram + registers->sp + dispatch_offset;
+            const bool effect_dispatch =
+                (dispatch[0] == 0xa6u && dispatch[1] == 0x8au) ||
+                (dispatch[0] == 0x17u && dispatch[1] == 0x8bu);
+            if (effect_dispatch && (site == 0x8190dfu ||
+                (dispatch[-5] == 0x9eu && dispatch[-6] == 0x9fu) ||
+                (dispatch[-5] == 0x9eu && dispatch[-6] == 0xecu) ||
+                (dispatch[-5] == 0x9eu && dispatch[-6] == 0xfbu)))
+                return true;
+        }
     }
 
     /* Video commands need the original bus timing in their callees too. */
