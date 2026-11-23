@@ -1654,6 +1654,26 @@ function(lufia2_add_nmi_continuations target core_root)
                         "            case 0x81b67cu:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x81b705u, false);\n"
                         "                break;\n")
+                    list(APPEND _control_sites "pc_before == 0x85ddb0u" "pc_before == 0x85ddcbu" "pc_before == 0x85dde6u" "pc_before == 0x85de01u" "pc_before == 0x81a10eu" "pc_before == 0x81a6a9u")
+                    string(APPEND _control_cases
+                        "            case 0x85ddb0u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x85de2au, true);\n"
+                        "                break;\n"
+                        "            case 0x85ddcbu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x80834cu, true);\n"
+                        "                break;\n"
+                        "            case 0x85dde6u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x85de1eu, true);\n"
+                        "                break;\n"
+                        "            case 0x85de01u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x80834cu, true);\n"
+                        "                break;\n"
+                        "            case 0x81a10eu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x85dd63u, true);\n"
+                        "                break;\n"
+                        "            case 0x81a6a9u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x85dd63u, true);\n"
+                        "                break;\n")
                     list(APPEND _control_sites "pc_before == 0x85ec81u" "pc_before == 0x85ec8bu")
                     string(APPEND _control_cases
                         "            case 0x85ec81u:\n"
