@@ -238,6 +238,48 @@ static int RunEventRecordCounter(Interp816 *registers, CpuState *cpu, uint32_t p
     return 6;
 }
 
+static int RunEventRecordReturn(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+                                uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+    if (pc != 0x81f28eu || opcode != 0xabu || registers->e ||
+        registers->sp < 0x1f00u || registers->sp > 0x1ffau ||
+        registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 14u)
+        return 0;
+
+    unsigned offset;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 3u, &offset);
+    if (!cart || memcmp(cart->rom + offset + 1u, "\x28\x6b", 2u))
+        return 0;
+
+    Lufia2SpanFetch(registers, pc, 1u, false);
+    registers->db = registers->read(registers->mem, ++registers->sp);
+    registers->n = (registers->db & 0x80u) != 0u;
+    registers->z = registers->db == 0u;
+    Lufia2SpanAccountInstruction(cpu, 4u);
+    long progress = dynamic_epoch != s_interp_dynamic_progress_epoch ? 1 : 0;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+    Lufia2SpanFetch(registers, pc + 1u, 1u, true);
+    interp816_setFlags(registers, registers->read(registers->mem, ++registers->sp));
+    Lufia2SpanAccountInstruction(cpu, 4u);
+    if (dynamic_epoch != s_interp_dynamic_progress_epoch)
+        progress = 2;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+    Lufia2SpanFetch(registers, pc + 2u, 1u, true);
+    uint16_t target = registers->read(registers->mem, ++registers->sp);
+    target |= (uint16_t)registers->read(registers->mem, ++registers->sp) << 8;
+    registers->k = registers->read(registers->mem, ++registers->sp);
+    registers->pc = (uint16_t)(target + 1u);
+    registers->cyclesUsed = 6u;
+    Lufia2SpanAccountInstruction(cpu, 6u);
+    if (dynamic_epoch != s_interp_dynamic_progress_epoch)
+        progress = 3;
+    *tail_steps = progress ? 3 - progress : -2;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+    return 14;
+}
+
 static int Lufia2DecompRunEventRecord(Interp816 *registers, CpuState *cpu,
                                     uint32_t pc, uint8_t opcode, uint64_t dynamic_epoch,
                                     uint64_t write_epoch, long room, long *tail_steps) {
@@ -247,6 +289,11 @@ static int Lufia2DecompRunEventRecord(Interp816 *registers, CpuState *cpu,
         if (room < 2)
             return 0;
         return RunEventRecordCounter(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, tail_steps);
+    }
+    if (pc == 0x81f28eu) {
+        if (room < 3)
+            return 0;
+        return RunEventRecordReturn(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, tail_steps);
     }
     if (room < 12)
         return 0;
