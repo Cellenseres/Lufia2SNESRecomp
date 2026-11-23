@@ -158,8 +158,10 @@ static int Lufia2DecompRunBattleSpriteTileAdvance(Interp816 *registers, CpuState
 
 static int Lufia2DecompRunBattleSpriteTileFar(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
                                   uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
-    const bool call = pc == 0x81bd47u;
-    if ((!call && pc != 0x81bd4au) || opcode != (call ? 0x20u : 0x6bu) ||
+    const bool call = pc == 0x81bd47u || pc == 0x81bdc8u || pc == 0x81be54u;
+    const bool return_far = pc == 0x81bd4au || pc == 0x81bdcbu || pc == 0x81be57u;
+    const uint16_t target = (uint16_t)(pc + 4u);
+    if ((!call && !return_far) || opcode != (call ? 0x20u : 0x6bu) ||
         registers->e || registers->sp < 0x1f02u || registers->sp > 0x1ffcu ||
         registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
         BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 6u)
@@ -167,14 +169,16 @@ static int Lufia2DecompRunBattleSpriteTileFar(Interp816 *registers, CpuState *cp
 
     unsigned offset;
     const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, call ? 3u : 1u, &offset);
-    if (!cart || (call && memcmp(cart->rom + offset + 1u, "\x4b\xbd", 2u)))
+    if (!cart || (call && (cart->rom[offset + 1u] != (uint8_t)target ||
+        cart->rom[offset + 2u] != (uint8_t)(target >> 8))))
         return 0;
 
     Lufia2SpanFetch(registers, pc, call ? 3u : 1u, false);
     if (call) {
-        registers->write(registers->mem, registers->sp--, 0xbdu);
-        registers->write(registers->mem, registers->sp--, 0x49u);
-        registers->pc = 0xbd4bu;
+        const uint16_t return_address = (uint16_t)(pc + 2u);
+        registers->write(registers->mem, registers->sp--, (uint8_t)(return_address >> 8));
+        registers->write(registers->mem, registers->sp--, (uint8_t)return_address);
+        registers->pc = target;
     } else {
         uint16_t address = registers->read(registers->mem, ++registers->sp);
         address |= (uint16_t)registers->read(registers->mem, ++registers->sp) << 8;
