@@ -390,7 +390,53 @@ static bool Lufia2DecompIsRamBlockMove(uint32_t pc) {
     return pc == 0x83057du || pc == 0x86057du;
 }
 
-static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target) {
+static uint32_t Lufia2DecompStackLongReturn(const uint8_t *bytes) {
+    return bytes[0] | (uint32_t)bytes[1] << 8 | (uint32_t)bytes[2] << 16;
+}
+
+/* Match the saved return frames through the display transition's DMA calls. */
+static bool Lufia2DecompDisplayTimedCall(uint32_t site, const Interp816 *registers) {
+    unsigned depth;
+    uint32_t display_return;
+    switch (site) {
+    case 0x859bf1u: depth = 3; display_return = 0x8195b1u; break;
+    case 0x859c1fu: depth = 3; display_return = 0x8195efu; break;
+    case 0x859c36u: depth = 3; display_return = 0x8195fbu; break;
+    case 0x859c4du: depth = 3; display_return = 0x81962du; break;
+    case 0x858a64u: case 0x858a68u: case 0x858a6cu:
+    case 0x858a70u: case 0x858a74u: case 0x858a7du:
+        depth = 3; display_return = 0x8195abu; break;
+    case 0x85ec8bu: depth = 3; display_return = 0x8195c1u; break;
+    case 0x81b5c6u: depth = 5; display_return = 0x8195c1u; break;
+    case 0x81b62fu: depth = 6; display_return = 0x8195c1u; break;
+    case 0x85ec81u: depth = 3; display_return = 0; break;
+    case 0x85919cu: depth = 6; display_return = 0; break;
+    default:
+        return false;
+    }
+
+    const CpuState *cpu = registers->mem;
+    if (!cpu || !cpu->ram || registers->e || registers->sp > 0x1fffu - depth - 3u)
+        return false;
+
+    const uint8_t *stack = cpu->ram + registers->sp + 1u;
+    if (site == 0x81b5c6u || site == 0x81b62fu) {
+        if (Lufia2DecompStackLongReturn(stack + depth - 3u) != 0x85ec8eu)
+            return false;
+    } else if (site == 0x85919cu) {
+        if (Lufia2DecompStackLongReturn(stack + 3) != 0x85ec84u)
+            return false;
+    }
+
+    const uint32_t caller = Lufia2DecompStackLongReturn(stack + depth);
+    if (display_return)
+        return caller == display_return;
+    return caller == 0x8195c1u || caller == 0x8195f5u ||
+           caller == 0x819601u || caller == 0x819633u;
+}
+
+static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
+                                      const Interp816 *registers) {
     if (Lufia2DecompIsRamBlockMove(target))
         return true;
 
@@ -400,7 +446,7 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target) {
     case 0x8192beu: case 0x8194cau:
     case 0x8194ebu: case 0x819500u: case 0x819515u: case 0x81952au:
     case 0x81953fu: case 0x819553u: case 0x819567u: case 0x81957bu:
-    case 0x81963au: case 0x819653u:
+    case 0x81958fu: case 0x81963au: case 0x819653u:
     case 0x819664u: case 0x81968au: case 0x8196c6u:
     case 0x8196f6u: case 0x8196fau:
     case 0x8196feu: case 0x819738u: case 0x81976bu: case 0x8197a5u:
@@ -410,6 +456,10 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target) {
     default:
         break;
     }
+
+    if ((site >= 0x81958fu && site <= 0x819639u) ||
+        Lufia2DecompDisplayTimedCall(site, registers))
+        return true;
 
     /* Video commands need the original bus timing in their callees too. */
     switch (site) {

@@ -2097,10 +2097,10 @@ function(lufia2_add_nmi_continuations target core_root)
                         message(FATAL_ERROR "Timed RAM and HDMA execution requires the reviewed AOT bounce")
                     endif()
                     string(REPLACE "${_paired_body}"
-                        "            if (bounce_ok && has_body && !Lufia2DecompNeedsTimedCall(pc_before, target)) {"
+                        "            if (bounce_ok && has_body && !Lufia2DecompNeedsTimedCall(pc_before, target, &in)) {"
                         _text "${_text}")
                     string(PREPEND _text
-                        "#include \"interp816.h\"\nstatic bool Lufia2DecompIsImmediateDataOpcode(uint8_t);\nstatic bool Lufia2DecompIsMemoryOpcode(uint8_t);\nstatic bool Lufia2DecompIsRegisterOrStackOpcode(uint8_t);\nstatic bool Lufia2DecompIsNmiRomOpcode(uint8_t);\nstatic bool Lufia2DecompNeedsTimedCall(uint32_t, uint32_t);\nstatic int Lufia2DecompRunNativeRomControl(Interp816 *, uint32_t, uint8_t);\nstatic int Lufia2DecompRunAdditionalRomOpcode(Interp816 *, uint32_t, uint8_t);\n")
+                        "#include \"interp816.h\"\nstatic bool Lufia2DecompIsImmediateDataOpcode(uint8_t);\nstatic bool Lufia2DecompIsMemoryOpcode(uint8_t);\nstatic bool Lufia2DecompIsRegisterOrStackOpcode(uint8_t);\nstatic bool Lufia2DecompIsNmiRomOpcode(uint8_t);\nstatic bool Lufia2DecompNeedsTimedCall(uint32_t, uint32_t, const Interp816 *);\nstatic int Lufia2DecompRunNativeRomControl(Interp816 *, uint32_t, uint8_t);\nstatic int Lufia2DecompRunAdditionalRomOpcode(Interp816 *, uint32_t, uint8_t);\n")
                     string(APPEND _timing_suffix
                         "\n#include \"${_aot_call_table}\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/aot_call_sites.inc\"\n"
