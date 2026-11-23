@@ -375,51 +375,6 @@ static int RunFieldMetatileCount(Interp816 *registers, CpuState *cpu, uint32_t p
     return 15;
 }
 
-static int RunFieldTileSeedMove(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
-                                  uint64_t dynamic_epoch, uint64_t write_epoch, long room, long *tail_steps) {
-    if (pc != 0x80f351u || opcode != 0x54u || registers->e || registers->xf || registers->mf ||
-        registers->x < 0x8000u || registers->y >= 0x2000u || room <= 0 ||
-        registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted)
-        return 0;
-
-    unsigned offset;
-    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 3u, &offset);
-    if (!cart || cart->rom[offset + 1u] != 0u || cart->rom[offset + 2u] != 0x9bu)
-        return 0;
-
-    const uint64_t time_budget = BufferSpanCycleBudget(cpu, s_lle_master_deadline) / 7u;
-    unsigned count = room < 8 ? (unsigned)room : 8u;
-    if (count > time_budget)
-        count = (unsigned)time_budget;
-    if (count > 0x10000u - registers->x)
-        count = 0x10000u - registers->x;
-    if (count > 0x2000u - registers->y)
-        count = 0x2000u - registers->y;
-    if (count > (unsigned)registers->a + 1u)
-        count = (unsigned)registers->a + 1u;
-    if (!count || !Lufia2DecompIsLoRomDataByte(cart, 0x9b0000u + registers->x + count - 1u))
-        return 0;
-
-    long progress = 0;
-    for (unsigned byte = 0; byte < count; ++byte) {
-        Lufia2SpanFetch(registers, pc, 3u, byte != 0u);
-        registers->db = 0u;
-        const uint8_t value = registers->read(registers->mem, 0x9b0000u | registers->x);
-        registers->write(registers->mem, registers->y++, value);
-        ++registers->x;
-        --registers->a;
-        Lufia2SpanAccountInstruction(cpu, 7u);
-        if (dynamic_epoch != s_interp_dynamic_progress_epoch || write_epoch != g_interp_bridge_write_epoch)
-            progress = byte + 1u;
-        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
-    }
-
-    registers->pc = registers->a == 0xffffu ? 0xf354u : 0xf351u;
-    registers->cyclesUsed = 7u;
-    *tail_steps = progress ? (long)count - progress : 1L - (long)count;
-    return 7u * count;
-}
-
 static int RunFieldTileSeedReturn(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
                                     uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
     if (pc != 0x80f354u || opcode != 0xabu || registers->e || registers->mf || !cpu->ram ||
@@ -471,8 +426,6 @@ static int Lufia2DecompRunFieldMetatile(Interp816 *registers, CpuState *cpu,
                                          uint32_t pc, uint8_t opcode, uint64_t dynamic_epoch,
                                          uint64_t write_epoch, long room, long *tail_steps) {
     switch (pc) {
-    case 0x80f351u:
-        return RunFieldTileSeedMove(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, room, tail_steps);
     case 0x80f354u:
         if (room >= 4)
             return RunFieldTileSeedReturn(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, tail_steps);
