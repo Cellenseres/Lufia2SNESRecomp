@@ -6,7 +6,7 @@ static void MenuGlyphExchangeBytes(Interp816 *registers) {
 }
 
 static int Lufia2DecompRunMenuGlyph(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
-                                  uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+                                  uint64_t dynamic_epoch, uint64_t write_epoch, long room, long *tail_steps) {
     const bool write_tile = pc == 0x808dbeu;
     if ((!write_tile && pc != 0x808db3u) || opcode != (write_tile ? 0x9du : 0xebu) ||
         registers->e || !registers->mf || registers->xf || registers->dp ||
@@ -16,6 +16,9 @@ static int Lufia2DecompRunMenuGlyph(Interp816 *registers, CpuState *cpu, uint32_
         return 0;
 
     unsigned offset;
+    const bool can_return = write_tile && room >= 6 &&
+        registers->sp >= 0x1f00u && registers->sp <= 0x1ffdu &&
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) >= 26u;
     const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 11u, &offset);
     const char *signature = write_tile ? "\x40\x00\xad\x64\x05\x9d\x41\x00\xe8\xe8" :
                                         "\xad\x78\x05\xd0\x11\xeb\xc9\xcc\xb0\x12";
@@ -48,6 +51,18 @@ static int Lufia2DecompRunMenuGlyph(Interp816 *registers, CpuState *cpu, uint32_
             Lufia2SpanFetch(registers, pc + offset, 1u, true);
             Lufia2DecompApplyOperand(registers, 0xa2u, (uint16_t)(registers->x + 1u), false);
             Lufia2SpanAccountInstruction(cpu, 2u);
+        }
+
+        if (can_return && offset + 11u < cart->romSize && cart->rom[offset + 11u] == 0x60u) {
+            Lufia2SpanFetch(registers, pc + 11u, 1u, true);
+            uint16_t return_address = registers->read(registers->mem, ++registers->sp);
+            return_address |= (uint16_t)registers->read(registers->mem, ++registers->sp) << 8;
+            registers->pc = (uint16_t)(return_address + 1u);
+            registers->cyclesUsed = 6u;
+            Lufia2SpanAccountInstruction(cpu, 6u);
+            *tail_steps = dynamic_epoch != s_interp_dynamic_progress_epoch ? 0 : 3;
+            Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+            return 26;
         }
 
         registers->pc = 0x8dc9u;

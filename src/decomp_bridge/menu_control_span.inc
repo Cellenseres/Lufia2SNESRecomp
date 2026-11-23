@@ -378,3 +378,38 @@ static int Lufia2DecompRunMenuConditionalCommand(Interp816 *registers, CpuState 
     Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
     return 38;
 }
+
+static int Lufia2DecompRunMenuGlyphCall(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+                             uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+    if (pc != 0x8088b4u || opcode != 0x20u || registers->e ||
+        registers->sp < 0x1f03u || registers->sp > 0x1fffu ||
+        registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 12u)
+        return 0;
+
+    unsigned offset;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 3u, &offset);
+    if (!cart || memcmp(cart->rom + offset + 1u, "\xda\x88", 2u) ||
+        offset + 0x29u > cart->romSize || memcmp(cart->rom + offset + 0x26u, "\x20\xb3\x8d", 3u))
+        return 0;
+
+    Lufia2SpanFetch(registers, pc, 3u, false);
+    registers->write(registers->mem, registers->sp--, 0x88u);
+    registers->write(registers->mem, registers->sp--, 0xb6u);
+    Lufia2SpanAccountInstruction(cpu, 6u);
+    const bool outer_progress = dynamic_epoch != s_interp_dynamic_progress_epoch ||
+        write_epoch != g_interp_bridge_write_epoch;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+    Lufia2SpanFetch(registers, 0x8088dau, 3u, true);
+    registers->write(registers->mem, registers->sp--, 0x88u);
+    registers->write(registers->mem, registers->sp--, 0xdcu);
+    registers->pc = 0x8db3u;
+    registers->cyclesUsed = 6u;
+    Lufia2SpanAccountInstruction(cpu, 6u);
+    const bool inner_progress = dynamic_epoch != s_interp_dynamic_progress_epoch ||
+        write_epoch != g_interp_bridge_write_epoch;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+    *tail_steps = inner_progress ? 0 : outer_progress ? 1 : -1;
+    return 12;
+}
