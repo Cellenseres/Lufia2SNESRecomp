@@ -584,7 +584,9 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
     case 0x819664u: case 0x81968au: case 0x8196c6u:
     case 0x8196f6u: case 0x8196fau:
     case 0x8196feu: case 0x819738u: case 0x81976bu: case 0x8197a5u:
-    case 0x819935u:
+    case 0x81920fu: case 0x819393u: case 0x81940eu:
+    case 0x819853u: case 0x819935u: case 0x819968u: case 0x819b56u:
+    case 0x819cccu: case 0x819e13u: case 0x819f8bu:
     case 0x819999u: case 0x8199a5u: case 0x8199b0u:
     case 0x8199d0u: case 0x819a12u: case 0x819ab1u: case 0x819af7u:
     case 0x819b7eu: case 0x819ba3u: case 0x819bacu:
@@ -623,6 +625,17 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
         }
     }
 
+    switch (site) {
+    case 0x819241u: case 0x8193a8u: case 0x8193abu: case 0x81943fu:
+    case 0x819456u: case 0x819466u: case 0x819869u: case 0x819969u:
+    case 0x81996cu:
+    case 0x819970u: case 0x819b73u: case 0x819cf0u: case 0x819d00u:
+    case 0x819e16u: case 0x819f8fu: case 0x819f9fu:
+        return true;
+    default:
+        break;
+    }
+
     if (site == 0x819963u || site == 0x819b8au || site == 0x819b99u ||
         site == 0x819b9du || site == 0x819e02u)
         return true;
@@ -632,7 +645,8 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
         if (cpu && cpu->ram && !registers->e &&
             registers->sp >= 0x1f00u && registers->sp <= 0x1ffbu) {
             const uint8_t *caller = cpu->ram + registers->sp + 3u;
-            if (caller[0] == 0x65u && caller[1] == 0x99u)
+            if ((caller[0] == 0x65u && caller[1] == 0x99u) ||
+                (caller[0] == 0x6bu && caller[1] == 0x98u))
                 return true;
         }
     }
@@ -693,6 +707,56 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
             for (unsigned address = (unsigned)registers->sp + 1u; address <= 0x1ffdu; ++address)
                 if (Lufia2DecompStackLongReturn(cpu->ram + address) == 0x819ba0u)
                     return true;
+    }
+
+    if (site == 0x81b871u || site == 0x81b875u) {
+        const CpuState *cpu = registers->mem;
+        if (cpu && cpu->ram && !registers->e &&
+            registers->sp >= 0x1f00u && registers->sp <= 0x1ff4u) {
+            const uint8_t *frames = cpu->ram + registers->sp;
+            if (frames[6] == 0xaau && frames[7] == 0x93u &&
+                ((frames[10] == 0xa6u && frames[11] == 0x8au) ||
+                 (frames[10] == 0x17u && frames[11] == 0x8bu)))
+                return true;
+        }
+    }
+
+    if (site == 0x80954bu || site == 0x80954eu) {
+        const CpuState *cpu = registers->mem;
+        if (cpu && cpu->ram && !registers->e &&
+            registers->sp >= 0x1f00u && registers->sp <= 0x1ff4u) {
+            const uint8_t *frames = cpu->ram + registers->sp;
+            const uint32_t caller = Lufia2DecompStackLongReturn(frames + 5u);
+            if ((caller == 0x819e19u || caller == 0x819fa2u) &&
+                ((frames[10] == 0xa6u && frames[11] == 0x8au) ||
+                 (frames[10] == 0x17u && frames[11] == 0x8bu)))
+                return true;
+        }
+    }
+
+    switch (site) {
+    case 0x81deecu: case 0x81deefu: case 0x81e5a1u: case 0x81e5aau:
+    case 0x81e5bbu: case 0x81e63du: case 0x81e687u:
+    case 0x859dd6u: case 0x859decu: {
+        const CpuState *cpu = registers->mem;
+        if (!cpu || !cpu->ram || registers->e || registers->sp < 0x1f00u)
+            break;
+        const bool long_return = site >> 16 == 0x85u;
+        const unsigned dispatch_offset = long_return ? 5u : 4u;
+        for (unsigned address = (unsigned)registers->sp + 1u;
+             address <= 0x1ffeu - dispatch_offset; ++address) {
+            const uint8_t *caller = cpu->ram + address;
+            const uint8_t *dispatch = caller + dispatch_offset;
+            if (((dispatch[0] == 0xa6u && dispatch[1] == 0x8au) ||
+                 (dispatch[0] == 0x17u && dispatch[1] == 0x8bu)) &&
+                (long_return ? Lufia2DecompStackLongReturn(caller) == 0x81996fu
+                             : caller[0] == 0x6bu && caller[1] == 0x99u))
+                return true;
+        }
+        break;
+    }
+    default:
+        break;
     }
 
     /* Video commands need the original bus timing in their callees too. */
