@@ -326,7 +326,7 @@ static int SpritePieceNext(Interp816 *registers, CpuState *cpu,
     if (!done || !can_return)
         return done ? 19 : 21;
 
-    SpriteSpanReturn(registers, cpu, 0x868cd9u);
+    Lufia2SpanNearReturn(registers, cpu, 0x868cd9u);
     if (dynamic_epoch != s_interp_dynamic_progress_epoch)
         *tail_steps = 0;
     else

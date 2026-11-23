@@ -139,7 +139,7 @@ static int SpriteTimer(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t
     if (registers->z || !can_return)
         return 7u + registers->cyclesUsed;
 
-    SpriteSpanReturn(registers, cpu, 0x868b8cu);
+    Lufia2SpanNearReturn(registers, cpu, 0x868b8cu);
     *tail_steps = dynamic_epoch != s_interp_dynamic_progress_epoch ? 0 : 2;
     Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
     return 15;
