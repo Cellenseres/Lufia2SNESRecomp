@@ -1622,6 +1622,38 @@ function(lufia2_add_nmi_continuations target core_root)
                         "            !s_interp_pctrace && !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() &&\n"
                         "            g_snes && !g_snes->inNmi && !g_snes->inIrq)\n"
                         "            _cyc = Lufia2DecompRunBattleShiftLoopOpcode(&in, pc_before, op);\n")
+                    list(APPEND _control_sites "pc_before == 0x81b5c6u" "pc_before == 0x81b5e3u" "pc_before == 0x81b5f6u" "pc_before == 0x81b609u" "pc_before == 0x81b61cu" "pc_before == 0x81b62fu" "pc_before == 0x81b642u" "pc_before == 0x81b656u" "pc_before == 0x81b669u" "pc_before == 0x81b67cu")
+                    string(APPEND _control_cases
+                        "            case 0x81b5c6u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x81b5a3u, false);\n"
+                        "                break;\n"
+                        "            case 0x81b5e3u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x81b705u, false);\n"
+                        "                break;\n"
+                        "            case 0x81b5f6u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x81b705u, false);\n"
+                        "                break;\n"
+                        "            case 0x81b609u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x81b705u, false);\n"
+                        "                break;\n"
+                        "            case 0x81b61cu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x81b705u, false);\n"
+                        "                break;\n"
+                        "            case 0x81b62fu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x81b705u, false);\n"
+                        "                break;\n"
+                        "            case 0x81b642u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x81b705u, false);\n"
+                        "                break;\n"
+                        "            case 0x81b656u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x81b705u, false);\n"
+                        "                break;\n"
+                        "            case 0x81b669u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x81b705u, false);\n"
+                        "                break;\n"
+                        "            case 0x81b67cu:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x81b705u, false);\n"
+                        "                break;\n")
                     list(APPEND _control_sites "pc_before == 0x85ec81u" "pc_before == 0x85ec8bu")
                     string(APPEND _control_cases
                         "            case 0x85ec81u:\n"
