@@ -1654,6 +1654,11 @@ function(lufia2_add_nmi_continuations target core_root)
                         "            case 0x81b67cu:\n"
                         "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x81b705u, false);\n"
                         "                break;\n")
+                    list(APPEND _control_sites "pc_before == 0x81a6d5u")
+                    string(APPEND _control_cases
+                        "            case 0x81a6d5u:\n"
+                        "                _cyc = Lufia2DecompRunDirectCall(&in, pc_before, op, 0x85dd63u, true);\n"
+                        "                break;\n")
                     list(APPEND _control_sites "pc_before == 0x858d08u" "pc_before == 0x858db0u" "pc_before == 0x8588f1u")
                     string(APPEND _control_cases
                         "            case 0x858d08u:\n"
@@ -2788,7 +2793,7 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                steps = tail_steps < 0 ? steps - tail_steps : tail_steps;\n"
                         "            }\n"
                         "        }\n"
-                        "        if (!_cyc && (pc_before == 0x81a69au || pc_before == 0x81a0f4u) && auto_quiescent && !n_stop &&\n"
+                        "        if (!_cyc && (pc_before == 0x81a69au || pc_before == 0x81a0f4u || pc_before == 0x81a6c6u) && auto_quiescent && !n_stop &&\n"
                         "            !stop_on_rti && !trace && !dtrace && !wlog_state_sync && !s_interp_pctrace &&\n"
                         "            !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() && g_snes &&\n"
                         "            !g_snes->inNmi && !g_snes->inIrq && !g_snes->hIrqEnabled &&\n"
@@ -2803,11 +2808,11 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                steps = tail_steps < 0 ? steps - tail_steps : tail_steps;\n"
                         "            }\n"
                         "        }\n"
-                        "        if (!_cyc && (pc_before == 0x81a112u || pc_before == 0x81a6adu) && auto_quiescent && !n_stop &&\n"
+                        "        if (!_cyc && (pc_before == 0x81a112u || pc_before == 0x81a6adu || pc_before == 0x81a6d9u) && auto_quiescent && !n_stop &&\n"
                         "            !stop_on_rti && !trace && !dtrace && !wlog_state_sync && !s_interp_pctrace &&\n"
                         "            !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() && g_snes &&\n"
                         "            !g_snes->inNmi && !g_snes->inIrq && !g_snes->hIrqEnabled &&\n"
-                        "            !g_snes->vIrqEnabled && (!g_snes->nmiEnabled || s_lle_master_deadline) && step_cap - steps >= (pc_before == 0x81a6adu ? 11 : 10)) {\n"
+                        "            !g_snes->vIrqEnabled && (!g_snes->nmiEnabled || s_lle_master_deadline) && step_cap - steps >= (pc_before == 0x81a112u ? 10 : 11)) {\n"
                         "            long tail_steps;\n"
                         "            _cyc = Lufia2DecompRunBattleEffectPosition(&in, cpu, pc_before, op, progress_dynamic_epoch,\n"
                         "                progress_write_epoch, &tail_steps);\n"
@@ -3750,7 +3755,7 @@ function(lufia2_add_nmi_continuations target core_root)
                         "                steps = tail_steps < 0 ? steps - tail_steps : tail_steps;\n"
                         "            }\n"
                         "        }\n"
-                        "        if (!_cyc && (pc_before == 0x818c58u || pc_before == 0x818c59u || pc_before == 0x819552u || pc_before == 0x819566u || pc_before == 0x81957au || pc_before == 0x81958eu || pc_before == 0x81a128u || pc_before == 0x81a161u || pc_before == 0x81a6c5u || pc_before == 0x818faau || pc_before == 0x818fc4u || pc_before == 0x81b3f7u || pc_before == 0x81986cu || pc_before == 0x81986du || pc_before == 0x819966u || pc_before == 0x819967u || pc_before == 0x8194ffu || pc_before == 0x819514u || pc_before == 0x819529u || pc_before == 0x81953eu || pc_before == 0x858db4u || pc_before == 0x8588f2u) && auto_quiescent && !n_stop &&\n"
+                        "        if (!_cyc && (pc_before == 0x818c58u || pc_before == 0x818c59u || pc_before == 0x819552u || pc_before == 0x819566u || pc_before == 0x81957au || pc_before == 0x81958eu || pc_before == 0x81a128u || pc_before == 0x81a161u || pc_before == 0x81a6c5u || pc_before == 0x818faau || pc_before == 0x818fc4u || pc_before == 0x81b3f7u || pc_before == 0x81986cu || pc_before == 0x81986du || pc_before == 0x819966u || pc_before == 0x819967u || pc_before == 0x8194ffu || pc_before == 0x819514u || pc_before == 0x819529u || pc_before == 0x81953eu || pc_before == 0x858db4u || pc_before == 0x8588f2u || pc_before == 0x81a6f1u) && auto_quiescent && !n_stop &&\n"
                         "            !stop_on_rti && !trace && !dtrace && !wlog_state_sync && !s_interp_pctrace &&\n"
                         "            !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() && g_snes &&\n"
                         "            !g_snes->inNmi && !g_snes->inIrq && !g_snes->hIrqEnabled &&\n"
