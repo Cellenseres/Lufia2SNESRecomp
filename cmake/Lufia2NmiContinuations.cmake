@@ -2650,6 +2650,7 @@ function(lufia2_add_nmi_continuations target core_root)
                         "            }\n"
                         "        }\n"
                         "        if (!_cyc && (pc_before == 0x81f1e9u || pc_before == 0x81f1f6u ||\n"
+                        "             pc_before == 0x81f212u || pc_before == 0x81f231u || pc_before == 0x81f250u || pc_before == 0x81f26fu ||\n"
                         "             pc_before == 0x81f217u || pc_before == 0x81f236u || pc_before == 0x81f255u || pc_before == 0x81f274u) && auto_quiescent && !n_stop &&\n"
                         "            !stop_on_rti && !trace && !dtrace && !wlog_state_sync && !s_interp_pctrace &&\n"
                         "            !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() && g_snes &&\n"

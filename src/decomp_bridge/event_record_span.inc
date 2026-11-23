@@ -208,11 +208,46 @@ static int RunEventRecordPayload(Interp816 *registers, CpuState *cpu, uint32_t p
     return cycles + 6u + registers->cyclesUsed;
 }
 
+static int RunEventRecordCounter(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+                                 uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+    const uint32_t count_address = ((uint32_t)registers->db << 16) | 0x0a00u;
+    if (pc < 0x81f212u || pc > 0x81f26fu || (pc - 0x81f212u) % 31u ||
+        opcode != 0xa9u || registers->e || !registers->mf ||
+        !Lufia2DecompIsWramByte(count_address) ||
+        registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 6u)
+        return 0;
+
+    unsigned offset;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 5u, &offset);
+    if (!cart || memcmp(cart->rom + offset + 1u, "\x08\x8d\x00\x0a", 4u))
+        return 0;
+
+    Lufia2SpanFetch(registers, pc, 2u, false);
+    Lufia2DecompApplyOperand(registers, 0xa9u, 8u, true);
+    Lufia2SpanAccountInstruction(cpu, 2u);
+
+    Lufia2SpanFetch(registers, pc + 2u, 3u, true);
+    registers->write(registers->mem, count_address, 8u);
+    registers->pc = (uint16_t)(pc + 5u);
+    registers->cyclesUsed = 4u;
+    Lufia2SpanAccountInstruction(cpu, 4u);
+    *tail_steps = dynamic_epoch != s_interp_dynamic_progress_epoch || write_epoch != g_interp_bridge_write_epoch
+        ? 0 : -1;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+    return 6;
+}
+
 static int Lufia2DecompRunEventRecord(Interp816 *registers, CpuState *cpu,
                                     uint32_t pc, uint8_t opcode, uint64_t dynamic_epoch,
                                     uint64_t write_epoch, long room, long *tail_steps) {
     if (pc == 0x81f1e9u)
         return RunEventRecordHeaderCopy(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, room, tail_steps);
+    if (pc == 0x81f212u || pc == 0x81f231u || pc == 0x81f250u || pc == 0x81f26fu) {
+        if (room < 2)
+            return 0;
+        return RunEventRecordCounter(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, tail_steps);
+    }
     if (room < 12)
         return 0;
     if (pc == 0x81f1f6u)
