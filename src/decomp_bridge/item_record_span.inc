@@ -397,9 +397,85 @@ static int RunItemRecordReturn(Interp816 *registers, CpuState *cpu, uint32_t pc,
     return 14;
 }
 
+static int RunItemNameCopy(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+                            uint64_t dynamic_epoch, uint64_t write_epoch, long room, long *tail_steps) {
+    const uint32_t bank = (uint32_t)registers->db << 16;
+    if (pc != 0x81f2c2u || opcode != 0xb9u || registers->e || registers->mf || registers->xf ||
+        registers->x >= 12u || (registers->x & 1u) || registers->y > 0x3816u || room < 8 ||
+        !Lufia2DecompIsWramByte(bank | 0x0b82u) ||
+        registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted)
+        return 0;
+
+    unsigned offset;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 15u, &offset);
+    if (!cart || memcmp(cart->rom + offset + 1u,
+        "\xe8\xc7\x9d\x77\x0b\xc8\xc8\xe8\xe8\xe0\x0c\x00\xd0\xf1", 14u))
+        return 0;
+
+    unsigned words = (12u - registers->x) / 2u;
+    const uint64_t budget = BufferSpanCycleBudget(cpu, s_lle_master_deadline) / 27u;
+    if (words > room / 8)
+        words = (unsigned)(room / 8);
+    if (words > budget)
+        words = (unsigned)budget;
+    const uint32_t source = (bank | 0xc7e8u) + registers->y;
+    if (!words || source + 2u * words - 1u > (bank | 0xffffu) ||
+        !Lufia2DecompIsLoRomDataByte(cart, source) ||
+        !Lufia2DecompIsLoRomDataByte(cart, source + 2u * words - 1u))
+        return 0;
+
+    long executed = 0;
+    long progress = 0;
+    unsigned cycles = 0;
+    for (unsigned word = 0; word < words; ++word) {
+        Lufia2SpanFetch(registers, pc, 3u, word != 0u);
+        const uint32_t address = source + 2u * word;
+        const uint16_t value = Lufia2DecompReadData(registers, address, address + 1u, true);
+        Lufia2DecompApplyOperand(registers, 0xa9u, value, false);
+        const unsigned read_cycles = 5u + (registers->y >= 0x18u);
+        Lufia2SpanAccountInstruction(cpu, read_cycles);
+        if (dynamic_epoch != s_interp_dynamic_progress_epoch)
+            progress = executed + 1;
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+        Lufia2SpanFetch(registers, pc + 3u, 3u, true);
+        const uint32_t destination = bank | (0x0b77u + registers->x);
+        Lufia2DecompWriteData(registers, destination, destination + 1u, value, true);
+        Lufia2SpanAccountInstruction(cpu, 7u);
+        if (dynamic_epoch != s_interp_dynamic_progress_epoch || write_epoch != g_interp_bridge_write_epoch)
+            progress = executed + 2;
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+
+        for (unsigned index = 0; index < 4u; ++index) {
+            Lufia2SpanFetch(registers, pc + 6u + index, 1u, true);
+            if (index < 2u)
+                Lufia2DecompApplyOperand(registers, 0xa0u, (uint16_t)(registers->y + 1u), false);
+            else
+                Lufia2DecompApplyOperand(registers, 0xa2u, (uint16_t)(registers->x + 1u), false);
+            Lufia2SpanAccountInstruction(cpu, 2u);
+        }
+
+        Lufia2SpanFetch(registers, pc + 10u, 3u, true);
+        Lufia2DecompApplyOperand(registers, 0xe0u, 12u, false);
+        Lufia2SpanAccountInstruction(cpu, 3u);
+
+        Lufia2SpanFetch(registers, pc + 13u, 2u, true);
+        registers->pc = registers->z ? 0xf2d1u : 0xf2c2u;
+        registers->cyclesUsed = registers->z ? 2u : 3u;
+        Lufia2SpanAccountInstruction(cpu, registers->cyclesUsed);
+        cycles += read_cycles + 18u + registers->cyclesUsed;
+        executed += 8;
+    }
+
+    *tail_steps = progress ? executed - progress : 1 - executed;
+    return cycles;
+}
+
 static int Lufia2DecompRunItemRecord(Interp816 *registers, CpuState *cpu,
                                     uint32_t pc, uint8_t opcode, uint64_t dynamic_epoch,
                                     uint64_t write_epoch, long room, long *tail_steps) {
+    if (pc == 0x81f2c2u)
+        return RunItemNameCopy(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, room, tail_steps);
     if (pc < 0x81f1e9u) {
         if (room < 5)
             return 0;
