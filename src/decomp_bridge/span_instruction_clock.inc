@@ -35,3 +35,12 @@ static void Lufia2SpanSyncProgress(CpuState *cpu, uint64_t *dynamic_epoch,
         bridge_apu_flush(cpu);
     }
 }
+
+static void SpriteSpanReturn(Interp816 *registers, CpuState *cpu, uint32_t pc) {
+    Lufia2SpanFetch(registers, pc, 1u, true);
+    uint16_t target = registers->read(registers->mem, ++registers->sp);
+    target |= (uint16_t)registers->read(registers->mem, ++registers->sp) << 8;
+    registers->pc = (uint16_t)(target + 1u);
+    registers->cyclesUsed = 6u;
+    Lufia2SpanAccountInstruction(cpu, 6u);
+}

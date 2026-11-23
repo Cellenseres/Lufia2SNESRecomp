@@ -109,7 +109,7 @@ static int MenuStringRawCheck(Interp816 *registers, CpuState *cpu, uint32_t pc, 
 }
 
 static int SpriteTimer(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
-                           uint64_t dynamic_epoch, uint64_t write_epoch) {
+                           uint64_t dynamic_epoch, uint64_t write_epoch, long room, long *tail_steps) {
     const uint32_t timer = ((uint32_t)registers->db << 16) | (0x1478u + registers->x);
     if (pc != 0x868b87u || opcode != 0xdeu || registers->e || !registers->mf ||
         !registers->xf || registers->x >= 48u || registers->waiting || registers->stopped ||
@@ -122,6 +122,10 @@ static int SpriteTimer(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t
     if (!cart || memcmp(cart->rom + offset + 1u, "\x78\x14\xf0\x01", 4u))
         return 0;
 
+    const bool can_return = room >= 3 && registers->sp >= 0x1f00u && registers->sp <= 0x1ffdu &&
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) >= 15u &&
+        offset + 5u < cart->romSize && cart->rom[offset + 5u] == 0x60u;
+
     Lufia2SpanFetch(registers, pc, 3u, false);
     Lufia2DecompModifyWram(registers, 0xdeu, timer, timer + 1u, false);
     Lufia2SpanAccountInstruction(cpu, 7u);
@@ -131,7 +135,14 @@ static int SpriteTimer(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t
     registers->pc = registers->z ? 0x8b8du : 0x8b8cu;
     registers->cyclesUsed = registers->z ? 3u : 2u;
     Lufia2SpanAccountInstruction(cpu, registers->cyclesUsed);
-    return 7u + registers->cyclesUsed;
+    *tail_steps = 1;
+    if (registers->z || !can_return)
+        return 7u + registers->cyclesUsed;
+
+    SpriteSpanReturn(registers, cpu, 0x868b8cu);
+    *tail_steps = dynamic_epoch != s_interp_dynamic_progress_epoch ? 0 : 2;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+    return 15;
 }
 
 static int RunMenuRawGlyphFlow(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
@@ -225,8 +236,7 @@ static int Lufia2DecompRunMenuControl(Interp816 *registers, CpuState *cpu,
         break;
     case 0x868b87u:
         if (room >= 2) {
-            *tail_steps = 1;
-            return SpriteTimer(registers, cpu, pc, opcode, dynamic_epoch, write_epoch);
+            return SpriteTimer(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, room, tail_steps);
         }
         break;
     }

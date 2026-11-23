@@ -257,7 +257,7 @@ static int SpritePieceCommit(Interp816 *registers, CpuState *cpu,
 
 static int SpritePieceNext(Interp816 *registers, CpuState *cpu,
                               uint32_t pc, uint8_t opcode, uint64_t dynamic_epoch,
-                              uint64_t write_epoch, long *tail_steps) {
+                              uint64_t write_epoch, long room, long *tail_steps) {
     if (pc != 0x868ccdu || opcode != 0xe2u || registers->e || registers->mf ||
         registers->xf || registers->dp || registers->waiting || registers->stopped ||
         registers->irqWanted || registers->nmiWanted || !cpu->ram ||
@@ -270,6 +270,10 @@ static int SpritePieceNext(Interp816 *registers, CpuState *cpu,
     if (!cart || memcmp(cart->rom + offset + 1u,
         "\x20\x7a\xb7\x5d\xc9\xff\xf0\x03\x4c\x3b\x8c", 11u))
         return 0;
+
+    const bool can_return = room >= 6 && registers->sp <= 0x1ffbu &&
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) >= 25u &&
+        offset + 12u < cart->romSize && cart->rom[offset + 12u] == 0x60u;
 
     const uint32_t pointer = cpu->ram[0x5du] |
         ((uint32_t)cpu->ram[0x5eu] << 8) | ((uint32_t)cpu->ram[0x5fu] << 16);
@@ -319,7 +323,16 @@ static int SpritePieceNext(Interp816 *registers, CpuState *cpu,
         *tail_steps = done ? 3 : 4;
     else
         *tail_steps = done ? -4 : -5;
-    return done ? 19 : 21;
+    if (!done || !can_return)
+        return done ? 19 : 21;
+
+    SpriteSpanReturn(registers, cpu, 0x868cd9u);
+    if (dynamic_epoch != s_interp_dynamic_progress_epoch)
+        *tail_steps = 0;
+    else
+        *tail_steps += *tail_steps < 0 ? -1 : 1;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+    return 25;
 }
 
 static int Lufia2DecompRunSpritePieceFinish(Interp816 *registers, CpuState *cpu,
@@ -345,7 +358,7 @@ static int Lufia2DecompRunSpritePieceFinish(Interp816 *registers, CpuState *cpu,
         break;
     case 0x868ccdu:
         if (room >= 6)
-            return SpritePieceNext(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, tail_steps);
+            return SpritePieceNext(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, room, tail_steps);
         break;
     }
     return 0;
