@@ -689,3 +689,73 @@ static int Lufia2DecompRunBattleEffectSetMode(Interp816 *registers, CpuState *cp
     *tail_steps = progress ? 6 - progress : -5;
     return 23;
 }
+
+static int Lufia2DecompRunBattleRecordSearch(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+                                           uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+    const bool advance = pc == 0x818f99u;
+    const uint32_t address = ((uint32_t)registers->db << 16) + registers->x;
+    if ((!advance && pc != 0x818f94u) || opcode != (advance ? 0xc2u : 0xbdu) ||
+        registers->e || !registers->mf || registers->xf ||
+        (!advance && !Lufia2DecompIsWramByte(address)) ||
+        registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (advance ? 21u : 28u))
+        return 0;
+    unsigned offset;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, advance ? 15u : 20u, &offset);
+    if (!cart || (advance ? memcmp(cart->rom + offset + 1u,
+        "\x20\x8a\x18\x69\x2d\x00\xaa\xe2\x20\xe0\xf7\x5f\xd0\xec", 14u) :
+        memcmp(cart->rom + offset + 1u,
+        "\x00\x00\xf0\x11\xc2\x20\x8a\x18\x69\x2d\x00\xaa\xe2\x20\xe0\xf7\x5f\xd0\xec", 19u)))
+        return 0;
+
+    unsigned cycles = 0;
+    bool progress = false;
+    if (!advance) {
+        Lufia2SpanFetch(registers, pc, 3u, false);
+        Lufia2DecompApplyOperand(registers, 0xa9u, registers->read(registers->mem, address), true);
+        const unsigned load_cycles = 4u + (registers->x >= 0x100u);
+        Lufia2SpanAccountInstruction(cpu, load_cycles);
+        progress = dynamic_epoch != s_interp_dynamic_progress_epoch;
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+        Lufia2SpanFetch(registers, pc + 3u, 2u, true);
+        if (registers->z) {
+            registers->pc = 0x8faau;
+            registers->cyclesUsed = 3u;
+            Lufia2SpanAccountInstruction(cpu, 3u);
+            *tail_steps = progress ? 1 : -1;
+            return load_cycles + 3u;
+        }
+        Lufia2SpanAccountInstruction(cpu, 2u);
+        cycles = load_cycles + 2u;
+    }
+
+    const uint32_t body_pc = advance ? pc : pc + 5u;
+    Lufia2SpanFetch(registers, body_pc, 2u, !advance);
+    registers->mf = false;
+    Lufia2SpanAccountInstruction(cpu, 3u);
+    Lufia2SpanFetch(registers, body_pc + 2u, 1u, true);
+    Lufia2DecompApplyOperand(registers, 0xa9u, registers->x, false);
+    Lufia2SpanAccountInstruction(cpu, 2u);
+    Lufia2SpanFetch(registers, body_pc + 3u, 1u, true);
+    registers->c = false;
+    Lufia2SpanAccountInstruction(cpu, 2u);
+    Lufia2SpanFetch(registers, body_pc + 4u, 3u, true);
+    Lufia2DecompApplyOperand(registers, 0x69u, 45u, false);
+    Lufia2SpanAccountInstruction(cpu, 3u);
+    Lufia2SpanFetch(registers, body_pc + 7u, 1u, true);
+    Lufia2DecompApplyOperand(registers, 0xa2u, registers->a, false);
+    Lufia2SpanAccountInstruction(cpu, 2u);
+    Lufia2SpanFetch(registers, body_pc + 8u, 2u, true);
+    registers->mf = true;
+    Lufia2SpanAccountInstruction(cpu, 3u);
+    Lufia2SpanFetch(registers, body_pc + 10u, 3u, true);
+    Lufia2DecompApplyOperand(registers, 0xe0u, 0x5ff7u, false);
+    Lufia2SpanAccountInstruction(cpu, 3u);
+    Lufia2SpanFetch(registers, body_pc + 13u, 2u, true);
+    registers->pc = registers->z ? 0x8fa8u : 0x8f94u;
+    registers->cyclesUsed = registers->z ? 2u : 3u;
+    Lufia2SpanAccountInstruction(cpu, registers->cyclesUsed);
+    const long instructions = advance ? 8 : 10;
+    *tail_steps = progress ? instructions - 1 : 1 - instructions;
+    return cycles + 18u + registers->cyclesUsed;
+}
