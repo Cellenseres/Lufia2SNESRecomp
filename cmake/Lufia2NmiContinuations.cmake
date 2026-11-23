@@ -2121,9 +2121,10 @@ function(lufia2_add_nmi_continuations target core_root)
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/sprite_piece_tile_span.inc\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/sprite_piece_finish_span.inc\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/menu_glyph_span.inc\"\n"
+                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/menu_glyph_variants_span.inc\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/menu_decimal_span.inc\"\n")
                     string(PREPEND _text
-                        "#include \"interp816.h\"\n#include \"cpu_state.h\"\nstatic int Lufia2DecompRunSpriteOamRotateSpan(Interp816 *, CpuState *, uint32_t, uint8_t, bool);\nstatic int Lufia2DecompRunSpriteOamClearSpan(Interp816 *, CpuState *, uint32_t, uint8_t, bool);\ntypedef struct SpriteSlotScanResult {\n    unsigned cycles;\n    unsigned instructions;\n    bool progress;\n} SpriteSlotScanResult;\n\nstatic SpriteSlotScanResult Lufia2DecompRunSpriteSlotScan(Interp816 *, CpuState *, uint32_t, uint8_t, unsigned, bool, uint64_t);\nstatic int Lufia2DecompRunWramPortFill(Interp816 *, CpuState *, uint32_t, uint8_t);\nstatic int Lufia2DecompRunWaveHdmaFill(Interp816 *, CpuState *, uint32_t, uint8_t, bool, unsigned, long *);\nstatic int Lufia2DecompRunActorMenuClear(Interp816 *, CpuState *, uint32_t, uint8_t);\nstatic int Lufia2DecompRunMenuStringRead(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t, bool *);\nstatic int Lufia2DecompRunSpritePieceOffsets(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t);\nstatic int Lufia2DecompRunSpritePiecePosition(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t, uint64_t, long *);\nstatic int Lufia2DecompRunSpritePieceTile(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t, uint64_t);\nstatic int Lufia2DecompRunSpritePieceHighWord(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t, uint64_t);\nstatic int Lufia2DecompRunSpritePieceFinish(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t, uint64_t, long, long *);\nstatic int Lufia2DecompRunMenuGlyph(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t, uint64_t, long *);\nstatic int Lufia2DecompRunMenuDecimal(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t, uint64_t, long, long *);\n")
+                        "#include \"interp816.h\"\n#include \"cpu_state.h\"\nstatic int Lufia2DecompRunSpriteOamRotateSpan(Interp816 *, CpuState *, uint32_t, uint8_t, bool);\nstatic int Lufia2DecompRunSpriteOamClearSpan(Interp816 *, CpuState *, uint32_t, uint8_t, bool);\ntypedef struct SpriteSlotScanResult {\n    unsigned cycles;\n    unsigned instructions;\n    bool progress;\n} SpriteSlotScanResult;\n\nstatic SpriteSlotScanResult Lufia2DecompRunSpriteSlotScan(Interp816 *, CpuState *, uint32_t, uint8_t, unsigned, bool, uint64_t);\nstatic int Lufia2DecompRunWramPortFill(Interp816 *, CpuState *, uint32_t, uint8_t);\nstatic int Lufia2DecompRunWaveHdmaFill(Interp816 *, CpuState *, uint32_t, uint8_t, bool, unsigned, long *);\nstatic int Lufia2DecompRunActorMenuClear(Interp816 *, CpuState *, uint32_t, uint8_t);\nstatic int Lufia2DecompRunMenuStringRead(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t, bool *);\nstatic int Lufia2DecompRunSpritePieceOffsets(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t);\nstatic int Lufia2DecompRunSpritePiecePosition(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t, uint64_t, long *);\nstatic int Lufia2DecompRunSpritePieceTile(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t, uint64_t);\nstatic int Lufia2DecompRunSpritePieceHighWord(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t, uint64_t);\nstatic int Lufia2DecompRunSpritePieceFinish(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t, uint64_t, long, long *);\nstatic int Lufia2DecompRunMenuGlyph(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t, uint64_t, long *);\nstatic int Lufia2DecompRunMenuGlyphVariant(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t, uint64_t, long *);\nstatic int Lufia2DecompRunMenuDecimal(Interp816 *, CpuState *, uint32_t, uint8_t, uint64_t, uint64_t, long, long *);\n")
                     string(APPEND _native_opcode
                         "        if (!_cyc && pc_before == 0x85ae74u && !n_stop &&\n"
                         "            !trace && !dtrace && !wlog_state_sync && !s_interp_pctrace &&\n"
@@ -2236,6 +2237,22 @@ function(lufia2_add_nmi_continuations target core_root)
                         "            long tail_steps;\n"
                         "            _cyc = Lufia2DecompRunMenuDecimal(&in, cpu, pc_before, op,\n"
                         "                progress_dynamic_epoch, progress_write_epoch, step_cap - steps, &tail_steps);\n"
+                        "            if (_cyc) {\n"
+                        "                _lufia2_span_accounted = 1;\n"
+                        "                progress_write_epoch = g_interp_bridge_write_epoch;\n"
+                        "                progress_dynamic_epoch = s_interp_dynamic_progress_epoch;\n"
+                        "                steps = tail_steps;\n"
+                        "            }\n"
+                        "        }\n"
+                        "        if (!_cyc && (pc_before == 0x808dcau || pc_before == 0x808dd0u || pc_before == 0x808de4u) && auto_quiescent && !n_stop &&\n"
+                        "            !stop_on_rti && !trace && !dtrace && !wlog_state_sync && !s_interp_pctrace &&\n"
+                        "            !g_interp_bridge_pc_hook && !Lufia2NativeObserversActive() && g_snes &&\n"
+                        "            !g_snes->inNmi && !g_snes->inIrq && !g_snes->hIrqEnabled &&\n"
+                        "            !g_snes->vIrqEnabled && (!g_snes->nmiEnabled || s_lle_master_deadline) &&\n"
+                        "            step_cap - steps >= (pc_before == 0x808dcau ? 3 : pc_before == 0x808dd0u ? 12 : 8)) {\n"
+                        "            long tail_steps;\n"
+                        "            _cyc = Lufia2DecompRunMenuGlyphVariant(&in, cpu, pc_before, op, progress_dynamic_epoch,\n"
+                        "                progress_write_epoch, &tail_steps);\n"
                         "            if (_cyc) {\n"
                         "                _lufia2_span_accounted = 1;\n"
                         "                progress_write_epoch = g_interp_bridge_write_epoch;\n"
