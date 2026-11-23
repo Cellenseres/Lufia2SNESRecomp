@@ -4,7 +4,7 @@ typedef struct SpriteOverlayPlan {
     unsigned count;
     unsigned opcode_count;
     unsigned cycles;
-    uint8_t sprite_counts[SPRITE_OVERLAY_MAX_COUNT];
+    uint16_t sprite_counts[SPRITE_OVERLAY_MAX_COUNT];
 } SpriteOverlayPlan;
 
 static const FixedSpanOpcode sprite_overlay_setup[] = {
@@ -85,10 +85,8 @@ static bool PlanSpriteOverlays(const uint8_t *ram, SpriteOverlayPlan *plan) {
     for (unsigned overlay = 0u; overlay < count; ++overlay) {
         if (!ram[0x1534u + overlay])
             continue;
-        const unsigned sprites = ram[0x157fu + overlay];
-        if (!sprites || sprites > 128u)
-            return false;
-        plan->sprite_counts[overlay] = (uint8_t)sprites;
+        const unsigned sprites = ram[0x157fu + overlay] ? ram[0x157fu + overlay] : 256u;
+        plan->sprite_counts[overlay] = (uint16_t)sprites;
         plan->opcode_count += 22u + 19u * sprites;
         plan->cycles += 69u + 58u * sprites;
     }
