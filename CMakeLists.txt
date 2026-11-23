@@ -644,6 +644,12 @@ add_executable(Lufia2Recomp
     ${LUFIA2_HOST_SOURCES}
     ${LUFIA2_GENERATED_SOURCES}
 )
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_sources(Lufia2Recomp PRIVATE
+        "$<$<CONFIG:Debug>:src/diagnostics/lufia2_decoder_trace.c>")
+    target_link_options(Lufia2Recomp PRIVATE
+        "$<$<CONFIG:Debug>:LINKER:--wrap=interp816_runOpcode,--wrap=spc_runOpcode>")
+endif()
 if(TARGET lufia2_margin_pack)
     add_dependencies(Lufia2Recomp lufia2_margin_pack)
 endif()
