@@ -1011,20 +1011,36 @@ static int Lufia2DecompRunMenuNewlineDispatch(Interp816 *registers, CpuState *cp
     return (int)cycles;
 }
 
-static int Lufia2DecompRunMenuClearLoopTail(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
+static int Lufia2DecompRunMenuClearIteration(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
                                 uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
-    if (pc != 0x82840bu || opcode != 0xe8u || registers->e || registers->xf ||
+    const bool clear_word = pc == 0x828408u;
+    const uint32_t destination = 0x7e3000u + registers->x;
+    if ((!clear_word && pc != 0x82840bu) || opcode != (clear_word ? 0x9eu : 0xe8u) || registers->e || registers->xf ||
+        (clear_word && (registers->mf || registers->db != 0x7eu || destination >= 0x7effffu)) ||
         registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
-        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 9u)
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (clear_word ? 16u : 9u))
         return 0;
 
     unsigned offset;
-    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, 5u, &offset);
-    if (!cart || memcmp(cart->rom + offset + 1u, "\xe8\x88\xd0\xf8", 4u))
+    const unsigned length = clear_word ? 8u : 5u;
+    const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
+    const char *signature = clear_word ? "\x00\x30\xe8\xe8\x88\xd0\xf8" : "\xe8\x88\xd0\xf8";
+    if (!cart || memcmp(cart->rom + offset + 1u, signature, length - 1u))
         return 0;
 
+    long progress = 0;
+    if (clear_word) {
+        Lufia2SpanFetch(registers, pc, 3u, false);
+        Lufia2DecompWriteData(registers, destination, destination + 1u, 0u, true);
+        Lufia2SpanAccountInstruction(cpu, 7u);
+        if (dynamic_epoch != s_interp_dynamic_progress_epoch || write_epoch != g_interp_bridge_write_epoch)
+            progress = 1;
+        Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+        pc += 3u;
+    }
+
     for (unsigned increment = 0; increment < 2; ++increment) {
-        Lufia2SpanFetch(registers, pc + increment, 1u, increment != 0u);
+        Lufia2SpanFetch(registers, pc + increment, 1u, clear_word || increment != 0u);
         ++registers->x;
         registers->n = (registers->x & 0x8000u) != 0;
         registers->z = registers->x == 0;
@@ -1041,7 +1057,10 @@ static int Lufia2DecompRunMenuClearLoopTail(Interp816 *registers, CpuState *cpu,
     registers->pc = registers->z ? 0x8410u : 0x8408u;
     registers->cyclesUsed = registers->z ? 2u : 3u;
     Lufia2SpanAccountInstruction(cpu, registers->cyclesUsed);
-    *tail_steps = dynamic_epoch != s_interp_dynamic_progress_epoch ? 0 : -3;
+    const long executed = clear_word ? 5 : 4;
+    if (dynamic_epoch != s_interp_dynamic_progress_epoch)
+        progress = executed;
+    *tail_steps = progress ? executed - progress : 1 - executed;
     Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
-    return 6u + registers->cyclesUsed;
+    return (clear_word ? 13u : 6u) + registers->cyclesUsed;
 }
