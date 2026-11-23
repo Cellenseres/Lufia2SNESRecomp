@@ -16,23 +16,29 @@ static const FixedSpanOpcode reset_entry_opcodes[] = {
 
 static bool ResetEntryWindow(const CpuState *cpu, uint32_t pc) {
     const unsigned budget = 768u;
+    const bool warm = pc == 0x008000u && !cpu->emulation &&
+        cpu->host_return_valid == 2u && g_snes && g_snes->inNmi &&
+        Lufia2DecompWarmResetActive();
     if ((pc != 0x008000u && pc != 0x808000u) || cpu->PB != pc >> 16 ||
-        cpu->emulation > 1u || cpu->m_flag != 1u || cpu->x_flag != 1u ||
-        cpu->X > 0xffu || cpu->Y > 0xffu || cpu->D || cpu->host_return_valid ||
+        cpu->emulation > 1u || cpu->m_flag != 1u || cpu->x_flag > 1u ||
+        (!warm && !cpu->x_flag) ||
+        (cpu->x_flag && (cpu->X > 0xffu || cpu->Y > 0xffu)) ||
+        cpu->D || (!warm && cpu->host_return_valid) ||
         cpu->S < 0x100u || cpu->S > 0x1fffu ||
         (cpu->emulation && (cpu->S & 0xff00u) != 0x100u) ||
         !cpu->ram || !g_snes || !g_snes->cart || !g_snes->cart->rom ||
         g_snes->cart->type != CART_LOROM || g_snes->cart->romSize < 0x35u ||
         g_snes->ram != cpu->ram || !g_snes->dma ||
-        g_snes->nmiEnabled || g_snes->inNmi || g_snes->inIrq ||
-        g_snes->hIrqEnabled || g_snes->vIrqEnabled || g_snes->vPos ||
-        g_snes->hPos > 256u || g_snes->beamMasterLast != cpu->master_cycles ||
+        (!warm && (g_snes->nmiEnabled || g_snes->inNmi ||
+                   g_snes->vPos || g_snes->hPos > 256u)) ||
+        g_snes->inIrq || g_snes->hIrqEnabled || g_snes->vIrqEnabled ||
+        g_snes->beamMasterLast != cpu->master_cycles ||
         g_snes->dma->dmaBusy || g_snes->dma->dmaTimer || g_snes->dma->hdmaPendingInit ||
         cpu->coprocessor_master_cycles != cpu->master_cycles ||
         cpu->master_cycles > UINT64_MAX - budget || !Lufia2DecompFrameReturnCpuReady())
         return false;
     for (unsigned i = 0u; i < 8u; ++i)
-        if (g_snes->dma->channel[i].dmaActive || g_snes->dma->channel[i].hdmaActive)
+        if (g_snes->dma->channel[i].dmaActive || (!warm && g_snes->dma->channel[i].hdmaActive))
             return false;
     const uint64_t deadline = Lufia2DecompFrameReturnDeadline();
     if (deadline <= cpu->master_cycles || deadline - cpu->master_cycles < budget)

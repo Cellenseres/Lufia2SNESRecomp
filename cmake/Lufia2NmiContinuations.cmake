@@ -2514,6 +2514,24 @@ function(lufia2_add_nmi_continuations target core_root)
                 string(APPEND _timing_suffix
                     "\nbool Lufia2DecompFrameSchedulerBounces(void) { return lle_yield_bounce_enabled() != 0; }\n")
             endif()
+            if("LUFIA2_HAVE_NATIVE_RESET_ENTRY=1" IN_LIST _definitions)
+                set(_interrupt_return "        if (stop_on_rti && op == 0x40) {")
+                string(FIND "${_text}" "${_interrupt_return}" _interrupt_return_position)
+                if(_interrupt_return_position LESS 0)
+                    message(FATAL_ERROR "Missing interrupt return for the native reset handoff")
+                endif()
+                string(REPLACE "${_interrupt_return}" [=[
+        /* Soft reset leaves the NMI handler through the reset vector. */
+        if (stop_on_rti && entry_pc24 == 0x00862du && pc_before == 0x8086b1u &&
+            op == 0x5cu && in.k == 0u && in.pc == 0x8000u) {
+            sync_interp_to_cpu(&in, cpu);
+            bridge_apu_flush(cpu);
+            return LUFIA2_INTERRUPT_RESET_HANDOFF;
+        }
+        if (stop_on_rti && op == 0x40) {
+]=] _text "${_text}")
+                string(PREPEND _text "#include \"decomp_bridge/nmi_resume.h\"\n")
+            endif()
             file(WRITE "${_output}.tmp" "${_text}${_timing_suffix}")
             execute_process(COMMAND "${CMAKE_COMMAND}" -E copy_if_different
                 "${_output}.tmp" "${_output}" COMMAND_ERROR_IS_FATAL ANY)

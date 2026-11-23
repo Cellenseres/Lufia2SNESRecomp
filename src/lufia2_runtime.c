@@ -400,11 +400,28 @@ static bool Lufia2RunToBoundary(uint32_t entry_pc, uint64_t deadline) {
     return true;
 }
 
+#if defined(LUFIA2_HAVE_NATIVE_RESET_ENTRY)
+static bool s_warm_reset_active;
+
+bool Lufia2DecompWarmResetActive(void) {
+    return s_warm_reset_active;
+}
+#endif
+
 static bool Lufia2RunInterrupt(uint32_t vector_pc) {
     /* Preserve the guest resume PC across the interrupt. */
     cpu_push_interrupt_frame_at(&g_cpu, s_resume_pc);
 
-    if (!interp_bridge_run_interrupt(&g_cpu, vector_pc)) {
+    const int result = interp_bridge_run_interrupt(&g_cpu, vector_pc);
+#if defined(LUFIA2_HAVE_NATIVE_RESET_ENTRY)
+    if (result == LUFIA2_INTERRUPT_RESET_HANDOFF) {
+        s_resume_pc = LUFIA2_RESET_PC;
+        s_last_boundary_was_wai = false;
+        s_warm_reset_active = true;
+        return true;
+    }
+#endif
+    if (!result) {
         fprintf(stderr,
                 "[lufia2] interrupt bridge failed: vector=$%06X "
                 "resume=$%06X frame=%d\n",
@@ -456,6 +473,13 @@ void Lufia2RunOneFrame(void) {
         if (!Lufia2RunInterrupt(LUFIA2_NMI_PC))
             return;
         s_nmis++;
+#if defined(LUFIA2_HAVE_NATIVE_RESET_ENTRY)
+        if (s_warm_reset_active) {
+            (void)Lufia2RunToBoundary(s_resume_pc, deadline);
+            s_warm_reset_active = false;
+            return;
+        }
+#endif
         if (s_nmi_video_observer) s_nmi_video_observer(g_ppu);
     }
 

@@ -4,6 +4,9 @@
 #include <stdint.h>
 #include "cpu_state.h"
 
+enum { LUFIA2_INTERRUPT_RESET_HANDOFF = 2 };
+bool Lufia2DecompWarmResetActive(void);
+
 void Lufia2DecompInstallNmiHooks(void);
 void Lufia2DecompNmiAccountCycles(CpuState *cpu, unsigned cycles, uint64_t master);
 uint8_t Lufia2DecompNmiReadByte(CpuState *cpu, uint32_t address);
