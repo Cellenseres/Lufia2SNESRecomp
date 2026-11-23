@@ -1,3 +1,25 @@
+static bool BattleOamCanReturn(const Interp816 *registers, const Cart *cart,
+                               unsigned opcode_offset, uint64_t budget, unsigned cycles) {
+    return budget >= cycles && registers->sp >= 0x1f00u && registers->sp <= 0x1ffdu &&
+        opcode_offset < cart->romSize && cart->rom[opcode_offset] == 0x60u;
+}
+
+static int BattleOamReturn(Interp816 *registers, CpuState *cpu, uint32_t pc, int cycles,
+                            uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+    Lufia2SpanFetch(registers, pc, 1u, true);
+    uint16_t address = registers->read(registers->mem, ++registers->sp);
+    address |= (uint16_t)registers->read(registers->mem, ++registers->sp) << 8;
+    registers->pc = (uint16_t)(address + 1u);
+    registers->cyclesUsed = 6u;
+    Lufia2SpanAccountInstruction(cpu, 6u);
+    if (dynamic_epoch != s_interp_dynamic_progress_epoch)
+        *tail_steps = 0;
+    else
+        *tail_steps += *tail_steps < 0 ? -1 : 1;
+    Lufia2SpanSyncProgress(cpu, &dynamic_epoch, &write_epoch);
+    return cycles + 6;
+}
+
 static int RunBattleOamAdmit(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
                                uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
     if (pc != 0x81b705u || opcode != 0x85u || registers->e || !registers->mf ||
@@ -29,6 +51,9 @@ static int RunBattleOamAdmit(Interp816 *registers, CpuState *cpu, uint32_t pc, u
         registers->cyclesUsed = 3u;
         Lufia2SpanAccountInstruction(cpu, 3u);
         *tail_steps = count_progress ? 2 : -2;
+        if (BattleOamCanReturn(registers, cart, offset + 0x7au,
+                               BufferSpanCycleBudget(cpu, s_lle_master_deadline), 6u))
+            return BattleOamReturn(registers, cpu, 0x81b77fu, 8, dynamic_epoch, write_epoch, tail_steps);
         return 8;
     }
     Lufia2SpanAccountInstruction(cpu, 2u);
@@ -238,6 +263,9 @@ static int RunBattleOamNext(Interp816 *registers, CpuState *cpu, uint32_t pc, ui
         registers->cyclesUsed = 3u;
         Lufia2SpanAccountInstruction(cpu, 3u);
         *tail_steps = count_progress ? 2 : used_progress ? 3 : -9;
+        if (BattleOamCanReturn(registers, cart, offset + 20u,
+                               BufferSpanCycleBudget(cpu, s_lle_master_deadline), 6u))
+            return BattleOamReturn(registers, cpu, 0x81b7d8u, 28, dynamic_epoch, write_epoch, tail_steps);
         return 28;
     }
     Lufia2SpanAccountInstruction(cpu, 2u);
@@ -462,7 +490,7 @@ static int RunBattleOamPackFour(Interp816 *registers, CpuState *cpu, uint32_t pc
 }
 
 static int RunBattleOamPackFourTail(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
-                                        uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
+                                        uint64_t dynamic_epoch, uint64_t write_epoch, long room, long *tail_steps) {
     if (pc != 0x81b76fu || opcode != 0xfau || registers->e || !registers->mf || registers->xf ||
         registers->dp || registers->sp < 0x1f00u || registers->sp > 0x1ffbu ||
         registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
@@ -531,6 +559,10 @@ static int RunBattleOamPackFourTail(Interp816 *registers, CpuState *cpu, uint32_
     registers->cyclesUsed = registers->z ? 2u : 3u;
     Lufia2SpanAccountInstruction(cpu, registers->cyclesUsed);
     *tail_steps = progress ? 10 - progress : -9;
+    if (registers->z && room >= 11 &&
+        BattleOamCanReturn(registers, cart, offset + 16u,
+                          BufferSpanCycleBudget(cpu, s_lle_master_deadline), 6u))
+        return BattleOamReturn(registers, cpu, 0x81b77fu, 29, dynamic_epoch, write_epoch, tail_steps);
     return 27u + registers->cyclesUsed;
 }
 
@@ -626,7 +658,7 @@ static int Lufia2DecompRunBattleOamPack(Interp816 *registers, CpuState *cpu,
         break;
     case 0x81b76fu:
         if (room >= 10)
-            return RunBattleOamPackFourTail(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, tail_steps);
+            return RunBattleOamPackFourTail(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, room, tail_steps);
         break;
     case 0x81b79du:
         if (room >= 8)
