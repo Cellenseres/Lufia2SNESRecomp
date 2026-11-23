@@ -2109,22 +2109,26 @@ function(lufia2_add_nmi_continuations target core_root)
                         "\n#include \"${_aot_call_table}\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/aot_call_sites.inc\"\n"
                         "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/rom_immediate_opcode.inc\"\n"
-                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/sprite_oam_rotate_span.inc\"\n")
+                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/sprite_oam_rotate_span.inc\"\n"
+                        "#include \"${CMAKE_SOURCE_DIR}/src/decomp_bridge/sprite_oam_clear_span.inc\"\n")
                     string(PREPEND _text
-                        "#include \"interp816.h\"\n#include \"cpu_state.h\"\nstatic int Lufia2DecompRunSpriteOamRotateSpan(Interp816 *, CpuState *, uint32_t, uint8_t, bool);\n")
+                        "#include \"interp816.h\"\n#include \"cpu_state.h\"\nstatic int Lufia2DecompRunSpriteOamRotateSpan(Interp816 *, CpuState *, uint32_t, uint8_t, bool);\nstatic int Lufia2DecompRunSpriteOamClearSpan(Interp816 *, CpuState *, uint32_t, uint8_t, bool);\n")
                     string(APPEND _native_opcode
-                        "        if (!_cyc && pc_before == 0x868cbfu && !n_stop &&\n"
+                        "        if (!_cyc && (pc_before == 0x868cbfu || pc_before == 0x868bdau ||\n"
+                        "                      pc_before == 0x868beau) && !n_stop &&\n"
                         "            (!yield_pc || auto_quiescent) && !stop_on_rti && !trace && !dtrace &&\n"
                         "            !wlog_state_sync && !s_interp_pctrace && !g_interp_bridge_pc_hook &&\n"
                         "            !Lufia2NativeObserversActive() && g_snes && !g_snes->inNmi && !g_snes->inIrq &&\n"
                         "            !g_snes->hIrqEnabled && !g_snes->vIrqEnabled &&\n"
                         "            (!g_snes->nmiEnabled || s_lle_master_deadline)) {\n"
-                        "            _cyc = Lufia2DecompRunSpriteOamRotateSpan(&in, cpu, pc_before, op, auto_quiescent);\n"
+                        "            _cyc = pc_before == 0x868cbfu\n"
+                        "                ? Lufia2DecompRunSpriteOamRotateSpan(&in, cpu, pc_before, op, auto_quiescent)\n"
+                        "                : Lufia2DecompRunSpriteOamClearSpan(&in, cpu, pc_before, op, auto_quiescent);\n"
                         "            _lufia2_span_accounted = _cyc != 0;\n"
                         "            if (_cyc && auto_quiescent) {\n"
                         "                progress_write_epoch = g_interp_bridge_write_epoch;\n"
                         "                progress_dynamic_epoch = s_interp_dynamic_progress_epoch;\n"
-                        "                steps = 1;\n"
+                        "                steps = pc_before == 0x868cbfu ? 1 : 4;\n"
                         "            }\n"
                         "        }\n")
                     string(APPEND _native_opcode
