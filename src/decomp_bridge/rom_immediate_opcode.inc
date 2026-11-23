@@ -404,7 +404,8 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target) {
     case 0x819664u: case 0x81968au: case 0x8196c6u:
     case 0x8196f6u: case 0x8196fau:
     case 0x8196feu: case 0x819738u: case 0x81976bu: case 0x8197a5u:
-    case 0x819999u: case 0x8199a5u: case 0x8199b0u: case 0x819ab1u: case 0x819ba3u:
+    case 0x819999u: case 0x8199a5u: case 0x8199b0u:
+    case 0x8199d0u: case 0x819a12u: case 0x819ab1u: case 0x819ba3u:
         return true;
     default:
         break;
@@ -416,6 +417,7 @@ static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target) {
     case 0x85afb1u: case 0x85b029u: case 0x85b094u: case 0x85b0fcu:
     case 0x85b10cu: case 0x85b16eu: case 0x85b175u:
     case 0x819684u: case 0x8196f6u: case 0x8196fau:
+    case 0x8199ecu: case 0x8199f2u: case 0x819a2eu: case 0x819a34u:
         return true;
     default:
         return false;
