@@ -153,7 +153,8 @@ restore_data_bank: {
     NativeSpanSyncProgress(&span, cpu, &dynamic_epoch, &write_epoch);
 }
 return_table: {
-    if (!NativeSpanCanStep(&span, cpu, 6u))
+    /* An unsupported return must not add a bus read. */
+    if (!NativeSpanCanStep(&span, cpu, 6u) || registers->sp < 0x1f00u || registers->sp > 0x1ffcu)
         goto finished;
     if (span.instructions)
         Lufia2SpanProbeOpcode(registers, 0x868cf4u);
