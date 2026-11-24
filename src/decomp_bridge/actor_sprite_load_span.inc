@@ -4,14 +4,20 @@ __declspec(noinline)
 __attribute__((noinline))
 #endif
 static bool Lufia2DecompIsInventorySpritePc(uint32_t pc) {
-    return (pc >= 0x82bd48u && pc <= 0x82be03u) ||
-        (pc >= 0x83a9bau && pc <= 0x83a9cfu) || (pc >= 0x83a9e5u && pc <= 0x83aa2fu) ||
-        (pc >= 0x83aa50u && pc <= 0x83aaaeu) || (pc >= 0x83abe9u && pc <= 0x83abf3u) ||
-        (pc >= 0x83aae5u && pc <= 0x83ab4eu) || (pc >= 0x83fcd1u && pc <= 0x83fd0au) ||
-        (pc >= 0x848193u && pc <= 0x848203u) ||
-        (pc >= 0x83a4a2u && pc <= 0x83a533u) || (pc >= 0x83a669u && pc <= 0x83a685u) ||
-        (pc >= 0x83a321u && pc <= 0x83a489u) ||
-        (pc >= 0x83a534u && pc <= 0x83a588u) || (pc >= 0x83a591u && pc <= 0x83a668u);
+    switch (pc >> 16) {
+    case 0x82u: return pc >= 0x82bd48u && pc <= 0x82be03u;
+    case 0x83u:
+        return (pc >= 0x83a9bau && pc <= 0x83a9cfu) || (pc >= 0x83a9e5u && pc <= 0x83aa2fu) ||
+            (pc >= 0x83aa50u && pc <= 0x83aaaeu) || (pc >= 0x83abe9u && pc <= 0x83abf3u) ||
+            (pc >= 0x83aae5u && pc <= 0x83ab4eu) || (pc >= 0x83fcd1u && pc <= 0x83fd0au) ||
+            (pc >= 0x83a4a2u && pc <= 0x83a588u) || (pc >= 0x83a591u && pc <= 0x83a685u) ||
+            (pc >= 0x83a321u && pc <= 0x83a489u) ||
+            (pc >= 0x83b007u && pc <= 0x83b076u) || (pc >= 0x83b07au && pc <= 0x83b082u) ||
+            (pc >= 0x83b086u && pc <= 0x83b15du);
+    case 0x84u: return pc >= 0x848193u && pc <= 0x848203u;
+    case 0x8eu: return pc >= 0x8eba81u && pc <= 0x8ebae6u;
+    default: return false;
+    }
 }
 
 #if defined(_MSC_VER)
@@ -807,6 +813,12 @@ static int Lufia2DecompRunInventorySpriteSpan(Interp816 *registers, CpuState *cp
     if ((pc >> 16) == 0x82u)
         return Lufia2DecompRunMenuEquipmentSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
                                                 step_budget, step_count);
+    if ((pc >= 0x83b062u && pc <= 0x83b15du) || (pc >= 0x8eba81u && pc <= 0x8ebae6u))
+        return Lufia2DecompRunFieldRestoreSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
+            step_budget, step_count);
+    if (pc >= 0x83b007u && pc <= 0x83b061u)
+        return Lufia2DecompRunFieldFixedGraphicsSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
+            step_budget, step_count);
     if (pc >= 0x83a321u && pc <= 0x83a489u)
         return Lufia2DecompRunFieldOamParentSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
             step_budget, step_count);
