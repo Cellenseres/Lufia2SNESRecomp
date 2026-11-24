@@ -8,6 +8,7 @@ static bool Lufia2DecompIsInventorySpritePc(uint32_t pc) {
     case 0x80u:
         return (pc >= 0x808cfcu && pc <= 0x808d03u) || (pc >= 0x808d1cu && pc <= 0x808d21u) ||
             (pc >= 0x808d2bu && pc <= 0x808d5cu) || (pc >= 0x808d91u && pc <= 0x808dafu);
+    case 0x81u: return pc >= 0x819df6u && pc <= 0x819e12u;
     case 0x82u: return pc >= 0x82bd48u && pc <= 0x82be03u;
     case 0x83u:
         return (pc >= 0x83a295u && pc <= 0x83a29au) || (pc >= 0x83a2a2u && pc <= 0x83a318u) || (pc >= 0x83a9bau && pc <= 0x83a9cfu) || (pc >= 0x83a9e5u && pc <= 0x83aa2fu) ||
@@ -18,6 +19,11 @@ static bool Lufia2DecompIsInventorySpritePc(uint32_t pc) {
             (pc >= 0x83b007u && pc <= 0x83b076u) || (pc >= 0x83b07au && pc <= 0x83b082u) ||
             (pc >= 0x83b086u && pc <= 0x83b15du);
     case 0x84u: return pc >= 0x848193u && pc <= 0x848203u;
+    case 0x85u:
+        return (pc >= 0x858a2fu && pc <= 0x858a38u) ||
+            (pc >= 0x858a83u && pc <= 0x858a94u) ||
+            (pc >= 0x858a9eu && pc <= 0x858aaeu) || (pc >= 0x858c18u && pc <= 0x858c1bu) ||
+            (pc >= 0x858c1eu && pc <= 0x858c21u) || (pc >= 0x85972eu && pc <= 0x8597d0u);
     case 0x86u: return pc >= 0x868cdau && pc <= 0x868cf4u;
     case 0x8eu: return pc >= 0x8eba81u && pc <= 0x8ebae6u;
     default: return false;
@@ -819,6 +825,9 @@ static int Lufia2DecompRunInventorySpriteSpan(Interp816 *registers, CpuState *cp
                                                 step_budget, step_count);
     if ((pc >> 16) == 0x80u)
         return Lufia2DecompRunMenuVmControlSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
+            step_budget, step_count);
+    if ((pc >> 16) == 0x81u || (pc >> 16) == 0x85u)
+        return Lufia2DecompRunBattleSpriteControlSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
             step_budget, step_count);
     if ((pc >= 0x83a295u && pc <= 0x83a29au) || (pc >= 0x83a2a2u && pc <= 0x83a318u))
         return Lufia2DecompRunFieldSortVisibleSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,

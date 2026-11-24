@@ -453,6 +453,9 @@ static bool Lufia2DecompMainMenuNeedsTimedCall(const Interp816 *registers) {
 
 static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
                                       const Interp816 *registers) {
+    if (target == 0x85972eu || target == 0x859790u)
+        return true;
+
     if (target == 0x80e566u ||
         (site >= 0x80e566u && site <= 0x80e59du) ||
         (site >= 0x80e78du && site <= 0x80e7ddu) ||
