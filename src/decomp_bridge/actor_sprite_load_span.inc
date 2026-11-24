@@ -25,7 +25,7 @@ static bool Lufia2DecompIsInventorySpritePc(uint32_t pc) {
             (pc >= 0x858a83u && pc <= 0x858a94u) ||
             (pc >= 0x858a9eu && pc <= 0x858aaeu) || (pc >= 0x858c18u && pc <= 0x858c1bu) ||
             (pc >= 0x858c1eu && pc <= 0x858c21u) || (pc >= 0x85972eu && pc <= 0x8597d0u);
-    case 0x86u: return pc >= 0x868cdau && pc <= 0x868cf4u;
+    case 0x86u: return (pc >= 0x868cdau && pc <= 0x868cf4u) || (pc >= 0x868f6fu && pc <= 0x868ff5u);
     case 0x8eu: return pc >= 0x8eba81u && pc <= 0x8ebae6u;
     default: return false;
     }
@@ -842,9 +842,13 @@ static int Lufia2DecompRunInventorySpriteSpan(Interp816 *registers, CpuState *cp
     if ((pc >= 0x83a295u && pc <= 0x83a29au) || (pc >= 0x83a2a2u && pc <= 0x83a318u))
         return Lufia2DecompRunFieldSortVisibleSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
             step_budget, step_count);
-    if ((pc >> 16) == 0x86u)
+    if ((pc >> 16) == 0x86u) {
+        if (pc >= 0x868f6fu && pc <= 0x868ff5u)
+            return Lufia2DecompRunMenuImageSetSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
+                step_budget, step_count);
         return Lufia2DecompRunSpriteSetTableSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
             step_budget, step_count);
+    }
     if ((pc >= 0x83b062u && pc <= 0x83b15du) || (pc >= 0x8eba81u && pc <= 0x8ebae6u))
         return Lufia2DecompRunFieldRestoreSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
             step_budget, step_count);
