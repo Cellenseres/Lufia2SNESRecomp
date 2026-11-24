@@ -215,6 +215,7 @@ static int RunNestedMenuStringContext(Interp816 *registers, CpuState *cpu, uint3
     if (pc != 0x808bcau || opcode != 0xe2u || registers->e || registers->dp ||
         registers->sp < 0x1f05u || registers->sp > 0x1fffu ||
         registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
+        !Lufia2DecompFrameRangeQuiet(0x808bcau, 0x808bdcu) ||
         BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 36u)
         return 0;
 
@@ -303,6 +304,7 @@ static int RunNestedMenuStringCall(Interp816 *registers, CpuState *cpu, uint32_t
     if (pc != 0x808bdcu || opcode != 0xadu || registers->e || registers->mf || registers->xf ||
         !Lufia2DecompIsWramByte(bank | 0x0575u) || registers->sp < 0x1f04u || registers->sp > 0x1fffu ||
         registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
+        !Lufia2DecompFrameRangeQuiet(0x808bdcu, 0x808bedu) ||
         BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 30u)
         return 0;
 
@@ -370,6 +372,7 @@ static int RunNestedMenuStringReturn(Interp816 *registers, CpuState *cpu, uint32
     if (pc != 0x808bedu || opcode != 0xc2u || registers->e || registers->dp ||
         !Lufia2DecompIsWramByte(bank | 0x0573u) || registers->sp < 0x1f00u || registers->sp > 0x1ff6u ||
         registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
+        !Lufia2DecompFrameRangeQuiet(0x808bedu, 0x808bfdu) ||
         BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 43u)
         return 0;
 
