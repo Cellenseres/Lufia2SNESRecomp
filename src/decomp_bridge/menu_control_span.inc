@@ -1897,6 +1897,7 @@ static int Lufia2DecompRunMenuWindowEdgeBoundaries(Interp816 *registers, CpuStat
         registers->e || registers->mf || registers->xf || (begin && (registers->dp || registers->d)) ||
         (!begin && (registers->sp < 0x1f00u || registers->sp > 0x1ffdu)) ||
         registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
+        !Lufia2DecompFrameRangeQuiet(pc, begin ? 0x8281f9u : 0x82820bu) ||
         BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (begin ? 30u : 6u))
         return 0;
 
@@ -2046,6 +2047,7 @@ static int Lufia2DecompRunMenuWindowEdgeTile(Interp816 *registers, CpuState *cpu
     if (pc != 0x8281f9u || opcode != 0xb1u || registers->e || registers->mf || registers->xf ||
         registers->dp || destination >= 0x7effffu || !cpu->ram || cpu->ram != g_snes->ram ||
         registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
+        !Lufia2DecompFrameRangeQuiet(0x8281f9u, 0x82820au) ||
         BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 34u)
         return 0;
 
