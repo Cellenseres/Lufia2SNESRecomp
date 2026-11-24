@@ -1,10 +1,3 @@
-static void SpriteAllocationScanProgress(SpriteScanSpan *span, CpuState *cpu,
-    uint64_t *dynamic_epoch, uint64_t *write_epoch) {
-    if (*dynamic_epoch != s_interp_dynamic_progress_epoch || *write_epoch != g_interp_bridge_write_epoch)
-        span->progress = span->instructions;
-    Lufia2SpanSyncProgress(cpu, dynamic_epoch, write_epoch);
-}
-
 static int Lufia2DecompRunSpriteAllocationScan(Interp816 *registers, CpuState *cpu,
     uint32_t pc, uint8_t opcode, uint64_t dynamic_epoch, uint64_t write_epoch,
     unsigned step_budget, long *step_count) {
@@ -39,7 +32,7 @@ static int Lufia2DecompRunSpriteAllocationScan(Interp816 *registers, CpuState *c
         !Lufia2DecompIsWramByte(cursor))
         return 0;
     const unsigned direct_cycles = 3u + ((registers->dp & 0xffu) != 0u);
-    SpriteScanSpan span = {BufferSpanCycleBudget(cpu, s_lle_master_deadline), step_budget, 0, 0, 0, 0};
+    NativeSpanState span = {BufferSpanCycleBudget(cpu, s_lle_master_deadline), step_budget, 0, 0, 0, 0};
     switch (pc) {
     case 0x83ab8au: goto load_status;
     case 0x83ab8du: goto branch_status;
@@ -59,97 +52,97 @@ static int Lufia2DecompRunSpriteAllocationScan(Interp816 *registers, CpuState *c
     default: return 0;
     }
 load_status:
-    if (!SpriteScanCanStep(&span, cpu, 4u)) goto finished;
+    if (!NativeSpanCanStep(&span, cpu, 4u)) goto finished;
     Lufia2SpanFetch(registers, 0x83ab8au, 3u, span.instructions != 0u);
     Lufia2DecompApplyOperand(registers, 0xa9u, registers->read(registers->mem, bank + 0xe100u + registers->x), true);
-    SpriteScanStep(&span, registers, cpu, 4u, 0xab8du);
-    SpriteAllocationScanProgress(&span, cpu, &dynamic_epoch, &write_epoch);
+    NativeSpanStep(&span, registers, cpu, 4u, 0xab8du);
+    NativeSpanSyncProgress(&span, cpu, &dynamic_epoch, &write_epoch);
 branch_status:
     {
         const bool occupied = !registers->z;
         const unsigned cycles = occupied ? 3u : 2u;
-        if (!SpriteScanCanStep(&span, cpu, cycles)) goto finished;
+        if (!NativeSpanCanStep(&span, cpu, cycles)) goto finished;
         Lufia2SpanFetch(registers, 0x83ab8du, 2u, span.instructions != 0u);
-        SpriteScanStep(&span, registers, cpu, cycles, occupied ? 0xab97u : 0xab8fu);
+        NativeSpanStep(&span, registers, cpu, cycles, occupied ? 0xab97u : 0xab8fu);
         if (occupied) goto load_cursor;
     }
 count_free:
-    if (!SpriteScanCanStep(&span, cpu, 2u)) goto finished;
+    if (!NativeSpanCanStep(&span, cpu, 2u)) goto finished;
     Lufia2SpanFetch(registers, 0x83ab8fu, 1u, span.instructions != 0u);
     Lufia2DecompApplyOperand(registers, 0xa0u, (uint8_t)(registers->y + 1u), true);
-    SpriteScanStep(&span, registers, cpu, 2u, 0xab90u);
+    NativeSpanStep(&span, registers, cpu, 2u, 0xab90u);
 compare_request:
-    if (!SpriteScanCanStep(&span, cpu, direct_cycles)) goto finished;
+    if (!NativeSpanCanStep(&span, cpu, direct_cycles)) goto finished;
     Lufia2SpanFetch(registers, 0x83ab90u, 2u, span.instructions != 0u);
     Lufia2DecompApplyOperand(registers, 0xc0u, registers->read(registers->mem, request), true);
-    SpriteScanStep(&span, registers, cpu, direct_cycles, 0xab92u);
-    SpriteAllocationScanProgress(&span, cpu, &dynamic_epoch, &write_epoch);
+    NativeSpanStep(&span, registers, cpu, direct_cycles, 0xab92u);
+    NativeSpanSyncProgress(&span, cpu, &dynamic_epoch, &write_epoch);
 branch_found:
     {
         const bool found = registers->z;
         const unsigned cycles = found ? 3u : 2u;
-        if (!SpriteScanCanStep(&span, cpu, cycles)) goto finished;
+        if (!NativeSpanCanStep(&span, cpu, cycles)) goto finished;
         Lufia2SpanFetch(registers, 0x83ab92u, 2u, span.instructions != 0u);
-        SpriteScanStep(&span, registers, cpu, cycles, found ? 0xaba8u : 0xab94u);
+        NativeSpanStep(&span, registers, cpu, cycles, found ? 0xaba8u : 0xab94u);
         if (found) goto finished;
     }
 advance_slot:
-    if (!SpriteScanCanStep(&span, cpu, 2u)) goto finished;
+    if (!NativeSpanCanStep(&span, cpu, 2u)) goto finished;
     Lufia2SpanFetch(registers, 0x83ab94u, 1u, span.instructions != 0u);
     Lufia2DecompApplyOperand(registers, 0xa2u, (uint8_t)(registers->x + 1u), true);
-    SpriteScanStep(&span, registers, cpu, 2u, 0xab95u);
+    NativeSpanStep(&span, registers, cpu, 2u, 0xab95u);
 repeat_free:
-    if (!SpriteScanCanStep(&span, cpu, 3u)) goto finished;
+    if (!NativeSpanCanStep(&span, cpu, 3u)) goto finished;
     Lufia2SpanFetch(registers, 0x83ab95u, 2u, span.instructions != 0u);
-    SpriteScanStep(&span, registers, cpu, 3u, 0xab8au);
+    NativeSpanStep(&span, registers, cpu, 3u, 0xab8au);
     if (++span.slots < 8u) goto load_status;
     goto finished;
 load_cursor:
-    if (!SpriteScanCanStep(&span, cpu, direct_cycles)) goto finished;
+    if (!NativeSpanCanStep(&span, cpu, direct_cycles)) goto finished;
     Lufia2SpanFetch(registers, 0x83ab97u, 2u, span.instructions != 0u);
     Lufia2DecompApplyOperand(registers, 0xa9u, registers->read(registers->mem, cursor), true);
-    SpriteScanStep(&span, registers, cpu, direct_cycles, 0xab99u);
-    SpriteAllocationScanProgress(&span, cpu, &dynamic_epoch, &write_epoch);
+    NativeSpanStep(&span, registers, cpu, direct_cycles, 0xab99u);
+    NativeSpanSyncProgress(&span, cpu, &dynamic_epoch, &write_epoch);
 clear_carry:
-    if (!SpriteScanCanStep(&span, cpu, 2u)) goto finished;
+    if (!NativeSpanCanStep(&span, cpu, 2u)) goto finished;
     Lufia2SpanFetch(registers, 0x83ab99u, 1u, span.instructions != 0u);
     registers->c = false;
-    SpriteScanStep(&span, registers, cpu, 2u, 0xab9au);
+    NativeSpanStep(&span, registers, cpu, 2u, 0xab9au);
 advance_cursor:
-    if (!SpriteScanCanStep(&span, cpu, direct_cycles)) goto finished;
+    if (!NativeSpanCanStep(&span, cpu, direct_cycles)) goto finished;
     Lufia2SpanFetch(registers, 0x83ab9au, 2u, span.instructions != 0u);
     Lufia2DecompApplyOperand(registers, 0x69u, registers->read(registers->mem, request), true);
-    SpriteScanStep(&span, registers, cpu, direct_cycles, 0xab9cu);
-    SpriteAllocationScanProgress(&span, cpu, &dynamic_epoch, &write_epoch);
+    NativeSpanStep(&span, registers, cpu, direct_cycles, 0xab9cu);
+    NativeSpanSyncProgress(&span, cpu, &dynamic_epoch, &write_epoch);
 store_cursor:
-    if (!SpriteScanCanStep(&span, cpu, direct_cycles)) goto finished;
+    if (!NativeSpanCanStep(&span, cpu, direct_cycles)) goto finished;
     Lufia2SpanFetch(registers, 0x83ab9cu, 2u, span.instructions != 0u);
     registers->write(registers->mem, cursor, (uint8_t)registers->a);
-    SpriteScanStep(&span, registers, cpu, direct_cycles, 0xab9eu);
-    SpriteAllocationScanProgress(&span, cpu, &dynamic_epoch, &write_epoch);
+    NativeSpanStep(&span, registers, cpu, direct_cycles, 0xab9eu);
+    NativeSpanSyncProgress(&span, cpu, &dynamic_epoch, &write_epoch);
 store_start:
-    if (!SpriteScanCanStep(&span, cpu, direct_cycles)) goto finished;
+    if (!NativeSpanCanStep(&span, cpu, direct_cycles)) goto finished;
     Lufia2SpanFetch(registers, 0x83ab9eu, 2u, span.instructions != 0u);
     registers->write(registers->mem, start, (uint8_t)registers->a);
-    SpriteScanStep(&span, registers, cpu, direct_cycles, 0xaba0u);
-    SpriteAllocationScanProgress(&span, cpu, &dynamic_epoch, &write_epoch);
+    NativeSpanStep(&span, registers, cpu, direct_cycles, 0xaba0u);
+    NativeSpanSyncProgress(&span, cpu, &dynamic_epoch, &write_epoch);
 select_group:
-    if (!SpriteScanCanStep(&span, cpu, 2u)) goto finished;
+    if (!NativeSpanCanStep(&span, cpu, 2u)) goto finished;
     Lufia2SpanFetch(registers, 0x83aba0u, 1u, span.instructions != 0u);
     Lufia2DecompApplyOperand(registers, 0xa2u, (uint8_t)registers->a, true);
-    SpriteScanStep(&span, registers, cpu, 2u, 0xaba1u);
+    NativeSpanStep(&span, registers, cpu, 2u, 0xaba1u);
 compare_end:
-    if (!SpriteScanCanStep(&span, cpu, 2u)) goto finished;
+    if (!NativeSpanCanStep(&span, cpu, 2u)) goto finished;
     Lufia2SpanFetch(registers, 0x83aba1u, 2u, span.instructions != 0u);
     Lufia2DecompApplyOperand(registers, 0xc9u, 0x80u, true);
-    SpriteScanStep(&span, registers, cpu, 2u, 0xaba3u);
+    NativeSpanStep(&span, registers, cpu, 2u, 0xaba3u);
 repeat_group:
     {
         const bool repeat = !registers->z;
         const unsigned cycles = repeat ? 3u : 2u;
-        if (!SpriteScanCanStep(&span, cpu, cycles)) goto finished;
+        if (!NativeSpanCanStep(&span, cpu, cycles)) goto finished;
         Lufia2SpanFetch(registers, 0x83aba3u, 2u, span.instructions != 0u);
-        SpriteScanStep(&span, registers, cpu, cycles, repeat ? 0xab8au : 0xaba5u);
+        NativeSpanStep(&span, registers, cpu, cycles, repeat ? 0xab8au : 0xaba5u);
         if (repeat && ++span.slots < 8u) goto load_status;
     }
 finished:

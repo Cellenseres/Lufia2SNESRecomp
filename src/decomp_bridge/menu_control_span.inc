@@ -775,17 +775,18 @@ static int Lufia2DecompRunMenuGlyphCall(Interp816 *registers, CpuState *cpu, uin
 static int RunMenuTextRow(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
                              uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
     const bool advance = pc == 0x808df9u;
+    const unsigned length = advance ? 22u : 7u;
     const uint32_t bank = (uint32_t)registers->db << 16;
     if ((!advance && pc != 0x808e0fu) || opcode != (advance ? 0xc2u : 0xadu) ||
         registers->e || (!advance && !registers->mf) || (advance && (registers->xf || registers->d)) ||
         !Lufia2DecompIsWramByte(bank | 0x0578u) ||
         registers->sp < 0x1f00u || registers->sp > 0x1ffdu ||
         registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
+        !Lufia2DecompFrameRangeQuiet(pc, pc + length) ||
         BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (advance ? 38u : 14u))
         return 0;
 
     unsigned offset;
-    const unsigned length = advance ? 22u : 7u;
     const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
     const char *signature = advance ? "\x20\xad\x73\x05\x18\x69\x40\x00\x8d\x73\x05\x8d\x75\x05\xaa\xe2\x20\x9c\x78\x05\x60" :
         "\x65\x05\x8d\x66\x05\x60";
