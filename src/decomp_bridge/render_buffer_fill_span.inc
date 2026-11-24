@@ -107,11 +107,17 @@ static int Lufia2DecompRunMenuTileClear(Interp816 *registers, CpuState *cpu, uin
     return (int)cycles;
 }
 
+#if defined(_MSC_VER)
+__declspec(noinline)
+#elif defined(__GNUC__)
+__attribute__((noinline))
+#endif
 static int Lufia2DecompRunMenuTileBlock(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
                             uint64_t dynamic_epoch, uint64_t write_epoch) {
     if (pc != 0x8280b3u || opcode != 0x9fu || registers->e || registers->mf || registers->xf ||
         registers->y < 1u || registers->y > 4u || registers->waiting || registers->stopped ||
-        registers->irqWanted || registers->nmiWanted)
+        registers->irqWanted || registers->nmiWanted ||
+        !Lufia2DecompFrameRangeQuiet(0x8280b3u, 0x8280bdu))
         return 0;
 
     const uint64_t room = BufferSpanCycleBudget(cpu, s_lle_master_deadline) / 17u;

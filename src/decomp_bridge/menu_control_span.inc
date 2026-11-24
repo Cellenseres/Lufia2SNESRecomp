@@ -1509,11 +1509,17 @@ static int Lufia2DecompRunMenuPaletteDispatch(Interp816 *registers, CpuState *cp
     return 14;
 }
 
+#if defined(_MSC_VER)
+__declspec(noinline)
+#elif defined(__GNUC__)
+__attribute__((noinline))
+#endif
 static int Lufia2DecompRunMenuTileBlockStart(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
                                   uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
     if (pc != 0x8280a5u || opcode != 0xa2u || registers->e || registers->mf || registers->xf ||
         registers->dp || registers->waiting || registers->stopped || registers->irqWanted ||
-        registers->nmiWanted || BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 19u)
+        registers->nmiWanted || BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 19u ||
+        !Lufia2DecompFrameRangeQuiet(0x8280a5u, 0x8280b0u))
         return 0;
 
     unsigned offset;
@@ -1556,6 +1562,11 @@ static int Lufia2DecompRunMenuTileBlockStart(Interp816 *registers, CpuState *cpu
     return 19;
 }
 
+#if defined(_MSC_VER)
+__declspec(noinline)
+#elif defined(__GNUC__)
+__attribute__((noinline))
+#endif
 static int Lufia2DecompRunMenuTileBlockRow(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
                                 uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
     const bool first = pc == 0x8280b0u;
@@ -1566,7 +1577,8 @@ static int Lufia2DecompRunMenuTileBlockRow(Interp816 *registers, CpuState *cpu, 
         (!first && !finish && registers->d) ||
         registers->sp < (first ? 0x1f01u : 0x1f00u) || registers->sp > (first ? 0x1fffu : 0x1ffdu) ||
         registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
-        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (first ? 8u : finish ? 6u : 26u))
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (first ? 8u : finish ? 6u : 26u) ||
+        !Lufia2DecompFrameRangeQuiet(pc, pc + (first ? 3u : finish ? 1u : 12u)))
         return 0;
 
     unsigned offset;
