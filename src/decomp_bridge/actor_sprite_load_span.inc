@@ -10,7 +10,7 @@ static bool Lufia2DecompIsInventorySpritePc(uint32_t pc) {
             (pc >= 0x808d2bu && pc <= 0x808d5cu) || (pc >= 0x808d91u && pc <= 0x808dafu);
     case 0x82u: return pc >= 0x82bd48u && pc <= 0x82be03u;
     case 0x83u:
-        return (pc >= 0x83a9bau && pc <= 0x83a9cfu) || (pc >= 0x83a9e5u && pc <= 0x83aa2fu) ||
+        return (pc >= 0x83a295u && pc <= 0x83a29au) || (pc >= 0x83a2a2u && pc <= 0x83a318u) || (pc >= 0x83a9bau && pc <= 0x83a9cfu) || (pc >= 0x83a9e5u && pc <= 0x83aa2fu) ||
             (pc >= 0x83aa50u && pc <= 0x83aaaeu) || (pc >= 0x83abe9u && pc <= 0x83abf3u) ||
             (pc >= 0x83aae5u && pc <= 0x83ab4eu) || (pc >= 0x83fcd1u && pc <= 0x83fd0au) ||
             (pc >= 0x83a4a2u && pc <= 0x83a588u) || (pc >= 0x83a591u && pc <= 0x83a685u) ||
@@ -18,6 +18,7 @@ static bool Lufia2DecompIsInventorySpritePc(uint32_t pc) {
             (pc >= 0x83b007u && pc <= 0x83b076u) || (pc >= 0x83b07au && pc <= 0x83b082u) ||
             (pc >= 0x83b086u && pc <= 0x83b15du);
     case 0x84u: return pc >= 0x848193u && pc <= 0x848203u;
+    case 0x86u: return pc >= 0x868cdau && pc <= 0x868cf4u;
     case 0x8eu: return pc >= 0x8eba81u && pc <= 0x8ebae6u;
     default: return false;
     }
@@ -818,6 +819,12 @@ static int Lufia2DecompRunInventorySpriteSpan(Interp816 *registers, CpuState *cp
                                                 step_budget, step_count);
     if ((pc >> 16) == 0x80u)
         return Lufia2DecompRunMenuVmControlSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
+            step_budget, step_count);
+    if ((pc >= 0x83a295u && pc <= 0x83a29au) || (pc >= 0x83a2a2u && pc <= 0x83a318u))
+        return Lufia2DecompRunFieldSortVisibleSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
+            step_budget, step_count);
+    if ((pc >> 16) == 0x86u)
+        return Lufia2DecompRunSpriteSetTableSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
             step_budget, step_count);
     if ((pc >= 0x83b062u && pc <= 0x83b15du) || (pc >= 0x8eba81u && pc <= 0x8ebae6u))
         return Lufia2DecompRunFieldRestoreSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
