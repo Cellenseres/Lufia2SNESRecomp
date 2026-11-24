@@ -522,9 +522,9 @@ static int Lufia2DecompRunBattleTilemapClear(Interp816 *registers, CpuState *cpu
 static int Lufia2DecompRunBattlePalettePortCopy(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
                                      uint64_t dynamic_epoch, uint64_t write_epoch, long *tail_steps) {
     const bool from_rom = pc == 0x858ac2u;
-    const bool monster_palette = pc == 0x858b37u;
-    const unsigned count = from_rom ? 0x40u : monster_palette ? 0x60u : 0x20u;
-    if ((!from_rom && !monster_palette && pc != 0x858ae0u) || opcode != 0xbdu || registers->e || !registers->mf ||
+    const bool row_palette = pc == 0x858b13u || pc == 0x858b37u;
+    const unsigned count = from_rom ? 0x40u : row_palette ? 0x60u : 0x20u;
+    if ((!from_rom && !row_palette && pc != 0x858ae0u) || opcode != 0xbdu || registers->e || !registers->mf ||
         registers->xf || registers->db != (from_rom ? 0x97u : 0x7eu) || registers->x >= count ||
         registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
         BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 17u)
@@ -532,12 +532,13 @@ static int Lufia2DecompRunBattlePalettePortCopy(Interp816 *registers, CpuState *
 
     const unsigned length = from_rom ? 12u : 13u;
     const char *signature = from_rom ? "\xf8\xcc\x8d\x80\x21\xe8\xe0\x40\x00\xd0\xf4" :
-        monster_palette ? "\x20\x48\x8f\x80\x21\x00\xe8\xe0\x60\x00\xd0\xf3" :
+        row_palette ? "\x20\x48\x8f\x80\x21\x00\xe8\xe0\x60\x00\xd0\xf3" :
         "\x00\x48\x8f\x80\x21\x00\xe8\xe0\x20\x00\xd0\xf3";
-    const uint32_t source = (from_rom ? 0x97ccf8u : monster_palette ? 0x7e4820u : 0x7e4800u) + registers->x;
+    const uint32_t source = (from_rom ? 0x97ccf8u : row_palette ? 0x7e4820u : 0x7e4800u) + registers->x;
     unsigned offset;
     const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
-    if (!cart || memcmp(cart->rom + offset + 1u, signature, length - 1u) ||
+    if (!cart || !Lufia2DecompFrameRangeQuiet(pc, pc + length) ||
+        memcmp(cart->rom + offset + 1u, signature, length - 1u) ||
         (from_rom && !Lufia2DecompIsLoRomDataByte(cart, source)))
         return 0;
 
