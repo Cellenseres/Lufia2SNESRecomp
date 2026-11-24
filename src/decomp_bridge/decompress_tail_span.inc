@@ -4,6 +4,11 @@ static bool Lufia2DecompIsDecompressSourceByte(const Cart *cart, uint32_t addres
     return (address & 0x8000u) != 0u && offset < cart->romSize;
 }
 
+#if defined(_MSC_VER)
+__declspec(noinline)
+#elif defined(__GNUC__)
+__attribute__((noinline))
+#endif
 static int Lufia2DecompRunDecompressTail(Interp816 *registers, CpuState *cpu,
     uint32_t pc, uint8_t opcode, uint64_t dynamic_epoch, uint64_t write_epoch,
     unsigned step_budget, long *step_count) {
