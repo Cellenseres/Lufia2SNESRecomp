@@ -8,7 +8,8 @@ static bool Lufia2DecompIsInventorySpritePc(uint32_t pc) {
         (pc >= 0x83a9bau && pc <= 0x83a9cfu) || (pc >= 0x83a9e5u && pc <= 0x83aa2fu) ||
         (pc >= 0x83aa50u && pc <= 0x83aaaeu) || (pc >= 0x83abe9u && pc <= 0x83abf3u) ||
         (pc >= 0x83aae5u && pc <= 0x83ab4eu) || (pc >= 0x83fcd1u && pc <= 0x83fd0au) ||
-        (pc >= 0x848193u && pc <= 0x848203u);
+        (pc >= 0x848193u && pc <= 0x848203u) ||
+        (pc >= 0x83a4a2u && pc <= 0x83a533u) || (pc >= 0x83a669u && pc <= 0x83a685u);
 }
 
 #if defined(_MSC_VER)
@@ -804,6 +805,9 @@ static int Lufia2DecompRunInventorySpriteSpan(Interp816 *registers, CpuState *cp
     if ((pc >> 16) == 0x82u)
         return Lufia2DecompRunMenuEquipmentSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
                                                 step_budget, step_count);
+    if (pc >= 0x83a4a2u && pc <= 0x83a685u)
+        return Lufia2DecompRunFieldOamPairSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
+            step_budget, step_count);
     if ((pc >> 16) == 0x84u)
         return Lufia2DecompRunSpriteDmaSetupSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
             step_budget, step_count);
