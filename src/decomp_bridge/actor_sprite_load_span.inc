@@ -5,7 +5,8 @@ __attribute__((noinline))
 #endif
 static bool Lufia2DecompIsInventorySpritePc(uint32_t pc) {
     return (pc >= 0x82bd48u && pc <= 0x82be03u) ||
-        (pc >= 0x83a9bau && pc <= 0x83a9cfu) || (pc >= 0x83a9e5u && pc <= 0x83aa2fu);
+        (pc >= 0x83a9bau && pc <= 0x83a9cfu) || (pc >= 0x83a9e5u && pc <= 0x83aa2fu) ||
+        (pc >= 0x83aa50u && pc <= 0x83aaaeu) || (pc >= 0x83abe9u && pc <= 0x83abf3u);
 }
 
 #if defined(_MSC_VER)
@@ -801,6 +802,9 @@ static int Lufia2DecompRunInventorySpriteSpan(Interp816 *registers, CpuState *cp
     if ((pc >> 16) == 0x82u)
         return Lufia2DecompRunMenuEquipmentSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
                                                 step_budget, step_count);
+    if (pc >= 0x83aa50u)
+        return Lufia2DecompRunActorSpriteAllocateSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
+            step_budget, step_count);
     if (pc < 0x83a9e5u)
         return Lufia2DecompRunActorLoadSprite(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
                                               step_budget, step_count);
