@@ -1037,6 +1037,8 @@ static int Lufia2DecompRunMenuTileIteration(Interp816 *registers, CpuState *cpu,
     };
     unsigned offset;
     const unsigned length = (store_tile ? word_length : 0u) + 5u;
+    if (!Lufia2DecompFrameRangeQuiet(pc + 1u, pc + length))
+        return 0;
     const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
     if (!cart || memcmp(cart->rom + offset + 1u, signatures[front_layer][store_tile], length - 1u))
         return 0;
@@ -1092,6 +1094,8 @@ static int Lufia2DecompRunMenuTileRow(Interp816 *registers, CpuState *cpu, uint3
 
     unsigned offset;
     const unsigned length = begin ? (front_layer ? 9u : 4u) : 12u;
+    if (!Lufia2DecompFrameRangeQuiet(pc + 1u, pc + length))
+        return 0;
     const Cart *cart = Lufia2DecompPlainRomOpcode(registers, pc, opcode, length, &offset);
     static const char *const signatures[2][2] = {
         {"\x54\x18\x69\x40\x00\x85\x54\xc6\x58\xd0\xe8", "\x56\xa6\x54"},
