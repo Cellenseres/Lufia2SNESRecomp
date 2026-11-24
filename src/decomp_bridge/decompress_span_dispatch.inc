@@ -9,6 +9,9 @@ static int Lufia2DecompRunDecompressSpan(Interp816 *registers, CpuState *cpu,
     if (pc == 0x808efau || pc == 0x808efcu || pc == 0x808f40u || pc == 0x808f42u)
         return Lufia2DecompRunDecompressTail(registers, cpu, pc, opcode,
             dynamic_epoch, write_epoch, step_budget, step_count);
+    if (pc >= 0x808f44u)
+        return Lufia2DecompRunDecompressReference(registers, cpu, pc, opcode,
+            dynamic_epoch, write_epoch, step_budget, step_count);
     return Lufia2DecompRunDecompressLiteral(registers, cpu, pc, opcode,
         dynamic_epoch, write_epoch, step_budget, step_count);
 }
