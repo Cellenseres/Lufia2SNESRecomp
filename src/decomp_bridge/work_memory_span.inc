@@ -321,9 +321,16 @@ __attribute__((noinline))
 static int Lufia2DecompRunWorkMemorySpan(Interp816 *registers, CpuState *cpu, uint32_t pc, uint8_t opcode,
                                          uint64_t dynamic_epoch, uint64_t write_epoch, unsigned step_budget,
                                          long *step_count) {
-    if (pc < 0x850000u)
+    if (pc < 0x850000u) {
+        if (pc < 0x83ab61u)
+            return Lufia2DecompRunActorRecordOffsets(registers, cpu, pc, opcode,
+                dynamic_epoch, write_epoch, step_budget, step_count);
         return Lufia2DecompRunSpriteAllocationReset(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
                                                     step_budget, step_count);
-    return Lufia2DecompRunMenuActionCopy(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, step_budget,
-                                         step_count);
+    }
+    if (pc < 0x860000u)
+        return Lufia2DecompRunMenuActionCopy(registers, cpu, pc, opcode, dynamic_epoch, write_epoch, step_budget,
+                                             step_count);
+    return Lufia2DecompRunSpriteSetAnimation(registers, cpu, pc, opcode,
+        dynamic_epoch, write_epoch, step_budget, step_count);
 }
