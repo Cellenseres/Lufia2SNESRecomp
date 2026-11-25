@@ -406,6 +406,14 @@ static bool Lufia2DecompDisplayTimedCall(uint32_t site, const Interp816 *registe
     case 0x858a64u: case 0x858a68u: case 0x858a6cu:
     case 0x858a70u: case 0x858a74u: case 0x858a7du:
         depth = 3; display_return = 0x8195abu; break;
+    case 0x858a96u: case 0x858a9au: case 0x858a9eu:
+    case 0x858aa2u: case 0x858aa6u: case 0x858aaau:
+        depth = 3; display_return = 0x819b8du; break;
+    case 0x858ba4u: case 0x858d08u: case 0x858db0u:
+        depth = 9; display_return = 0x819b8du; break;
+    case 0x858c18u: depth = 7; display_return = 0x819b8du; break;
+    case 0x81bd47u: case 0x81bdc8u: case 0x81be54u:
+        depth = 11; display_return = 0x819b8du; break;
     case 0x85ec8bu: depth = 3; display_return = 0x8195c1u; break;
     case 0x81b5c6u: depth = 5; display_return = 0x8195c1u; break;
     case 0x81b62fu: depth = 6; display_return = 0x8195c1u; break;
@@ -428,9 +436,48 @@ static bool Lufia2DecompDisplayTimedCall(uint32_t site, const Interp816 *registe
             return false;
     }
 
+    if (site == 0x858ba4u || site == 0x858d08u || site == 0x858db0u) {
+        const uint32_t render_return = site == 0x858ba4u ? 0x858aa1u :
+                                      site == 0x858d08u ? 0x858aadu : 0x858a80u;
+        const uint32_t render_caller = Lufia2DecompStackLongReturn(stack + 6u);
+        if (render_caller != render_return &&
+            !(site == 0x858ba4u && render_caller == 0x858a6fu))
+            return false;
+    } else if (site == 0x858c18u) {
+        const uint32_t render_caller = Lufia2DecompStackLongReturn(stack + 4u);
+        if (render_caller != 0x858aa5u && render_caller != 0x858a73u)
+            return false;
+    }
+
+    if (site == 0x81bd47u) {
+        const uint32_t render_caller = Lufia2DecompStackLongReturn(stack + 2u);
+        if (render_caller == 0x858ba7u) {
+            if (Lufia2DecompStackLongReturn(stack + 8u) != 0x858aa1u &&
+                Lufia2DecompStackLongReturn(stack + 8u) != 0x858a6fu)
+                return false;
+        } else if (render_caller == 0x858c1bu) {
+            if (Lufia2DecompStackLongReturn(stack + 6u) != 0x858aa5u &&
+                Lufia2DecompStackLongReturn(stack + 6u) != 0x858a73u)
+                return false;
+            depth = 9;
+        } else {
+            return false;
+        }
+    } else if (site == 0x81bdc8u &&
+               (Lufia2DecompStackLongReturn(stack + 2u) != 0x858d0bu ||
+                Lufia2DecompStackLongReturn(stack + 8u) != 0x858aadu)) {
+        return false;
+    }
+
+    if (site == 0x81be54u &&
+        (Lufia2DecompStackLongReturn(stack + 2u) != 0x858db3u ||
+         Lufia2DecompStackLongReturn(stack + 8u) != 0x858a80u))
+        return false;
+
     const uint32_t caller = Lufia2DecompStackLongReturn(stack + depth);
     if (display_return)
-        return caller == display_return;
+        return caller == display_return ||
+               (display_return == 0x8195abu && caller == 0x819b8du);
     return caller == 0x8195c1u || caller == 0x8195f5u ||
            caller == 0x819601u || caller == 0x819633u;
 }
