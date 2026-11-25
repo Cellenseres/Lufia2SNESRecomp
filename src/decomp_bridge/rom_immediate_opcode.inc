@@ -448,6 +448,7 @@ static bool Lufia2DecompMainMenuNeedsTimedCall(const Interp816 *registers) {
         switch (caller) {
         case 0x8eb014u: case 0x869b05u:
         case 0x8288e0u: case 0x828909u:
+        case 0x82950cu:
         case 0x828516u: case 0x828521u:
         case 0x82856au: case 0x828573u: case 0x828700u:
             return true;
@@ -470,7 +471,7 @@ static bool Lufia2DecompMainMenuNeedsTimedCall(const Interp816 *registers) {
 
 static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
                                       const Interp816 *registers) {
-    if (site == 0x82ce8au || (site >= 0x82810eu && site <= 0x8281e5u) ||
+    if (site == 0x829509u || site == 0x82ce8au || (site >= 0x82810eu && site <= 0x8281e5u) ||
         (site >= 0x8284d5u && site <= 0x828578u) ||
         (site >= 0x8286c4u && site <= 0x828703u) ||
         (site >= 0x8288cbu && site <= 0x82891du))
