@@ -25,8 +25,9 @@ static const uint8_t kLimitedFields[] = {
 
 static void LimitWord(CpuState *cpu, uint8_t bank, uint16_t address) {
     const uint16_t high = (uint16_t)(address + 1u);
-    const uint16_t value = (uint16_t)(cpu_read8(cpu, bank, address) |
-                                      cpu_read8(cpu, bank, high) << 8);
+    const uint16_t low_byte = cpu_read8(cpu, bank, address);
+    const uint16_t high_byte = cpu_read8(cpu, bank, high);
+    const uint16_t value = (uint16_t)((high_byte << 8) | low_byte);
     if (value <= STAT_LIMIT)
         return;
     cpu_write8(cpu, bank, address, (uint8_t)(STAT_LIMIT & 0xff));

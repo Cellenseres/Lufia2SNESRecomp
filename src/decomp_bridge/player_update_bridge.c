@@ -36,9 +36,9 @@ static uint32_t Lufia2BridgePeekRtsTarget(CpuState *cpu) {
         return_minus_one = (uint16_t)(
             cpu->ram[pcl_offset] | ((uint16_t)cpu->ram[pch_offset] << 8));
     } else {
-        return_minus_one = (uint16_t)(
-            cpu_read8(cpu, 0x00, pcl_address) |
-            ((uint16_t)cpu_read8(cpu, 0x00, pch_address) << 8));
+        const uint16_t pcl = cpu_read8(cpu, 0x00, pcl_address);
+        const uint16_t pch = cpu_read8(cpu, 0x00, pch_address);
+        return_minus_one = (uint16_t)((pch << 8) | pcl);
     }
     return ((uint32_t)cpu->PB << 16) |
            (uint16_t)(return_minus_one + 1);
