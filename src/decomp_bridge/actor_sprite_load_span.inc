@@ -19,6 +19,7 @@ static bool Lufia2DecompIsInventorySpritePc(uint32_t pc) {
             (pc >= 0x82889cu && pc <= 0x82891du) || (pc >= 0x82fc3fu && pc <= 0x82fc7cu) ||
             (pc >= 0x82ce52u && pc <= 0x82cf71u) || (pc >= 0x8294c0u && pc <= 0x82950du);
     case 0x83u:
+        if (pc == 0x83057du || pc == 0x830580u) return true;
         if (pc >= 0x83aeedu && pc <= 0x83af53u) return true;
         return (pc >= 0x83a295u && pc <= 0x83a29au) || (pc >= 0x83a2a2u && pc <= 0x83a318u) || (pc >= 0x83a9bau && pc <= 0x83a9cfu) || (pc >= 0x83a9e5u && pc <= 0x83aa2fu) ||
             (pc >= 0x83aa50u && pc <= 0x83aaaeu) || (pc >= 0x83abe9u && pc <= 0x83abf3u) ||
@@ -33,7 +34,7 @@ static bool Lufia2DecompIsInventorySpritePc(uint32_t pc) {
             (pc >= 0x858a83u && pc <= 0x858a94u) ||
             (pc >= 0x858a9eu && pc <= 0x858aaeu) || (pc >= 0x858c18u && pc <= 0x858c1bu) ||
             (pc >= 0x858c1eu && pc <= 0x858c21u) || (pc >= 0x85972eu && pc <= 0x8597d0u);
-    case 0x86u: return (pc >= 0x868cdau && pc <= 0x868cf4u) || (pc >= 0x868f6fu && pc <= 0x868ff5u);
+    case 0x86u: return pc == 0x86057du || pc == 0x860580u || (pc >= 0x868cdau && pc <= 0x868cf4u) || (pc >= 0x868f6fu && pc <= 0x868ff5u);
     case 0x8eu: return pc >= 0x8eba81u && pc <= 0x8ebae6u;
     default: return false;
     }
@@ -829,6 +830,9 @@ __attribute__((noinline))
 static int Lufia2DecompRunInventorySpriteSpan(Interp816 *registers, CpuState *cpu, uint32_t pc,
                                               uint8_t opcode, uint64_t dynamic_epoch, uint64_t write_epoch,
                                               unsigned step_budget, long *step_count) {
+    if (pc == 0x83057du || pc == 0x830580u || pc == 0x86057du || pc == 0x860580u)
+        return Lufia2DecompRunRamTransferSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
+            step_budget, step_count);
     if (pc >= 0x82810eu && pc <= 0x8281e5u)
         return Lufia2DecompRunMenuWindowParentSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
             step_budget, step_count);
