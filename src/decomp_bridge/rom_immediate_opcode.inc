@@ -445,15 +445,35 @@ static bool Lufia2DecompMainMenuNeedsTimedCall(const Interp816 *registers) {
 
     for (unsigned slot = registers->sp + 1u; slot <= 0x1ffdu; ++slot) {
         const uint32_t caller = Lufia2DecompStackLongReturn(cpu->ram + slot);
-        if (caller == 0x8eb014u || caller == 0x869b05u)
+        switch (caller) {
+        case 0x8eb014u: case 0x869b05u:
+        case 0x8288e0u: case 0x828909u:
+        case 0x828516u: case 0x828521u:
+        case 0x82856au: case 0x828573u: case 0x828700u:
             return true;
+        default:
+            break;
+        }
+        /* Attribute calls keep a saved index between the two near returns. */
+        if (slot <= 0x1ffau) {
+            const uint8_t *frame = cpu->ram + slot;
+            const unsigned attribute_return = frame[0] | (unsigned)frame[1] << 8;
+            const unsigned row_return = frame[4] | (unsigned)frame[5] << 8;
+            if ((attribute_return == 0x850bu && row_return == 0x84e3u) ||
+                (attribute_return == 0x8561u &&
+                 (row_return == 0x8532u || row_return == 0x853bu)))
+                return true;
+        }
     }
     return false;
 }
 
 static bool Lufia2DecompNeedsTimedCall(uint32_t site, uint32_t target,
                                       const Interp816 *registers) {
-    if (site >= 0x82810eu && site <= 0x8281e5u)
+    if ((site >= 0x82810eu && site <= 0x8281e5u) ||
+        (site >= 0x8284d5u && site <= 0x828578u) ||
+        (site >= 0x8286c4u && site <= 0x828703u) ||
+        (site >= 0x8288cbu && site <= 0x82891du))
         return true;
 
     if (target == 0x81e63au || target == 0x81e645u || target == 0x81e835u)
