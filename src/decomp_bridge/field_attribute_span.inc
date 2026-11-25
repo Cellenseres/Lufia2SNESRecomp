@@ -3,7 +3,8 @@ static int FieldAttributeLookup(Interp816 *registers, CpuState *cpu, uint32_t pc
     if (pc != 0x80edeau || opcode != 0x5au || registers->e || !registers->mf || registers->xf ||
         registers->dp || registers->x == 0xffffu || registers->sp < 0x1f02u || registers->sp > 0x1fffu ||
         registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
-        !cpu->ram || BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 35u)
+        !cpu->ram || BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 35u ||
+        !Lufia2DecompFrameRangeQuiet(pc + 1u, 0x80edffu))
         return 0;
 
     unsigned offset;
@@ -82,7 +83,8 @@ static int FieldAttributeClass(Interp816 *registers, CpuState *cpu, uint32_t pc,
     if ((!high_class_bits && pc != 0x80ee05u) || opcode != (high_class_bits ? 0xa9u : 0xc9u) ||
         registers->e || !registers->mf || registers->dp || registers->waiting || registers->stopped ||
         registers->irqWanted || registers->nmiWanted ||
-        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (high_class_bits ? 8u : 17u))
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (high_class_bits ? 8u : 17u) ||
+        !Lufia2DecompFrameRangeQuiet(pc + 1u, high_class_bits ? 0x80ee05u : 0x80ee17u))
         return 0;
 
     unsigned offset;
@@ -163,7 +165,8 @@ static int FieldAttributeWrite(Interp816 *registers, CpuState *cpu, uint32_t pc,
     if ((!restore_cursor && pc != 0x80ee18u) || opcode != (restore_cursor ? 0x7au : 0xbfu) || registers->e || !registers->mf || registers->xf ||
         registers->dp || registers->db != 0x7eu || registers->x == 0xffffu ||
         registers->waiting || registers->stopped || registers->irqWanted || registers->nmiWanted ||
-        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (restore_cursor ? 39u : 34u))
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < (restore_cursor ? 39u : 34u) ||
+        !Lufia2DecompFrameRangeQuiet(pc + 1u, 0x80ee2cu))
         return 0;
 
     if (restore_cursor && (!cpu->ram || registers->sp < 0x1f00u || registers->sp > 0x1ffdu))
@@ -248,7 +251,8 @@ static int FieldAttributeCount(Interp816 *registers, CpuState *cpu, uint32_t pc,
     if (pc != 0x80ee2cu || opcode != 0xc6u || registers->e || !registers->mf ||
         registers->dp || registers->waiting || registers->stopped ||
         registers->irqWanted || registers->nmiWanted ||
-        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 8u)
+        BufferSpanCycleBudget(cpu, s_lle_master_deadline) < 8u ||
+        !Lufia2DecompFrameRangeQuiet(pc + 1u, 0x80ee30u))
         return 0;
 
     unsigned offset;
