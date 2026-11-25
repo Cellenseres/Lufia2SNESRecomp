@@ -6,10 +6,11 @@ __attribute__((noinline))
 static bool Lufia2DecompIsInventorySpritePc(uint32_t pc) {
     switch (pc >> 16) {
     case 0x80u:
+        if (pc == 0x808bb1u) return true;
         return (pc >= 0x808cfcu && pc <= 0x808d03u) || (pc >= 0x808d1cu && pc <= 0x808d21u) ||
             (pc >= 0x808d2bu && pc <= 0x808d5cu) || (pc >= 0x808d91u && pc <= 0x808dafu) ||
             (pc >= 0x808af7u && pc <= 0x808b08u);
-    case 0x81u: return (pc >= 0x819af7u && pc <= 0x81a039u) || (pc >= 0x81e63au && pc <= 0x81e73au) ||
+    case 0x81u: return (pc >= 0x819af7u && pc <= 0x81a039u) || (pc >= 0x81e5c1u && pc <= 0x81e73au) ||
             (pc >= 0x81e835u && pc <= 0x81e871u);
     case 0x82u: return (pc >= 0x82831au && pc <= 0x828344u) || (pc >= 0x82895bu && pc <= 0x82897cu) ||
             (pc >= 0x82810eu && pc <= 0x8281e5u) || (pc >= 0x82bd48u && pc <= 0x82be03u) ||
@@ -855,12 +856,19 @@ static int Lufia2DecompRunInventorySpriteSpan(Interp816 *registers, CpuState *cp
     if (pc >= 0x808af7u && pc <= 0x808b08u)
         return Lufia2DecompRunMenuPointerSummarySpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
             step_budget, step_count);
-    if ((pc >> 16) == 0x80u)
+    if ((pc >> 16) == 0x80u) {
+        if (pc == 0x808bb1u)
+            return Lufia2DecompRunGaugeReturnSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
+                step_budget, step_count);
         return Lufia2DecompRunMenuVmControlSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
             step_budget, step_count);
+    }
     if ((pc >> 16) == 0x81u) {
         if (pc >= 0x81e835u && pc <= 0x81e871u)
             return Lufia2DecompRunBattleGlyphSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
+                step_budget, step_count);
+        if (pc >= 0x81e5c1u && pc <= 0x81e639u)
+            return Lufia2DecompRunGaugeReturnSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
                 step_budget, step_count);
         if (pc >= 0x81e63au && pc <= 0x81e73au)
             return Lufia2DecompRunBattlePartyStatusSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
