@@ -12,7 +12,8 @@ static bool Lufia2DecompIsInventorySpritePc(uint32_t pc) {
             (pc >= 0x81e835u && pc <= 0x81e871u);
     case 0x82u: return (pc >= 0x82810eu && pc <= 0x8281e5u) || (pc >= 0x82bd48u && pc <= 0x82be03u) ||
             (pc >= 0x8284d5u && pc <= 0x828578u) || (pc >= 0x8286c4u && pc <= 0x828703u) ||
-            (pc >= 0x8288cbu && pc <= 0x82891du) || (pc >= 0x82fc3fu && pc <= 0x82fc7cu);
+            (pc >= 0x8288cbu && pc <= 0x82891du) || (pc >= 0x82fc3fu && pc <= 0x82fc7cu) ||
+            (pc >= 0x82ce52u && pc <= 0x82cf71u);
     case 0x83u:
         return (pc >= 0x83a295u && pc <= 0x83a29au) || (pc >= 0x83a2a2u && pc <= 0x83a318u) || (pc >= 0x83a9bau && pc <= 0x83a9cfu) || (pc >= 0x83a9e5u && pc <= 0x83aa2fu) ||
             (pc >= 0x83aa50u && pc <= 0x83aaaeu) || (pc >= 0x83abe9u && pc <= 0x83abf3u) ||
@@ -827,6 +828,9 @@ static int Lufia2DecompRunInventorySpriteSpan(Interp816 *registers, CpuState *cp
         return Lufia2DecompRunMenuWindowParentSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
             step_budget, step_count);
     if ((pc >> 16) == 0x82u) {
+        if (pc >= 0x82ce52u && pc <= 0x82cf71u)
+            return Lufia2DecompRunCapsuleExperienceSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
+                step_budget, step_count);
         if (pc >= 0x8288cbu && pc <= 0x82891du)
             return Lufia2DecompRunMenuItemPositionSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
                 step_budget, step_count);
