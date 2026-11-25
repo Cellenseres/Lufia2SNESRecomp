@@ -15,7 +15,10 @@ static bool Lufia2DecompIsInventorySpritePc(uint32_t pc) {
             (pc >= 0x808af7u && pc <= 0x808b08u);
     case 0x81u: return (pc >= 0x819af7u && pc <= 0x81a039u) || (pc >= 0x81e5c1u && pc <= 0x81e73au) ||
             (pc >= 0x81e835u && pc <= 0x81e871u);
-    case 0x82u: return (pc >= 0x82831au && pc <= 0x828344u) || (pc >= 0x82895bu && pc <= 0x82897cu) ||
+    case 0x82u: return (pc >= 0x828028u && pc <= 0x828068u) || (pc >= 0x828704u && pc <= 0x82889bu) ||
+            (pc >= 0x82898du && pc <= 0x828a74u) || (pc >= 0x828a9du && pc <= 0x828aa5u) ||
+            (pc >= 0x8293cfu && pc <= 0x829448u) || (pc >= 0x829971u && pc <= 0x8299f2u) ||
+            (pc >= 0x82831au && pc <= 0x828344u) || (pc >= 0x82895bu && pc <= 0x82897cu) ||
             (pc >= 0x82810eu && pc <= 0x8281e5u) || (pc >= 0x82bd48u && pc <= 0x82be03u) ||
             (pc >= 0x8284d5u && pc <= 0x828578u) || (pc >= 0x8286c4u && pc <= 0x828703u) ||
             (pc >= 0x82889cu && pc <= 0x82891du) || (pc >= 0x82fc3fu && pc <= 0x82fc7cu) ||
@@ -839,6 +842,15 @@ static int Lufia2DecompRunInventorySpriteSpan(Interp816 *registers, CpuState *cp
         return Lufia2DecompRunMenuWindowParentSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
             step_budget, step_count);
     if ((pc >> 16) == 0x82u) {
+        if (pc >= 0x828028u && pc <= 0x828068u)
+            return Lufia2DecompRunMenuInlineVideoSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
+                step_budget, step_count);
+        if ((pc >= 0x828704u && pc <= 0x82889bu) || (pc >= 0x82898du && pc <= 0x828aa5u))
+            return Lufia2DecompRunMenuCursorParentSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
+                step_budget, step_count);
+        if ((pc >= 0x8293cfu && pc <= 0x829448u) || (pc >= 0x829971u && pc <= 0x8299f2u))
+            return Lufia2DecompRunMenuPortraitSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
+                step_budget, step_count);
         if ((pc >= 0x82831au && pc <= 0x828344u) || (pc >= 0x82895bu && pc <= 0x82897cu))
             return Lufia2DecompRunMenuStyleBlockSpan(registers, cpu, pc, opcode, dynamic_epoch, write_epoch,
                 step_budget, step_count);
