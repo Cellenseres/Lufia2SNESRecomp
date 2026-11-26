@@ -2434,6 +2434,129 @@ static void InvalidateDerivedHostState(bool reset_rewind) {
     }
 }
 
+static struct {
+    FILE *inputs;
+    FILE *hashes;
+    unsigned segment;
+    uint64_t generation;
+    uint32_t run_buttons;
+    unsigned run_length;
+    unsigned frames;
+} s_recorder;
+
+static bool RecorderFlushRun(void) {
+    if (!s_recorder.run_length)
+        return true;
+    const bool ok = fprintf(s_recorder.inputs, "%u %x\n",
+        s_recorder.run_length, (unsigned)s_recorder.run_buttons) > 0;
+    s_recorder.run_length = 0;
+    return ok;
+}
+
+static void RecorderStop(const char *reason) {
+    if (!s_recorder.inputs)
+        return;
+    bool ok = RecorderFlushRun();
+    ok = fclose(s_recorder.inputs) == 0 && ok;
+    ok = fclose(s_recorder.hashes) == 0 && ok;
+    s_recorder.inputs = s_recorder.hashes = NULL;
+    fprintf(stderr, "[record] segment %03u closed after %u frames%s%s%s\n",
+        s_recorder.segment, s_recorder.frames,
+        ok ? "" : ", WRITE FAILED", reason ? ": " : "", reason ? reason : "");
+    if (reason)
+        Lufia2OverlayUiPush("Input recording stopped", 2400);
+}
+
+static bool RecorderWriteSram(const char *path) {
+    FILE *file = fopen(path, "wb");
+    if (!file)
+        return false;
+    const size_t size = g_sram_size > 0 ? (size_t)g_sram_size : 0u;
+    const bool written = fwrite(g_sram, 1, size, file) == size;
+    return fclose(file) == 0 && written;
+}
+
+static void RecorderStart(const char *directory) {
+    char path[1024];
+    FILE *probe;
+    /* Widescreen culls field actors differently and changes guest state. */
+    if (g_ws_active) {
+        fprintf(stderr, "[record] turn Widescreen off to record input\n");
+        Lufia2OverlayUiPush("Turn Widescreen off to record input", 4000);
+        return;
+    }
+    for (s_recorder.segment = 0; s_recorder.segment < 1000u;
+            ++s_recorder.segment) {
+        snprintf(path, sizeof path, "%s/seg%03u.srm",
+            directory, s_recorder.segment);
+        if (!(probe = fopen(path, "rb")))
+            break;
+        fclose(probe);
+    }
+    if (s_recorder.segment == 1000u || !RecorderWriteSram(path)) {
+        fprintf(stderr, "[record] cannot write %s; not recording\n", path);
+        return;
+    }
+    snprintf(path, sizeof path, "%s/seg%03u.txt",
+        directory, s_recorder.segment);
+    s_recorder.inputs = fopen(path, "w");
+    snprintf(path, sizeof path, "%s/seg%03u.wram",
+        directory, s_recorder.segment);
+    s_recorder.hashes = fopen(path, "wb");
+    if (!s_recorder.inputs || !s_recorder.hashes) {
+        if (s_recorder.inputs) fclose(s_recorder.inputs);
+        if (s_recorder.hashes) fclose(s_recorder.hashes);
+        s_recorder.inputs = s_recorder.hashes = NULL;
+        fprintf(stderr, "[record] cannot open segment files; not recording\n");
+        return;
+    }
+    s_recorder.generation = RtlStateGeneration();
+    fprintf(stderr, "[record] segment %03u started in %s\n",
+        s_recorder.segment, directory);
+}
+
+static void RecorderBeforeFrame(uint32_t input) {
+    if (!s_recorder.inputs)
+        return;
+    if (RtlStateGeneration() != s_recorder.generation) {
+        RecorderStop("state load, rewind or reset");
+        return;
+    }
+    if (g_ws_active) {
+        RecorderStop("widescreen turned on");
+        return;
+    }
+    if (s_recorder.run_length && input == s_recorder.run_buttons) {
+        ++s_recorder.run_length;
+        return;
+    }
+    if (!RecorderFlushRun()) {
+        RecorderStop("cannot write inputs");
+        return;
+    }
+    s_recorder.run_buttons = input;
+    s_recorder.run_length = 1;
+}
+
+static void RecorderAfterFrame(void) {
+    if (!s_recorder.inputs)
+        return;
+    uint64_t hash = UINT64_C(0xcbf29ce484222325);
+    for (size_t i = 0; i < sizeof g_ram; ++i)
+        hash = (hash ^ g_ram[i]) * UINT64_C(0x100000001b3);
+    uint8_t bytes[8];
+    for (unsigned i = 0; i < 8u; ++i)
+        bytes[i] = (uint8_t)(hash >> (8u * i));
+    if (fwrite(bytes, 1, sizeof bytes, s_recorder.hashes) != sizeof bytes) {
+        RecorderStop("cannot write WRAM hashes");
+        return;
+    }
+    if (++s_recorder.frames % 600u == 0u &&
+            (!RecorderFlushRun() || fflush(s_recorder.inputs) ||
+             fflush(s_recorder.hashes)))
+        RecorderStop("cannot flush recording");
+}
+
 static void ObserveStateGeneration(bool reset_rewind) {
     const uint64_t generation = RtlStateGeneration();
     if (generation == s_state_generation)
@@ -2815,6 +2938,11 @@ int main(int argc, char **argv) {
         }
     }
     s_state_generation = RtlStateGeneration();
+    {
+        const char *record_directory = getenv("SNESRECOMP_RECORD_INPUT");
+        if (record_directory && *record_directory)
+            RecorderStart(record_directory);
+    }
 
     fprintf(stderr,
         "[desktop] entering main loop\n"
@@ -2879,7 +3007,9 @@ int main(int argc, char **argv) {
             const uint32_t input = raw_input & ~s_input_release_mask;
 
             L2CaptureFrameBegin(input);
+            RecorderBeforeFrame(input);
             RtlRunFrame(input);
+            RecorderAfterFrame();
             if (timeline_paced)
                 CreditGuestFramePeriods(RtlLastFramePeriods());
             Lufia2MsuDriverFrame();
@@ -2938,6 +3068,7 @@ int main(int argc, char **argv) {
         }
     }
 
+    RecorderStop(NULL);
     fprintf(stderr,
         "[desktop] leaving main loop: frames=%u fail=%d\n",
         frame_counter, g_fail ? 1 : 0);
