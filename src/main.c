@@ -20,6 +20,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
+#if defined(_WIN32)
+#include <io.h>
+#else
+#include <unistd.h>
+#endif
 
 #include "desktop/sdl_compat.h"
 #include "snesrecomp_platform/frame_overscan.h"
@@ -2434,127 +2440,327 @@ static void InvalidateDerivedHostState(bool reset_rewind) {
     }
 }
 
+static bool s_msu_armed;
+
 static struct {
+    char directory[1024];
     FILE *inputs;
     FILE *hashes;
-    unsigned segment;
+    uint64_t movie_id;
+    uint64_t frames;
     uint64_t generation;
+    bool recording;
     uint32_t run_buttons;
     unsigned run_length;
-    unsigned frames;
-} s_recorder;
+} s_movie;
 
-static bool RecorderFlushRun(void) {
-    if (!s_recorder.run_length)
-        return true;
-    const bool ok = fprintf(s_recorder.inputs, "%u %x\n",
-        s_recorder.run_length, (unsigned)s_recorder.run_buttons) > 0;
-    s_recorder.run_length = 0;
-    return ok;
+enum {
+    kMovieFlushFrames = 600,
+    kMovieResumeFrames = 18000
+};
+
+static void MoviePath(char *path, size_t size, const char *name) {
+    snprintf(path, size, "%s/%s", s_movie.directory, name);
 }
 
-static void RecorderStop(const char *reason) {
-    if (!s_recorder.inputs)
-        return;
-    bool ok = RecorderFlushRun();
-    ok = fclose(s_recorder.inputs) == 0 && ok;
-    ok = fclose(s_recorder.hashes) == 0 && ok;
-    s_recorder.inputs = s_recorder.hashes = NULL;
-    fprintf(stderr, "[record] segment %03u closed after %u frames%s%s%s\n",
-        s_recorder.segment, s_recorder.frames,
-        ok ? "" : ", WRITE FAILED", reason ? ": " : "", reason ? reason : "");
-    if (reason)
-        Lufia2OverlayUiPush("Input recording stopped", 2400);
-}
-
-static bool RecorderWriteSram(const char *path) {
-    FILE *file = fopen(path, "wb");
-    if (!file)
+static bool MovieTruncateFile(FILE *file, uint64_t size) {
+    if (fflush(file) != 0)
         return false;
-    const size_t size = g_sram_size > 0 ? (size_t)g_sram_size : 0u;
-    const bool written = fwrite(g_sram, 1, size, file) == size;
-    return fclose(file) == 0 && written;
+#if defined(_WIN32)
+    const bool ok = _chsize_s(_fileno(file), (long long)size) == 0;
+#else
+    const bool ok = ftruncate(fileno(file), (off_t)size) == 0;
+#endif
+    return ok && fseek(file, 0, SEEK_END) == 0;
 }
 
-static void RecorderStart(const char *directory) {
-    char path[1024];
-    FILE *probe;
-    /* Widescreen culls field actors differently and changes guest state. */
-    if (g_ws_active) {
-        fprintf(stderr, "[record] turn Widescreen off to record input\n");
-        Lufia2OverlayUiPush("Turn Widescreen off to record input", 4000);
-        return;
-    }
-    for (s_recorder.segment = 0; s_recorder.segment < 1000u;
-            ++s_recorder.segment) {
-        snprintf(path, sizeof path, "%s/seg%03u.srm",
-            directory, s_recorder.segment);
-        if (!(probe = fopen(path, "rb")))
-            break;
-        fclose(probe);
-    }
-    if (s_recorder.segment == 1000u || !RecorderWriteSram(path)) {
-        fprintf(stderr, "[record] cannot write %s; not recording\n", path);
-        return;
-    }
-    snprintf(path, sizeof path, "%s/seg%03u.txt",
-        directory, s_recorder.segment);
-    s_recorder.inputs = fopen(path, "w");
-    snprintf(path, sizeof path, "%s/seg%03u.wram",
-        directory, s_recorder.segment);
-    s_recorder.hashes = fopen(path, "wb");
-    if (!s_recorder.inputs || !s_recorder.hashes) {
-        if (s_recorder.inputs) fclose(s_recorder.inputs);
-        if (s_recorder.hashes) fclose(s_recorder.hashes);
-        s_recorder.inputs = s_recorder.hashes = NULL;
-        fprintf(stderr, "[record] cannot open segment files; not recording\n");
-        return;
-    }
-    s_recorder.generation = RtlStateGeneration();
-    fprintf(stderr, "[record] segment %03u started in %s\n",
-        s_recorder.segment, directory);
-}
-
-static void RecorderBeforeFrame(uint32_t input) {
-    if (!s_recorder.inputs)
-        return;
-    if (RtlStateGeneration() != s_recorder.generation) {
-        RecorderStop("state load, rewind or reset");
-        return;
-    }
-    if (g_ws_active) {
-        RecorderStop("widescreen turned on");
-        return;
-    }
-    if (s_recorder.run_length && input == s_recorder.run_buttons) {
-        ++s_recorder.run_length;
-        return;
-    }
-    if (!RecorderFlushRun()) {
-        RecorderStop("cannot write inputs");
-        return;
-    }
-    s_recorder.run_buttons = input;
-    s_recorder.run_length = 1;
-}
-
-static void RecorderAfterFrame(void) {
-    if (!s_recorder.inputs)
-        return;
+static uint64_t MovieWramHash(void) {
     uint64_t hash = UINT64_C(0xcbf29ce484222325);
     for (size_t i = 0; i < sizeof g_ram; ++i)
         hash = (hash ^ g_ram[i]) * UINT64_C(0x100000001b3);
+    return hash;
+}
+
+static void MovieUpdateMark(void) {
+    const Lufia2MovieMark mark = {
+        s_movie.recording ? s_movie.movie_id : 0u,
+        s_movie.recording ? s_movie.frames : 0u
+    };
+    Lufia2SetMovieMark(mark);
+}
+
+static bool MovieFlushRun(void) {
+    if (!s_movie.run_length)
+        return true;
+    const bool ok = fprintf(s_movie.inputs, "%u %x\n",
+        s_movie.run_length, (unsigned)s_movie.run_buttons) > 0;
+    s_movie.run_length = 0;
+    return ok;
+}
+
+static bool MovieFlush(void) {
+    bool ok = MovieFlushRun();
+    ok = fflush(s_movie.inputs) == 0 && ok;
+    return fflush(s_movie.hashes) == 0 && ok;
+}
+
+static void MoviePause(const char *reason) {
+    if (!s_movie.recording)
+        return;
+    if (!MovieFlush())
+        reason = "cannot write the recording";
+    s_movie.recording = false;
+    MovieUpdateMark();
+    fprintf(stderr, "[record] paused at frame %llu: %s\n",
+        (unsigned long long)s_movie.frames, reason);
+    Lufia2OverlayUiPush("Input recording paused", 2400);
+}
+
+static bool MovieReadHash(uint64_t frame, uint64_t *hash) {
+    uint8_t bytes[8];
+    if (fflush(s_movie.hashes) != 0 ||
+        fseek(s_movie.hashes, (long)((frame - 1u) * 8u), SEEK_SET) != 0 ||
+        fread(bytes, 1, sizeof bytes, s_movie.hashes) != sizeof bytes ||
+        fseek(s_movie.hashes, 0, SEEK_END) != 0)
+        return false;
+    *hash = 0;
+    for (unsigned i = 0; i < 8u; ++i)
+        *hash |= (uint64_t)bytes[i] << (8u * i);
+    return true;
+}
+
+static bool MovieTruncate(uint64_t frame) {
+    char line[64];
+    uint64_t start = 0;
+    long offset;
+    unsigned length = 0, buttons = 0;
+    bool partial_run = false;
+    if (!MovieFlushRun() || fflush(s_movie.inputs) != 0 ||
+        fseek(s_movie.inputs, 0, SEEK_SET) != 0)
+        return false;
+    for (;;) {
+        offset = ftell(s_movie.inputs);
+        if (start == frame)
+            break;
+        if (!fgets(line, sizeof line, s_movie.inputs) || !strchr(line, '\n') ||
+            sscanf(line, "%u %x", &length, &buttons) != 2 || !length)
+            return false;
+        if (start + length >= frame) {
+            partial_run = true;
+            break;
+        }
+        start += length;
+    }
+    if (offset < 0 ||
+        !MovieTruncateFile(s_movie.inputs, (uint64_t)offset) ||
+        !MovieTruncateFile(s_movie.hashes, frame * 8u))
+        return false;
+    s_movie.run_buttons = buttons;
+    s_movie.run_length = partial_run ? (unsigned)(frame - start) : 0u;
+    s_movie.frames = frame;
+    return true;
+}
+
+static void MovieWriteResume(void) {
+    char path[1100], temporary[1100];
+    if (!s_movie.recording || !MovieFlush())
+        return;
+    MoviePath(path, sizeof path, "resume.sav");
+    MoviePath(temporary, sizeof temporary, "resume.sav.tmp");
+    if (!RtlSaveSnapshot(temporary)) {
+        fprintf(stderr, "[record] cannot write %s\n", temporary);
+        return;
+    }
+    remove(path);
+    if (rename(temporary, path) != 0)
+        fprintf(stderr, "[record] cannot replace %s\n", path);
+}
+
+static void MovieStateLoaded(void) {
+    const Lufia2MovieMark mark = Lufia2LoadedMovieMark();
+    uint64_t expected;
+    const bool ours = mark.movie_id == s_movie.movie_id &&
+        mark.frame > 0u && mark.frame <= s_movie.frames &&
+        MovieReadHash(mark.frame, &expected) && expected == MovieWramHash();
+    if (!ours) {
+        if (s_movie.recording)
+            MoviePause("state is not part of this recording");
+        else
+            Lufia2OverlayUiPush("State is not part of the input recording", 2400);
+        return;
+    }
+    const bool was_recording = s_movie.recording;
+    s_movie.recording = false;
+    if (!MovieTruncate(mark.frame)) {
+        fprintf(stderr, "[record] cannot rewind the recording to frame %llu\n",
+            (unsigned long long)mark.frame);
+        Lufia2OverlayUiPush("Input recording paused", 2400);
+        MovieUpdateMark();
+        return;
+    }
+    s_movie.recording = true;
+    MovieUpdateMark();
+    fprintf(stderr, "[record] continuing at frame %llu\n",
+        (unsigned long long)mark.frame);
+    if (!was_recording)
+        Lufia2OverlayUiPush("Input recording continues", 2400);
+}
+
+static bool MovieCreate(void) {
+    char path[1100];
+    FILE *file;
+    if (g_ws_active) {
+        fprintf(stderr, "[record] turn Widescreen off to record input\n");
+        Lufia2OverlayUiPush("Turn Widescreen off to record input", 4000);
+        return false;
+    }
+    uint64_t seed = (uint64_t)time(NULL) ^ SDL_GetPerformanceCounter() ^
+        (uint64_t)(uintptr_t)&seed;
+    seed += UINT64_C(0x9e3779b97f4a7c15);
+    seed = (seed ^ (seed >> 30)) * UINT64_C(0xbf58476d1ce4e5b9);
+    seed = (seed ^ (seed >> 27)) * UINT64_C(0x94d049bb133111eb);
+    s_movie.movie_id = (seed ^ (seed >> 31)) | 1u;
+
+    MoviePath(path, sizeof path, "movie.srm");
+    if (!(file = fopen(path, "wb")))
+        return false;
+    const size_t size = g_sram_size > 0 ? (size_t)g_sram_size : 0u;
+    bool ok = fwrite(g_sram, 1, size, file) == size;
+    ok = fclose(file) == 0 && ok;
+    MoviePath(path, sizeof path, "movie.id");
+    if (!ok || !(file = fopen(path, "w")))
+        return false;
+    ok = fprintf(file, "%016llx\n", (unsigned long long)s_movie.movie_id) > 0;
+    ok = fclose(file) == 0 && ok;
+    MoviePath(path, sizeof path, "movie.txt");
+    s_movie.inputs = ok ? fopen(path, "w+b") : NULL;
+    MoviePath(path, sizeof path, "movie.wram");
+    s_movie.hashes = s_movie.inputs ? fopen(path, "w+b") : NULL;
+    if (!s_movie.hashes)
+        return false;
+    s_movie.recording = true;
+    MovieUpdateMark();
+    fprintf(stderr, "[record] new recording %016llx in %s\n",
+        (unsigned long long)s_movie.movie_id, s_movie.directory);
+    return true;
+}
+
+static bool MovieOpen(FILE *id_file) {
+    char path[1100];
+    unsigned long long movie_id = 0;
+    const bool read = fscanf(id_file, "%llx", &movie_id) == 1 && movie_id;
+    fclose(id_file);
+    if (!read)
+        return false;
+    s_movie.movie_id = movie_id;
+    MoviePath(path, sizeof path, "movie.txt");
+    s_movie.inputs = fopen(path, "r+b");
+    MoviePath(path, sizeof path, "movie.wram");
+    s_movie.hashes = s_movie.inputs ? fopen(path, "r+b") : NULL;
+    if (!s_movie.hashes || fseek(s_movie.hashes, 0, SEEK_END) != 0)
+        return false;
+    /* An unclean exit can leave one file ahead of the other. */
+    const uint64_t hashed_frames = (uint64_t)ftell(s_movie.hashes) / 8u;
+    if (!MovieTruncate(hashed_frames)) {
+        uint64_t logged_frames = 0;
+        unsigned length, buttons;
+        char line[64];
+        fseek(s_movie.inputs, 0, SEEK_SET);
+        while (fgets(line, sizeof line, s_movie.inputs) && strchr(line, '\n') &&
+               sscanf(line, "%u %x", &length, &buttons) == 2 && length)
+            logged_frames += length;
+        if (!MovieTruncate(logged_frames))
+            return false;
+    }
+    MovieUpdateMark();
+    fprintf(stderr, "[record] recording %016llx has %llu frames\n",
+        movie_id, (unsigned long long)s_movie.frames);
+
+    MoviePath(path, sizeof path, "resume.sav");
+    s_movie.generation = RtlStateGeneration();
+    if (!RtlLoadSnapshot(path)) {
+        fprintf(stderr, "[record] no usable %s\n", path);
+        Lufia2OverlayUiPush("Load a state from the input recording", 4000);
+    }
+    return true;
+}
+
+static void MovieStart(const char *directory) {
+    char path[1100];
+    /* The MSU driver changes APU RAM, which a replay does not reproduce. */
+    if (s_msu_armed) {
+        fprintf(stderr, "[record] turn MSU-1 off to record input\n");
+        Lufia2OverlayUiPush("Turn MSU-1 off to record input", 4000);
+        return;
+    }
+    snprintf(s_movie.directory, sizeof s_movie.directory, "%s", directory);
+    s_movie.generation = RtlStateGeneration();
+    MoviePath(path, sizeof path, "movie.id");
+    FILE *id_file = fopen(path, "r");
+    if (id_file ? MovieOpen(id_file) : MovieCreate())
+        return;
+    if (s_movie.inputs) fclose(s_movie.inputs);
+    if (s_movie.hashes) fclose(s_movie.hashes);
+    s_movie.inputs = s_movie.hashes = NULL;
+    s_movie.recording = false;
+    MovieUpdateMark();
+    fprintf(stderr, "[record] cannot use %s; not recording\n", directory);
+}
+
+static void MovieBeforeFrame(uint32_t input) {
+    if (!s_movie.inputs)
+        return;
+    if (RtlStateGeneration() != s_movie.generation) {
+        s_movie.generation = RtlStateGeneration();
+        MovieStateLoaded();
+    }
+    if (!s_movie.recording)
+        return;
+    if (g_ws_active) {
+        MoviePause("widescreen is on");
+        return;
+    }
+    if (s_movie.run_length && input == s_movie.run_buttons) {
+        ++s_movie.run_length;
+        return;
+    }
+    if (!MovieFlushRun()) {
+        MoviePause("cannot write inputs");
+        return;
+    }
+    s_movie.run_buttons = input;
+    s_movie.run_length = 1;
+}
+
+static void MovieAfterFrame(void) {
+    if (!s_movie.recording)
+        return;
+    const uint64_t hash = MovieWramHash();
     uint8_t bytes[8];
     for (unsigned i = 0; i < 8u; ++i)
         bytes[i] = (uint8_t)(hash >> (8u * i));
-    if (fwrite(bytes, 1, sizeof bytes, s_recorder.hashes) != sizeof bytes) {
-        RecorderStop("cannot write WRAM hashes");
+    if (fwrite(bytes, 1, sizeof bytes, s_movie.hashes) != sizeof bytes) {
+        MoviePause("cannot write WRAM hashes");
         return;
     }
-    if (++s_recorder.frames % 600u == 0u &&
-            (!RecorderFlushRun() || fflush(s_recorder.inputs) ||
-             fflush(s_recorder.hashes)))
-        RecorderStop("cannot flush recording");
+    ++s_movie.frames;
+    MovieUpdateMark();
+    if (s_movie.frames % kMovieResumeFrames == 0u)
+        MovieWriteResume();
+    else if (s_movie.frames % kMovieFlushFrames == 0u && !MovieFlush())
+        MoviePause("cannot write the recording");
+}
+
+static void MovieStop(void) {
+    if (!s_movie.inputs)
+        return;
+    MovieWriteResume();
+    bool ok = MovieFlushRun();
+    ok = fclose(s_movie.inputs) == 0 && ok;
+    ok = fclose(s_movie.hashes) == 0 && ok;
+    s_movie.inputs = s_movie.hashes = NULL;
+    fprintf(stderr, "[record] closed at frame %llu%s\n",
+        (unsigned long long)s_movie.frames, ok ? "" : ", WRITE FAILED");
 }
 
 static void ObserveStateGeneration(bool reset_rewind) {
@@ -2848,6 +3054,7 @@ int main(int argc, char **argv) {
             fprintf(stderr, "[msu] pack: none\n");
         fprintf(stderr, "[msu] runtime: %s; %s\n",
                 m->armed ? "enabled" : "inactive", m->reason);
+        s_msu_armed = m->armed;
         if (m->armed) {
             msu1_init();
             Lufia2MsuDriverInstall();
@@ -2941,7 +3148,7 @@ int main(int argc, char **argv) {
     {
         const char *record_directory = getenv("SNESRECOMP_RECORD_INPUT");
         if (record_directory && *record_directory)
-            RecorderStart(record_directory);
+            MovieStart(record_directory);
     }
 
     fprintf(stderr,
@@ -3007,9 +3214,9 @@ int main(int argc, char **argv) {
             const uint32_t input = raw_input & ~s_input_release_mask;
 
             L2CaptureFrameBegin(input);
-            RecorderBeforeFrame(input);
+            MovieBeforeFrame(input);
             RtlRunFrame(input);
-            RecorderAfterFrame();
+            MovieAfterFrame();
             if (timeline_paced)
                 CreditGuestFramePeriods(RtlLastFramePeriods());
             Lufia2MsuDriverFrame();
@@ -3068,7 +3275,7 @@ int main(int argc, char **argv) {
         }
     }
 
-    RecorderStop(NULL);
+    MovieStop();
     fprintf(stderr,
         "[desktop] leaving main loop: frames=%u fail=%d\n",
         frame_counter, g_fail ? 1 : 0);

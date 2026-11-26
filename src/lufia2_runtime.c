@@ -201,6 +201,45 @@ void Lufia2SetNmiVideoObserver(Lufia2NmiVideoObserver *observer) {
     s_nmi_video_observer = observer;
 }
 
+typedef struct Lufia2MovieMarkState {
+    uint32_t magic;
+    uint32_t version;
+    Lufia2MovieMark mark;
+} Lufia2MovieMarkState;
+
+_Static_assert(sizeof(Lufia2MovieMarkState) == 24u, "movie mark layout changed");
+
+enum { LUFIA2_MOVIE_MARK_MAGIC = 0x4c324d56u, LUFIA2_MOVIE_MARK_VERSION = 1u };
+
+static Lufia2MovieMark s_movie_mark;
+static Lufia2MovieMark s_loaded_movie_mark;
+
+void Lufia2SetMovieMark(Lufia2MovieMark mark) {
+    s_movie_mark = mark;
+}
+
+Lufia2MovieMark Lufia2LoadedMovieMark(void) {
+    return s_loaded_movie_mark;
+}
+
+static void Lufia2SaveMovieMark(SaveLoadInfo *sli) {
+    Lufia2MovieMarkState state = {
+        LUFIA2_MOVIE_MARK_MAGIC, LUFIA2_MOVIE_MARK_VERSION, s_movie_mark
+    };
+    sli->func(sli, &state, sizeof(state));
+}
+
+static void Lufia2LoadMovieMark(SaveLoadInfo *sli) {
+    Lufia2MovieMarkState state;
+    s_loaded_movie_mark = (Lufia2MovieMark){0};
+    if (!sli->peek || !sli->peek(sli, 0, &state, sizeof(state)) ||
+        state.magic != LUFIA2_MOVIE_MARK_MAGIC ||
+        state.version != LUFIA2_MOVIE_MARK_VERSION)
+        return;
+    sli->func(sli, &state, sizeof(state));
+    s_loaded_movie_mark = state.mark;
+}
+
 void Lufia2SaveExecutionState(SaveLoadInfo *sli) {
     RtlSaveExecutionState(sli);
     Lufia2MsuSaveState(sli);
@@ -211,6 +250,7 @@ void Lufia2SaveExecutionState(SaveLoadInfo *sli) {
     Lufia2ApuClockSaveState(sli);
 #endif
     Lufia2SavePpuPorts(sli);
+    Lufia2SaveMovieMark(sli);
 }
 
 void Lufia2LoadExecutionState(SaveLoadInfo *sli, uint32_t version) {
@@ -224,6 +264,7 @@ void Lufia2LoadExecutionState(SaveLoadInfo *sli, uint32_t version) {
     s_loaded_execution_valid = Lufia2ApuClockLoadState(sli) && s_loaded_execution_valid;
 #endif
     s_loaded_execution_valid = Lufia2LoadPpuPorts(sli) && s_loaded_execution_valid;
+    Lufia2LoadMovieMark(sli);
 }
 
 void Lufia2ApplyExecutionState(uint32_t version) {

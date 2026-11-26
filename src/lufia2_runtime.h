@@ -27,6 +27,16 @@ void Lufia2SaveExecutionState(struct SaveLoadInfo *sli);
 void Lufia2LoadExecutionState(struct SaveLoadInfo *sli, uint32_t version);
 void Lufia2ApplyExecutionState(uint32_t version);
 
+typedef struct Lufia2MovieMark {
+    uint64_t movie_id;
+    uint64_t frame;
+} Lufia2MovieMark;
+
+/* Stored in every snapshot; movie_id 0 means the state is not part of an
+ * input recording. */
+void Lufia2SetMovieMark(Lufia2MovieMark mark);
+Lufia2MovieMark Lufia2LoadedMovieMark(void);
+
 enum { LUFIA2_PPU_VISIBLE_LINES = 224 };
 
 /* Authoritative raster state captured immediately before each native visible
