@@ -14958,6 +14958,15 @@ RecompReturn Lufia2DecompBridge_8698DB(CpuState *cpu) {
         0, Lufia2WorldMapMovePlayerEast, 2u, BATTLE_BRIDGE_M1X0, 0, 0x86, 0);
 }
 
+RecompReturn Lufia2DecompBridge_869929(CpuState *cpu) {
+    if (cpu->PB != 0x86u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x869929u);
+    }
+    return ActorBridgeBattleEntry(cpu, 0x869929u,
+        Lufia2WorldMapRejectPlayerMove, 0, 2u, BATTLE_BRIDGE_M1X0, 0, 0x86, 0);
+}
+
 RecompReturn Lufia2DecompBridge_869F13(CpuState *cpu) {
     if (cpu->PB != 0x86u || cpu->S < 0x1f20u || cpu->S > 0x1ffcu) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);

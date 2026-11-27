@@ -187,6 +187,19 @@ int Lufia2WorldDisableDisplayAotBody(CpuState *cpu) {
     return 1;
 }
 
+int Lufia2WorldRejectMoveAotBody(CpuState *cpu) {
+    if (cpu->emulation || cpu->_flag_D || !cpu->m_flag || cpu->PB != 0x86u ||
+        LeafTracingEnabled())
+        return 0;
+    LeafBus bus = {0};
+    bus.host = cpu;
+    const Lufia2Memory memory = {LeafRead, LeafWrite, &bus, NULL, NULL};
+    Lufia2CpuState state = LeafLoad(cpu);
+    Lufia2WorldMapRejectPlayerMove(&memory, &state);
+    LeafStore(cpu, &state);
+    return 1;
+}
+
 int Lufia2WorldBlockPointerAotBody(CpuState *cpu) {
     if (cpu->emulation || cpu->_flag_D || cpu->m_flag || cpu->D ||
         cpu->PB != 0x86u || LeafTracingEnabled())

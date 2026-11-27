@@ -5311,6 +5311,10 @@ address = "86:98DB"
 bridge = "Lufia2DecompBridge_8698DB"
 
 [[binding]]
+address = "86:9929"
+bridge = "Lufia2DecompBridge_869929"
+
+[[binding]]
 address = "86:9F13"
 bridge = "Lufia2DecompBridge_869F13"
 

@@ -10,6 +10,7 @@ LEAVES = (
     (0x83, 0xa6df, 0xa71c, 'Lufia2ActorResetAotBody', (94, 91), 1),
     (0x86, 0xe709, 0xe71e, 'Lufia2WorldIndexAotBody', (34, 34), 1),
     (0x86, 0x973e, 0x9748, 'Lufia2WorldDisableDisplayAotBody', (17, 17), 1),
+    (0x86, 0x9929, 0x992b, 'Lufia2WorldRejectMoveAotBody', (8, 8), 1),
     (0x86, 0xae05, 0xae1e, 'Lufia2WorldBlockPointerAotBody', (46, 46), 0),
 )
 ARRIVALS = (
