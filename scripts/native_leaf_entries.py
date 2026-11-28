@@ -13,6 +13,14 @@ LEAVES = (
     (0x86, 0x9929, 0x992b, 'Lufia2WorldRejectMoveAotBody', (8, 8), 1),
     (0x86, 0xae05, 0xae1e, 'Lufia2WorldBlockPointerAotBody', (46, 46), 0),
 )
+SEGMENTED = (
+    (0x80, 0xa74d, 0xa794, 1, 0, (
+        (0xa751, 'Lufia2EventCellPrepareAotBody', 48, '    {\n      /* JSL return frame'),
+        (0xa76a, 'Lufia2EventCellMarkAotBody', 34, '    if (cpu->_flag_C == 0)'),
+        (0xa785, 'Lufia2EventCellScriptAotBody', 15, '    {\n      /* JSL return frame'),
+        (0xa78e, 'Lufia2EventCellFinishAotBody', 13, '    {\n      /* JSL return frame'),
+    )),
+)
 ARRIVALS = (
     (0x9ab1, 'Lufia2WorldMovingArrivalAotBody'),
     (0x9ab8, 'Lufia2WorldStoppedArrivalAotBody'),
@@ -33,6 +41,27 @@ def semantic_body(original, helper, cycles, index_width, accumulator_width):
             + f'    if (cpu->m_flag != {accumulator_width}u || cpu->x_flag != {index_width}u ||\n'
             + f'        !{helper}(cpu)) {{\n' + guarded + '\n    }\n'
             + returning + tail)
+
+
+def segmented_body(original, segments, accumulator_width, index_width):
+    for start, helper, cycles, boundary in segments:
+        label = re.search(rf'^  L_{start:04X}_M{accumulator_width}X{index_width}:\n', original, re.MULTILINE)
+        if not label:
+            raise ValueError(f'Missing original block {start:04X}')
+        charge = f'    cpu->master_cycles += {cycles} * (g_memsel ? 6 : 8);\n'
+        begin = original.find(charge, label.end())
+        end = original.find(boundary, begin)
+        following = original.find('\n  L_', label.end())
+        if begin < 0 or end < 0 or (following >= 0 and not begin < end < following):
+            raise ValueError(f'Original block {start:04X} changed')
+        begin += len(charge)
+        operations = original[begin:end]
+        if re.search(r'\bgoto\b|\breturn\b|\bcpu_dispatch\w*\s*\(', operations):
+            raise ValueError(f'Block {start:04X} acquired another control-flow boundary')
+        guarded = '\n'.join('  ' + line if line else line for line in operations.splitlines())
+        original = (original[:begin] + f'    extern int {helper}(CpuState *cpu);\n'
+                    + f'    if (!{helper}(cpu)) {{\n' + guarded + '\n    }\n' + original[end:])
+    return original
 
 
 def arrival_body(original, helper):
@@ -62,8 +91,8 @@ def prepare(rom_path, sdk, generated, output, arrival_boundaries=False):
     sys.path.insert(0, str(sdk / 'recompiler'))
     from v2.emit_function import emit_function
     output.mkdir(parents=True, exist_ok=True)
-    sources = {leaf[0]: (generated / f'bank{leaf[0]:02x}_v2.c').read_text(encoding='utf-8')
-               for leaf in LEAVES}
+    sources = {entry[0]: (generated / f'bank{entry[0]:02x}_v2.c').read_text(encoding='utf-8')
+               for entry in LEAVES + SEGMENTED}
     for bank, start, end, helper, cycles, accumulator_width in LEAVES:
         source = sources[bank]
         bridge = f'Lufia2DecompBridge_{bank:02X}{start:04X}'
@@ -80,6 +109,20 @@ def prepare(rom_path, sdk, generated, output, arrival_boundaries=False):
             source, count = re.subn(pattern, lambda match: wrapped, source)
             if count != 1:
                 raise ValueError(f'Ambiguous generated leaf {name}')
+        sources[bank] = source
+    for bank, start, end, accumulator_width, index_width, segments in SEGMENTED:
+        source = sources[bank]
+        name = f'bank_{bank:02X}_{start:04X}_M{accumulator_width}X{index_width}'
+        pattern = r'RecompReturn ' + name + r'\(CpuState \*cpu\) \{[\s\S]*?\n\}'
+        matches = list(re.finditer(pattern, source))
+        if len(matches) != 1 or f'Lufia2DecompBridge_{bank:02X}{start:04X}' not in matches[0][0]:
+            raise ValueError(f'Expected the selected decomp forwarding entry {name}')
+        original = emit_function(rom, bank, start, accumulator_width, index_width,
+                                 end=end, func_name=f'bank_{bank:02X}_{start:04X}')
+        wrapped = segmented_body(original, segments, accumulator_width, index_width)
+        source, count = re.subn(pattern, lambda match: wrapped, source)
+        if count != 1:
+            raise ValueError(f'Ambiguous generated entry {name}')
         sources[bank] = source
     if arrival_boundaries:
         source = sources[0x86]

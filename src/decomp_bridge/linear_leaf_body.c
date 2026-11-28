@@ -4,6 +4,7 @@
 #include "snes/interp_bridge.h"
 #include "snes/snes.h"
 #include "lufia2/actor.h"
+#include "lufia2/field.h"
 #include "lufia2/world_map.h"
 #include "patches/native_patches.h"
 #include <stddef.h>
@@ -307,3 +308,111 @@ uint32_t Lufia2WorldStoppedArrivalAotBody(CpuState *cpu) {
     return WorldArrivalAotBody(cpu, 0x869ab8u);
 }
 #endif
+
+typedef struct SegmentBus {
+    CpuState *host;
+    const Lufia2CpuState *state;
+    unsigned reads;
+    unsigned writes;
+    unsigned word_read;
+    unsigned word_write;
+    unsigned penalty_read;
+    unsigned high_pending;
+    uint32_t high_address;
+    uint8_t high_byte;
+    unsigned low_pending;
+    uint32_t pending_address;
+    uint8_t pending_byte;
+} SegmentBus;
+
+enum { SEGMENT_NONE = ~0u };
+
+static uint8_t SegmentRead(void *context, uint32_t address) {
+    SegmentBus *bus = context;
+    const unsigned index = bus->reads++;
+    if (bus->high_pending) {
+        bus->high_pending = 0;
+        if (address == bus->high_address)
+            return bus->high_byte;
+    }
+    if (index == bus->penalty_read) {
+        const uint32_t base = 0x0622u;
+        if ((base & 0xff00u) != ((base + bus->state->x) & 0xff00u)) {
+            ++bus->host->cycles;
+            bus->host->master_cycles += g_memsel ? 6u : 8u;
+        }
+    }
+    if (index == bus->word_read) {
+        const uint16_t value = cpu_read16(bus->host, (uint8_t)(address >> 16), (uint16_t)address);
+        bus->high_pending = 1;
+        bus->high_address = (address & 0xff0000u) | (uint16_t)(address + 1u);
+        bus->high_byte = (uint8_t)(value >> 8);
+        return (uint8_t)value;
+    }
+    return cpu_read8(bus->host, (uint8_t)(address >> 16), (uint16_t)address);
+}
+
+static void SegmentWrite(void *context, uint32_t address, uint8_t value) {
+    SegmentBus *bus = context;
+    const unsigned index = bus->writes++;
+    if (index == bus->word_write) {
+        bus->low_pending = 1;
+        bus->pending_address = address;
+        bus->pending_byte = value;
+        return;
+    }
+    if (bus->low_pending) {
+        bus->low_pending = 0;
+        /* Pushes store the high byte first. */
+        cpu_write16(bus->host, (uint8_t)(address >> 16), (uint16_t)address,
+            (uint16_t)(value | ((uint16_t)bus->pending_byte << 8)));
+        return;
+    }
+    cpu_write8(bus->host, (uint8_t)(address >> 16), (uint16_t)address, value);
+}
+
+static int EventCellSupported(const CpuState *cpu) {
+    return !cpu->emulation && !cpu->_flag_D && cpu->m_flag && !cpu->x_flag &&
+        cpu->PB == 0x80u && !cpu->D && !LeafTracingEnabled();
+}
+
+static int RunEventCellSegment(CpuState *cpu,
+    void (*segment)(const Lufia2Memory *, Lufia2CpuState *),
+    unsigned word_read, unsigned word_write, unsigned penalty_read) {
+    Lufia2CpuState state = LeafLoad(cpu);
+    SegmentBus bus = {0};
+    bus.host = cpu;
+    bus.state = &state;
+    bus.word_read = word_read;
+    bus.word_write = word_write;
+    bus.penalty_read = penalty_read;
+    const Lufia2Memory memory = {SegmentRead, SegmentWrite, &bus, NULL, NULL};
+    segment(&memory, &state);
+    LeafStore(cpu, &state);
+    return 1;
+}
+
+int Lufia2EventCellPrepareAotBody(CpuState *cpu) {
+    if (!EventCellSupported(cpu) || cpu->S < 0x0001u || cpu->S > 0x1fffu)
+        return 0;
+    return RunEventCellSegment(cpu, Lufia2EventMoveActorCellPrepare, 1u, 0u, SEGMENT_NONE);
+}
+
+int Lufia2EventCellMarkAotBody(CpuState *cpu) {
+    if (!EventCellSupported(cpu))
+        return 0;
+    return RunEventCellSegment(cpu, Lufia2EventMoveActorCellMark, 0u, SEGMENT_NONE, 3u);
+}
+
+int Lufia2EventCellScriptAotBody(CpuState *cpu) {
+    if (!EventCellSupported(cpu))
+        return 0;
+    return RunEventCellSegment(cpu, Lufia2EventMoveActorCellScript,
+        SEGMENT_NONE, SEGMENT_NONE, SEGMENT_NONE);
+}
+
+int Lufia2EventCellFinishAotBody(CpuState *cpu) {
+    if (!EventCellSupported(cpu) || cpu->S > 0x1ffdu)
+        return 0;
+    return RunEventCellSegment(cpu, Lufia2EventMoveActorCellFinish, 0u, SEGMENT_NONE, SEGMENT_NONE);
+}

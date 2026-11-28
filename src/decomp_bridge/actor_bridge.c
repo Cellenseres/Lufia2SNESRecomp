@@ -9204,6 +9204,14 @@ RecompReturn Lufia2DecompBridge_83B52E(CpuState *cpu) {
     return ActorBridgeSceneRecords(cpu, 0x83b52eu, Lufia2FieldResumeSceneSong, 2u);
 }
 
+RecompReturn Lufia2DecompBridge_80A74D(CpuState *cpu) {
+    if (cpu->PB != 0x80u) {
+        const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
+        return ActorBridgeFallback(cpu, &frame, 0x80a74du);
+    }
+    return ActorBridgeWholeM1X16(cpu, 0x80a74du, Lufia2EventMoveActorToCell, 3u);
+}
+
 RecompReturn Lufia2DecompBridge_80E898(CpuState *cpu) {
     if (cpu->PB != 0x80u || cpu->_flag_D || !cpu->m_flag) {
         const ActorBridgeFrame frame = ActorBridgeEnter(cpu);
